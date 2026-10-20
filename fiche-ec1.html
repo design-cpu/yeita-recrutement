@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fiche d'entretien candidat #1</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/yeita.css">
+<style>
+/* Fiche #1 : une feuille à remplir en dix minutes, puis les repères repliés en dessous. */
+:root{ padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px) }
+.sub-title{font-size:19px; font-weight:600; color:var(--ink-2)}
+.sheet{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:clamp(18px,3vw,30px); display:grid; gap:28px}
+.sheet > section{display:grid; gap:14px}
+.sheet h2{font-size:21px; display:flex; gap:12px; align-items:baseline}
+.sheet h2 .sn{font-family:var(--f-mono); font-size:14px; font-weight:500; color:var(--muted)}
+.sheet .hint{font-size:14.5px; color:var(--muted); max-width:70ch}
+.toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:16px}
+
+.from{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; background:var(--yellow-soft); border-radius:12px; padding:12px 14px}
+.from p{font-size:15px; flex:1 1 280px}
+.importer{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+.importer input[type=file]{font-size:14px; max-width:100%}
+.picker{display:grid; gap:10px}
+.picker .row{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.picker .row > span{font-size:14px; font-weight:650; color:var(--ink-2); min-width:92px}
+.vbtn{appearance:none; display:inline-flex; align-items:center; gap:7px; font-weight:600; font-size:14.5px; padding:7px 13px 7px 10px; border-radius:999px;
+  border:1.5px solid var(--vf); background:transparent; color:var(--vc); cursor:pointer; min-height:40px}
+.vbtn[aria-checked="true"]{background:var(--vt); box-shadow:inset 0 0 0 1.5px var(--vf)}
+.vbtn[aria-checked="true"]::after{content:"✓"; font-weight:700}
+.vbtn[disabled]{opacity:.35; cursor:not-allowed}
+.partial-t{appearance:none; border:1.5px dashed var(--line-strong); background:transparent; border-radius:999px; padding:7px 14px; font-weight:600; font-size:14.5px; color:var(--ink-2); cursor:pointer; min-height:40px}
+.partial-t[aria-pressed="true"]{border-style:solid; border-color:var(--ink); background:var(--surface-2); color:var(--ink)}
+.profile{border-radius:14px; background:var(--emph-bg); color:var(--emph-fg); padding:18px 20px; display:grid; gap:6px}
+.profile .pl{font-size:14px; font-weight:600; color:var(--emph-sub)}
+.profile .pn{font-size:clamp(26px,3.6vw,34px); font-weight:700; line-height:1.05}
+.profile .pf{font-size:15.5px; max-width:64ch}
+.profile.empty{background:var(--surface-2); color:var(--ink-2)}
+.profile.empty .pl{color:var(--muted)}
+
+.vals{display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:14px}
+.vrow{display:grid; gap:8px; border-top:3px solid var(--vf); padding-top:10px}
+.vrow .vt{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.vrow .vt b{display:inline-flex; align-items:center; gap:7px; color:var(--vc); font-size:16.5px}
+.vrow q{font-size:14px; color:var(--muted); quotes:"« " " »"}
+
+.intern{border:1.5px dashed var(--line-strong); border-radius:14px; padding:18px 20px; display:grid; gap:14px}
+.intern .flag{font-size:14px; font-weight:650; color:var(--stop)}
+.radios{display:grid; gap:6px}
+.radios label{display:grid; grid-template-columns:22px minmax(0,1fr); gap:10px; align-items:center; padding:8px 12px; border-radius:10px; border:1.5px solid var(--line); cursor:pointer; min-height:44px; font-size:15px}
+.radios input{width:18px; height:18px; margin:0; accent-color:var(--violet)}
+.radios label:has(input:checked){border-color:var(--ink); background:var(--surface-2)}
+
+.code{font-family:var(--f-mono); font-size:13px; background:var(--surface-2); border-radius:10px; padding:10px 12px; word-break:break-all; color:var(--ink-2); min-height:44px}
+.outs{display:grid; gap:12px}
+
+/* Repères */
+.refs{margin-top:36px; display:grid; gap:12px}
+details.ref{border:1px solid var(--line); border-radius:var(--radius); background:var(--surface)}
+details.ref > summary{cursor:pointer; list-style:none; padding:15px 18px; font-weight:650; font-size:17px; display:flex; justify-content:space-between; gap:12px; align-items:center; min-height:48px}
+details.ref > summary::-webkit-details-marker{display:none}
+details.ref > summary::after{content:"Afficher"; font-weight:600; font-size:14px; color:var(--violet); flex:none}
+details.ref[open] > summary::after{content:"Masquer"}
+details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
+.vcols{display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:12px}
+.vcol{border-radius:12px; background:var(--vt); padding:14px 16px; display:grid; gap:10px; align-content:start}
+.vcol .vn{display:flex; align-items:center; gap:7px; font-weight:700; color:var(--vc); font-size:16.5px}
+.vcol ul{margin:0; padding:0; list-style:none; display:grid; gap:9px}
+.vcol li b{display:block; font-size:15px}
+.vcol li span{font-size:14px; color:var(--ink-2)}
+.vcol li small{display:block; font-family:var(--f-mono); font-size:12px; color:var(--ink-2); margin-top:2px}
+.profs{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:10px}
+.prof{border-radius:12px; border:1px solid var(--line); padding:12px 14px; display:grid; gap:4px}
+.prof .pc{display:flex; flex-wrap:wrap; gap:5px; align-items:center; font-size:13px}
+.prof .pc .vchip{font-size:12.5px; padding:2px 9px 2px 6px}
+.prof b{font-size:16px}
+.prof span{font-size:14px; color:var(--ink-2)}
+.shapes{display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:12px}
+.shape{border-radius:12px; background:var(--surface-2); padding:14px 16px; display:grid; gap:6px}
+.shape .ex{font-style:italic; color:var(--ink)}
+.shape p{font-size:14.5px; color:var(--ink-2)}
+.rules{margin:0; padding-left:20px; display:grid; gap:8px; color:var(--ink-2)}
+.rules b{color:var(--ink)}
+.axes{display:grid; gap:12px}
+.axe{border:1px solid var(--line); border-radius:12px; padding:14px 16px; display:grid; gap:8px}
+.axe .cols{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+@media (max-width:640px){ .axe .cols{grid-template-columns:1fr} }
+.axe ul{margin:0; padding-left:18px; font-size:14.5px; color:var(--ink-2); display:grid; gap:3px}
+.axe .g b{color:var(--go)} .axe .r b{color:var(--stop)}
+.elim{border-radius:12px; background:var(--stop-tint); padding:14px 16px}
+.elim b{color:var(--stop)}
+.elim ul{margin:6px 0 0; padding-left:18px; columns:2; column-gap:24px; font-size:14.5px}
+@media (max-width:640px){ .elim ul{columns:1} }
+.pitch{border-left:4px solid var(--yellow); padding:6px 0 6px 16px; font-size:18px; font-weight:500; max-width:64ch}
+</style>
+</head>
+<body>
+<div id="live" aria-live="polite"></div>
+<div class="wrap narrow">
+  <header class="topbar">
+    <a href="index.html#ec1" aria-label="Retour au hub Expérience collaborateur" style="padding:0" id="logo"></a>
+    <span class="where">EC1, Yeitigai &amp; Valeurs</span>
+    <nav aria-label="Supports de l'EC1">
+      <a href="index.html#ec1">Guide, étape 5</a>
+      <a href="yeitigai-decompte.html">Feuille de décompte</a>
+      <a href="fiche-passation.html">Fiche de passation</a>
+    </nav>
+  </header>
+
+  <div class="page-head">
+    <h1>Fiche d'entretien candidat #1</h1>
+    <p class="sub-title">Yeitigai &amp; Valeurs Yeita</p>
+    <p class="lede">Remplie par le recruteur juste après l'EC1, en dix minutes, à chaud. Deux sorties : le compte rendu pour Notion, et le code EC1 qui remplit la carte d'identité Yeita.</p>
+  </div>
+
+  <div class="toolbar">
+    <button type="button" class="btn quiet small" id="demo">Charger un exemple</button>
+    <button type="button" class="btn quiet small" id="clear">Vider la fiche</button>
+  </div>
+  <div class="callout" id="confirm" hidden role="alertdialog" aria-labelledby="cf-t" style="margin-bottom:16px">
+    <p id="cf-t"><b>Vider la fiche ?</b> Tout ce qui est écrit ici sera effacé de ce navigateur. Pense à copier pour Notion avant.</p>
+    <div class="actions" style="margin-top:10px"><button type="button" class="btn small" id="cf-yes">Vider</button><button type="button" class="btn quiet small" id="cf-no">Garder</button></div>
+  </div>
+
+  <form class="sheet" id="sheet" autocomplete="off" onsubmit="return false">
+    <section aria-labelledby="s1">
+      <h2 id="s1"><span class="sn">1</span>L'entretien</h2>
+      <div class="grid-fields">
+        <div class="field"><label for="f-nom">Candidat</label><input type="text" id="f-nom" placeholder="Prénom et nom"></div>
+        <div class="field"><label for="f-date">Date</label><input type="date" id="f-date"></div>
+        <div class="field"><label for="f-par">Mené par</label><input type="text" id="f-par" placeholder="Prénom et nom"></div>
+        <div class="field"><label for="f-fmt">Format</label><select id="f-fmt"><option value="presentiel">Présentiel, kit Yeitigai</option><option value="visio">Visio, jeu en ligne</option></select></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="s2" id="yeitigai" tabindex="-1">
+      <h2 id="s2"><span class="sn">2</span>Le résultat du Yeitigai</h2>
+      <div id="from"></div>
+      <div class="importer">
+        <label for="f-json" class="hint">En visio, importe la partie exportée par le jeu en ligne (fichier .json) :</label>
+        <input type="file" id="f-json" accept="application/json,.json">
+      </div>
+      <div class="picker" id="picker"></div>
+      <div id="profile"></div>
+      <div class="field" id="whywrap" hidden><label for="f-why">Pourquoi on ne tranche pas</label><textarea id="f-why" rows="2" placeholder="Ce qui a manqué pour poser un profil : le temps, les exemples, le format…"></textarea></div>
+    </section>
+
+    <section aria-labelledby="s3">
+      <h2 id="s3"><span class="sn">3</span>Ce qu'on a perçu de toi</h2>
+      <p class="hint">Une phrase, deux lignes au plus. Ce qu'on a vu, pas ce qu'on en déduit. Elle figure sur la carte d'identité.</p>
+      <div class="field"><label for="f-def" class="sr-only">Ce qu'on a perçu</label><textarea id="f-def" rows="2" placeholder="Ex. : part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites."></textarea></div>
+    </section>
+
+    <section aria-labelledby="s4">
+      <h2 id="s4"><span class="sn">4</span>Les quatre valeurs</h2>
+      <p class="hint">Sous chaque valeur : ce qu'on a vu, et ce qu'on n'a pas pu voir. Un seul signal négatif sur l'ensemble, cité et factuel.</p>
+      <div class="vals" id="vals"></div>
+    </section>
+
+    <section aria-labelledby="s5" class="intern">
+      <h2 id="s5"><span class="sn">5</span>L'employabilité</h2>
+      <p class="flag">Interne. Ne part jamais avec le candidat, ni dans le code EC1.</p>
+      <fieldset style="border:0; padding:0; margin:0; display:grid; gap:8px">
+        <legend style="font-weight:650; font-size:15px; margin-bottom:6px">Là où on le voit démarrer aujourd'hui</legend>
+        <div class="radios" id="start"></div>
+      </fieldset>
+      <div class="field"><label for="f-emp">Ce qui fonde cette lecture</label><textarea id="f-emp" rows="2" placeholder="Se présenter, tenir le fil, encaisser : ce qu'on a observé, avec un exemple."></textarea></div>
+      <p class="hint">La passation vers l'EC2 s'écrit au débrief, dans la <a href="fiche-passation.html">fiche de passation candidat</a>.</p>
+    </section>
+
+    <section aria-labelledby="s6">
+      <h2 id="s6"><span class="sn">6</span>Les sorties</h2>
+      <div class="outs">
+        <div class="actions">
+          <button type="button" class="btn primary" id="copy-notion">Copier pour Notion</button>
+          <button type="button" class="btn" id="copy-code">Copier le code EC1</button>
+          <a class="btn quiet" href="carte-identite.html">Ouvrir la carte d'identité</a>
+        </div>
+        <p class="hint">Le compte rendu (interne compris) se colle dans la page Notion du candidat. Le code ne porte que ce qui va sur la carte d'identité.</p>
+        <div class="field"><span class="label" id="code-l">Code EC1</span><p class="code" id="code" aria-labelledby="code-l">—</p></div>
+      </div>
+    </section>
+  </form>
+
+  <div class="refs">
+    <h2 style="font-size:22px; margin-top:8px">Repères</h2>
+    <details class="ref"><summary>Les quatre valeurs et leurs douze comportements</summary><div class="in">
+      <p class="note">Les onze soft skills de référence, réécrites dans la langue de Yeita, plus une ligne sur l'apprentissage de soi. Ce sont les comportements derrière les cartes du Yeitigai.</p>
+      <div class="vcols" id="vcols"></div>
+    </div></details>
+    <details class="ref"><summary>Les douze profils</summary><div class="in">
+      <p class="note">Une dominante, une seconde : douze combinaisons, douze noms. Des amorces de conversation, pas des cases. Un nom se conteste, et c'est ce qu'on veut entendre en EC3.</p>
+      <div class="profs" id="profs"></div>
+    </div></details>
+    <details class="ref"><summary>Comment on écrit, surtout quand c'est non</summary><div class="in">
+      <div class="shapes">
+        <div class="shape"><b>Le fait</b><p class="ex">« Sur Jouer collectif, voici ce qu'on a vu : tes trois exemples portaient sur des décisions prises seul. »</p><p>Ce qui s'est passé pendant l'heure. Un fait se conteste avec un contre-exemple.</p></div>
+        <div class="shape"><b>Le manque</b><p class="ex">« Ce qu'on n'a pas vu, et qu'on cherche ici : un moment où tu as changé d'avis parce qu'on t'a contredit. »</p><p>Le vide nommé, pas déguisé en défaut. Une carte à moitié vide est une carte honnête.</p></div>
+        <div class="shape"><b>La distance</b><p class="ex">« Chez Yeita, on attend que tu dises les choses sans emballage ; aujourd'hui tu es ailleurs. »</p><p>L'écart se formule par rapport à Yeita, jamais par rapport à une norme.</p></div>
+      </div>
+      <ol class="rules">
+        <li><b>On écrit ce qu'on a vu, jamais ce qu'on en conclut.</b> « Aucun exemple où tu as changé d'avis » s'écrit. « Tu es rigide » ne s'écrit pas.</li>
+        <li><b>Quand le signal est trop pauvre, pas de nom de profil.</b> On choisit « Lecture partielle » et on dit pourquoi.</li>
+        <li><b>Rien n'est écrit qui n'ait d'abord été dit.</b> Le débrief téléphonique passe toujours avant l'envoi.</li>
+        <li><b>Un signal franchement négatif : un seul, cité, factuel.</b></li>
+        <li><b>Rien qui ne soit pas relié au travail.</b> Ni l'allure, ni l'accent, ni la vie personnelle, ni l'âge, ni l'origine, ni la santé.</li>
+        <li><b>La décision ne figure pas sur la carte.</b> Le non se dit au téléphone, la carte porte la lecture.</li>
+        <li><b>Quatre yeux avant envoi.</b> Est-ce que je pourrais dire ça à cette personne, calmement, en la regardant ?</li>
+      </ol>
+      <p class="pitch">« On ne note pas des gens, on mesure une distance entre deux endroits. On écrit ce qu'on a vu, jamais ce qu'on en conclut. Ce qu'on n'a pas vu est écrit comme tel. Et rien n'est écrit qui n'ait d'abord été dit au téléphone. »</p>
+    </div></details>
+    <details class="ref"><summary>L'employabilité : trois axes, une conclusion</summary><div class="in">
+      <p class="note">Lue de manière induite tout au long de l'heure. On note l'exercice, pas la personne : l'aisance en entretien n'est pas la compétence en mission. Quand la lecture est basse, on va chercher la preuve ailleurs : portfolio, références, EC2 avec un pair.</p>
+      <div class="axes" id="axes"></div>
+      <div class="elim"><b>Critères éliminatoires</b><ul id="elim"></ul></div>
+      <p><a href="https://app.notion.com/p/Employabilit-3e64bfab7816801592f4cfdf068968b6" target="_blank" rel="noopener">La fiche Employabilité complète, dans Notion</a></p>
+    </div></details>
+  </div>
+
+  <footer class="foot">
+    <span>Valeurs, comportements et profils identiques au jeu Yeitigai. Ce que tu tapes reste dans ce navigateur jusqu'à ce que tu le copies dans Notion.</span>
+  </footer>
+</div>
+
+<script src="assets/yeita.js"></script>
+<script src="assets/data-yeitigai.js"></script>
+<script>
+(function(){
+"use strict";
+var Y = YEITIGAI, E = YEITA.esc, P = YEITA.picto, KEY = "yeita-fiche-ec1";
+document.getElementById("logo").innerHTML = YEITA.logo(26);
+
+var START = [
+  ["auto","En autonomie face au client dès le premier jour"],
+  ["binome","Avec un binôme Yeita les premières semaines"],
+  ["cadre","Sur un périmètre cadré, avec un référent présent"],
+  ["non","Pas sur de la mission client aujourd'hui"]
+];
+var FIELDS = ["f-nom","f-date","f-par","f-fmt","f-why","f-def","f-emp"].concat(Y.VALUES.map(function(v){ return "v-"+v.id; }));
+var st = YEITA.store.get(KEY, null) || {dom:null, sec:null, partial:false, start:null, f:{}};
+
+/* ---------- Rendu ---------- */
+document.getElementById("vals").innerHTML = Y.VALUES.map(function(v){
+  return '<div class="vrow" data-v="'+v.id+'"><div class="vt"><b>'+P(v.id,18)+E(v.label)+'</b></div><q>'+E(v.expectation)+'</q>'
+    + '<div class="field"><label for="v-'+v.id+'" class="sr-only">'+E(v.label)+'</label><textarea id="v-'+v.id+'" rows="3" placeholder="Ce qu\'on a vu, et ce qu\'on n\'a pas pu voir."></textarea></div></div>';
+}).join("");
+document.getElementById("start").innerHTML = START.map(function(s){
+  return '<label><input type="radio" name="start" value="'+s[0]+'"><span>'+E(s[1])+'</span></label>';
+}).join("");
+
+function renderPicker(){
+  var h = '<div class="row" role="radiogroup" aria-label="Valeur dominante"><span>Dominante</span>'
+    + Y.VALUES.map(function(v){ return '<button type="button" role="radio" class="vbtn" data-v="'+v.id+'" data-r="dom" aria-checked="'+(st.dom===v.id)+'"'+(st.partial?' disabled':'')+'>'+P(v.id,16)+E(v.label)+'</button>'; }).join("") + '</div>'
+    + '<div class="row" role="radiogroup" aria-label="Valeur seconde"><span>Seconde</span>'
+    + Y.VALUES.map(function(v){ return '<button type="button" role="radio" class="vbtn" data-v="'+v.id+'" data-r="sec" aria-checked="'+(st.sec===v.id)+'"'+((st.partial || st.dom===v.id)?' disabled':'')+'>'+P(v.id,16)+E(v.label)+'</button>'; }).join("") + '</div>'
+    + '<div class="row"><span></span><button type="button" class="partial-t" id="partial" aria-pressed="'+st.partial+'">Lecture partielle : on ne tranche pas</button></div>';
+  document.getElementById("picker").innerHTML = h;
+  renderProfile();
+}
+function profile(){ return (!st.partial && st.dom && st.sec) ? Y.profileFor(st.dom, st.sec) : null; }
+function formula(){
+  var d = Y.value(st.dom), s = Y.value(st.sec);
+  return "Un profil « " + d.label.toLowerCase() + " » qui " + s.verb + ".";
+}
+function renderProfile(){
+  var el = document.getElementById("profile"), p = profile();
+  document.getElementById("whywrap").hidden = !st.partial;
+  if(st.partial){ el.innerHTML = '<div class="profile"><span class="pl">Ce qu\'on a perçu de toi</span><span class="pn">Lecture partielle</span><p class="pf">On n\'a pas assez vu pour poser un profil. Ce qui suit est ce qu\'on a pu lire, et rien de plus.</p></div>'; return; }
+  if(!p){ el.innerHTML = '<div class="profile empty"><span class="pl">Profil</span><p class="pf">Choisis la dominante puis la seconde, reprends le résultat de la feuille de décompte, ou importe la partie jouée en ligne.</p></div>'; return; }
+  el.innerHTML = '<div class="profile"><span class="pl">Profil Yeitigai</span><span class="pn">'+E(p.label)+'</span><p class="pf">'+E(formula())+' '+E(p.description)+'</p></div>';
+}
+
+/* Résultat laissé par la feuille de décompte (même navigateur, moins de 12 h) */
+function renderFrom(){
+  var r = YEITA.store.get("yeitigai-resultat", null), el = document.getElementById("from");
+  if(!r || !r.dominant || (Date.now() - (r.at||0)) > 12*3600*1000){ el.innerHTML = ""; return; }
+  var p = Y.profileFor(r.dominant, r.second);
+  if(st.dom === r.dominant && st.sec === r.second && !st.partial){ el.innerHTML = ""; return; }
+  el.innerHTML = '<div class="from"><p>Résultat de la feuille de décompte'+(r.cand ? ' pour <b>'+E(r.cand)+'</b>' : '')+' : <b>'+E(p.label)+'</b>, '+E(Y.value(r.dominant).label)+' › '+E(Y.value(r.second).label)+'.</p>'
+    + '<button type="button" class="btn small primary" id="take">Reprendre ce résultat</button></div>';
+}
+
+/* ---------- État ---------- */
+function collect(){ FIELDS.forEach(function(id){ var e = document.getElementById(id); if(e) st.f[id] = e.value; }); }
+function fill(){
+  FIELDS.forEach(function(id){ var e = document.getElementById(id); if(e){ e.value = st.f[id] || (id === "f-fmt" ? "presentiel" : ""); if(e.tagName === "TEXTAREA" && e.value) YEITA.autogrow(e); } });
+  document.querySelectorAll('input[name=start]').forEach(function(r){ r.checked = r.value === st.start; });
+}
+function save(){ collect(); YEITA.store.set(KEY, st); renderCode(); }
+function g(id){ return ((st.f[id]||"")+"").trim(); }
+
+function code(){
+  return "YEITA-EC1." + YEITA.b64e({n:g("f-nom"), d:g("f-date"), par:g("f-par"), def:g("f-def"), why: st.partial ? g("f-why") : "",
+    p: st.partial ? "partial" : (st.dom && st.sec ? st.dom+"|"+st.sec : ""), v: Y.VALUES.map(function(v){ return g("v-"+v.id); })});
+}
+function hasContent(){ return !!(g("f-nom") || g("f-def") || st.dom || st.partial || Y.VALUES.some(function(v){ return g("v-"+v.id); })); }
+function renderCode(){ document.getElementById("code").textContent = hasContent() ? code() : "—"; }
+function fmtDate(s){ if(/^\d{4}-\d{2}-\d{2}$/.test(s)){ var d = new Date(s+"T12:00:00"); return d.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}); } return s; }
+
+function notionText(){
+  collect();
+  var p = profile(), t = "FICHE D'ENTRETIEN CANDIDAT #1 — Yeitigai & Valeurs Yeita\n";
+  t += (g("f-nom")||"—") + ", " + (fmtDate(g("f-date"))||"—") + ", mené par " + (g("f-par")||"—") + " (" + (g("f-fmt")==="visio" ? "visio, jeu en ligne" : "présentiel, kit Yeitigai") + ")\n";
+  t += "\nPROFIL YEITIGAI\n";
+  if(st.partial) t += "Lecture partielle. " + (g("f-why")||"") + "\n";
+  else if(p) t += p.label + " — " + Y.value(st.dom).label + " › " + Y.value(st.sec).label + ". " + formula() + "\n";
+  else t += "—\n";
+  t += "\nCE QU'ON A PERÇU\n" + (g("f-def")||"—") + "\n";
+  Y.VALUES.forEach(function(v){ t += "\n" + v.label.toUpperCase() + "\n" + (g("v-"+v.id)||"—") + "\n"; });
+  var sv = START.filter(function(s){ return s[0] === st.start; })[0];
+  t += "\n— INTERNE, NE PART PAS AVEC LE CANDIDAT —\nLà où on le voit démarrer : " + (sv ? sv[1] : "—") + "\n" + (g("f-emp") ? g("f-emp") + "\n" : "");
+  t += "\nCODE EC1 (pour la carte d'identité)\n" + code() + "\n";
+  return t;
+}
+
+/* ---------- Événements ---------- */
+document.addEventListener("input", function(e){
+  if(e.target.closest("#sheet")){ if(e.target.tagName === "TEXTAREA") YEITA.autogrow(e.target); save(); }
+});
+document.addEventListener("change", function(e){
+  if(e.target.name === "start"){ st.start = e.target.value; save(); }
+  if(e.target.id === "f-fmt"){ save(); }
+  if(e.target.id === "f-json"){
+    var file = e.target.files && e.target.files[0]; if(!file) return;
+    var rd = new FileReader();
+    rd.onload = function(){
+      try{
+        var s = Y.readSession(JSON.parse(rd.result));
+        st.dom = s.dominant; st.sec = s.second; st.partial = false;
+        st.f["f-nom"] = st.f["f-nom"] || s.candidate; st.f["f-date"] = st.f["f-date"] || s.date; st.f["f-par"] = st.f["f-par"] || s.host; st.f["f-fmt"] = "visio";
+        Y.VALUES.forEach(function(v){ if(s.notes[v.id] && !st.f["v-"+v.id]) st.f["v-"+v.id] = s.notes[v.id]; });
+        fill(); renderPicker(); save();
+        YEITA.flash(null, "Partie importée : " + Y.profileFor(s.dominant, s.second).label);
+      }catch(err){ YEITA.flash(null, err.message); alertInline(err.message); }
+      e.target.value = "";
+    };
+    rd.readAsText(file);
+  }
+});
+function alertInline(msg){
+  var el = document.getElementById("from");
+  el.innerHTML = '<div class="from" role="alert" style="background:var(--stop-tint)"><p>'+E(msg)+' Vérifie que le fichier vient du bouton d\'export du jeu en ligne.</p></div>';
+}
+document.addEventListener("click", function(e){
+  var b = e.target.closest(".vbtn");
+  if(b && !b.disabled){
+    if(b.dataset.r === "dom"){ st.dom = st.dom === b.dataset.v ? null : b.dataset.v; if(st.sec === st.dom) st.sec = null; }
+    else st.sec = st.sec === b.dataset.v ? null : b.dataset.v;
+    renderPicker(); save(); renderFrom(); return;
+  }
+  if(e.target.id === "partial"){ st.partial = !st.partial; renderPicker(); save(); return; }
+  if(e.target.id === "take"){
+    var r = YEITA.store.get("yeitigai-resultat", null); if(!r) return;
+    st.dom = r.dominant; st.sec = r.second; st.partial = false;
+    if(!st.f["f-nom"] && r.cand) st.f["f-nom"] = r.cand;
+    if(!st.f["f-date"] && r.date) st.f["f-date"] = r.date;
+    if(!st.f["f-par"] && r.host) st.f["f-par"] = r.host;
+    if(r.fmt) st.f["f-fmt"] = r.fmt;
+    fill(); renderPicker(); save(); renderFrom(); YEITA.flash(null, "Résultat repris"); return;
+  }
+  if(e.target.id === "copy-notion"){ var b1 = e.target; YEITA.copy(notionText(), function(ok){ YEITA.flash(b1, ok ? "Copié pour Notion" : "Copie refusée : sélectionne le code à la main"); }); return; }
+  if(e.target.id === "copy-code"){ var b2 = e.target; save(); YEITA.copy(code(), function(ok){ YEITA.flash(b2, ok ? "Code EC1 copié" : "Copie refusée : sélectionne le code à la main"); }); return; }
+  if(e.target.id === "clear"){ document.getElementById("confirm").hidden = false; document.getElementById("cf-yes").focus(); return; }
+  if(e.target.id === "cf-no"){ document.getElementById("confirm").hidden = true; document.getElementById("clear").focus(); return; }
+  if(e.target.id === "cf-yes"){
+    st = {dom:null, sec:null, partial:false, start:null, f:{}}; YEITA.store.set(KEY, st); fill(); renderPicker(); renderCode(); renderFrom();
+    document.querySelectorAll("#sheet textarea").forEach(function(t){ t.style.height = ""; });
+    document.getElementById("confirm").hidden = true; YEITA.flash(null, "Fiche vidée"); return;
+  }
+  if(e.target.id === "demo"){
+    st = {dom:"explorateur", sec:"collectif", partial:false, start:"binome", f:{
+      "f-nom":"Camille Rousseau", "f-date":"2026-10-14", "f-par":"Pauline", "f-fmt":"presentiel",
+      "f-def":"Part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites.",
+      "v-collectif":"A cité trois fois l'équipe avant de se citer elle-même, y compris sur une réussite qu'elle portait seule.",
+      "v-sans-chichi":"A dit « je ne sais pas » deux fois sans chercher à rattraper, et a proposé d'aller vérifier.",
+      "v-explorateur":"Raconte un changement de méthode décidé après un test raté, avec ce que ça a coûté.",
+      "v-meilleure-version":"Sait nommer ce qu'elle ne maîtrise pas encore, le cadrage amont, et ce qu'elle fait pour y aller.",
+      "f-emp":"Pitch clair et chiffré. A tenu le fil quand on l'a relancée sur un échec. Hésite dès qu'on parle d'arbitrage face à un sponsor."}};
+    fill(); renderPicker(); save(); renderFrom(); YEITA.flash(null, "Exemple chargé"); return;
+  }
+});
+
+/* ---------- Repères ---------- */
+document.getElementById("vcols").innerHTML = Y.VALUES.map(function(v){
+  return '<div class="vcol" data-v="'+v.id+'"><span class="vn">'+P(v.id,18)+E(v.label)+'</span><ul>'
+    + v.behaviors.map(function(b){ return '<li><b>'+E(b.label)+'</b><span>'+E(b.description)+'</span><small>'+E(b.softSkills)+'</small></li>'; }).join("") + '</ul></div>';
+}).join("");
+document.getElementById("profs").innerHTML = Y.PROFILES.map(function(p){
+  var d = Y.value(p.dominant), s = Y.value(p.second);
+  return '<div class="prof"><span class="pc"><span class="vchip" data-v="'+d.id+'">'+P(d.id,13)+E(d.short)+'</span><span aria-hidden="true">›</span><span class="vchip" data-v="'+s.id+'">'+P(s.id,13)+E(s.short)+'</span></span><b>'+E(p.label)+'</b><span>'+E(p.description)+'</span></div>';
+}).join("");
+var AXES = [
+  {t:"Cohérence du parcours, du CV et de la posture",
+   g:["Pour chaque expérience : le contexte, l'équipe, son rôle exact, un résultat concret","Ce qu'elle raconte correspond au CV","Des projets longs, 1,5 an en moyenne","Un pitch clair et structuré, des exemples chiffrés","Un anglais suffisant, une posture qui inspire confiance sans ego"],
+   r:["Parle au « on » sans distinguer sa contribution","Aucun résultat à citer, pas d'autonomie","Un rôle flou : PO, BA ou chef de projet ?","Des raisons de départ floues","Des projets qui s'enchaînent très vite"]},
+  {t:"Adéquation à nos missions et à nos rôles",
+   g:["Son rôle et son niveau correspondent aux missions qu'on a","Ses secteurs et contextes sont recherchés par nos clients"],
+   r:["Décalage entre le niveau annoncé et le niveau démontré","N'a jamais travaillé directement avec une équipe de dev","Pas de méthode connue ou appliquée, décide à l'instinct","Premier poste de PM ou PrD sans mentor ni formation"]},
+  {t:"Souhaits de projets",
+   g:["Ouverte à plusieurs secteurs et contextes, grand compte comme scale-up","Des no-go peu nombreux et argumentés"],
+   r:["N'accepte qu'un seul secteur ou un seul type de rôle","Veut uniquement du full remote : le présentiel projet est à trois jours par semaine","Pas de pied-à-terre à Paris"]}
+];
+document.getElementById("axes").innerHTML = AXES.map(function(a, i){
+  return '<div class="axe"><b>Axe '+(i+1)+' · '+E(a.t)+'</b><div class="cols"><div class="g"><b>Green flags</b><ul>'+a.g.map(function(x){ return '<li>'+E(x)+'</li>'; }).join("")+'</ul></div>'
+    + '<div class="r"><b>Red flags</b><ul>'+a.r.map(function(x){ return '<li>'+E(x)+'</li>'; }).join("")+'</ul></div></div></div>';
+}).join("");
+document.getElementById("elim").innerHTML = ["Prétentions hors grille, sans marge de discussion","Pas de pied-à-terre à Paris","Cherche un statut freelance","N'est pas intéressé par Yeita","Ego, individualisme","Cherche un salaire, pas un projet","Ne parle pas anglais","Parle plus de process que d'impact","Rejette la faute sur les autres","Des réponses théoriques, sans exemple concret","Rigidité face au changement"].map(function(x){ return '<li>'+E(x)+'</li>'; }).join("");
+
+fill(); renderPicker(); renderCode(); renderFrom();
+if(location.hash === "#yeitigai"){ var y = document.getElementById("yeitigai"); y.scrollIntoView({block:"start"}); y.focus({preventScroll:true}); }
+})();
+</script>
+</body>
+</html>

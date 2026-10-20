@@ -1,0 +1,675 @@
+<title>Expérience Collaborateur Yeita</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/yeita.css">
+<style>
+/* Hub : la carte des expériences en tête, puis le recrutement en quatre vues (démarche, guide, supports, glossaire). */
+
+/* ---- Arbre des expériences ---- */
+.treewrap{position:relative; margin-top:6px}
+#links{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible}
+.tree{position:relative; z-index:1; display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:14px 20px; align-items:start; list-style:none; margin:0; padding:0}
+.node{appearance:none; width:100%; text-align:left; cursor:pointer; display:grid; gap:4px; padding:12px 14px; border-radius:12px;
+  background:var(--surface); border:1.5px solid var(--line); color:var(--ink); transition:border-color .12s ease}
+.node:hover{border-color:var(--line-strong)}
+.node[aria-pressed="true"]{border-color:var(--ink); box-shadow:inset 0 0 0 1px var(--ink)}
+.node .n-name{font-weight:650; font-size:15px; line-height:1.25}
+.node .n-state{font-size:13px; color:var(--muted)}
+.node.live{background:var(--emph-bg); color:var(--emph-fg); border-color:var(--emph-bg)}
+.node.live .n-state{color:var(--emph-sub)}
+.node.live[aria-pressed="true"]{box-shadow:0 0 0 3px var(--violet)}
+.node.soon{border-style:dashed}
+.node.hub{background:var(--surface-2)}
+.c-recrutement{grid-column:1; grid-row:3} .c-onboarding{grid-column:2; grid-row:3} .c-yeita{grid-column:3; grid-row:3}
+.c-client{grid-column:4; grid-row:1} .c-inter{grid-column:4; grid-row:2} .c-collectif{grid-column:4; grid-row:3} .c-mentorat{grid-column:4; grid-row:4}
+.c-evolution{grid-column:5; grid-row:4} .c-offboarding{grid-column:6; grid-row:4} .c-ambassadeur{grid-column:1 / span 2; grid-row:5; margin-top:18px}
+@media (max-width:900px){
+  .tree{grid-template-columns:1fr; gap:8px}
+  .tree > li{grid-column:1 !important; grid-row:auto !important}
+  .c-client,.c-inter,.c-collectif,.c-mentorat{margin-left:22px}
+  #links{display:none}
+}
+.branch{margin-top:18px; border-radius:var(--radius); background:var(--surface-2); padding:18px 20px; display:grid; gap:8px}
+.branch h3{font-size:19px}
+.branch ul{margin:4px 0 0; padding-left:20px; color:var(--ink-2)}
+.branch li{margin-bottom:4px}
+
+/* ---- Recrutement ---- */
+.rec-head{display:grid; gap:10px; max-width:74ch}
+.pillars{display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:14px; margin-top:22px}
+.pillars > div{border-top:3px solid var(--ink); padding-top:10px}
+.pillars b{display:block; font-size:16.5px; margin-bottom:3px}
+.pillars span{font-size:15px; color:var(--ink-2)}
+
+/* Frise des sorties : la colonne vertébrale du dispositif, visible d'un coup d'œil */
+.frise{margin:30px 0 0; border-radius:var(--radius); background:var(--surface); border:1px solid var(--line); padding:20px 20px 22px}
+.frise h3{font-size:19px}
+.frise > .note{margin-top:4px}
+.track{list-style:none; margin:20px 0 0; padding:0; display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:10px; position:relative}
+.track::before{content:""; position:absolute; left:14px; right:14px; top:15px; height:3px; background:var(--ink); border-radius:2px}
+.stage{position:relative; display:grid; gap:8px; align-content:start; min-width:0}
+.stage .dot{width:32px; height:32px; border-radius:50%; background:var(--ink); color:var(--paper); display:grid; place-items:center;
+  font-family:var(--f-mono); font-size:13px; font-weight:500; position:relative; z-index:1; box-shadow:0 0 0 4px var(--surface)}
+.stage.end .dot{background:var(--go); color:var(--paper)}
+.stage .s-name{font-weight:650; font-size:15px; line-height:1.25; min-height:2.5em}
+.stage .s-dur{font-size:13px; color:var(--muted)}
+.exit{border-radius:10px; padding:9px 10px; font-size:13.5px; line-height:1.4; display:grid; gap:4px}
+.exit.stop{background:var(--stop-tint); color:var(--ink)}
+.exit.go{background:var(--go-tint); color:var(--ink)}
+.exit.none{background:var(--surface-2); color:var(--ink-2)}
+.exit b{font-size:13px; display:inline-flex; align-items:center; gap:5px}
+.exit.stop b{color:var(--stop)} .exit.go b{color:var(--go)}
+@media (max-width:980px){
+  .track{grid-template-columns:1fr; gap:0}
+  .track::before{left:15px; right:auto; top:16px; bottom:16px; width:3px; height:auto}
+  .stage{grid-template-columns:32px minmax(0,1fr); column-gap:14px; padding-bottom:16px}
+  .stage .dot{grid-row:1 / span 3}
+  .stage > *:not(.dot){grid-column:2}
+  .stage .s-name{min-height:0}
+}
+
+/* Vues */
+.views{margin-top:34px; display:flex; flex-wrap:wrap; gap:6px; border-bottom:1.5px solid var(--line); padding-bottom:0}
+.views [role="tab"]{appearance:none; border:0; background:transparent; cursor:pointer; font-weight:650; font-size:16px; color:var(--muted);
+  padding:11px 14px 12px; border-bottom:3px solid transparent; margin-bottom:-1.5px; min-height:44px; border-radius:8px 8px 0 0}
+.views [role="tab"]:hover{color:var(--ink)}
+.views [role="tab"][aria-selected="true"]{color:var(--ink); border-bottom-color:var(--violet)}
+.view{padding-top:26px}
+
+/* Démarche */
+.tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:15px}
+th, td{padding:11px 14px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line)}
+thead th{font-size:13.5px; font-weight:650; color:var(--ink-2); background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:0}
+td.k{font-weight:650; white-space:nowrap}
+.chain{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:14px; padding:0; list-style:none}
+.chain li{display:flex; align-items:center; gap:8px}
+.chain li span{font-size:14px; font-weight:600; border:1.5px solid var(--violet); color:var(--violet-ink); background:var(--violet-soft); border-radius:999px; padding:4px 12px}
+.chain li:not(:last-child)::after{content:""; width:14px; height:2px; background:var(--line-strong)}
+.two{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:16px; margin-top:16px}
+.two ul{margin:8px 0 0; padding-left:20px; color:var(--ink-2)}
+.two li{margin-bottom:5px}
+.stats{display:grid; gap:10px; margin-top:8px}
+.srow{display:grid; grid-template-columns:auto 1fr; gap:2px 14px; align-items:baseline; border-bottom:1px dashed var(--line); padding-bottom:9px}
+.srow:last-child{border-bottom:0}
+.srow .y{font-family:var(--f-mono); font-size:13px; color:var(--muted)}
+.srow b{font-family:var(--f-mono); font-weight:500; text-align:right}
+.srow .sub{grid-column:1 / -1; font-size:14px; color:var(--muted)}
+details.more{margin-top:22px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface)}
+details.more > summary{cursor:pointer; list-style:none; padding:15px 18px; font-weight:650; display:flex; justify-content:space-between; gap:12px; align-items:center; min-height:44px}
+details.more > summary::-webkit-details-marker{display:none}
+details.more > summary::after{content:"Afficher"; font-weight:600; font-size:14px; color:var(--violet)}
+details.more[open] > summary::after{content:"Masquer"}
+details.more > .in{padding:0 18px 18px}
+
+/* Guide du recruteur */
+.guide{display:grid; grid-template-columns:230px minmax(0,1fr); gap:26px; align-items:start}
+.steplist{list-style:none; margin:0; padding:0; display:grid; gap:3px; position:sticky; top:calc(env(safe-area-inset-top, 0px) + 12px)}
+.steplist [role="tab"]{appearance:none; width:100%; text-align:left; display:grid; grid-template-columns:30px minmax(0,1fr); gap:10px; align-items:center;
+  background:transparent; border:0; border-radius:10px; padding:8px 10px; cursor:pointer; color:var(--ink-2); font-weight:600; font-size:15px; min-height:44px}
+.steplist [role="tab"]:hover{background:var(--surface-2); color:var(--ink)}
+.steplist [role="tab"][aria-selected="true"]{background:var(--ink); color:var(--paper)}
+.steplist .num{width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font-family:var(--f-mono); font-size:13px; border:1.5px solid currentColor}
+.steplist .is-int .num{border-style:dashed}
+.steplist .is-entretien .num{background:var(--violet-soft); color:var(--violet-ink); border-color:var(--violet)}
+.steplist [aria-selected="true"] .num{background:var(--paper); color:var(--ink); border-color:var(--paper)}
+@media (max-width:860px){
+  .guide{grid-template-columns:1fr}
+  .steplist{position:static; display:flex; overflow-x:auto; gap:6px; padding-bottom:6px}
+  .steplist li{flex:none}
+  .steplist [role="tab"]{grid-template-columns:28px auto; padding:6px 12px 6px 6px; border:1.5px solid var(--line)}
+}
+.step{display:grid; gap:18px}
+.s-top{display:grid; gap:10px}
+.s-meta{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.s-meta .chip{font-size:14px; color:var(--ink-2); border-radius:999px; background:var(--surface-2); padding:4px 12px}
+.s-top h3{font-size:clamp(23px,3vw,28px); display:flex; gap:14px; align-items:baseline; flex-wrap:wrap}
+.s-top h3 .bn{font-family:var(--f-mono); font-size:16px; font-weight:500; color:var(--muted)}
+.s-key{font-size:17px; color:var(--ink); max-width:70ch; border-left:3px solid var(--yellow); padding-left:12px}
+.tools{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.tools .lab{font-size:14px; font-weight:650; color:var(--ink-2); margin-right:2px}
+.tools a{display:inline-flex; align-items:center; gap:6px; font-size:14.5px; font-weight:600; border:1.5px solid var(--violet); color:var(--violet-ink); background:var(--violet-soft);
+  border-radius:10px; padding:6px 12px; text-decoration:none; min-height:40px}
+.tools a:hover{background:var(--surface)}
+.tools a .ext{font-size:12.5px; font-weight:500; color:var(--muted)}
+.blocs{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.8fr) minmax(0,1fr); gap:14px}
+@media (max-width:1080px){ .blocs{grid-template-columns:1fr} }
+.bloc{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; display:grid; gap:10px; align-content:start; min-width:0}
+.bloc > h4{font-size:16px; display:flex; align-items:center; gap:8px}
+.bloc > h4 .bi{width:9px; height:9px; border-radius:50%; background:var(--ink)}
+.bloc.pendant{background:var(--surface)}
+.bloc.sort{background:var(--surface-2); border-color:transparent}
+.bloc ul{margin:0; padding-left:19px; display:grid; gap:6px; color:var(--ink-2); font-size:15px}
+.bloc ol{margin:0; padding-left:22px; display:grid; gap:6px; color:var(--ink-2); font-size:15px}
+.part{display:grid; gap:3px; padding-bottom:10px; border-bottom:1px solid var(--line)}
+.part:last-of-type{border-bottom:0; padding-bottom:0}
+.part .pt{display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; font-weight:650}
+.part .pt span{font-family:var(--f-mono); font-size:13px; font-weight:400; color:var(--muted)}
+.part p{font-size:15px; color:var(--ink-2)}
+.part ol{margin-top:6px}
+.check4{display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:10px; margin-top:4px}
+.check4 > div{background:var(--surface-2); border-radius:10px; padding:10px 12px}
+.check4 b{display:block; font-size:14.5px; margin-bottom:4px}
+.check4 ul{font-size:14px; gap:3px}
+.out{font-size:15px; color:var(--ink)}
+.exits{display:grid; gap:8px}
+.s-nav{display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; padding-top:6px}
+
+/* Supports */
+.inv td .nm{font-weight:650; display:block}
+.inv td .sb{font-size:14px; color:var(--muted)}
+.inv td a{font-weight:600}
+.fmt{font-size:13.5px; color:var(--ink-2); white-space:nowrap}
+.arch td{color:var(--ink-2)}
+.arch .dead{font-size:13px; font-weight:650; color:var(--stop); white-space:nowrap}
+
+/* Glossaire */
+.gloss{display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:16px; margin-top:16px}
+dl{margin:0; display:grid; gap:12px}
+dt{font-weight:650}
+dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
+.values4{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px; margin-top:12px}
+.values4 > div{border-radius:12px; background:var(--vt); padding:14px 16px; display:grid; gap:6px}
+.values4 .vn{display:flex; align-items:center; gap:8px; font-weight:700; font-size:17px; color:var(--vc)}
+.values4 p{font-size:14.5px; color:var(--ink)}
+.never{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; padding:0; list-style:none}
+.never li{font-size:14px; border-radius:999px; padding:4px 12px; background:var(--surface-2); color:var(--ink-2); text-decoration:line-through; text-decoration-color:var(--stop); text-decoration-thickness:2px}
+</style>
+
+<div id="live" aria-live="polite"></div>
+<div class="wrap">
+  <header class="topbar">
+    <span id="logo"></span>
+    <span class="where">Expérience collaborateur</span>
+    <nav aria-label="Raccourcis">
+      <a href="#guide">Guide du recruteur</a>
+      <a href="#supports">Supports</a>
+      <a href="one-pager.html">Vue candidat</a>
+    </nav>
+  </header>
+
+  <div class="page-head">
+    <h1>Du premier appel au dernier jour, une seule expérience</h1>
+    <p class="lede">On cartographie une expérience à la fois. Le recrutement est la première : c'est la seule source de vérité pour les étapes, les supports et leurs noms.</p>
+  </div>
+
+  <section aria-labelledby="t-tree">
+    <h2 id="t-tree" class="sr-only">Les expériences collaborateur</h2>
+    <div class="treewrap">
+      <svg id="links" aria-hidden="true"></svg>
+      <ul class="tree" id="tree"></ul>
+    </div>
+    <div class="branch" id="branch" aria-live="polite"></div>
+  </section>
+
+  <section id="recrutement" class="block" aria-labelledby="t-rec">
+    <div class="rec-head">
+      <h2 id="t-rec">Sourcing &amp; Recrutement</h2>
+      <p class="lede">Du premier contact à la décision. Une expérience claire sur ce qu'est Yeita, et un retour utile à chaque personne, recrutée ou non.</p>
+    </div>
+    <div class="pillars">
+      <div><b>L'heure appartient au candidat</b><span>Yeita se présente en cinq minutes en EC1. Le récit complet revient au fondateur, en EC3.</span></div>
+      <div><b>Personne ne repart les mains vides</b><span>Un non se dit au téléphone, jamais dans un entretien monté pour ça. Puis la carte d'identité suit.</span></div>
+      <div><b>Rien ne se perd entre deux étapes</b><span>Quinze minutes de passation après chaque entretien. Ce qu'on n'a pas vu devient une orientation pour la suivante.</span></div>
+    </div>
+
+    <figure class="frise" aria-labelledby="t-frise">
+      <h3 id="t-frise">Les sorties, d'un coup d'œil</h3>
+      <p class="note">Chaque étape franchie produit un morceau de lecture, remis à la personne qu'on continue ou qu'on s'arrête. Les numéros sont ceux du guide.</p>
+      <ol class="track" id="track"></ol>
+    </figure>
+
+    <div class="views" role="tablist" aria-label="Vues du recrutement" id="views">
+      <button role="tab" id="tab-demarche" aria-controls="demarche" aria-selected="true" tabindex="0">La démarche</button>
+      <button role="tab" id="tab-guide" aria-controls="guide" aria-selected="false" tabindex="-1">Guide du recruteur</button>
+      <button role="tab" id="tab-supports" aria-controls="supports" aria-selected="false" tabindex="-1">Supports</button>
+      <button role="tab" id="tab-glossaire" aria-controls="glossaire" aria-selected="false" tabindex="-1">Glossaire</button>
+    </div>
+
+    <!-- Vue 1 : la démarche -->
+    <div class="view" role="tabpanel" id="demarche" aria-labelledby="tab-demarche" tabindex="0">
+      <h3>Quatre étages, quatre façons de lire</h3>
+      <p class="note" style="margin-top:6px">On commence par un oui ou un non, on finit par une lecture que la personne peut contester.</p>
+      <div class="tablewrap" style="margin-top:14px">
+        <table>
+          <thead><tr><th scope="col">Étage</th><th scope="col">Ce qu'on lit</th><th scope="col">Ce qui en sort</th><th scope="col">Qui mène</th></tr></thead>
+          <tbody>
+            <tr><td class="k">Appel de découverte</td><td>L'alignement</td><td>Oui ou non, et les réponses aux quatre blocs</td><td>Un recruteur</td></tr>
+            <tr><td class="k">EC1</td><td>La personne</td><td>Un profil Yeitigai et des mots, jamais une note</td><td>Un recruteur</td></tr>
+            <tr><td class="k">EC2</td><td>Le métier</td><td>De 0 à 4 sur les douze étapes des quatre diamants</td><td>Un pair du métier</td></tr>
+            <tr><td class="k">EC3</td><td>L'accord</td><td>La carte d'identité, corrigée avec la personne</td><td>Un fondateur</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="two">
+        <div class="panel">
+          <h3>Le fil qui suit la personne</h3>
+          <p class="note" style="margin-top:6px">L'EC1 écrit le volet humain, en mots. L'EC2 écrit le volet métier, chiffré. L'EC3 corrige les deux avec l'intéressé. Recrutée, la personne tient ensuite sa carte elle-même.</p>
+          <ol class="chain">
+            <li><span>Appel</span></li><li><span>Fiche #1</span></li><li><span>Fiche #2</span></li><li><span>Carte d'identité</span></li><li><span>Auto-évaluation</span></li><li><span>Bilan</span></li><li><span>Palier</span></li>
+          </ol>
+        </div>
+        <div class="panel">
+          <h3>Où vivent les informations</h3>
+          <ul>
+            <li><b>Notion, page du candidat</b> : le compte rendu de chaque fiche (bouton « Copier pour Notion »), la passation, les codes EC1 et EC2.</li>
+            <li><b>Les fiches en ligne</b> ne stockent rien ailleurs que dans ton navigateur, le temps de les remplir.</li>
+            <li><b>Les codes EC1 et EC2</b> ne transportent que ce qui figure sur la carte d'identité : ni la passation, ni l'employabilité, ni les exemples cités.</li>
+          </ul>
+        </div>
+      </div>
+
+      <details class="more">
+        <summary>L'état des lieux : ce qui coince, ce que le flow coûte</summary>
+        <div class="in two" style="margin-top:0">
+          <div>
+            <h4>Ce qui coince</h4>
+            <ul>
+              <li>Trop de candidatures non qualifiées : le tri pèse lourd.</li>
+              <li>Pas de chasse structurée, un sourcing trop concentré.</li>
+              <li>Le mail de refus automatique n'a jamais été réécrit.</li>
+              <li>Pas de vivier animé, aucune relance des candidats déjà vus.</li>
+            </ul>
+          </div>
+          <div>
+            <h4>Ce que le flow coûte</h4>
+            <div class="stats">
+              <div class="srow"><span class="y">2025</span><b>10 CV / jour</b><span class="sub">22 % en préqualification ou entretien, 3 recrutements</span></div>
+              <div class="srow"><span class="y">2024</span><b>5 CV / jour</b><span class="sub">10 % en préqualification ou entretien, 4 recrutements</span></div>
+              <div class="srow"><span class="y">2023</span><b>2,5 CV / jour</b><span class="sub">12 % en préqualification ou entretien, 2 recrutements</span></div>
+              <div class="srow"><span class="y">Repère</span><b>600 CV pour 1 entrée</b><span class="sub">contre 300 en 2024</span></div>
+            </div>
+            <p class="note" style="margin-top:10px">Relevé sur le board FigJam « Cercle Recrutement ». Chiffres à reconfirmer.</p>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- Vue 2 : guide du recruteur -->
+    <div class="view" role="tabpanel" id="guide" aria-labelledby="tab-guide" tabindex="0" hidden>
+      <p class="note" style="margin-bottom:18px">Ce que tu ouvres cinq minutes avant l'entretien. Chaque étape tient en trois blocs : avant, pendant, ce qui sort. Lien direct vers une étape : l'adresse du hub suivie de <span class="mono">#ec1</span>, <span class="mono">#ec2</span>, <span class="mono">#ec3</span>…</p>
+      <div class="guide">
+        <ol class="steplist" role="tablist" aria-orientation="vertical" aria-label="Étapes du recrutement" id="steplist"></ol>
+        <div role="tabpanel" id="steppanel" tabindex="0"></div>
+      </div>
+    </div>
+
+    <!-- Vue 3 : supports -->
+    <div class="view" role="tabpanel" id="supports" aria-labelledby="tab-supports" tabindex="0" hidden>
+      <h3>Un support, un rôle, un lien</h3>
+      <p class="note" style="margin-top:6px">Tout part d'ici. Si un support n'est pas dans cette liste, il n'est plus en usage.</p>
+      <div class="tablewrap inv" style="margin-top:14px">
+        <table>
+          <thead><tr><th scope="col">Support</th><th scope="col">À quoi il sert</th><th scope="col">Étape</th><th scope="col">Format</th></tr></thead>
+          <tbody id="inv"></tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:34px">Archives</h3>
+      <p class="note" style="margin-top:6px">Versions remplacées le 20 octobre 2026. Elles restent consultables pour l'historique, mais ne servent plus en entretien.</p>
+      <div class="tablewrap arch" style="margin-top:14px">
+        <table>
+          <thead><tr><th scope="col">Ancienne version</th><th scope="col">Remplacée par</th><th scope="col">Statut</th></tr></thead>
+          <tbody id="arch"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Vue 4 : glossaire -->
+    <div class="view" role="tabpanel" id="glossaire" aria-labelledby="tab-glossaire" tabindex="0" hidden>
+      <h3>Un nom par objet</h3>
+      <p class="note" style="margin-top:6px">Liste fermée. Ce qui n'y figure pas ne s'écrit pas dans les supports.</p>
+      <div class="gloss">
+        <div class="panel">
+          <h4>Les supports</h4>
+          <dl style="margin-top:12px">
+            <dt>Ton parcours chez Yeita</dt><dd>Le one-pager envoyé après l'appel de découverte : étapes, durées, délais, ce que la personne reçoit.</dd>
+            <dt>Yeitigai</dt><dd>Le jeu de cartes de l'EC1 : en présentiel avec le kit, en visio avec le jeu en ligne. La feuille de décompte en fait partie.</dd>
+            <dt>Fiche d'entretien candidat #1</dt><dd>Yeitigai &amp; Valeurs Yeita. Ce que le recruteur écrit après l'EC1 : le profil, une phrase de définition, les quatre valeurs.</dd>
+            <dt>Fiche d'entretien candidat #2</dt><dd>Scorecard 4 diamants. Les douze notes de l'EC2, posées par un pair du métier.</dd>
+            <dt>Fiche de passation candidat</dt><dd>Interne. Alimentée par les deux entretiens, transmise pour les trous dans la raquette.</dd>
+            <dt>Carte d'identité Yeita</dt><dd>La fiche de sortie remise au candidat : la lecture EC1 à gauche, l'EC2 à droite.</dd>
+          </dl>
+        </div>
+        <div class="panel">
+          <h4>Les mots de la lecture</h4>
+          <dl style="margin-top:12px">
+            <dt>Profil</dt><dd>Un des douze profils Yeitigai, donné par la combinaison dominante › seconde.</dd>
+            <dt>Dominante, seconde</dt><dd>Les deux valeurs les plus choisies pendant le Yeitigai, dans cet ordre.</dd>
+            <dt>Lecture partielle</dt><dd>Quand on n'a pas assez vu pour poser un profil. On le dit, plutôt que coller un nom faux.</dd>
+            <dt>Diamant, étape</dt><dd>Quatre diamants (Stratégie, Problème, Solution, Produit), trois étapes chacun : douze étapes notées de 0 à 4.</dd>
+            <dt>Palier</dt><dd>Je fais, J'apporte de la valeur, Je diffuse et j'accompagne, Je transforme. Il porte l'attendu et la grille de salaire.</dd>
+            <dt>Code EC1, code EC2</dt><dd>Le texte copié en fin de fiche, collé dans Notion, qui remplit la carte d'identité.</dd>
+            <dt>Trous dans la raquette</dt><dd>Ce qu'un entretien n'a pas pu voir, transmis au suivant.</dd>
+            <dt>Employabilité</dt><dd>Lecture interne, formulée en question de staffing. Jamais sur la carte d'identité.</dd>
+          </dl>
+        </div>
+      </div>
+      <h4 style="margin-top:28px">Les quatre valeurs Yeita</h4>
+      <p class="note" style="margin-top:6px">Leurs icônes sont celles du jeu Yeitigai, les mêmes partout : le cœur, la cible, la boussole, les étincelles. Sur les cartes du jeu, ces icônes suivent la position A à D et restent décoratives.</p>
+      <div class="values4" id="values4"></div>
+      <h4 style="margin-top:28px">On n'écrit plus</h4>
+      <ul class="never">
+        <li>carte de lecture</li><li>définition (pour le document)</li><li>scorecard (pour le document)</li><li>dossier</li><li>carte collaborateur</li><li>couleur secondaire</li><li>Meilleure version de soi-même</li><li>Yekigai</li><li>Yei'ta vie</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Construit à partir du board « Cercle Recrutement », de la fiche Employabilité, du référentiel des compétences et du jeu Yeitigai. Mis à jour le 20 octobre 2026.</span>
+    <span>Les fiches en ligne n'envoient rien nulle part : ce que tu tapes reste dans ton navigateur jusqu'à ce que tu le copies dans Notion.</span>
+  </footer>
+</div>
+
+<script src="assets/yeita.js"></script>
+<script src="assets/data-yeitigai.js"></script>
+<script>
+(function(){
+"use strict";
+var E = YEITA.esc, P = YEITA.picto;
+document.getElementById("logo").innerHTML = YEITA.logo(26);
+
+/* ---------- Supports : l'inventaire unique ---------- */
+var NOTION_EMP = "https://app.notion.com/p/Employabilit-3e64bfab7816801592f4cfdf068968b6";
+var NOTION_REF = "https://app.notion.com/p/3f94bfab781681289c7ccea584e7e7e1";
+var S = {
+  onepager:   {name:"Ton parcours chez Yeita", sub:"One-pager candidat", role:"Expliquer le parcours, les durées, les délais et ce que la personne reçoit.", when:"4", fmt:"Imprimable A4", href:"one-pager.html"},
+  jeu:        {name:"Yeitigai en ligne", sub:"Jeu yeita-match", role:"Le jeu de l'EC1 en visio, ou en secours du kit.", when:"5", fmt:"En ligne", href:YEITIGAI.GAME_URL, ext:true},
+  kit:        {name:"Kit Yeitigai", sub:"Cartes, plateau, profils", role:"Le jeu de l'EC1 en présentiel.", when:"5", fmt:"À imprimer", href:"yeitigai-kit.html"},
+  decompte:   {name:"Feuille de décompte Yeitigai", sub:"Partie du Yeitigai", role:"Cocher les cartes pendant le jeu, compter, départager, trouver le profil.", when:"5", fmt:"Imprimable ou en ligne", href:"yeitigai-decompte.html"},
+  fiche1:     {name:"Fiche d'entretien candidat #1", sub:"Yeitigai & Valeurs Yeita", role:"Écrire la lecture de l'EC1 et produire le code EC1.", when:"5, 6", fmt:"En ligne", href:"fiche-ec1.html"},
+  fiche2:     {name:"Fiche d'entretien candidat #2", sub:"Scorecard 4 diamants", role:"Noter les douze étapes et produire le code EC2.", when:"7, 8", fmt:"En ligne", href:"fiche-ec2.html"},
+  passation:  {name:"Fiche de passation candidat", sub:"Volets EC1 → EC2 et EC2 → EC3", role:"Transmettre ce qu'on n'a pas vu, pour les trous dans la raquette.", when:"6, 8, 9", fmt:"Interne", href:"fiche-passation.html"},
+  carte:      {name:"Carte d'identité Yeita", sub:"Fiche de sortie candidat", role:"Ce que la personne reçoit, qu'on continue ou qu'on s'arrête.", when:"Après chaque arrêt, 9 à 11", fmt:"Imprimable", href:"carte-identite.html"},
+  employabilite:{name:"Employabilité", sub:"Notion", role:"Green flags, red flags, critères éliminatoires.", when:"2, 3, 5", fmt:"Notion", href:NOTION_EMP, ext:true},
+  referentiel:{name:"Référentiel des compétences", sub:"Notion", role:"Les critères des diamants, en relecture collective.", when:"7", fmt:"Notion", href:NOTION_REF, ext:true}
+};
+var ORDER = ["onepager","jeu","kit","decompte","fiche1","fiche2","passation","carte","employabilite","referentiel"];
+function link(k){ var s = S[k]; return '<a href="'+s.href+'"'+(s.ext?' target="_blank" rel="noopener"':'')+'>'+E(s.name)+(s.ext?' <span class="ext">'+E(s.sub)+', nouvel onglet</span>':'')+'</a>'; }
+document.getElementById("inv").innerHTML = ORDER.map(function(k){ var s = S[k];
+  return '<tr><td>'+link(k).replace('<a ','<a class="nm" ')+'<span class="sb">'+E(s.sub)+'</span></td><td>'+E(s.role)+'</td><td class="mono">'+E(s.when)+'</td><td class="fmt">'+E(s.fmt)+'</td></tr>';
+}).join("") + '<tr><td><span class="nm">Page Notion du candidat</span><span class="sb">Notion</span></td><td>Là où tout se range : comptes rendus, passation, codes EC1 et EC2.</td><td class="mono">3 à 11</td><td class="fmt">Notion</td></tr>';
+
+var ARCH = [
+  ["Carte de lecture EC1","https://claude.ai/artifact/XnBRk3gYRTq8M3xB82Rbd4","fiche1"],
+  ["Scorecard EC2 · 4 Diamants","https://claude.ai/artifact/JtKNQwust3EXsv5k1Knozy","fiche2"],
+  ["Fiche de passation (lecture des codes)","https://claude.ai/artifact/4DxuoRN8LEMoiDdvfS1c7h","passation"],
+  ["Fiche de passation (champs libres, ancienne adresse)","https://claude.ai/artifact/G4jCHGpqDQHrzJQeaqoLie","passation"],
+  ["Carte d'identité candidat","https://claude.ai/artifact/VWCff2ff24Qc6SWWMPbN4x","carte"],
+  ["Yekigai","https://yeichati.github.io/yekigai/","jeu"],
+  ["Yei'ta vie","https://yeichati.github.io/yeita-vie/","jeu"]
+];
+document.getElementById("arch").innerHTML = ARCH.map(function(a){
+  return '<tr><td><a href="'+a[1]+'" target="_blank" rel="noopener">'+E(a[0])+'</a></td><td>'+link(a[2])+'</td><td><span class="dead">Ne plus utiliser</span></td></tr>';
+}).join("");
+
+document.getElementById("values4").innerHTML = YEITIGAI.VALUES.map(function(v){
+  return '<div data-v="'+v.id+'"><span class="vn">'+P(v.id,20)+E(v.label)+'</span><p>« '+E(v.expectation)+' »</p></div>';
+}).join("");
+
+/* ---------- Arbre des expériences ---------- */
+var NODES = [
+  {id:"recrutement", cls:"c-recrutement", name:"Sourcing & Recrutement", live:true, state:"Cartographiée", goal:"Du premier contact à la décision.",
+   soon:null},
+  {id:"onboarding", cls:"c-onboarding", name:"Onboarding", state:"À cartographier", goal:"Deux onboardings menés en parallèle, le métier et le social.",
+   soon:["Onboarding métier : prise de poste, posture, pratiques, outils, standards Yeita, projection mission.","Onboarding social : intégration au collectif, rituels, liens, codes, repères."]},
+  {id:"yeita", cls:"c-yeita", name:"Expérience Yeita", hub:true, state:"Le tronc", goal:"Quatre expériences menées de front : un consultant vit la mission, le collectif et le mentorat en même temps, et l'inter-contrat s'intercale.",
+   soon:["Choisis une des quatre branches pour voir ce qu'elle recouvre."]},
+  {id:"client", cls:"c-client", name:"Expérience Client", state:"À cartographier", goal:"Tout ce qui structure la réussite chez le client.",
+   soon:["Présentation et portfolio.","Démarrage et vie en mission.","Posture de consultant : attentes, communication, delivery.","Retours d'expérience et capitalisation."]},
+  {id:"inter", cls:"c-inter", name:"Inter-contrat", state:"À cartographier", goal:"L'entre-deux pensé comme une phase utile.",
+   soon:["Maintien du lien.","Montée en compétences.","Contribution au collectif.","Projection vers la prochaine mission."]},
+  {id:"collectif", cls:"c-collectif", name:"Expérience Collectif", state:"À cartographier", goal:"La participation à la vie du collectif, sans obligation.",
+   soon:["Moments de travail et moments sociaux.","Discord et entraide.","Contributions aux sujets internes."]},
+  {id:"mentorat", cls:"c-mentorat", name:"Expérience Mentorat", state:"À cartographier", goal:"Un accompagnement structuré et activé.",
+   soon:["Choix et matching de la nanny.","Cadre et rituels.","Objectifs et suivi.","Soutien métier, posture et collectif."]},
+  {id:"evolution", cls:"c-evolution", name:"Évolution de carrière", state:"À cartographier", goal:"Un parcours lisible, sur les mêmes outils du début à la fin.",
+   soon:["La carte d'identité comme état initial, hard et soft.","Intentions et trajectoire.","Bilans réguliers sur les mêmes outils.","Évolution salariale alignée avec la grille."]},
+  {id:"offboarding", cls:"c-offboarding", name:"Offboarding", state:"À cartographier", goal:"Une sortie cadrée et respectueuse.",
+   soon:["Anticipation et passation.","Clôture de la mission et du collectif.","Récapitulatif du parcours.","Un lien sain pour la suite."]},
+  {id:"ambassadeur", cls:"c-ambassadeur", name:"Expérience Ambassadeur", state:"Transverse, à cartographier", goal:"Pour toute personne en contact avec Yeita : candidat recruté ou non, client, prospect.",
+   soon:["Donner envie de parler de Yeita, de recommander, de rester connecté au collectif.","C'est la raison pour laquelle chaque candidat repart avec sa carte d'identité, même quand la réponse est non."]}
+];
+var LINKS = [["recrutement","onboarding"],["onboarding","yeita"],["yeita","client"],["yeita","inter"],["yeita","collectif"],["yeita","mentorat"],["mentorat","evolution"],["evolution","offboarding"]];
+var currentNode = "recrutement";
+function renderTree(){
+  document.getElementById("tree").innerHTML = NODES.map(function(n){
+    return '<li class="'+n.cls+'"><button type="button" class="node'+(n.live?' live':(n.hub?' hub':' soon'))+'" id="node-'+n.id+'" data-id="'+n.id+'" aria-controls="branch" aria-pressed="'+(n.id===currentNode)+'">'
+      + '<span class="n-name">'+E(n.name)+'</span><span class="n-state">'+E(n.state)+'</span></button></li>';
+  }).join("");
+}
+function renderBranch(){
+  var n = NODES.filter(function(x){ return x.id === currentNode; })[0], b = document.getElementById("branch");
+  if(n.live){
+    b.innerHTML = '<p><b>Expérience cartographiée.</b> Onze étapes, cinq supports, une carte d\'identité remise à chaque personne.</p>'
+      + '<div class="actions"><a class="btn primary" href="#recrutement">Voir le parcours</a><a class="btn" href="#guide">Ouvrir le guide du recruteur</a></div>';
+  } else {
+    b.innerHTML = '<h3>'+E(n.name)+'</h3><p>'+E(n.goal)+'</p><ul>'+n.soon.map(function(s){ return '<li>'+E(s)+'</li>'; }).join("")+'</ul>'
+      + (n.hub ? '' : '<p class="note">Branche identifiée en atelier, détail à construire. On cartographie une expérience à la fois.</p>');
+  }
+}
+function drawLinks(){
+  var svg = document.getElementById("links"), wrap = document.querySelector(".treewrap");
+  if(getComputedStyle(svg).display === "none"){ svg.innerHTML = ""; return; }
+  var box = wrap.getBoundingClientRect(), p = "";
+  svg.setAttribute("viewBox","0 0 "+wrap.clientWidth+" "+wrap.clientHeight);
+  LINKS.forEach(function(l){
+    var a = document.getElementById("node-"+l[0]), b = document.getElementById("node-"+l[1]); if(!a || !b) return;
+    var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    var x1 = ra.right - box.left, y1 = ra.top - box.top + ra.height/2, x2 = rb.left - box.left, y2 = rb.top - box.top + rb.height/2;
+    var dx = Math.max(16, (x2-x1)*0.55);
+    p += '<path d="M '+x1+' '+y1+' C '+(x1+dx)+' '+y1+', '+(x2-dx)+' '+y2+', '+x2+' '+y2+'" fill="none" stroke="var(--line-strong)" stroke-width="1.5"></path>';
+  });
+  svg.innerHTML = p;
+}
+document.getElementById("tree").addEventListener("click", function(e){
+  var b = e.target.closest(".node"); if(!b) return;
+  currentNode = b.dataset.id;
+  document.querySelectorAll(".node").forEach(function(x){ x.setAttribute("aria-pressed", String(x.dataset.id === currentNode)); });
+  renderBranch();
+});
+
+/* ---------- Les onze étapes ---------- */
+var TYPE = {entretien:["entretien","Entretien"], cand:["cand","Vers le candidat"], int:["int","Entre nous"]};
+var STEPS = [
+  {id:"sourcing", n:1, short:"Sourcing", name:"Sourcing", dur:"En continu", who:"Peter, Thélo", type:"cand",
+   key:"Le réseau et la cooptation recrutent plus que l'annonce : c'est le canal à industrialiser en premier.",
+   avant:["Le besoin de staffing à venir : rôle, palier, date de démarrage."],
+   pendant:{list:["Canaux : cooptation et réseau, LinkedIn, Welcome to the Jungle, Indeed, chasse.","Une publication LinkedIn par mois.","La chasse structurée reste à installer."]},
+   sort:{text:"Un vivier de candidatures qualifiées, plutôt qu'un flux entrant subi."}, tools:[]},
+  {id:"tri", n:2, short:"Tri", name:"Tri des candidatures", dur:"Sous 48 h", who:"Thélo", type:"cand",
+   key:"Le mail de refus est le premier contact d'un futur ambassadeur : c'est lui qui mérite d'être réécrit.",
+   avant:["Deux files, deux critères : le portfolio pour le design, le contexte produit pour PM, PO, Ops et interne.","Les critères éliminatoires de la fiche Employabilité."],
+   pendant:{list:["Lire chaque candidature au regard du besoin, pas seulement du poste publié.","Outils : Welcome to the Jungle, mail automatique de remerciement, tableau de bord candidats."]},
+   sort:{go:"Mail de prise de rendez-vous, avec le lien Calendly.", stop:"Mail de refus. À réécrire : pour la plupart des candidats, c'est le seul contact avec Yeita."}, tools:["employabilite"]},
+  {id:"appel", n:3, short:"Appel", name:"Appel de découverte", dur:"30 min", who:"Un recruteur", type:"entretien",
+   key:"Les quatre blocs de questions sont systématiques : ce qui n'est pas couvert ici devient une zone d'ombre pour toute la suite.",
+   avant:["Relire le CV ou le portfolio.","Avoir sous les yeux les critères éliminatoires."],
+   pendant:{parts:[
+     {t:"Le pitch Yeita", d:"5 min", p:"Un collectif plutôt qu'un catalogue de CV. Une mission, c'est chez le client avec un référent Yeita derrière. Le cadre réel : hybride, rythme, localisation. Ce qu'on ne fait pas : du placement à tout prix."},
+     {t:"Le candidat", d:"20 min", p:"Son profil, ses problématiques clients et métier, deux ou trois questions courtes sur sa façon de travailler. Les quatre blocs ci-dessous sont couverts à chaque fois."},
+     {t:"La suite", d:"5 min", p:"Le calendrier, et comment se passe l'EC1."}],
+    check:[["Le parcours","Son dernier projet : contexte, équipe, rôle exact, résultat","Pourquoi il a quitté les précédents","Avec qui il travaille au quotidien"],
+           ["La recherche","Pourquoi maintenant","Ce qu'il ne veut plus faire","Secteurs ouverts, no-go argumentés"],
+           ["Le cadre","Le modèle ESN : déjà vécu, ce qu'il en attend","Présentiel et pied-à-terre à Paris","Anglais lu, parlé, écrit"],
+           ["Les conditions","Prétentions et marge de discussion","Autres pistes et leur timing","Disponibilité"]]},
+   sort:{text:"Les réponses aux quatre blocs, consignées dans la page Notion du candidat. Elles cadrent l'EC1 et évitent au fondateur de reposer les mêmes questions en EC3.",
+         go:"Envoi du one-pager, puis EC1.", stop:"Dit au téléphone, confirmé par un mail court. Pas de lecture écrite."}, tools:["employabilite"]},
+  {id:"one-pager", n:4, short:"One-pager", name:"Envoi du one-pager", dur:"Dans les 24 h", who:"Le recruteur", type:"cand",
+   key:"La personne arrive en EC1 en connaissant le parcours : le pitch tient en cinq minutes et l'heure lui revient.",
+   avant:["Choisir le format de l'EC1 : en présentiel avec le kit Yeitigai, ou en visio avec le jeu en ligne.","Valider les délais annoncés dans le one-pager avant le premier envoi : ce sont des engagements."],
+   pendant:{list:["Envoyer « Ton parcours chez Yeita » avec « Qui est Yeita ? » et la proposition de créneau.","« Qui est Yeita ? » (millésime 2026) raconte déjà six blocs : qui sommes-nous, les valeurs, la mission, égalité et bien-être, partage et gouvernance, grandir ensemble. Ses valeurs sont à aligner sur les quatre valeurs Yeita : mise à jour en cours."]},
+   sort:{text:"Le candidat sait combien d'étapes l'attendent, qui il va rencontrer, combien de temps ça prend, et ce qu'il recevra à chaque arrêt."}, tools:["onepager"]},
+  {id:"ec1", n:5, short:"EC1", name:"EC1 — Yeitigai & Valeurs", dur:"1 h", who:"Un recruteur", type:"entretien",
+   key:"On lit comment la personne fonctionne, on ne l'évalue pas. Le profil sort du jeu et se discute avec elle.",
+   avant:["Présentiel : le kit Yeitigai (plateau, cartes, profils) et une feuille de décompte imprimée.","Visio : le jeu en ligne, partagé à l'écran. La personne choisit, tu cliques.","Relire les notes de l'appel de découverte."],
+   pendant:{parts:[
+     {t:"Le pitch Yeita", d:"5 min max", p:"Les quatre valeurs, reliées à ce qui va suivre. La transparence et le collectif (cagnotte collective, formation, grille de salaire ouverte) sont mentionnés, pas déroulés : le fondateur les reprendra en EC3."},
+     {t:"Le candidat se raconte", d:"10 à 15 min", p:"Son parcours, ce qu'il y a fait exactement, ce qui n'a pas marché. On écoute la cohérence avec le CV."},
+     {t:"Positionnement grille de salaire", d:"≈ 5 min", p:"On pose la fourchette pendant que la conversation porte encore sur le parcours. La grille est publique, on en parle simplement."},
+     {t:"Yeitigai et échange", d:"≈ 30 min", steps:["Pour chaque manche, lire la situation et poser les quatre cartes devant la personne. Elle en choisit deux.","Cocher les deux cartes sur la feuille de décompte, avec un mot de ce qu'elle en dit.","Après la huitième manche, compter les couleurs : la plus fréquente donne la dominante, la suivante la seconde.","En cas d'égalité, une manche de départage avec les seules cartes des valeurs à égalité. Une carte à choisir.","Étaler les douze profils sur la table, trouver celui de la combinaison dominante › seconde, et en parler ensemble.","Noter le profil dans la fiche d'entretien candidat #1."]},
+     {t:"L'employabilité", d:"tout du long", p:"Une lecture induite sur l'heure entière : cohérence du parcours, adéquation à nos missions, souhaits de projets. Elle ne figure jamais sur la carte d'identité."}]},
+   sort:{text:"La fiche d'entretien candidat #1, remplie à chaud en dix minutes : le profil, une phrase, ce qu'on a vu sous chacune des quatre valeurs. Puis le code EC1 et le compte rendu, collés dans Notion.",
+         go:"EC2, annoncé sur Discord #recru.", stop:"Débrief téléphonique de 30 min au plus, puis la carte d'identité Yeita, moitié EC1 seule."}, tools:["kit","decompte","jeu","fiche1","employabilite"]},
+  {id:"debrief-ec1", n:6, short:"Débrief EC1", name:"Débrief EC1", dur:"15 min, à chaud", who:"Le recruteur de l'EC1 et le pair de l'EC2", type:"int",
+   key:"Ce qui circule, ce sont des zones à explorer, pas une liste de questions.",
+   avant:["La fiche d'entretien candidat #1 remplie."],
+   pendant:{list:["Remplir le volet EC1 → EC2 de la fiche de passation : la dominante, les faits qui ont porté la lecture, l'hypothèse de départ sur les diamants, trois orientations au plus, un signal de vigilance."]},
+   sort:{text:"La fiche copiée dans la page Notion du candidat. Le pair arrive en EC2 sans repartir de zéro."}, tools:["passation","fiche1"]},
+  {id:"ec2", n:7, short:"EC2", name:"EC2 — Mise en perspective métier", dur:"1 h 30", who:"Un pair du métier", type:"entretien",
+   key:"Le seul étage chiffré, et le seul qui se traduit en fourchette de salaire. Pas de note sans fait rapporté.",
+   avant:["Lire le volet EC1 → EC2 de la passation dans Notion.","Lire le CV et le portfolio, choisir le palier visé dans la fiche #2.","Product Designer : la grille arrive. En attendant, l'EC2 se mène avec le référentiel Notion."],
+   pendant:{parts:[
+     {t:"Accueil", d:"5 min", p:"Se présenter, Yeita en deux phrases, le cadre de l'heure et demie. Pas de pitch : il a été fait en EC1 et sera déroulé en EC3."},
+     {t:"Pour démarrer", d:"≈ 15 min", p:"Son objectif, son contexte, les décisions clés récentes. On ne note rien : cette partie sert à choisir le premier use case."},
+     {t:"Mises en perspective", d:"≈ 50 min", p:"Quatre use cases, un par diamant. Douze notes de 0 à 4, une par étape. La grille de lecture reste sous les yeux du pair, jamais sous ceux du candidat."},
+     {t:"Aspirations", d:"≈ 15 min", p:"Formations en tête, besoin d'autonomie ou d'accompagnement, freins éventuels. Non noté : prépare le staffing et l'EC3."}]},
+   sort:{text:"La fiche d'entretien candidat #2 : douze notes, le radar, l'écart à l'attendu du palier. Le code EC2 et le compte rendu complet vont dans Notion.",
+         go:"EC3.", stop:"Débrief téléphonique de 30 min au plus, puis la carte d'identité Yeita complète."}, tools:["fiche2","referentiel"]},
+  {id:"debrief-ec2", n:8, short:"Débrief EC2", name:"Débrief EC2", dur:"15 min", who:"Le pair de l'EC2 et le fondateur", type:"int",
+   key:"Les angles morts des deux entretiens, réunis : rien de ce qui est resté ouvert depuis l'EC1 ne se perd.",
+   avant:["La fiche #2 remplie, le volet EC1 → EC2 de la passation."],
+   pendant:{list:["Remplir le volet EC2 → EC3 : palier proposé, diamants solides et creux, trois orientations au plus, ce qui risque d'être contesté, ce qui doit être confirmé avant la proposition."]},
+   sort:{text:"Le fondateur a les deux volets réunis dans Notion : il arrive en EC3 avec des angles précis."}, tools:["passation","fiche2"]},
+  {id:"ec3", n:9, short:"EC3", name:"EC3 — La mise au point", dur:"1 h, en présentiel", who:"Un fondateur", type:"entretien",
+   key:"Le seul moment où un fondateur raconte Yeita en entier, et le seul où la personne corrige ce qu'on a écrit sur elle.",
+   avant:["L'EC3 n'a lieu que si on pense retenir. On ne fait pas déplacer quelqu'un pour lui dire non.","Lire les deux volets de la fiche de passation.","Préparer la carte d'identité Yeita avec les codes EC1 et EC2."],
+   pendant:{parts:[
+     {t:"Le talk de fondateur", d:"première partie", p:"D'où vient Yeita, pourquoi, comment elle a évolué. Les valeurs illustrées par des exemples concrets. Tout ce qui n'a été que mentionné en EC1 se déroule ici."},
+     {t:"Les trous dans la raquette", d:"deuxième partie", p:"Les orientations des deux passations : des angles préparés, pas un tour d'horizon."},
+     {t:"La restitution", d:"troisième partie", p:"La carte d'identité posée sur la table. La personne réagit : là où on a vu trop, trop peu, ou rien. On ajuste avec elle. La contestation est le signe que le dispositif fonctionne."}]},
+   sort:{text:"La carte d'identité Yeita, corrigée en séance.", go:"Décision et proposition."}, tools:["passation","carte"]},
+  {id:"decision", n:10, short:"Décision", name:"Décision & proposition", dur:"Sous 5 jours ouvrés", who:"Les fondateurs et l'interne", type:"cand",
+   key:"La fourchette vient du palier de l'EC2 et se justifie ligne à ligne. Pas de sur-offre.",
+   avant:["Le palier issu de l'EC2, confirmé en EC3.","Les conditions relevées en passation : prétentions, disponibilité, no-go."],
+   pendant:{list:["Une proposition placée dans la fourchette du palier, justifiable ligne à ligne par la fiche #2."]},
+   sort:{go:"Proposition, puis signature. La carte d'identité, état « Embauche », est remise.", stop:"Téléphone, puis mail, avec la carte d'identité complète."}, tools:["carte"]},
+  {id:"onboarding", n:11, short:"Onboarding", name:"Passation d'onboarding", dur:"Premiers jours", who:"La personne et son mentor", type:"cand",
+   key:"C'est pour ce moment que tout le reste existe : la carte d'identité change de propriétaire.",
+   avant:["La carte d'identité, état « Embauche »."],
+   pendant:{list:["La carte devient l'état initial du suivi : c'est la personne qui la tient, pas son manager.","Déjeuner avec l'équipe, soirée Yeita, accès Discord et réseaux.","À enrichir : un contenu sur les premiers pas dans le collectif."]},
+   sort:{text:"L'évaluation devient une auto-évaluation. C'est le point de départ de l'expérience Onboarding."}, tools:["carte"]}
+];
+
+/* ---------- Frise des sorties ---------- */
+var STAGES = [
+  {n:2, name:"Tri", dur:"48 h", exit:["stop","Non","Mail de refus, à réécrire."]},
+  {n:3, name:"Appel de découverte", dur:"30 min", exit:["stop","Non","Dit au téléphone, confirmé par un mail court."]},
+  {n:5, name:"EC1", dur:"1 h", exit:["stop","Non","Téléphone 30 min, puis la carte d'identité, moitié EC1."]},
+  {n:7, name:"EC2", dur:"1 h 30", exit:["stop","Non","Téléphone 30 min, puis la carte d'identité complète."]},
+  {n:9, name:"EC3", dur:"1 h", exit:["none","Pas de sortie ici","On ne reçoit que ceux qu'on pense retenir."]},
+  {n:10, name:"Décision", dur:"5 jours ouvrés", exit:["stop","Non","Téléphone et mail, carte d'identité complète."]},
+  {n:11, name:"Onboarding", dur:"premiers jours", end:true, exit:["go","Go","Proposition, puis la carte d'identité devient l'état initial."]}
+];
+document.getElementById("track").innerHTML = STAGES.map(function(s){
+  var ic = s.exit[0] === "go" ? YEITA.icon("Check", 14, 3) : '';
+  return '<li class="stage'+(s.end?' end':'')+'"><a href="#'+STEPS[s.n-1].id+'" class="dot" aria-label="Étape '+s.n+', '+E(s.name)+'">'+s.n+'</a>'
+    + '<span class="s-name">'+E(s.name)+'</span><span class="s-dur">'+E(s.dur)+'</span>'
+    + '<span class="exit '+s.exit[0]+'"><b>'+ic+E(s.exit[1])+'</b>'+E(s.exit[2])+'</span></li>';
+}).join("");
+document.querySelectorAll("#track .dot").forEach(function(a){ a.style.textDecoration = "none"; });
+
+/* ---------- Guide ---------- */
+var curStep = 4;
+function tools(st){
+  if(!st.tools.length) return "";
+  return '<div class="tools"><span class="lab">À ouvrir</span>'+st.tools.map(function(k){ var s = S[k];
+    return '<a href="'+s.href+'"'+(s.ext?' target="_blank" rel="noopener"':'')+'>'+E(s.name)+(s.ext?' <span class="ext">nouvel onglet</span>':'')+'</a>'; }).join("")+'</div>';
+}
+function pendant(p){
+  var h = "";
+  if(p.parts) h += p.parts.map(function(x){
+    return '<div class="part"><span class="pt">'+E(x.t)+'<span>'+E(x.d)+'</span></span>'
+      + (x.p ? '<p>'+E(x.p)+'</p>' : '') + (x.steps ? '<ol>'+x.steps.map(function(s){ return '<li>'+E(s)+'</li>'; }).join("")+'</ol>' : '') + '</div>';
+  }).join("");
+  if(p.list) h += '<ul>'+p.list.map(function(s){ return '<li>'+E(s)+'</li>'; }).join("")+'</ul>';
+  if(p.check) h += '<div><span class="pt" style="font-weight:650">Les quatre blocs à toujours couvrir</span><div class="check4">'+p.check.map(function(g){
+      return '<div><b>'+E(g[0])+'</b><ul>'+g.slice(1).map(function(q){ return '<li>'+E(q)+'</li>'; }).join("")+'</ul></div>'; }).join("")+'</div></div>';
+  return h;
+}
+function sortie(s){
+  var h = s.text ? '<p class="out">'+E(s.text)+'</p>' : '';
+  if(s.go || s.stop) h += '<div class="exits">'
+    + (s.go ? '<div class="exit go"><b>'+YEITA.icon("Check", 14, 3)+'Go</b>'+E(s.go)+'</div>' : '')
+    + (s.stop ? '<div class="exit stop"><b>Non</b>'+E(s.stop)+'</div>' : '')
+    + '</div>';
+  return h;
+}
+function renderSteps(){
+  document.getElementById("steplist").innerHTML = STEPS.map(function(st,i){
+    return '<li><button type="button" role="tab" class="is-'+st.type+'" id="st-'+st.id+'" aria-controls="steppanel" aria-selected="'+(i===curStep)+'" tabindex="'+(i===curStep?0:-1)+'">'
+      + '<span class="num">'+st.n+'</span><span>'+E(st.short)+'</span></button></li>';
+  }).join("");
+}
+function renderStep(){
+  var st = STEPS[curStep], t = TYPE[st.type], prev = STEPS[curStep-1], next = STEPS[curStep+1];
+  var panel = document.getElementById("steppanel");
+  panel.setAttribute("aria-labelledby", "st-"+st.id);
+  panel.innerHTML = '<article class="step">'
+    + '<div class="s-top"><div class="s-meta"><span class="tag '+t[0]+'">'+t[1]+'</span><span class="chip">'+E(st.dur)+'</span><span class="chip">'+E(st.who)+'</span></div>'
+    + '<h3><span class="bn">'+st.n+' / 11</span>'+E(st.name)+'</h3><p class="s-key">'+E(st.key)+'</p>'+tools(st)+'</div>'
+    + '<div class="blocs">'
+    + '<section class="bloc avant"><h4><span class="bi" aria-hidden="true"></span>Avant</h4><ul>'+st.avant.map(function(s){ return '<li>'+E(s)+'</li>'; }).join("")+'</ul></section>'
+    + '<section class="bloc pendant"><h4><span class="bi" aria-hidden="true"></span>Pendant</h4>'+pendant(st.pendant)+'</section>'
+    + '<section class="bloc sort"><h4><span class="bi" aria-hidden="true"></span>Ce qui sort</h4>'+sortie(st.sort)+'</section>'
+    + '</div>'
+    + '<nav class="s-nav" aria-label="Étape précédente ou suivante">'
+    + (prev ? '<button type="button" class="btn quiet small" data-go="'+(curStep-1)+'">Étape '+prev.n+' : '+E(prev.short)+'</button>' : '<span></span>')
+    + (next ? '<button type="button" class="btn small" data-go="'+(curStep+1)+'">Étape '+next.n+' : '+E(next.short)+'</button>' : '<span></span>')
+    + '</nav></article>';
+}
+function selectStep(i, focus){
+  curStep = i;
+  document.querySelectorAll("#steplist [role=tab]").forEach(function(b,k){ b.setAttribute("aria-selected", String(k===i)); b.tabIndex = k===i ? 0 : -1; });
+  renderStep();
+  if(focus) document.getElementById("st-"+STEPS[i].id).focus();
+  YEITA.store.set("yeita-hub-step", i);
+}
+renderSteps(); renderStep();
+YEITA.tabs(document.getElementById("steplist"), function(btn){ selectStep(STEPS.map(function(s){ return "st-"+s.id; }).indexOf(btn.id)); });
+document.getElementById("steppanel").addEventListener("click", function(e){
+  var b = e.target.closest("[data-go]"); if(!b) return;
+  selectStep(+b.dataset.go, true);
+});
+
+/* ---------- Vues ---------- */
+var VIEWS = ["demarche","guide","supports","glossaire"];
+function selectView(id, scroll){
+  VIEWS.forEach(function(v){
+    var on = v === id, tab = document.getElementById("tab-"+v);
+    tab.setAttribute("aria-selected", String(on)); tab.tabIndex = on ? 0 : -1;
+    document.getElementById(v).hidden = !on;
+  });
+  if(scroll) document.getElementById("views").scrollIntoView({block:"start"});
+}
+YEITA.tabs(document.getElementById("views"), function(btn){ selectView(btn.id.replace("tab-","")); });
+
+/* ---------- Liens directs : #guide, #supports, #glossaire, #demarche, ou une étape (#ec1…) ---------- */
+function route(){
+  var h = (location.hash || "").replace("#","");
+  if(!h) return;
+  if(VIEWS.indexOf(h) >= 0){ selectView(h, true); return; }
+  var i = STEPS.map(function(s){ return s.id; }).indexOf(h);
+  if(i >= 0){ selectView("guide", true); selectStep(i); return; }
+  if(h === "recrutement") document.getElementById("recrutement").scrollIntoView({block:"start"});
+}
+document.addEventListener("click", function(e){
+  var a = e.target.closest('a[href^="#"]'); if(!a) return;
+  var h = a.getAttribute("href").slice(1);
+  if(VIEWS.indexOf(h) >= 0 || STEPS.some(function(s){ return s.id === h; })){ e.preventDefault(); location.hash = h; route(); }
+});
+window.addEventListener("hashchange", route);
+
+var saved = YEITA.store.get("yeita-hub-step", null);
+if(typeof saved === "number" && saved >= 0 && saved < STEPS.length) selectStep(saved);
+renderTree(); renderBranch(); route();
+requestAnimationFrame(drawLinks);
+window.addEventListener("resize", drawLinks);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(drawLinks);
+setTimeout(drawLinks, 300);
+})();
+</script>

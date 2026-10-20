@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="fr" class="paper">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Carte d'identité Yeita</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/yeita.css">
+<style>
+/* Carte d'identité : un document remis au candidat, toujours en clair, au format A4 paysage.
+   Le bandeau encre de yeita.fr porte le nom ; la moitié gauche est la lecture EC1, la droite l'EC2.
+   Arrêt après l'EC1 : la moitié droite reste vide, sans un mot. */
+:root{ padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  --card-w:1123px; }
+.panel-in{display:grid; gap:14px; margin-top:20px}
+.codes{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:12px}
+.codes input{font-family:var(--f-mono); font-size:13.5px}
+.codes .ok{font-size:13.5px; font-weight:600}
+.codes .ok.good{color:var(--go)} .codes .ok.bad{color:var(--stop)}
+.state-row{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center}
+.state-row .gl{font-size:14px; font-weight:650; color:var(--ink-2)}
+
+/* ---- La carte ---- */
+.stage{margin-block:26px 10px; overflow-x:auto}
+.card{width:100%; max-width:var(--card-w); margin-inline:auto; background:#fffdf9; color:#160f20; border-radius:20px; box-shadow:0 1px 0 #e4dfe8, 0 30px 60px -40px #160f2066;
+  border:1px solid #e4dfe8; overflow:hidden; display:grid; grid-template-rows:auto 1fr auto}
+.band{background:#160f20; color:#fffdf9; padding:22px 30px 20px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px 24px; align-items:end}
+.band .top{grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px}
+.band .top .doc{font-size:15px; font-weight:600; color:#ebf893}
+.band .who{font-size:clamp(28px,4vw,44px); font-weight:700; line-height:1.02; letter-spacing:-.02em}
+.band .who.empty{color:#8d8599; font-weight:500}
+.band .meta{font-family:var(--f-mono); font-size:13px; color:#d9d3e3; text-align:right; display:grid; gap:2px}
+.start{grid-column:1 / -1; margin-top:10px; background:#ebf893; color:#160f20; border-radius:12px; padding:10px 14px; font-weight:600; font-size:15.5px; display:flex; gap:10px; align-items:center}
+.halves{display:grid; grid-template-columns:1fr 1fr}
+.half{padding:26px 30px 24px; display:grid; gap:16px; align-content:start; min-width:0}
+.half.left{border-right:1px solid #e4dfe8}
+.h-lab{font-size:14px; font-weight:650; color:#4d25f7}
+.prof-name{font-size:clamp(30px,3.6vw,40px); font-weight:700; line-height:1; letter-spacing:-.02em}
+.combo{display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:14px}
+.combo .vchip{font-size:13.5px}
+.prof-form{font-size:16px; color:#3d3549}
+.def{font-size:17px; font-weight:500; border-left:4px solid #ebf893; padding-left:12px}
+.vals{display:grid; grid-template-columns:1fr 1fr; gap:12px 18px}
+.vrow{display:grid; gap:4px; border-top:3px solid var(--vf); padding-top:8px}
+.vrow b{display:flex; align-items:center; gap:7px; color:var(--vc); font-size:15.5px}
+.vrow q{font-size:12.5px; color:#625b6f; quotes:"« " " »"; line-height:1.4}
+.vrow p{font-size:14.5px; color:#160f20}
+.vrow p.none{color:#625b6f; font-style:italic}
+.radar svg{display:block; width:100%; max-width:500px; margin-inline:auto; height:auto}
+.dgroups{display:grid; grid-template-columns:1fr 1fr; gap:10px 18px}
+.dg{display:grid; gap:4px}
+.dg .dh{display:flex; gap:8px; align-items:baseline; font-size:14.5px}
+.dg .dh b span{font-family:var(--f-mono); font-weight:500; color:#625b6f; margin-right:4px}
+.dg .dh .n{margin-left:auto; font-family:var(--f-mono); font-size:13.5px}
+.dg .dh .n small{color:#625b6f}
+.bar{height:8px; border-radius:4px; background:#f5f2f9; border:1px solid #e4dfe8; position:relative}
+.bar u{position:absolute; inset:0 auto 0 0; background:#4d25f7; border-radius:4px}
+.bar s{position:absolute; top:-4px; bottom:-4px; width:2px; background:#160f20}
+.palier{border-radius:12px; background:#f5f2f9; padding:12px 14px; display:grid; gap:3px}
+.palier .pl{font-size:13px; font-weight:650; color:#625b6f}
+.palier b{font-size:18px}
+.palier p{font-size:14px; color:#3d3549}
+.foot-card{border-top:1px solid #e4dfe8; padding:14px 30px 16px; display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px 20px; font-size:14px; color:#625b6f}
+.foot-card .ylogo{color:#160f20}
+@media (max-width:860px){
+  .halves{grid-template-columns:1fr}
+  .half.left{border-right:0; border-bottom:1px solid #e4dfe8}
+  .band{grid-template-columns:1fr}
+  .band .meta{text-align:left}
+  .vals, .dgroups{grid-template-columns:1fr}
+}
+.notes{margin-top:30px; display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:14px}
+.notes > div{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; display:grid; gap:6px}
+.notes p{font-size:15px; color:var(--ink-2)}
+
+@page{size:A4 landscape; margin:0}
+@media print{
+  html, body{background:#fff}
+  .wrap{max-width:none; padding:0}
+  .topbar, .page-head, .panel-in, .notes, .foot, .noprint{display:none !important}
+  .stage{margin:0; overflow:visible}
+  .card{width:297mm; height:210mm; max-width:none; border-radius:0; border:0; box-shadow:none; -webkit-print-color-adjust:exact; print-color-adjust:exact}
+  .band{padding:8mm 11mm 6mm}
+  .half{padding:7mm 11mm 5mm; gap:3.6mm}
+  .foot-card{padding:3mm 11mm 4mm}
+  .radar svg{max-width:96mm}
+  .vrow p{font-size:9.5pt} .vrow q{font-size:7.5pt}
+  /* le navigateur peut mettre en page l'impression plus étroit que l'A4 paysage : on garde les deux moitiés côte à côte */
+  .halves{grid-template-columns:1fr 1fr}
+  .half.left{border-right:1px solid #e4dfe8; border-bottom:0}
+  .band{grid-template-columns:minmax(0,1fr) auto}
+  .band .meta{text-align:right}
+  .vals, .dgroups{grid-template-columns:1fr 1fr}
+  /* tout tient sur une page A4 paysage, bandeau d'embauche compris */
+  .band{padding:7mm 11mm 5mm}
+  .band .top{margin-bottom:2mm}
+  .band .who{font-size:28pt}
+  .band .meta{font-size:9pt}
+  .start{margin-top:2.5mm; padding:2mm 3.5mm; font-size:10pt; border-radius:2.5mm}
+  .half{padding:5.5mm 11mm 4mm; gap:3mm}
+  .prof-name{font-size:24pt}
+  .prof-form{font-size:10.5pt}
+  .def{font-size:11pt}
+  .vals{gap:2.6mm 4.5mm}
+  .radar svg{max-width:92mm}
+  .dgroups{gap:2mm 4.5mm}
+  .dg .dh{font-size:9.5pt}
+  .palier{padding:2.5mm 3.5mm}
+  .palier b{font-size:12pt}
+  .palier p{font-size:8.5pt}
+  .foot-card{font-size:9pt}
+}
+</style>
+</head>
+<body>
+<div id="live" aria-live="polite"></div>
+<div class="wrap">
+  <header class="topbar">
+    <a href="index.html#ec3" aria-label="Retour au hub Expérience collaborateur" style="padding:0" id="logo"></a>
+    <span class="where">Fiche de sortie candidat</span>
+    <nav aria-label="Supports liés">
+      <a href="index.html#ec3">Guide, étapes 9 à 11</a>
+      <a href="fiche-ec1.html">Fiche #1</a>
+      <a href="fiche-ec2.html">Fiche #2</a>
+    </nav>
+  </header>
+  <div class="page-head">
+    <h1>Carte d'identité Yeita</h1>
+    <p class="lede">La fiche que la personne reçoit, qu'on continue ou qu'on s'arrête. Colle les codes EC1 et EC2, choisis l'état de sortie : la carte se compose. Elle part toujours après le débrief téléphonique, jamais avant.</p>
+  </div>
+
+  <div class="panel panel-in noprint">
+    <div class="codes">
+      <div class="field"><label for="c1">Code EC1</label><input type="text" id="c1" placeholder="YEITA-EC1.…" autocomplete="off" spellcheck="false"><span class="ok" id="ok1" aria-live="polite"></span></div>
+      <div class="field"><label for="c2">Code EC2</label><input type="text" id="c2" placeholder="YEITA-EC2.…" autocomplete="off" spellcheck="false"><span class="ok" id="ok2" aria-live="polite"></span></div>
+    </div>
+    <div class="state-row">
+      <span class="gl" id="state-l">État de sortie</span>
+      <div class="seg" role="radiogroup" aria-labelledby="state-l" id="state">
+        <button type="button" role="radio" data-s="ec1" aria-checked="false">Arrêt après l'EC1</button>
+        <button type="button" role="radio" data-s="ec2" aria-checked="true">Arrêt après l'EC2</button>
+        <button type="button" role="radio" data-s="hire" aria-checked="false">Embauche</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn quiet small" id="demo">Charger l'exemple</button>
+      <button type="button" class="btn quiet small" id="clear">Vider</button>
+      <button type="button" class="btn small primary" data-print>Imprimer ou enregistrer en PDF</button>
+      <span class="note" data-print-note hidden>Pour imprimer ou exporter en PDF, ouvre cette page depuis le site GitHub du recrutement.</span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <article class="card" id="card" aria-label="Carte d'identité Yeita">
+      <header class="band">
+        <div class="top"><span id="blogo"></span><span class="doc">Carte d'identité</span></div>
+        <div class="who" id="who">Prénom et nom</div>
+        <div class="meta" id="meta"></div>
+        <div class="start" id="start" hidden></div>
+      </header>
+      <div class="halves">
+        <section class="half left" id="left" aria-label="Lecture de l'EC1"></section>
+        <section class="half right" id="right" aria-label="Lecture de l'EC2"></section>
+      </div>
+      <footer class="foot-card"><span id="fline">Ni note, ni verdict. Une lecture à un instant T, qu'on corrige ensemble.</span><span id="flogo"></span></footer>
+    </article>
+  </div>
+
+  <div class="notes noprint">
+    <div><h2 style="font-size:17px">Ce qui ne figure jamais ici</h2><p>La décision, la passation, l'employabilité, les critères des diamants et les exemples cités. Les codes ne les transportent pas.</p></div>
+    <div><h2 style="font-size:17px">Arrêt après l'EC1</h2><p>Seule la moitié gauche est remplie. La droite reste vide, sans mention : on ne promet pas une étape qui n'aura pas lieu.</p></div>
+    <div><h2 style="font-size:17px">Embauche</h2><p>La carte, corrigée en EC3, devient le point de départ de la personne chez Yeita. C'est elle qui la tient ensuite.</p></div>
+  </div>
+  <footer class="foot noprint"><span>Les codes sont lus dans ce navigateur et ne partent nulle part.</span></footer>
+</div>
+
+<script src="assets/yeita.js"></script>
+<script src="assets/data-yeitigai.js"></script>
+<script src="assets/data-diamants.js"></script>
+<script>
+(function(){
+"use strict";
+var Y = YEITIGAI, Dm = DIAMANTS, E = YEITA.esc, P = YEITA.picto, KEY = "yeita-carte-identite";
+document.getElementById("logo").innerHTML = YEITA.logo(26);
+document.getElementById("blogo").innerHTML = YEITA.logo(30);
+document.getElementById("flogo").innerHTML = YEITA.logo(18);
+YEITA.wirePrint();
+var st = YEITA.store.get(KEY, null) || {a:"", b:"", s:"ec2"};
+var ec1 = null, ec2 = null;
+
+function fmtDate(s){ if(/^\d{4}-\d{2}-\d{2}$/.test(s||"")){ return new Date(s+"T12:00:00").toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}); } return s || ""; }
+
+function renderHead(){
+  var name = (ec1 && ec1.n) || (ec2 && ec2.n) || "";
+  var who = document.getElementById("who");
+  who.textContent = name || "Prénom et nom"; who.classList.toggle("empty", !name);
+  var m = [];
+  if(ec1 && ec1.d) m.push("Entretien 1, " + fmtDate(ec1.d));
+  if(st.s !== "ec1" && ec2 && ec2.d) m.push("Entretien 2, " + fmtDate(ec2.d));
+  document.getElementById("meta").innerHTML = m.map(function(x){ return '<span>'+E(x)+'</span>'; }).join("");
+  var s = document.getElementById("start");
+  s.hidden = st.s !== "hire";
+  s.innerHTML = YEITA.icon("ArrowRight", 20, 2.2) + 'Ton point de départ chez Yeita, corrigé ensemble en EC3. C\'est toi qui la fais vivre, bilan après bilan.';
+  document.getElementById("fline").textContent = st.s === "hire" ? "Ton état initial : la même carte servira à chaque bilan, sur les mêmes repères." : "Ni note, ni verdict. Une lecture à un instant T, qu'on corrige ensemble.";
+}
+
+function renderLeft(){
+  var el = document.getElementById("left");
+  if(!ec1){ el.innerHTML = ""; return; }
+  var name, form = "", combo = "";
+  if(ec1.p === "partial"){ name = "Lecture partielle"; form = ec1.why || "On n'a pas assez vu pour poser un profil. Ce qui suit est ce qu'on a pu lire, et rien de plus."; }
+  else if(ec1.p){
+    var k = ec1.p.split("|"), d = Y.value(k[0]), s = Y.value(k[1]), p = Y.profileFor(k[0], k[1]);
+    if(p){ name = p.label; form = "Un profil « " + d.label.toLowerCase() + " » qui " + s.verb + ". " + p.description;
+      combo = '<div class="combo"><span class="vchip" data-v="'+d.id+'">'+P(d.id,15)+E(d.label)+'</span><span aria-hidden="true">›</span><span class="vchip" data-v="'+s.id+'">'+P(s.id,15)+E(s.label)+'</span></div>'; }
+  }
+  var h = '<span class="h-lab">Ce qu\'on a perçu de toi</span>';
+  if(name) h += '<div style="display:grid; gap:8px"><span class="prof-name">'+E(name)+'</span>'+combo+'<p class="prof-form">'+E(form)+'</p></div>';
+  if(ec1.def) h += '<p class="def">'+E(ec1.def)+'</p>';
+  h += '<div class="vals">' + Y.VALUES.map(function(v, i){
+    var txt = (ec1.v && ec1.v[i]) ? ec1.v[i] : "";
+    return '<div class="vrow" data-v="'+v.id+'"><b>'+P(v.id,16)+E(v.label)+'</b><q>'+E(v.expectation)+'</q>'
+      + (txt ? '<p>'+E(txt)+'</p>' : '<p class="none">Rien d\'écrit sur cette valeur.</p>') + '</div>';
+  }).join("") + '</div>';
+  el.innerHTML = h;
+}
+
+function renderRight(){
+  var el = document.getElementById("right");
+  // Arrêt après l'EC1 : on n'écrit rien, la moitié reste vide.
+  if(st.s === "ec1" || !ec2){ el.innerHTML = ""; return; }
+  var T = ec2.tier, h = '<span class="h-lab">Ton métier, sur les quatre diamants</span>';
+  h += '<div class="radar">'+YEITA.radar(ec2.steps, T, {w:540, h:390, r:132, label:"Tes douze étapes et l'attendu au palier "+Dm.TIERS[T-1]})+'</div>';
+  h += '<div class="dgroups">' + Dm.D.map(function(d, di){
+    var avg = Dm.avgDiamond(ec2.steps, di), att = Dm.expDiamond(T, di);
+    return '<div class="dg"><div class="dh"><b><span>'+d.n+'</span>'+E(d.name)+'</b><span class="n">'+YEITA.fr(avg)+' <small>/ attendu '+YEITA.fr(att)+'</small></span></div>'
+      + '<div class="bar" aria-hidden="true"><u style="width:'+(Math.max(0,Math.min(4,avg))/4*100)+'%"></u><s style="left:calc('+(att/4*100)+'% - 1px)"></s></div></div>';
+  }).join("") + '</div>';
+  h += '<div class="palier"><span class="pl">Palier discuté ensemble</span><b>'+E(Dm.TIERS[T-1])+'</b><p>'+E(Dm.TIER_XP[T-1])+'. À ce palier, '+E(Dm.TIER_WHY_YOU[T-1])+'. Le pointillé est l\'attendu, pas un seuil d\'admission : c\'est le point de départ de la conversation.</p>'
+    + (ec2.legacy ? '<p>Ancien format de code : seules les moyennes par diamant sont disponibles.</p>' : '') + '</div>';
+  el.innerHTML = h;
+}
+
+function read(){
+  var a = document.getElementById("c1").value, b = document.getElementById("c2").value;
+  var r1 = YEITA.readEC1(a), r2 = YEITA.readEC2(b);
+  ec1 = r1 || null; ec2 = r2 || null;
+  var o1 = document.getElementById("ok1"), o2 = document.getElementById("ok2");
+  o1.textContent = r1 === false ? "Code EC1 illisible : recopie-le depuis la fiche #1." : (ec1 ? "Code EC1 lu" : ""); o1.className = "ok " + (r1 === false ? "bad" : "good");
+  o2.textContent = r2 === false ? "Code EC2 illisible : recopie-le depuis la fiche #2." : (ec2 ? "Code EC2 lu" : ""); o2.className = "ok " + (r2 === false ? "bad" : "good");
+  st.a = a; st.b = b; YEITA.store.set(KEY, st);
+  renderHead(); renderLeft(); renderRight();
+  document.querySelectorAll("#state [role=radio]").forEach(function(x){ x.setAttribute("aria-checked", String(x.dataset.s === st.s)); });
+}
+
+var DEMO1 = {n:"Camille Rousseau", d:"2026-10-14", par:"Pauline", p:"explorateur|collectif",
+  def:"Part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites.", why:"",
+  v:["A cité trois fois l'équipe avant de se citer elle-même, y compris sur une réussite qu'elle portait seule.",
+     "A dit « je ne sais pas » deux fois sans chercher à rattraper, et a proposé d'aller vérifier.",
+     "Raconte un changement de méthode décidé après un test raté, avec ce que ça a coûté.",
+     "Sait nommer ce qu'elle ne maîtrise pas encore, le cadrage amont, et ce qu'elle fait pour y aller."]};
+var DEMO2 = {role:"PM", t:2, s:[2,3,2, 4,3,2, 3,3,2, 3,2,null], n:"Camille Rousseau", d:"2026-10-21", par:"Thélo"};
+
+document.getElementById("c1").addEventListener("input", read);
+document.getElementById("c2").addEventListener("input", read);
+document.getElementById("state").addEventListener("click", function(e){ var b = e.target.closest("[role=radio]"); if(!b) return; st.s = b.dataset.s; read(); });
+document.addEventListener("click", function(e){
+  if(e.target.id === "demo"){
+    document.getElementById("c1").value = "YEITA-EC1." + YEITA.b64e(DEMO1);
+    document.getElementById("c2").value = "YEITA-EC2." + YEITA.b64e(DEMO2);
+    read(); YEITA.flash(null, "Exemple chargé"); return;
+  }
+  if(e.target.id === "clear"){ document.getElementById("c1").value = ""; document.getElementById("c2").value = ""; read(); return; }
+});
+/* L'exemple s'affiche à la première ouverture, pour voir la carte composée. */
+document.getElementById("c1").value = st.a || ("YEITA-EC1." + YEITA.b64e(DEMO1));
+document.getElementById("c2").value = st.b || (st.a ? "" : "YEITA-EC2." + YEITA.b64e(DEMO2));
+/* Lien direct vers un état : #ec1, #ec2 ou #embauche */
+var hs = (location.hash||"").replace("#","");
+if(hs === "ec1" || hs === "ec2") st.s = hs; else if(hs === "embauche") st.s = "hire";
+read();
+})();
+</script>
+</body>
+</html>

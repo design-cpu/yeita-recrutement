@@ -1,0 +1,4 @@
+_site/
+dist/
+renders/
+.DS_Store
