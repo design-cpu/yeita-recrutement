@@ -145,10 +145,20 @@ function radar(steps, tier, o){
 
 /* Une page publiée dans un artefact ne peut pas ouvrir l'impression : le bouton n'apparaît qu'hors cadre (GitHub Pages). */
 function inFrame(){ try{ return window.self !== window.top; }catch(e){ return true; } }
+var SITE = "https://yeichati.github.io/yeita-recrutement/";
 function wirePrint(){
   var btns = document.querySelectorAll("[data-print]");
   btns.forEach(function(b){
-    if(inFrame()){ b.hidden = true; var n = document.querySelector("[data-print-note]"); if(n) n.hidden = false; }
+    if(inFrame()){
+      b.hidden = true;
+      var n = document.querySelector("[data-print-note]");
+      if(n && n.hidden){
+        n.hidden = false;
+        var page = (location.pathname.split("/").pop() || "");
+        if(!/\.html$/.test(page)) page = "";
+        n.insertAdjacentHTML("beforeend", ' <a href="'+SITE+page+'" target="_blank" rel="noopener">Ouvrir sur le site</a>');
+      }
+    }
     else b.addEventListener("click", function(){ window.print(); });
   });
 }
@@ -177,5 +187,5 @@ function tabs(list, onSelect){
 
 window.YEITA = {logo:logo, picto:picto, icon:icon, CARD_ICONS:CARD_ICONS, VALUE_ICON:VALUE_ICON, esc:esc, store:store, copy:copy, flash:flash, b64e:b64e, b64d:b64d,
   readEC1:readEC1, readEC2:readEC2, radar:radar, inFrame:inFrame, wirePrint:wirePrint, autogrow:autogrow, fr:fr, tabs:tabs,
-  HUB:"index.html"};
+  HUB:"index.html", SITE:SITE};
 })();

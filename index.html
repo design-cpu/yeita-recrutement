@@ -386,9 +386,10 @@ var S = {
   passation:  {name:"Fiche de passation candidat", sub:"Volets EC1 → EC2 et EC2 → EC3", role:"Transmettre ce qu'on n'a pas vu, pour les trous dans la raquette.", when:"6, 8, 9", fmt:"Interne", href:"fiche-passation.html"},
   carte:      {name:"Carte d'identité Yeita", sub:"Fiche de sortie candidat", role:"Ce que la personne reçoit, qu'on continue ou qu'on s'arrête.", when:"Après chaque arrêt, 9 à 11", fmt:"Imprimable", href:"carte-identite.html"},
   employabilite:{name:"Employabilité", sub:"Notion", role:"Green flags, red flags, critères éliminatoires.", when:"2, 3, 5", fmt:"Notion", href:NOTION_EMP, ext:true},
-  referentiel:{name:"Référentiel des compétences", sub:"Notion", role:"Les critères des diamants, en relecture collective.", when:"7", fmt:"Notion", href:NOTION_REF, ext:true}
+  referentiel:{name:"Référentiel des compétences", sub:"Notion", role:"Les critères des diamants, en relecture collective.", when:"7", fmt:"Notion", href:NOTION_REF, ext:true},
+  site:       {name:"Site du recrutement", sub:"GitHub Pages", role:"Les mêmes pages hors de Claude, pour imprimer et exporter en PDF.", when:"Tout le parcours", fmt:"En ligne", href:YEITA.SITE, ext:true}
 };
-var ORDER = ["onepager","jeu","kit","decompte","fiche1","fiche2","passation","carte","employabilite","referentiel"];
+var ORDER = ["onepager","jeu","kit","decompte","fiche1","fiche2","passation","carte","employabilite","referentiel","site"];
 function link(k){ var s = S[k]; return '<a href="'+s.href+'"'+(s.ext?' target="_blank" rel="noopener"':'')+'>'+E(s.name)+(s.ext?' <span class="ext">'+E(s.sub)+', nouvel onglet</span>':'')+'</a>'; }
 document.getElementById("inv").innerHTML = ORDER.map(function(k){ var s = S[k];
   return '<tr><td>'+link(k).replace('<a ','<a class="nm" ')+'<span class="sb">'+E(s.sub)+'</span></td><td>'+E(s.role)+'</td><td class="mono">'+E(s.when)+'</td><td class="fmt">'+E(s.fmt)+'</td></tr>';
