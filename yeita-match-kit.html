@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="fr" class="paper">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kit Yeita Match</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/yeita.css">
+<style>
+/* Kit physique de Yeita Match : le jeu en ligne yeita-match mis au format impression, sans le redessiner.
+   Recto des cartes = l'écran de manche et les cartes de choix du jeu, à l'identique (icône par position A à D).
+   Verso des cartes réponse = le bandeau de valeur de la page profil du jeu, pour compter les couleurs.
+   Cartes profil = le haut de la page profil et les tuiles « Les 12 profils » du jeu.
+   Formats : cartes poker 63 x 88 mm en planches A4 recto-verso bord long, plateau A3 paysage. */
+:root{ padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  /* jetons du jeu (yeita-match, styles.css) */
+  --g-ink:#160f20; --g-paper:#fffdf9; --g-muted:#6b6577; --g-line:#e4dfe8; --g-violet:#4d25f7; --g-violet-soft:#efebff;
+  --g-yellow:#ebf893; --g-yellow-soft:#f4fbc4; --g-track:#f1eef4 }
+body{background:#efecf3}
+
+/* ---------- Éléments repris du jeu ---------- */
+.g-mono{font-family:var(--f-mono); text-transform:uppercase; letter-spacing:1.2px}
+.g-eyebrow{color:var(--g-violet); display:inline-flex; align-items:center; gap:2mm; font-size:7.6pt; font-weight:500}
+.g-eyebrow-circle{display:inline-grid; place-items:center; border-radius:50%; background:var(--g-yellow); color:var(--g-ink); width:5.4mm; height:5.4mm; font-size:8pt; letter-spacing:0}
+.g-step{font-size:8pt; font-weight:500; color:var(--g-violet)}
+.g-step span{color:var(--g-muted)}
+.g-progress{height:1.4mm; background:var(--g-line); border-radius:2mm; overflow:hidden}
+.g-progress > span{display:block; height:100%; background:var(--g-violet); border-radius:2mm}
+.g-icon{width:11.5mm; height:11.5mm; border-radius:3mm; display:grid; place-items:center; flex:none}
+.g-icon svg{width:5.8mm; height:5.8mm}
+.g-pos-0{background:var(--g-violet-soft); color:var(--g-violet)}
+.g-pos-1{background:#dcf9e8; color:#0f7a46}
+.g-pos-2{background:var(--g-yellow-soft); color:#5d6614}
+.g-pos-3{background:#ffe5eb; color:#c2284f}
+
+/* ---------- Cartes ---------- */
+.card{width:63mm; height:88mm; border-radius:3.7mm; overflow:hidden; position:relative; display:flex; flex-direction:column; flex:none; font-family:var(--f-text); color:var(--g-ink);
+  -webkit-print-color-adjust:exact; print-color-adjust:exact}
+
+/* Situation : l'écran de manche du jeu */
+.c-sit{background:var(--g-paper); border:.3mm solid var(--g-ink); padding:5mm 4.6mm 4.6mm}
+.c-sit .top{display:flex; justify-content:space-between; align-items:center}
+.c-sit .g-progress{margin:2.6mm 0 0}
+.c-sit .head{text-align:center; margin-top:7mm}
+.c-sit h3{font-size:16pt; font-weight:600; letter-spacing:-.4px; line-height:1.12; margin:3mm 0 2.4mm}
+.c-sit .ctx{font-size:9.6pt; color:var(--g-muted); line-height:1.35}
+.c-sit .instr{margin-top:auto; display:grid; gap:.8mm; border-top:.3mm solid var(--g-line); padding-top:3mm}
+.c-sit .instr strong{font-size:10.6pt; font-weight:600}
+.c-sit .instr span{font-size:8.2pt; color:var(--g-muted)}
+
+/* Réponse, recto : la carte de choix du jeu */
+.c-ans{background:#fff; border:.3mm solid var(--g-ink); padding:5.8mm 4.2mm 4.6mm; align-items:flex-start}
+.c-ans .g-icon{margin-bottom:6.8mm}
+.c-ans .name{font-weight:600; line-height:1.3; font-size:13pt}
+.c-ans .rank{margin-top:auto; font-size:8.6pt; color:var(--g-muted); padding-top:4mm}
+
+/* Réponse, verso : le bandeau de valeur de la page profil */
+.c-val{background:var(--value-tint); border:.3mm solid var(--g-ink); padding:5.6mm 4.6mm 4.6mm}
+.c-val .vi{width:12mm; height:12mm; border-radius:3mm; background:#fff; color:var(--value); display:grid; place-items:center; border:.3mm solid var(--g-ink)}
+.c-val .vi svg{width:6.6mm; height:6.6mm}
+.c-val .kick{font-size:7pt; font-weight:500; opacity:.75; margin-top:6mm}
+.c-val h3{font-size:17pt; font-weight:700; letter-spacing:-.4px; margin:1.2mm 0 2mm; color:var(--value); line-height:1.05}
+.c-val .exp{font-size:9pt; line-height:1.45}
+.c-val .ref{margin-top:auto; font-size:7.6pt; font-weight:500; color:var(--g-ink); opacity:.75}
+
+/* Profil : le haut de la page profil du jeu */
+.c-pro{background:var(--g-paper); border:.3mm solid var(--g-ink); padding:5.4mm 4.6mm 4.4mm}
+.c-pro .g-eyebrow svg{width:3.6mm; height:3.6mm}
+.c-pro h3{font-size:21pt; font-weight:700; letter-spacing:-1px; line-height:1.03; margin:2.6mm 0 2mm}
+.c-pro .combo{font-weight:700; font-size:9.4pt; margin-bottom:2mm}
+.c-pro .desc{font-size:10pt; line-height:1.35}
+.c-pro .explore{margin-top:auto; border-top:.3mm solid var(--g-line); padding-top:2.4mm; font-size:7.8pt; line-height:1.4; color:var(--g-muted)}
+.c-pro .explore b{color:var(--g-ink); font-weight:600}
+
+/* Dos : la barre de navigation du jeu */
+.c-back{background:var(--g-ink); color:var(--g-paper); align-items:center; justify-content:center; gap:4mm; border:.3mm solid var(--g-ink)}
+.c-back .brand{display:flex; align-items:center; gap:3mm}
+.c-back .brand .ylogo{height:7mm; width:auto}
+.c-back .brand span{font-size:12pt; font-weight:600; color:#c9c2d6; border-left:.3mm solid #ffffff33; padding-left:3mm}
+.c-back .what{font-size:7.6pt; font-weight:500; color:var(--g-yellow)}
+.c-back .icons{display:flex; gap:2.2mm; color:#4b4258}
+.c-back .icons svg{width:5mm; height:5mm}
+
+/* ---------- Planches A4 ---------- */
+.sheets{display:grid; gap:24px; justify-content:center; margin-top:18px}
+.planche{width:210mm; height:297mm; background:#fff; display:flex; align-items:center; justify-content:center; position:relative; box-shadow:0 10px 30px -18px #160f2066}
+.planche .grid{display:grid; grid-template-columns:repeat(3, 63mm); grid-auto-rows:88mm; outline:.2mm dashed #cfc8d8}
+.planche .grid > *{outline:.2mm dashed #cfc8d8}
+.planche .grid .empty{width:63mm; height:88mm}
+.planche .cap{position:absolute; left:10.5mm; right:10.5mm; bottom:6mm; display:flex; justify-content:space-between; font-family:var(--f-mono); font-size:7pt; color:#8d8599}
+.scaler{zoom:var(--z, .62)}
+@media (max-width:820px){ .scaler{--z:.42} }
+@media (max-width:480px){ .scaler{--z:.38} }
+
+/* ---------- Plateau A3 : composé avec les éléments du jeu ---------- */
+.plateau{width:420mm; height:297mm; background:var(--g-paper); color:var(--g-ink); padding:10mm 12mm; display:grid; grid-template-rows:auto auto auto; align-content:space-between; gap:6mm;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact; box-shadow:0 10px 30px -18px #160f2066; font-family:var(--f-text)}
+.p-nav{height:17mm; padding:0 7mm; border-radius:3.7mm; background:var(--g-ink); display:flex; align-items:center; gap:4mm}
+.p-nav .ylogo{height:7mm; width:auto; color:var(--g-paper)}
+.p-nav .prod{font-size:13pt; font-weight:600; color:#c9c2d6; border-left:.3mm solid #ffffff33; padding-left:4mm}
+.p-nav .r{margin-left:auto; color:var(--g-yellow); font-size:8.6pt}
+.p-h{font-size:12pt; font-weight:600; margin:0 0 2.6mm}
+.p-lead{font-size:8.6pt; color:var(--g-muted); margin:-1.6mm 0 3mm; line-height:1.5}
+.p-row1{display:grid; grid-template-columns:repeat(5, 63mm); gap:9mm}
+.slot{width:63mm; height:88mm; border-radius:3.7mm; border:.5mm dashed #b8b0c6; display:flex; flex-direction:column; align-items:flex-start; padding:5.8mm 4.2mm; gap:4mm}
+.slot.sit{border:.3mm solid var(--g-ink); background:#fff; align-items:center; justify-content:center; text-align:center; gap:2mm}
+.slot .big{font-size:30pt; font-weight:700; line-height:1; color:#b8b0c6}
+.slot .lab{font-size:9pt; color:var(--g-muted)}
+.slot.sit .lab{color:var(--g-ink); font-weight:600}
+.p-row2{display:grid; grid-template-columns:150mm 92mm minmax(0,1fr); gap:8mm; align-items:start}
+.g-panel{background:#fff; border:.3mm solid var(--g-ink); border-radius:3.7mm; padding:5mm}
+.bars{list-style:none; margin:0; padding:0; display:grid; gap:4.6mm}
+.bars li{display:grid; grid-template-columns:1fr auto; grid-template-areas:"label count" "track track"; gap:1.8mm 3mm; align-items:end}
+.bar-label{grid-area:label; font-weight:600; font-size:10.5pt; color:var(--value); display:flex; align-items:center; gap:2mm}
+.bar-label svg{width:5mm; height:5mm}
+.bar-count{grid-area:count; font-size:8.6pt; font-weight:600; color:var(--g-muted)}
+.cells{grid-area:track; display:grid; grid-template-columns:repeat(9, 1fr); gap:1.6mm}
+.cells i{height:9mm; border-radius:2.2mm; background:var(--g-track); display:block}
+.cells i.tb{background:repeating-linear-gradient(-45deg, var(--value-tint) 0 1.2mm, #fff 1.2mm 2.1mm); border:.3mm solid var(--value-tint)}
+.result{display:grid; grid-template-columns:1fr auto 1fr; gap:3mm; align-items:end; margin-top:5mm; font-size:8.6pt; font-weight:600}
+.result span{display:grid; gap:1.5mm}
+.result i{display:block; height:9mm; border-bottom:.35mm solid var(--g-ink)}
+.result .sep{font-size:14pt; padding-bottom:1mm}
+.tb-note{margin:3.6mm 0 0; font-size:8pt; color:var(--g-muted); line-height:1.5}
+.g-note{background:var(--g-yellow-soft); border-radius:3mm; padding:5mm; display:grid; gap:3mm}
+.g-note .t{display:flex; gap:2.6mm; align-items:center; font-size:12pt; font-weight:600}
+.g-note .t svg{width:5mm; height:5mm}
+.g-note ol{margin:0; padding-left:5mm; display:grid; gap:2.4mm; font-size:9.6pt; line-height:1.4}
+.g-note p{font-size:8.4pt; line-height:1.5; margin:0}
+.profiles-grid{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:2.2mm}
+.profile-tile{border:.3mm solid var(--g-line); border-radius:2.6mm; padding:2.4mm 2.6mm; display:grid; gap:.8mm; align-content:start; background:var(--g-paper); min-height:23mm}
+.tile-combo{font-family:var(--f-mono); font-size:5.6pt; letter-spacing:.4px; text-transform:uppercase; color:var(--value)}
+.profile-tile strong{font-size:9.6pt; font-weight:700}
+.tile-description{font-size:7pt; line-height:1.35; color:var(--g-muted)}
+
+/* ---------- Page écran ---------- */
+.vitrine{margin-top:22px; border-radius:22px; background:var(--g-paper); border:1px solid var(--line); padding:clamp(18px,4vw,40px); display:grid; gap:18px}
+.vitrine .row{display:flex; flex-wrap:wrap; gap:14px; justify-content:center; align-items:flex-start}
+.vitrine .scaler{--z:1.12}
+@media (max-width:820px){ .vitrine .scaler{--z:.9} }
+.vitrine .cap{color:var(--ink-2); text-align:center; font-size:15px}
+.contents{display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:14px; margin-top:16px}
+.contents > div{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; display:grid; gap:6px}
+.contents .n{font-family:var(--f-mono); font-size:28px; line-height:1}
+.contents p{font-size:15px; color:var(--ink-2)}
+.rules{margin:14px 0 0; padding-left:22px; display:grid; gap:8px; max-width:74ch}
+.toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:18px}
+.plateau-wrap{overflow-x:auto; padding-block:6px}
+.plateau-wrap .scaler{--z:.5}
+@media (max-width:820px){ .plateau-wrap .scaler{--z:.3} }
+
+@page{size:A4 portrait; margin:0}
+@page plateau{size:A3 landscape; margin:0}
+@media print{
+  html, body{background:#fff}
+  .screen-only, .topbar, .foot{display:none !important}
+  .wrap{max-width:none; padding:0}
+  .sheets{display:block; margin:0}
+  .scaler{zoom:normal !important}
+  .planche{box-shadow:none; break-after:page}
+  .sheets > .scaler:last-child .planche{break-after:auto}
+  .planche .cap{display:none}
+  .plateau-wrap{overflow:visible; padding:0; margin:0 !important; page:plateau}
+  .plateau{box-shadow:none; break-inside:avoid; overflow:hidden}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar screen-only">
+    <a href="index.html#ec1" aria-label="Retour au hub Expérience collaborateur" style="padding:0" id="logo"></a>
+    <span class="where">Yeita Match, kit physique</span>
+    <nav aria-label="Supports de l'EC1">
+      <a href="index.html#ec1">Guide, étape 5</a>
+      <a href="yeita-match-decompte.html">Feuille de décompte</a>
+      <a href="fiche-ec1.html">Fiche #1</a>
+    </nav>
+  </header>
+
+  <div class="screen-only">
+    <div class="page-head">
+      <h1>Kit Yeita Match</h1>
+      <p class="lede">Le jeu en ligne mis au format impression, sans rien redessiner : mêmes écrans, mêmes cartes, mêmes icônes, même calcul. Le jeu en ligne reste le support pour la visio.</p>
+    </div>
+
+    <section class="vitrine" aria-label="Aperçu des cartes">
+      <div class="row" id="vitrine"></div>
+      <p class="cap">L'écran de manche, les quatre cartes de choix telles qu'à l'écran, deux versos de valeur et une carte profil.</p>
+    </section>
+
+    <section class="block" aria-labelledby="t-c">
+      <h2 id="t-c">Ce que contient le kit</h2>
+      <div class="contents">
+        <div><span class="n">10</span><b>Cartes situation</b><p>Les huit manches et les deux dernières manches de départage, reprises de l'écran de jeu.</p></div>
+        <div><span class="n">40</span><b>Cartes réponse</b><p>Le recto est la carte de choix du jeu, avec son icône de position. Le verso porte la valeur : couleur, icône et nom.</p></div>
+        <div><span class="n">12</span><b>Cartes profil</b><p>Le haut de la page profil du jeu. On les étale sur la table à la fin de la partie.</p></div>
+        <div><span class="n">A3</span><b>Plateau</b><p>Les cinq emplacements, le décompte des cartes par valeur, la règle et les douze profils du jeu.</p></div>
+        <div><span class="n">A4</span><b>Feuille de décompte</b><p>À cocher pendant la partie. <a href="yeita-match-decompte.html">L'ouvrir ou l'imprimer</a>.</p></div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="t-r">
+      <h2 id="t-r">La partie, côté maître du jeu</h2>
+      <ol class="rules">
+        <li>Pose la carte situation, lis-la, puis pose les quatre cartes réponse sur leurs emplacements, de A à D.</li>
+        <li>La personne en choisit deux. Coche-les sur la feuille de décompte, retourne-les et marque un point dans la ligne de leur valeur.</li>
+        <li>Après la huitième manche, compte : la valeur la plus choisie donne la dominante, la suivante la seconde.</li>
+        <li>En cas d'égalité, pose une dernière manche avec les seules réponses des valeurs à égalité. Une carte à choisir.</li>
+        <li>Étale les douze profils, trouve celui de la combinaison dominante › seconde et parlez-en ensemble.</li>
+        <li>Note le profil dans la fiche d'entretien candidat #1.</li>
+      </ol>
+    </section>
+
+    <section class="block" aria-labelledby="t-p">
+      <h2 id="t-p">Imprimer</h2>
+      <p class="note" style="margin-top:6px">Planches A4 en recto-verso, retournement bord long : les versos sont inversés pour tomber derrière leur recto. Papier 300 g/m², coins arrondis à 3,7 mm. Plateau en A3 paysage, plastifié pour écrire au feutre effaçable.</p>
+      <div class="toolbar">
+        <button type="button" class="btn primary" data-print>Imprimer le kit</button>
+        <span class="note" data-print-note hidden>L'impression n'est pas possible dans cet aperçu. Ouvre la page depuis le site GitHub du recrutement, ou utilise le PDF du kit.</span>
+      </div>
+    </section>
+
+    <h2 style="margin-top:44px">Les planches</h2>
+    <p class="note" style="margin-top:6px">Aperçu réduit. Le plateau suit les planches de cartes.</p>
+  </div>
+
+  <div class="sheets" id="sheets"></div>
+  <div class="plateau-wrap" style="margin-top:24px"><div class="scaler"><section class="plateau" id="plateau" aria-label="Plateau Yeita Match, A3 paysage"></section></div></div>
+
+  <footer class="foot screen-only"><span>Contenu et rendu tirés du jeu Yeita Match (dépôt yeita-match). Si une carte change dans le jeu, elle change ici.</span></footer>
+</div>
+
+<script src="assets/yeita.js"></script>
+<script src="assets/data-yeita-match.js"></script>
+<script>
+(function(){
+"use strict";
+var Y = YEITA_MATCH, E = YEITA.esc, LOGO = YEITA.logo, I = YEITA.icon;
+document.getElementById("logo").innerHTML = LOGO(26);
+YEITA.wirePrint();
+var POS = ["A","B","C","D"];
+function vstyle(v){ return 'style="--value:'+v.color+'; --value-tint:'+v.tint+'"'; }
+
+/* ---------- Cartes, à partir des écrans du jeu ---------- */
+function sitCard(s, n, total, tb){
+  var step = tb ? 'DERNIÈRE MANCHE' : 'MANCHE '+n+' <span>/ '+total+'</span>';
+  var pct = tb ? 100 : n/total*100;
+  return '<div class="card c-sit"><div class="top"><span class="g-step g-mono">'+step+'</span></div>'
+    + '<div class="g-progress"><span style="width:'+pct+'%"></span></div>'
+    + '<div class="head"><span class="g-eyebrow g-mono"><span class="g-eyebrow-circle">✦</span>'+(tb ? 'CHOISIS UNE RÉACTION' : 'CHOISIS DEUX RÉACTIONS')+'</span>'
+    + '<h3>'+E(s.title)+'</h3><p class="ctx">'+E(s.context)+'</p></div>'
+    + '<div class="instr"><strong>Qu’est-ce qui te ressemble le plus ?</strong><span>'+(tb ? 'Choisis une seule carte.' : 'Choisis deux cartes, dans n’importe quel ordre.')+'</span></div></div>';
+}
+function ansCard(c, k, ref){
+  return '<div class="card c-ans"><span class="g-icon g-pos-'+k+'">'+I(YEITA.CARD_ICONS[k], 23, 1.8)+'</span><span class="name">'+E(c.label)+'</span><span class="rank">'+E(ref)+'</span></div>';
+}
+function ansBack(c, ref){
+  var v = Y.value(c.value);
+  return '<div class="card c-val" '+vstyle(v)+'><span class="vi">'+YEITA.picto(v.id, 25, 1.8)+'</span><span class="kick">Valeur Yeita</span><h3>'+E(v.label)+'</h3><p class="exp">« '+E(v.expectation)+' »</p><span class="ref">'+E(ref)+'</span></div>';
+}
+function proCard(p){
+  var d = Y.value(p.dominant), s = Y.value(p.second);
+  var ex = p.presentation[2].replace(/^À explorer ensemble : /, "");
+  return '<div class="card c-pro"><span class="g-eyebrow g-mono">'+I("Sparkles", 14)+' TON PROFIL</span><h3>'+E(p.label)+'</h3>'
+    + '<p class="combo"><span style="color:'+d.color+'">'+E(d.label)+'</span><span aria-hidden="true"> › </span><span style="color:'+s.color+'">'+E(s.label)+'</span></p>'
+    + '<p class="desc">'+E(p.description)+'</p><p class="explore"><b>À explorer ensemble :</b> '+E(ex)+'</p></div>';
+}
+function back(what){
+  return '<div class="card c-back"><div class="brand">'+LOGO(26)+'<span>match</span></div><span class="what g-mono">'+what+'</span>'
+    + '<div class="icons">'+YEITA.CARD_ICONS.map(function(n){ return I(n, 18, 1.8); }).join("")+'</div></div>';
+}
+
+/* ---------- Les 62 cartes : [recto, verso] ---------- */
+var CARDS = [];
+Y.SITUATIONS.forEach(function(s, i){ CARDS.push([sitCard(s, i+1, Y.SITUATIONS.length, false), back("SITUATION")]); });
+Y.TIEBREAKS.forEach(function(s, i){ CARDS.push([sitCard(s, i+1, 0, true), back("DERNIÈRE MANCHE")]); });
+Y.SITUATIONS.forEach(function(s, i){ s.cards.forEach(function(c, k){ var ref = "Manche "+(i+1)+", carte "+POS[k]; CARDS.push([ansCard(c, k, ref), ansBack(c, ref)]); }); });
+Y.TIEBREAKS.forEach(function(s, i){ s.cards.forEach(function(c, k){ var ref = "Départage "+(i+1)+", carte "+POS[k]; CARDS.push([ansCard(c, k, ref), ansBack(c, ref)]); }); });
+Y.PROFILES.forEach(function(p){ CARDS.push([proCard(p), back("PROFIL")]); });
+
+/* ---------- Planches : 9 cartes par A4, verso miroir pour le recto-verso bord long ---------- */
+var html = "", pages = Math.ceil(CARDS.length / 9);
+for(var pg = 0; pg < pages; pg++){
+  var slice = CARDS.slice(pg*9, pg*9+9); while(slice.length < 9) slice.push(null);
+  var rec = slice.map(function(c){ return c ? c[0] : '<div class="empty"></div>'; }), ver = [];
+  for(var r=0; r<3; r++){ for(var c=2; c>=0; c--){ var it = slice[r*3+c]; ver.push(it ? it[1] : '<div class="empty"></div>'); } }
+  html += '<div class="scaler"><div class="planche" aria-label="Planche '+(pg+1)+' recto"><div class="grid">'+rec.join("")+'</div><span class="cap"><span>Planche '+(pg+1)+' sur '+pages+', recto</span><span>Kit Yeita Match</span></span></div></div>';
+  html += '<div class="scaler"><div class="planche" aria-label="Planche '+(pg+1)+' verso"><div class="grid">'+ver.join("")+'</div><span class="cap"><span>Planche '+(pg+1)+' sur '+pages+', verso</span><span>Kit Yeita Match</span></span></div></div>';
+}
+var sh = document.getElementById("sheets");
+sh.innerHTML = html;
+sh.style.gridTemplateColumns = "repeat(auto-fill, minmax(min(100%, 140mm), max-content))";
+
+/* ---------- Vitrine ---------- */
+var s0 = Y.SITUATIONS[0];
+document.getElementById("vitrine").innerHTML = '<div class="scaler">'+sitCard(s0, 1, 8, false)+'</div>'
+  + s0.cards.map(function(c,k){ return '<div class="scaler">'+ansCard(c, k, "Manche 1, carte "+POS[k])+'</div>'; }).join("")
+  + '<div class="scaler">'+ansBack(s0.cards[0], "Manche 1, carte A")+'</div>'
+  + '<div class="scaler">'+ansBack(s0.cards[2], "Manche 1, carte C")+'</div>'
+  + '<div class="scaler">'+proCard(Y.profileFor("explorateur","collectif"))+'</div>';
+
+/* ---------- Plateau ---------- */
+var V = Y.VALUES;
+document.getElementById("plateau").innerHTML =
+  '<div class="p-nav">'+LOGO(26)+'<span class="prod">match</span><span class="r g-mono">LE PLATEAU DU MAÎTRE DU JEU · 8 MANCHES · 2 CARTES PAR MANCHE</span></div>'
+  + '<div><h2 class="p-h">La situation, puis les quatre cartes, à leur place</h2><div class="p-row1">'
+  +   '<div class="slot sit"><span class="g-eyebrow g-mono"><span class="g-eyebrow-circle">✦</span>MANCHE</span><span class="lab">La carte situation</span></div>'
+  +   POS.map(function(p,k){ return '<div class="slot"><span class="g-icon g-pos-'+k+'">'+I(YEITA.CARD_ICONS[k], 23, 1.8)+'</span><span class="big">'+p+'</span><span class="lab">Carte '+p+'</span></div>'; }).join("")
+  + '</div></div>'
+  + '<div class="p-row2">'
+  +   '<div class="g-panel"><h2 class="p-h">Tes cartes par valeur</h2><p class="p-lead">Chaque carte choisie compte pour sa valeur. Les deux valeurs les plus choisies donnent le profil.</p><ul class="bars">'
+  +     V.map(function(v){ var cells = ""; for(var i=0;i<8;i++) cells += '<i></i>'; cells += '<i class="tb" title="Dernière manche"></i>';
+          return '<li '+vstyle(v)+'><span class="bar-label">'+YEITA.picto(v.id, 19, 2)+E(v.label)+'</span><span class="bar-count">… cartes</span><span class="cells">'+cells+'</span></li>'; }).join("")
+  +   '</ul><div class="result"><span>Dominante<i></i></span><span class="sep">›</span><span>Seconde couleur<i></i></span></div>'
+  +   '<p class="tb-note">La case hachurée sert à la dernière manche, si une égalité décide la dominante ou la seconde couleur.</p></div>'
+  +   '<div class="g-note"><span class="t">'+I("CircleHelp", 19)+'La partie</span><ol>'
+  +     '<li>Pose la situation, lis-la, puis les quatre cartes de A à D.</li>'
+  +     '<li>La personne choisit les deux réactions qui lui ressemblent le plus.</li>'
+  +     '<li>Retourne les deux cartes : un point dans la ligne de leur valeur.</li>'
+  +     '<li>Après huit manches, les deux lignes les plus remplies donnent le profil.</li>'
+  +     '<li>Égalité : une dernière manche, avec les seules cartes à égalité.</li>'
+  +     '<li>Étale les douze profils, trouve le sien, parlez-en.</li>'
+  +   '</ol><p>Toutes les cartes correspondent à des approches professionnelles possibles : aucune réponse n’est la « bonne » par défaut.</p></div>'
+  +   '<div class="g-panel"><h2 class="p-h">Les 12 profils</h2><div class="profiles-grid">'
+  +     Y.PROFILES.map(function(p){ var d = Y.value(p.dominant), s = Y.value(p.second);
+          return '<div class="profile-tile" '+vstyle(d)+'><span class="tile-combo">'+E(d.label)+' › '+E(s.label)+'</span><strong>'+E(p.label)+'</strong><span class="tile-description">'+E(p.description)+'</span></div>'; }).join("")
+  +   '</div></div>'
+  + '</div>';
+})();
+</script>
+</body>
+</html>
