@@ -102,17 +102,17 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
 <div class="wrap narrow">
   <header class="topbar">
     <a href="index.html#ec1" aria-label="Retour au hub Expérience collaborateur" style="padding:0" id="logo"></a>
-    <span class="where">EC1, Yeitigai &amp; Valeurs</span>
+    <span class="where">EC1, Yeita Match &amp; Valeurs</span>
     <nav aria-label="Supports de l'EC1">
       <a href="index.html#ec1">Guide, étape 5</a>
-      <a href="yeitigai-decompte.html">Feuille de décompte</a>
+      <a href="yeita-match-decompte.html">Feuille de décompte</a>
       <a href="fiche-passation.html">Fiche de passation</a>
     </nav>
   </header>
 
   <div class="page-head">
     <h1>Fiche d'entretien candidat #1</h1>
-    <p class="sub-title">Yeitigai &amp; Valeurs Yeita</p>
+    <p class="sub-title">Yeita Match &amp; Valeurs Yeita</p>
     <p class="lede">Remplie par le recruteur juste après l'EC1, en dix minutes, à chaud. Deux sorties : le compte rendu pour Notion, et le code EC1 qui remplit la carte d'identité Yeita.</p>
   </div>
 
@@ -132,12 +132,12 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
         <div class="field"><label for="f-nom">Candidat</label><input type="text" id="f-nom" placeholder="Prénom et nom"></div>
         <div class="field"><label for="f-date">Date</label><input type="date" id="f-date"></div>
         <div class="field"><label for="f-par">Mené par</label><input type="text" id="f-par" placeholder="Prénom et nom"></div>
-        <div class="field"><label for="f-fmt">Format</label><select id="f-fmt"><option value="presentiel">Présentiel, kit Yeitigai</option><option value="visio">Visio, jeu en ligne</option></select></div>
+        <div class="field"><label for="f-fmt">Format</label><select id="f-fmt"><option value="presentiel">Présentiel, kit Yeita Match</option><option value="visio">Visio, jeu en ligne</option></select></div>
       </div>
     </section>
 
-    <section aria-labelledby="s2" id="yeitigai" tabindex="-1">
-      <h2 id="s2"><span class="sn">2</span>Le résultat du Yeitigai</h2>
+    <section aria-labelledby="s2" id="yeita-match" tabindex="-1">
+      <h2 id="s2"><span class="sn">2</span>Le résultat de Yeita Match</h2>
       <div id="from"></div>
       <div class="importer">
         <label for="f-json" class="hint">En visio, importe la partie exportée par le jeu en ligne (fichier .json) :</label>
@@ -188,7 +188,7 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
   <div class="refs">
     <h2 style="font-size:22px; margin-top:8px">Repères</h2>
     <details class="ref"><summary>Les quatre valeurs et leurs douze comportements</summary><div class="in">
-      <p class="note">Les onze soft skills de référence, réécrites dans la langue de Yeita, plus une ligne sur l'apprentissage de soi. Ce sont les comportements derrière les cartes du Yeitigai.</p>
+      <p class="note">Les onze soft skills de référence, réécrites dans la langue de Yeita, plus une ligne sur l'apprentissage de soi. Ce sont les comportements derrière les cartes de Yeita Match.</p>
       <div class="vcols" id="vcols"></div>
     </div></details>
     <details class="ref"><summary>Les douze profils</summary><div class="in">
@@ -221,16 +221,16 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
   </div>
 
   <footer class="foot">
-    <span>Valeurs, comportements et profils identiques au jeu Yeitigai. Ce que tu tapes reste dans ce navigateur jusqu'à ce que tu le copies dans Notion.</span>
+    <span>Valeurs, comportements et profils identiques au jeu Yeita Match. Ce que tu tapes reste dans ce navigateur jusqu'à ce que tu le copies dans Notion.</span>
   </footer>
 </div>
 
 <script src="assets/yeita.js"></script>
-<script src="assets/data-yeitigai.js"></script>
+<script src="assets/data-yeita-match.js"></script>
 <script>
 (function(){
 "use strict";
-var Y = YEITIGAI, E = YEITA.esc, P = YEITA.picto, KEY = "yeita-fiche-ec1";
+var Y = YEITA_MATCH, E = YEITA.esc, P = YEITA.picto, KEY = "yeita-fiche-ec1";
 document.getElementById("logo").innerHTML = YEITA.logo(26);
 
 var START = [
@@ -270,12 +270,12 @@ function renderProfile(){
   document.getElementById("whywrap").hidden = !st.partial;
   if(st.partial){ el.innerHTML = '<div class="profile"><span class="pl">Ce qu\'on a perçu de toi</span><span class="pn">Lecture partielle</span><p class="pf">On n\'a pas assez vu pour poser un profil. Ce qui suit est ce qu\'on a pu lire, et rien de plus.</p></div>'; return; }
   if(!p){ el.innerHTML = '<div class="profile empty"><span class="pl">Profil</span><p class="pf">Choisis la dominante puis la seconde, reprends le résultat de la feuille de décompte, ou importe la partie jouée en ligne.</p></div>'; return; }
-  el.innerHTML = '<div class="profile"><span class="pl">Profil Yeitigai</span><span class="pn">'+E(p.label)+'</span><p class="pf">'+E(formula())+' '+E(p.description)+'</p></div>';
+  el.innerHTML = '<div class="profile"><span class="pl">Profil Yeita Match</span><span class="pn">'+E(p.label)+'</span><p class="pf">'+E(formula())+' '+E(p.description)+'</p></div>';
 }
 
 /* Résultat laissé par la feuille de décompte (même navigateur, moins de 12 h) */
 function renderFrom(){
-  var r = YEITA.store.get("yeitigai-resultat", null), el = document.getElementById("from");
+  var r = YEITA.store.get("yeita-match-resultat", null), el = document.getElementById("from");
   if(!r || !r.dominant || (Date.now() - (r.at||0)) > 12*3600*1000){ el.innerHTML = ""; return; }
   var p = Y.profileFor(r.dominant, r.second);
   if(st.dom === r.dominant && st.sec === r.second && !st.partial){ el.innerHTML = ""; return; }
@@ -302,9 +302,9 @@ function fmtDate(s){ if(/^\d{4}-\d{2}-\d{2}$/.test(s)){ var d = new Date(s+"T12:
 
 function notionText(){
   collect();
-  var p = profile(), t = "FICHE D'ENTRETIEN CANDIDAT #1 — Yeitigai & Valeurs Yeita\n";
-  t += (g("f-nom")||"—") + ", " + (fmtDate(g("f-date"))||"—") + ", mené par " + (g("f-par")||"—") + " (" + (g("f-fmt")==="visio" ? "visio, jeu en ligne" : "présentiel, kit Yeitigai") + ")\n";
-  t += "\nPROFIL YEITIGAI\n";
+  var p = profile(), t = "FICHE D'ENTRETIEN CANDIDAT #1 — Yeita Match & Valeurs Yeita\n";
+  t += (g("f-nom")||"—") + ", " + (fmtDate(g("f-date"))||"—") + ", mené par " + (g("f-par")||"—") + " (" + (g("f-fmt")==="visio" ? "visio, jeu en ligne" : "présentiel, kit Yeita Match") + ")\n";
+  t += "\nPROFIL YEITA_MATCH\n";
   if(st.partial) t += "Lecture partielle. " + (g("f-why")||"") + "\n";
   else if(p) t += p.label + " — " + Y.value(st.dom).label + " › " + Y.value(st.sec).label + ". " + formula() + "\n";
   else t += "—\n";
@@ -353,7 +353,7 @@ document.addEventListener("click", function(e){
   }
   if(e.target.id === "partial"){ st.partial = !st.partial; renderPicker(); save(); return; }
   if(e.target.id === "take"){
-    var r = YEITA.store.get("yeitigai-resultat", null); if(!r) return;
+    var r = YEITA.store.get("yeita-match-resultat", null); if(!r) return;
     st.dom = r.dominant; st.sec = r.second; st.partial = false;
     if(!st.f["f-nom"] && r.cand) st.f["f-nom"] = r.cand;
     if(!st.f["f-date"] && r.date) st.f["f-date"] = r.date;
@@ -410,7 +410,7 @@ document.getElementById("axes").innerHTML = AXES.map(function(a, i){
 document.getElementById("elim").innerHTML = ["Prétentions hors grille, sans marge de discussion","Pas de pied-à-terre à Paris","Cherche un statut freelance","N'est pas intéressé par Yeita","Ego, individualisme","Cherche un salaire, pas un projet","Ne parle pas anglais","Parle plus de process que d'impact","Rejette la faute sur les autres","Des réponses théoriques, sans exemple concret","Rigidité face au changement"].map(function(x){ return '<li>'+E(x)+'</li>'; }).join("");
 
 fill(); renderPicker(); renderCode(); renderFrom();
-if(location.hash === "#yeitigai"){ var y = document.getElementById("yeitigai"); y.scrollIntoView({block:"start"}); y.focus({preventScroll:true}); }
+if(location.hash === "#yeita-match"){ var y = document.getElementById("yeita-match"); y.scrollIntoView({block:"start"}); y.focus({preventScroll:true}); }
 })();
 </script>
 </body>

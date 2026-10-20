@@ -18,7 +18,7 @@ function logo(h){
     + LOGO.map(function(d){ return '<path d="'+d+'" fill-rule="evenodd" clip-rule="evenodd"/>'; }).join("") + '</svg>';
 }
 
-/* Les icônes du jeu Yeitigai (yeita-match, src/components/Icons.jsx), seules icônes de toute l'expérience.
+/* Les icônes du jeu Yeita Match (yeita-match, src/components/Icons.jsx), seules icônes de toute l'expérience.
    Une icône par valeur, pour que la couleur ne porte jamais seule le sens :
    Cœur = Jouer collectif, Cible = Sans chichi, Boussole = Explorateur, Étincelles = Sa meilleure version.
    Dans le jeu, sur les cartes, ces mêmes icônes suivent la position A à D et restent décoratives. */
@@ -43,7 +43,7 @@ function icon(name, size, stroke){
   return '<svg class="icon" width="'+(size||20)+'" height="'+(size||20)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(stroke||2)+'" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[name]||"")+'</svg>';
 }
 function picto(id, size, stroke){
-  id = (window.YEITIGAI ? window.YEITIGAI.normId(id) : id);
+  id = (window.YEITA_MATCH ? window.YEITA_MATCH.normId(id) : id);
   return icon(VALUE_ICON[id], size||18, stroke||2).replace('class="icon"','class="picto"');
 }
 
@@ -87,7 +87,7 @@ function readEC1(raw){
   var m = s.match(/YEITA-EC1\.([A-Za-z0-9\-_]+)/); if(!m) return false;
   try{
     var o = b64d(m[1]); if(!o || typeof o !== "object") return false;
-    if(o.p && o.p !== "partial" && window.YEITIGAI){ var k = o.p.split("|"); o.p = YEITIGAI.normId(k[0]) + "|" + YEITIGAI.normId(k[1]); }
+    if(o.p && o.p !== "partial" && window.YEITA_MATCH){ var k = o.p.split("|"); o.p = YEITA_MATCH.normId(k[0]) + "|" + YEITA_MATCH.normId(k[1]); }
     return o;
   }catch(e){ return false; }
 }

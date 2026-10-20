@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Feuille de décompte Yeitigai</title>
+<title>Feuille de décompte Yeita Match</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -150,16 +150,16 @@
 <div class="wrap">
   <header class="topbar noprint">
     <a href="index.html#ec1" aria-label="Retour au hub Expérience collaborateur" style="padding:0" id="logo"></a>
-    <span class="where">Yeitigai, feuille de décompte</span>
+    <span class="where">Yeita Match, feuille de décompte</span>
     <nav aria-label="Supports de l'EC1">
       <a href="index.html#ec1">Guide, étape 5</a>
-      <a href="yeitigai-kit.html">Kit Yeitigai</a>
+      <a href="yeita-match-kit.html">Kit Yeita Match</a>
       <a href="fiche-ec1.html">Fiche #1</a>
     </nav>
   </header>
 
   <div class="page-head">
-    <h1>Feuille de décompte Yeitigai</h1>
+    <h1>Feuille de décompte Yeita Match</h1>
     <p class="lede">À cocher pendant le jeu : deux cartes par manche. À l'écran, le décompte, le départage et le profil se font tout seuls. Sur papier, suis les cases.</p>
     <div class="head-actions">
       <button type="button" class="btn quiet small" id="demo">Charger un exemple</button>
@@ -214,17 +214,17 @@
   </section>
 
   <footer class="foot noprint">
-    <span>Contenu identique au jeu en ligne Yeitigai (dépôt yeita-match) : mêmes situations, mêmes cartes, même calcul.</span>
+    <span>Contenu identique au jeu en ligne Yeita Match (dépôt yeita-match) : mêmes situations, mêmes cartes, même calcul.</span>
     <span>Ce que tu coches reste dans ce navigateur. Le résultat se reporte dans la fiche d'entretien candidat #1.</span>
   </footer>
 </div>
 
 <script src="assets/yeita.js"></script>
-<script src="assets/data-yeitigai.js"></script>
+<script src="assets/data-yeita-match.js"></script>
 <script>
 (function(){
 "use strict";
-var Y = YEITIGAI, E = YEITA.esc, P = YEITA.picto, KEY = "yeitigai-decompte";
+var Y = YEITA_MATCH, E = YEITA.esc, P = YEITA.picto, KEY = "yeita-match-decompte";
 document.getElementById("logo").innerHTML = YEITA.logo(26);
 YEITA.wirePrint();
 var POS = ["A","B","C","D"];
@@ -309,7 +309,7 @@ function renderResult(S){
   var el = document.getElementById("result");
   if(!S.r || !S.r.dominant){ el.innerHTML = ""; renderMatrix(null); return; }
   var p = Y.profileFor(S.r.dominant, S.r.second), d = Y.value(S.r.dominant), s2 = Y.value(S.r.second);
-  el.innerHTML = '<div class="result" aria-live="polite"><span class="rl">Profil Yeitigai</span><span class="rp">'+E(p.label)+'</span>'
+  el.innerHTML = '<div class="result" aria-live="polite"><span class="rl">Profil Yeita Match</span><span class="rp">'+E(p.label)+'</span>'
     + '<div class="combo"><span class="vchip" data-v="'+d.id+'">'+P(d.id,16)+E(d.label)+'</span><span aria-hidden="true">›</span><span class="vchip" data-v="'+s2.id+'">'+P(s2.id,16)+E(s2.label)+'</span></div>'
     + '<p class="rd">'+E(p.description)+'</p>'
     + '<div class="actions noprint" style="margin-top:6px"><button type="button" class="btn primary" id="to-fiche">Reporter dans la fiche #1</button></div></div>';
@@ -383,9 +383,9 @@ document.addEventListener("click", function(e){
   if(e.target.id === "tb-undo"){ st.tb = []; save(); refresh(); return; }
   if(e.target.id === "to-fiche"){
     var S = state();
-    YEITA.store.set("yeitigai-resultat", {cand: st.f.cand||"", date: st.f.date||"", host: st.f.host||"", fmt: st.fmt,
+    YEITA.store.set("yeita-match-resultat", {cand: st.f.cand||"", date: st.f.date||"", host: st.f.host||"", fmt: st.fmt,
       dominant: S.r.dominant, second: S.r.second, totals: S.totals, tb: st.tb.length, at: Date.now()});
-    location.href = "fiche-ec1.html#yeitigai";
+    location.href = "fiche-ec1.html#yeita-match";
     return;
   }
   if(e.target.id === "reset"){ document.getElementById("confirm").hidden = false; document.getElementById("cf-yes").focus(); return; }

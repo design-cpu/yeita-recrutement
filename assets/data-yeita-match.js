@@ -1,4 +1,4 @@
-/* Yeitigai : contenu officiel du jeu (dépôt Yeichati/yeita-match, src/data), recopié tel quel.
+/* Yeita Match : contenu officiel du jeu (dépôt Yeichati/yeita-match, src/data), recopié tel quel.
    Une seule source pour la feuille de décompte, le kit physique, la fiche #1 et la carte d'identité.
    Pour changer une carte ou un profil : modifier le jeu, puis régénérer ce fichier. */
 (function(){
@@ -595,7 +595,7 @@ function resolve(totals, tiebreaks){
 
 /* Fichier exporté par le jeu en ligne (format yeita-match-session, version 2). */
 function readSession(obj){
-  if(!obj || obj.format !== "yeita-match-session" || obj.version !== 2 || !obj.answers) throw new Error("Ce fichier n'est pas une partie Yeitigai exportée par le jeu en ligne.");
+  if(!obj || obj.format !== "yeita-match-session" || obj.version !== 2 || !obj.answers) throw new Error("Ce fichier n'est pas une partie Yeita Match exportée par le jeu en ligne.");
   var totals = count(obj.answers);
   var tbs = (obj.tiebreaks||[]).map(function(t){ return {between: t.between, chosen: t.chosen}; });
   var r = resolve(totals, tbs);
@@ -603,7 +603,7 @@ function readSession(obj){
   return {candidate: obj.candidateName, host: obj.hostName, date: obj.date, totals: totals, dominant: r.dominant, second: r.second, notes: obj.notes || {}};
 }
 
-window.YEITIGAI = {VALUES: VALUES, PROFILES: PROFILES, SITUATIONS: SITUATIONS, TIEBREAKS: TIEBREAKS,
+window.YEITA_MATCH = {VALUES: VALUES, PROFILES: PROFILES, SITUATIONS: SITUATIONS, TIEBREAKS: TIEBREAKS,
   value: value, normId: normId, profileFor: profileFor, valueOfCard: valueOfCard, count: count, resolve: resolve, readSession: readSession,
   GAME_URL: "https://yeichati.github.io/yeita-match/"};
 })();

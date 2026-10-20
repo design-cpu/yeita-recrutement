@@ -140,7 +140,7 @@ body{background:#efecf3}
         <li>
           <span class="num" aria-hidden="true">2</span>
           <div class="st-t"><b>Entretien 1, qui tu es</b><span class="when">1 h, chez Yeita ou en visio</span><span class="who">Avec un recruteur Yeita</span></div>
-          <p class="st-d">Tu nous racontes ton parcours, puis on joue au Yeitigai : un jeu de cartes, huit situations, aucune bonne réponse. Il fait ressortir ta façon de travailler, et on en parle ensemble.</p>
+          <p class="st-d">Tu nous racontes ton parcours, puis on joue à Yeita Match : un jeu de cartes, huit situations, aucune bonne réponse. Il fait ressortir ta façon de travailler, et on en parle ensemble.</p>
         </li>
         <li>
           <span class="num" aria-hidden="true">3</span>
@@ -214,13 +214,13 @@ body{background:#efecf3}
 </article>
 
 <script src="assets/yeita.js"></script>
-<script src="assets/data-yeitigai.js"></script>
+<script src="assets/data-yeita-match.js"></script>
 <script>
 (function(){
 "use strict";
 document.getElementById("logo").innerHTML = YEITA.logo(30);
 document.getElementById("flogo").innerHTML = YEITA.logo(18);
-document.getElementById("vals").innerHTML = YEITIGAI.VALUES.map(function(v){
+document.getElementById("vals").innerHTML = YEITA_MATCH.VALUES.map(function(v){
   return '<div data-v="'+v.id+'"><b>'+YEITA.picto(v.id,17)+YEITA.esc(v.label)+'</b><span>'+YEITA.esc(v.expectation)+'</span></div>';
 }).join("");
 YEITA.wirePrint();

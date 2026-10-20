@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Kit Yeitigai</title>
+<title>Kit Yeita Match</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="assets/yeita.css">
 <style>
-/* Kit physique du Yeitigai : le jeu en ligne yeita-match mis au format impression, sans le redessiner.
+/* Kit physique de Yeita Match : le jeu en ligne yeita-match mis au format impression, sans le redessiner.
    Recto des cartes = l'écran de manche et les cartes de choix du jeu, à l'identique (icône par position A à D).
    Verso des cartes réponse = le bandeau de valeur de la page profil du jeu, pour compter les couleurs.
    Cartes profil = le haut de la page profil et les tuiles « Les 12 profils » du jeu.
@@ -172,17 +172,17 @@ body{background:#efecf3}
 <div class="wrap">
   <header class="topbar screen-only">
     <a href="index.html#ec1" aria-label="Retour au hub Expérience collaborateur" style="padding:0" id="logo"></a>
-    <span class="where">Yeitigai, kit physique</span>
+    <span class="where">Yeita Match, kit physique</span>
     <nav aria-label="Supports de l'EC1">
       <a href="index.html#ec1">Guide, étape 5</a>
-      <a href="yeitigai-decompte.html">Feuille de décompte</a>
+      <a href="yeita-match-decompte.html">Feuille de décompte</a>
       <a href="fiche-ec1.html">Fiche #1</a>
     </nav>
   </header>
 
   <div class="screen-only">
     <div class="page-head">
-      <h1>Kit Yeitigai</h1>
+      <h1>Kit Yeita Match</h1>
       <p class="lede">Le jeu en ligne mis au format impression, sans rien redessiner : mêmes écrans, mêmes cartes, mêmes icônes, même calcul. Le jeu en ligne reste le support pour la visio.</p>
     </div>
 
@@ -198,7 +198,7 @@ body{background:#efecf3}
         <div><span class="n">40</span><b>Cartes réponse</b><p>Le recto est la carte de choix du jeu, avec son icône de position. Le verso porte la valeur : couleur, icône et nom.</p></div>
         <div><span class="n">12</span><b>Cartes profil</b><p>Le haut de la page profil du jeu. On les étale sur la table à la fin de la partie.</p></div>
         <div><span class="n">A3</span><b>Plateau</b><p>Les cinq emplacements, le décompte des cartes par valeur, la règle et les douze profils du jeu.</p></div>
-        <div><span class="n">A4</span><b>Feuille de décompte</b><p>À cocher pendant la partie. <a href="yeitigai-decompte.html">L'ouvrir ou l'imprimer</a>.</p></div>
+        <div><span class="n">A4</span><b>Feuille de décompte</b><p>À cocher pendant la partie. <a href="yeita-match-decompte.html">L'ouvrir ou l'imprimer</a>.</p></div>
       </div>
     </section>
 
@@ -228,17 +228,17 @@ body{background:#efecf3}
   </div>
 
   <div class="sheets" id="sheets"></div>
-  <div class="plateau-wrap" style="margin-top:24px"><div class="scaler"><section class="plateau" id="plateau" aria-label="Plateau Yeitigai, A3 paysage"></section></div></div>
+  <div class="plateau-wrap" style="margin-top:24px"><div class="scaler"><section class="plateau" id="plateau" aria-label="Plateau Yeita Match, A3 paysage"></section></div></div>
 
-  <footer class="foot screen-only"><span>Contenu et rendu tirés du jeu Yeitigai (dépôt yeita-match). Si une carte change dans le jeu, elle change ici.</span></footer>
+  <footer class="foot screen-only"><span>Contenu et rendu tirés du jeu Yeita Match (dépôt yeita-match). Si une carte change dans le jeu, elle change ici.</span></footer>
 </div>
 
 <script src="assets/yeita.js"></script>
-<script src="assets/data-yeitigai.js"></script>
+<script src="assets/data-yeita-match.js"></script>
 <script>
 (function(){
 "use strict";
-var Y = YEITIGAI, E = YEITA.esc, LOGO = YEITA.logo, I = YEITA.icon;
+var Y = YEITA_MATCH, E = YEITA.esc, LOGO = YEITA.logo, I = YEITA.icon;
 document.getElementById("logo").innerHTML = LOGO(26);
 YEITA.wirePrint();
 var POS = ["A","B","C","D"];
@@ -287,8 +287,8 @@ for(var pg = 0; pg < pages; pg++){
   var slice = CARDS.slice(pg*9, pg*9+9); while(slice.length < 9) slice.push(null);
   var rec = slice.map(function(c){ return c ? c[0] : '<div class="empty"></div>'; }), ver = [];
   for(var r=0; r<3; r++){ for(var c=2; c>=0; c--){ var it = slice[r*3+c]; ver.push(it ? it[1] : '<div class="empty"></div>'); } }
-  html += '<div class="scaler"><div class="planche" aria-label="Planche '+(pg+1)+' recto"><div class="grid">'+rec.join("")+'</div><span class="cap"><span>Planche '+(pg+1)+' sur '+pages+', recto</span><span>Kit Yeitigai</span></span></div></div>';
-  html += '<div class="scaler"><div class="planche" aria-label="Planche '+(pg+1)+' verso"><div class="grid">'+ver.join("")+'</div><span class="cap"><span>Planche '+(pg+1)+' sur '+pages+', verso</span><span>Kit Yeitigai</span></span></div></div>';
+  html += '<div class="scaler"><div class="planche" aria-label="Planche '+(pg+1)+' recto"><div class="grid">'+rec.join("")+'</div><span class="cap"><span>Planche '+(pg+1)+' sur '+pages+', recto</span><span>Kit Yeita Match</span></span></div></div>';
+  html += '<div class="scaler"><div class="planche" aria-label="Planche '+(pg+1)+' verso"><div class="grid">'+ver.join("")+'</div><span class="cap"><span>Planche '+(pg+1)+' sur '+pages+', verso</span><span>Kit Yeita Match</span></span></div></div>';
 }
 var sh = document.getElementById("sheets");
 sh.innerHTML = html;
