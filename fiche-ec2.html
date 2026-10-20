@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fiche d'entretien candidat #2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/yeita.css">
+<style>
+/* Fiche #2 : une barre d'outils fixe, les quatre use cases à noter, puis la lecture (radar, écarts, code). Diamants numérotés, pas colorés. */
+:root{ padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px) }
+.sub-title{font-size:19px; font-weight:600; color:var(--ink-2)}
+.controls{border-block:1px solid var(--line); padding-block:12px; margin-top:8px}
+.controls .in{display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center}
+.group{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.seg button[disabled]{opacity:.6; text-decoration:line-through; text-decoration-thickness:1px}
+.group > .gl{font-size:14px; font-weight:650; color:var(--ink-2)}
+.soon{font-size:13.5px; color:var(--muted)}
+.trame{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:10px; margin-top:14px; padding:0; list-style:none; counter-reset:t}
+.trame li{counter-increment:t; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px; display:grid; gap:4px}
+.trame li b{display:flex; justify-content:space-between; gap:8px}
+.trame li b::before{content:counter(t); font-family:var(--f-mono); font-weight:500; color:var(--muted); margin-right:6px}
+.trame li b span{font-family:var(--f-mono); font-weight:400; font-size:13px; color:var(--muted); margin-left:auto}
+.trame li p{font-size:14.5px; color:var(--ink-2)}
+.legend{display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:8px; margin-top:14px}
+@media (max-width:760px){ .legend{grid-template-columns:1fr 1fr} }
+.legend div{background:var(--surface-2); border-radius:10px; padding:10px 12px; display:grid; gap:2px}
+.legend b{font-family:var(--f-mono); font-size:18px; font-weight:500}
+.legend span{font-size:14px; color:var(--ink-2)}
+.levels{display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:10px; font-size:14.5px; color:var(--ink-2)}
+.levels b{color:var(--ink)}
+
+.diamond{margin-block:26px; border:1px solid var(--line); border-radius:18px; background:var(--surface); overflow:hidden}
+.d-head{padding:18px 20px; display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:4px 16px; align-items:center; border-bottom:1px solid var(--line)}
+.d-num{font-family:var(--f-mono); font-size:30px; line-height:1; color:var(--ink); grid-row:span 2}
+.d-head h2{font-size:23px}
+.d-goal{font-size:15px; color:var(--ink-2)}
+.d-score{grid-row:span 2; text-align:right; font-family:var(--f-mono); font-size:14px; color:var(--muted)}
+.d-score b{display:block; font-size:22px; color:var(--ink); font-weight:500}
+.uc{padding:16px 20px; background:var(--surface-2); display:grid; gap:8px}
+.uc .ul{font-size:14px; font-weight:650; color:var(--violet-ink)}
+.uc h3{font-size:18px}
+.uc .ctx{font-size:15px; color:var(--ink-2); max-width:78ch}
+.uc .ask{font-size:16px; font-weight:600; max-width:78ch; border-left:4px solid var(--yellow); padding-left:12px}
+.uc .ear{font-size:14.5px; color:var(--ink-2)}
+.etape{border-top:1px solid var(--line)}
+.e-head{display:flex; flex-wrap:wrap; gap:12px 24px; align-items:flex-start; justify-content:space-between; padding:16px 20px 10px}
+.e-n{font-size:13.5px; color:var(--muted); font-weight:600}
+.e-head h3{font-size:20px; margin-top:2px}
+.e-def{font-size:14.5px; color:var(--ink-2); margin-top:2px; max-width:56ch}
+.e-note{display:grid; gap:6px; justify-items:end}
+.e-note .gl{font-size:13.5px; font-weight:650; color:var(--ink-2)}
+.scale{display:flex; gap:6px}
+.scale button{appearance:none; width:40px; height:40px; border-radius:10px; cursor:pointer; border:1.5px solid var(--line-strong); background:var(--surface); font-family:var(--f-mono); font-size:15px; color:var(--ink-2)}
+.scale button[data-on="1"]{background:var(--violet-soft); border-color:var(--violet); color:var(--violet-ink)}
+.scale button[aria-pressed="true"]{background:var(--violet); border-color:var(--violet); color:var(--paper)}
+@media (max-width:640px){ .e-note{justify-items:start} }
+.aide{padding:0 20px}
+.a-lab{font-size:13.5px; font-weight:650; color:var(--muted); padding:6px 0 4px}
+details.crit{border-top:1px solid var(--line)}
+details.crit > summary{list-style:none; cursor:pointer; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:baseline; padding:10px 2px; min-height:44px}
+details.crit > summary::-webkit-details-marker{display:none}
+details.crit > summary:hover{background:var(--surface-2)}
+.c-txt{display:grid; gap:2px; min-width:0}
+.r-name{font-weight:650; font-size:15px}
+.r-desc{font-size:14px; color:var(--ink-2)}
+.cchev{font-size:13px; color:var(--violet); font-weight:600}
+.grille{display:grid; gap:6px; padding:2px 2px 14px}
+.grille div{display:grid; grid-template-columns:110px minmax(0,1fr); gap:10px; align-items:baseline; font-size:14.5px; color:var(--ink-2)}
+.grille em{font-style:normal; font-size:13px; font-weight:650; color:var(--ink); border:1.5px solid var(--line-strong); border-radius:999px; padding:1px 10px; text-align:center}
+.ex{padding:10px 20px 18px}
+
+.summary{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:12px; margin-top:16px}
+.tile{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px 16px; display:grid; gap:6px}
+.tile .t-name{font-weight:700; font-size:16.5px}
+.tile .t-name span{font-family:var(--f-mono); font-weight:500; color:var(--muted); margin-right:6px}
+.tile .t-num{font-family:var(--f-mono); font-size:28px; line-height:1}
+.tile .t-num small{font-size:14px; color:var(--muted)}
+.gauge{height:8px; border-radius:4px; background:var(--surface-2); position:relative; border:1px solid var(--line)}
+.gauge i{position:absolute; inset:0 auto 0 0; background:var(--violet); border-radius:4px}
+.gauge b{position:absolute; top:-4px; bottom:-4px; width:2px; background:var(--ink)}
+.t-steps{display:grid; gap:2px; font-size:14px; color:var(--ink-2)}
+.t-steps span{display:flex; gap:6px; align-items:baseline}
+.t-steps b{margin-left:auto; font-family:var(--f-mono); font-weight:500}
+.t-steps u{font-family:var(--f-mono); text-decoration:none; color:var(--muted); font-size:13px}
+.t-gap{font-size:13.5px; color:var(--muted)}
+.t-gap.ok{color:var(--go)} .t-gap.under{color:var(--stop)}
+.radar-panel{display:grid; grid-template-columns:minmax(300px,1.3fr) minmax(240px,1fr); gap:20px 28px; align-items:start; margin-top:16px; background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:20px}
+@media (max-width:860px){ .radar-panel{grid-template-columns:1fr} }
+.radar-panel svg{width:100%; height:auto; display:block}
+.keys{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:14px; color:var(--ink-2); margin-top:8px}
+.keys i{display:inline-block; width:22px; height:0; border-top:2.5px solid var(--violet); vertical-align:middle; margin-right:6px}
+.keys i.dash{border-top:2px dashed var(--ink-2)}
+.quarters{list-style:none; margin:10px 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:4px 16px; font-size:14px; color:var(--ink-2)}
+.quarters b{font-family:var(--f-mono); font-weight:500; margin-right:6px}
+.verdict{font-size:15px; border-left:4px solid var(--yellow); padding-left:12px; margin-top:10px}
+.code{font-family:var(--f-mono); font-size:13px; background:var(--surface-2); border-radius:10px; padding:10px 12px; word-break:break-all; color:var(--ink-2); min-height:44px}
+.tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:var(--surface); margin-top:12px}
+.matrix table{border-collapse:collapse; width:100%; min-width:760px; font-size:14px}
+.matrix th, .matrix td{padding:9px 7px; text-align:center; border-bottom:1px solid var(--line)}
+.matrix thead th{font-size:13px; font-weight:650; color:var(--ink-2); background:var(--surface-2)}
+.matrix th.k{text-align:left}
+.matrix .first{border-left:2px solid var(--line-strong)}
+.matrix tr.cur{background:var(--violet-soft)}
+.matrix td.k{text-align:left; font-weight:650; white-space:nowrap}
+.matrix td.k small{display:block; font-family:var(--f-mono); font-weight:400; color:var(--muted)}
+.cell{display:inline-grid; place-items:center; width:30px; height:28px; border-radius:7px; font-family:var(--f-mono); background:var(--surface-2); color:var(--ink-2)}
+.cell.l3, .cell.l4{background:var(--ink); color:var(--paper)}
+details.more{margin-top:18px; border:1px solid var(--line); border-radius:14px; background:var(--surface)}
+details.more > summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:650; display:flex; justify-content:space-between; gap:12px; min-height:44px; align-items:center}
+details.more > summary::-webkit-details-marker{display:none}
+details.more > summary::after{content:"Afficher"; font-size:14px; color:var(--violet)}
+details.more[open] > summary::after{content:"Masquer"}
+details.more > .in{padding:0 18px 18px}
+</style>
+</head>
+<body>
+<div id="live" aria-live="polite"></div>
+<div class="wrap">
+  <header class="topbar">
+    <a href="index.html#ec2" aria-label="Retour au hub Expérience collaborateur" style="padding:0" id="logo"></a>
+    <span class="where">EC2, mise en perspective métier</span>
+    <nav aria-label="Supports de l'EC2">
+      <a href="index.html#ec2">Guide, étape 7</a>
+      <a href="fiche-passation.html">Fiche de passation</a>
+      <a href="carte-identite.html">Carte d'identité</a>
+    </nav>
+  </header>
+  <div class="page-head">
+    <h1>Fiche d'entretien candidat #2</h1>
+    <p class="sub-title">Scorecard 4 diamants</p>
+    <p class="lede">Quatre mises en situation, douze étapes notées, quarante-huit critères pour aider à les placer. On note ce qu'on a vu, pas ce qu'on imagine. La sortie est une forme lisible en une minute, pas un classement.</p>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="wrap"><div class="in">
+    <div class="group"><span class="gl" id="role-l">Rôle</span>
+      <div class="seg" role="radiogroup" aria-labelledby="role-l">
+        <button type="button" role="radio" aria-checked="true">Product Manager</button>
+        <button type="button" role="radio" aria-checked="false" disabled aria-describedby="prd-soon">Product Designer</button>
+      </div><span class="soon" id="prd-soon">Grille Product Designer en préparation</span>
+    </div>
+    <div class="group"><span class="gl" id="tier-l">Palier visé</span>
+      <div class="seg" role="radiogroup" aria-labelledby="tier-l" id="tierSeg"></div>
+    </div>
+    <div class="group">
+      <button type="button" class="btn small primary" id="copy-notion">Copier pour Notion</button>
+      <button type="button" class="btn small" id="copy-code">Copier le code EC2</button>
+      <button type="button" class="btn small quiet" id="fold">Déplier les repères</button>
+      <button type="button" class="btn small quiet" id="demo">Exemple</button>
+      <button type="button" class="btn small quiet" id="reset">Vider</button>
+    </div>
+  </div>
+  <div class="callout" id="confirm" hidden role="alertdialog" aria-labelledby="cf-t" style="margin-top:10px">
+    <p id="cf-t"><b>Effacer les notes, les exemples cités et les aspirations ?</b> Pense à copier pour Notion avant.</p>
+    <div class="actions" style="margin-top:10px"><button type="button" class="btn small" id="cf-yes">Effacer</button><button type="button" class="btn quiet small" id="cf-no">Garder</button></div>
+  </div></div>
+</div>
+
+<main class="wrap">
+  <div class="grid-fields" style="margin-top:24px">
+    <div class="field"><label for="f-nom">Candidat</label><input type="text" id="f-nom" autocomplete="off" placeholder="Prénom et nom"></div>
+    <div class="field"><label for="f-date">Date</label><input type="date" id="f-date"></div>
+    <div class="field"><label for="f-par">Mené par</label><input type="text" id="f-par" autocomplete="off" placeholder="Prénom et nom"></div>
+  </div>
+
+  <section class="block">
+    <h2>La trame, 1 h 30</h2>
+    <p class="note">Le même ordre à chaque fois. On ne note que pendant les mises en perspective.</p>
+    <ol class="trame">
+      <li><b>Accueil<span>5 min</span></b><p>Se présenter, Yeita en deux phrases, le cadre de l'heure et demie. Pas de pitch.</p></li>
+      <li><b>Pour démarrer<span>15 min</span></b><p>Son objectif, son contexte, les décisions clés récentes. Sert à choisir le premier use case.</p></li>
+      <li><b>Mises en perspective<span>50 min</span></b><p>Les quatre use cases, un par diamant. Douze notes, une toutes les quatre minutes.</p></li>
+      <li><b>Aspirations<span>15 min</span></b><p>Formations en tête, autonomie ou accompagnement, freins à rejoindre Yeita. Non noté.</p></li>
+    </ol>
+  </section>
+
+  <section class="block">
+    <h2>On note l'étape, pas le critère</h2>
+    <p class="note">Les critères rangés sous chaque étape servent à placer la note. Ils resservent au bilan annuel. Pas de note sans fait rapporté.</p>
+    <div class="legend" id="legend"></div>
+    <p class="levels"><span><b>Junior, 0 à 1</b> : connaît, a vu faire, a été accompagné.</span><span><b>Intermédiaire, 2 à 3</b> : a fait, commence à décider seul.</span><span><b>Senior, 3 à 4</b> : décide, adapte, fait monter les autres.</span></p>
+  </section>
+
+  <div id="diamonds"></div>
+
+  <section class="block" aria-labelledby="t-asp">
+    <h2 id="t-asp">Aspirations</h2>
+    <p class="note">Interne. Prépare le staffing et l'EC3, ne part pas sur la carte d'identité.</p>
+    <div class="field" style="margin-top:10px"><label for="f-asp">Formations en tête, besoin d'autonomie ou d'accompagnement, freins éventuels</label><textarea id="f-asp" rows="3"></textarea></div>
+  </section>
+
+  <section class="block" aria-labelledby="t-read">
+    <h2 id="t-read">La lecture</h2>
+    <div class="summary" id="summary"></div>
+    <div class="radar-panel">
+      <div>
+        <div id="radar"></div>
+        <div class="keys"><span><i></i>Profil noté</span><span><i class="dash"></i>Attendu Yeita au palier</span><span>Anneaux : 1 à 4</span></div>
+        <ul class="quarters" id="quarters"></ul>
+      </div>
+      <div style="display:grid; gap:10px">
+        <h3>Douze axes, quatre quartiers</h3>
+        <p class="note">Le quartier dit le diamant, le rayon dit l'étape. Le pointillé est l'attendu sur le palier discuté : une référence de discussion, pas un seuil d'admission.</p>
+        <p class="verdict" id="verdict"></p>
+        <div class="field"><span class="label" id="code-l">Code EC2, pour la carte d'identité</span><p class="code" id="code" aria-labelledby="code-l">—</p></div>
+        <div class="actions"><button type="button" class="btn small primary" data-copy="notion">Copier pour Notion</button><button type="button" class="btn small" data-copy="code">Copier le code EC2</button></div>
+        <p class="note">Le code porte les douze notes, le palier et le rôle. Les critères, les exemples cités et les aspirations restent dans le compte rendu Notion.</p>
+      </div>
+    </div>
+    <p class="note" id="scoreNote" style="margin-top:12px"></p>
+    <details class="more">
+      <summary>L'attendu Yeita, palier par palier</summary>
+      <div class="in">
+        <p class="note">L'attendu se répartit étape par étape. Le plancher est à 1 et jamais à 0 : un 0 veut dire « pas vu », pas « pas attendu ». Ces quarante-huit valeurs sont une hypothèse de travail, à arbitrer avec la grille de salaire 2026.</p>
+        <div class="tablewrap matrix" id="matrix"></div>
+      </div>
+    </details>
+    <div class="callout" style="margin-top:20px"><p><b>Ce qui passe à l'EC3</b> s'écrit au débrief, dans la <a href="fiche-passation.html">fiche de passation candidat</a>, volet EC2 → EC3.</p></div>
+  </section>
+
+  <footer class="foot">
+    <span>48 critères Product Manager rangés en 12 étapes. 36 viennent de la base « Support EC2 » dans Notion, 12 sont des ajouts à relire. La grille Product Designer arrive.</span>
+    <span>Les notes restent dans ce navigateur jusqu'à ce que tu les copies dans Notion.</span>
+  </footer>
+</main>
+
+<script src="assets/yeita.js"></script>
+<script src="assets/data-diamants.js"></script>
+<script>
+(function(){
+"use strict";
+var Dm = DIAMANTS, E = YEITA.esc, KEY = "yeita-fiche-ec2";
+var NOTION = "https://app.notion.com/p/5224bfab781683c7960f81b89955b4e7";
+document.getElementById("logo").innerHTML = YEITA.logo(26);
+
+/* Les quatre diamants : un use case chacun, trois étapes, quatre critères par étape [nom, définition, repère Junior, Intermédiaire, Senior]. */
+var D = [
+{
+  n:"01", name:"Stratégie", goal:"Expliciter la stratégie et clarifier les arbitrages.", out:"Jalon : Stratégie",
+  uc:{t:"Le comité veut les trois, et tout de suite",
+      ctx:"Éditeur SaaS B2B, deux équipes, un PM par équipe. Le chiffre d'affaires stagne depuis trois trimestres. En comité, le directeur général arrive avec trois demandes : une refonte de l'onboarding réclamée par les sales, un module de reporting promis à un gros client, et « quelque chose avec de l'IA » parce que le concurrent en parle.",
+      ask:"Par quoi tu commences, comment tu décides, et qu'est-ce que tu ne feras pas — en le disant à qui ?",
+      ear:"L'ordre dans lequel la personne pose les questions. Si elle demande d'abord le modèle économique et le contrat du gros client, ou si elle part directement sur la roadmap."},
+  sections:[
+   {k:"Expliciter", def:"Comprendre le terrain de jeu et nommer le cap.", crit:[
+     ["Vision et North Star","Formuler un cap produit tenable et le rendre lisible par un dev comme par un directeur.",
+      "Sait restituer une vision portée par quelqu'un d'autre.",
+      "Anime un atelier de vision et pose une North Star avec l'équipe.",
+      "Relie la vision aux arbitrages du quotidien et la fait vivre auprès des parties prenantes."],
+     ["Compréhension du modèle économique","Relier le produit au compte de résultat : acquisition, marge, récurrence, coûts.",
+      "Connaît le modèle de revenu et le prix de son produit.",
+      "Sait dire ce qu'une fonctionnalité coûte et ce qu'elle rapporte, au moins en ordre de grandeur.",
+      "Argumente une orientation produit par son effet sur le modèle économique."],
+     ["Lecture du marché et de la concurrence","Situer le produit dans son marché : qui d'autre répond au même besoin, et comment.",
+      "Sait nommer les concurrents principaux de son produit.",
+      "Tient un benchmark à jour et s'en sert pour argumenter une décision.",
+      "Repère un déplacement du marché avant qu'il n'arrive dans la roadmap, et en tire une orientation."],
+     ["Maturité et modèles d'organisation produit","Diagnostiquer comment une organisation fabrique du produit, et s'y adapter.",
+      "A travaillé dans un seul type d'organisation.",
+      "A vu au moins deux organisations produit différentes et sait les comparer.",
+      "Diagnostique la maturité produit d'un contexte nouveau en quelques semaines et adapte sa façon de travailler."]
+   ]},
+   {k:"Opérationnaliser", def:"Transformer le cap en objectifs et en alliances qui tiennent.", crit:[
+     ["OKR et objectifs","Traduire une ambition en objectifs mesurables et en résultats clés atteignables.",
+      "A travaillé dans une organisation qui utilisait des OKR.",
+      "Écrit des OKR produit et les révise en cours de trimestre.",
+      "Articule objectifs d'équipe et d'entreprise, et sait reconnaître quand les OKR ne servent à rien."],
+     ["Alignement cross-fonctionnel","Faire travailler ensemble des équipes qui ne se parlent pas spontanément.",
+      "Communique avec les équipes voisines quand on le lui demande.",
+      "Organise les synchronisations nécessaires et clarifie qui décide quoi.",
+      "Installe des rituels d'alignement durables et désamorce les conflits d'intérêt en amont."],
+     ["Parties prenantes et jeux d'acteurs","Lire la dimension politique d'un contexte et s'y positionner sans la subir.",
+      "Identifie qui décide sur son périmètre.",
+      "Cartographie alliés, opposants et indécis, et adapte son discours à chacun.",
+      "Construit ses soutiens avant la réunion de décision plutôt que pendant."],
+     ["Portage et narratif de la stratégie","Faire exister la stratégie ailleurs que dans le document où elle est écrite.",
+      "Relaie la stratégie telle qu'elle lui a été transmise.",
+      "Adapte son discours selon l'auditoire — équipe, métier, direction — sans changer le fond.",
+      "Défend une orientation devant un comité hostile et en obtient une décision."]
+   ]},
+   {k:"Prioriser", def:"Choisir, et assumer ce qu'on ne fera pas.", crit:[
+     ["Frameworks de priorisation","Choisir un cadre de priorisation et l'assumer publiquement.",
+      "Connaît une méthode : RICE, MoSCoW, impact / effort.",
+      "Choisit la méthode selon le contexte et le niveau de granularité.",
+      "Adapte ou détourne le cadre selon les enjeux, et sait quand ne pas en utiliser."],
+     ["Approche ROI du delivery","Mettre en regard le coût d'un développement et la valeur qu'on en attend.",
+      "Sait estimer une charge avec l'équipe.",
+      "Coupe du périmètre sans casser la promesse, et explique l'arbitrage.",
+      "Pilote le portefeuille de l'équipe au ratio valeur / effort et le défend chiffré."],
+     ["Arbitrage expérience vs business","Tenir la tension entre valeur utilisateur et rentabilité sans sacrifier l'une des deux.",
+      "Repère les moments où les deux s'opposent.",
+      "Propose une option qui protège l'essentiel des deux côtés et dit ce qu'elle coûte.",
+      "Démontre, chiffres à l'appui, qu'un gain d'expérience est un gain business — ou l'inverse."],
+     ["Capacité à dire non","Refuser une demande en gardant la relation, et en laissant une trace du pourquoi.",
+      "Fait remonter la demande et laisse quelqu'un d'autre trancher.",
+      "Dit non avec un argument et une alternative.",
+      "Dit non à un sponsor, documente la décision, et sait y revenir si le contexte change."]
+   ]}
+  ]
+},
+{
+  n:"02", name:"Problème", goal:"Explorer et structurer le problème avant de parler solution.", out:"Jalon : Vision",
+  uc:{t:"Un churn qu'on n'explique pas",
+      ctx:"Même produit. La rétention à six mois a perdu douze points en un an. Personne ne sait pourquoi. Il n'y a pas de recherche utilisateur en place, l'analytics est branché mais personne ne le regarde, et le support dit « c'est lent ». Tu as trois semaines avant le prochain comité.",
+      ask:"Comment tu qualifies le problème en trois semaines, avec quelles méthodes, et qu'est-ce que tu rapportes au comité ?",
+      ear:"Si la personne cherche à parler aux gens qui sont partis, et pas seulement à ceux qui restent. Si elle pose un indicateur avant de commencer."},
+  sections:[
+   {k:"Découvrir", def:"Aller chercher la matière là où elle est : chez les utilisateurs.", crit:[
+     ["Discovery continue","Garder un contact régulier avec les utilisateurs, en parallèle du delivery.",
+      "A déjà assisté à des entretiens utilisateurs.",
+      "Mène entretiens ou sondages à un rythme régulier et analyse les verbatims.",
+      "Fait tourner une discovery outillée ; sans accès direct, va chercher le signal via sales, support ou CSM."],
+     ["Conduite d'entretiens utilisateurs","Faire parler quelqu'un de ce qu'il fait vraiment, pas de ce qu'il voudrait faire.",
+      "A assisté à des entretiens menés par quelqu'un d'autre.",
+      "Mène un entretien en autonomie : questions ouvertes, relances, aucune solution suggérée.",
+      "Adapte son guide en séance, repère ses propres biais, et fait parler un profil difficile ou très senior."],
+     ["Accès au terrain et recrutement des utilisateurs","Obtenir du temps avec de vrais utilisateurs, y compris quand rien n'est prévu pour ça.",
+      "S'appuie sur un panel ou un accès déjà en place.",
+      "Organise le recrutement avec un outil dédié ou le réseau du client.",
+      "Trouve une voie quand le client bloque l'accès direct : sales, support, CSM, observation terrain."],
+     ["Animation d'ateliers d'idéation","Faire produire un groupe plutôt que d'apporter soi-même la réponse.",
+      "A participé à des ateliers et connaît quelques formats.",
+      "Prépare et anime un atelier — Crazy 8, How Might We, tri de cartes — jusqu'au livrable.",
+      "Choisit le format selon l'objectif et tient un groupe difficile ou très senior."]
+   ]},
+   {k:"Qualifier", def:"Passer d'une demande à un problème formulé et dimensionné.", crit:[
+     ["Qualification de la demande","Distinguer ce qu'on lui demande, ce dont la personne a besoin, et le problème à résoudre.",
+      "Prend la demande telle qu'elle arrive et la transmet à l'équipe.",
+      "Remonte à l'intention derrière la demande avant de l'instruire.",
+      "Reformule le problème d'une manière que le demandeur reconnaît, même quand elle invalide sa demande."],
+     ["Arbre d'hypothèses et user journey","Structurer le problème pour le rendre discutable avant d'ouvrir la solution.",
+      "Sait lire un parcours utilisateur existant.",
+      "Construit un parcours ou un arbre d'hypothèses et le met au mur.",
+      "Priorise les hypothèses par le risque et organise leur validation une par une."],
+     ["Synthèse et insights","Transformer des heures de matière brute en quelques enseignements utilisables.",
+      "Prend des notes et les partage.",
+      "Produit une synthèse structurée — verbatims, thèmes, enseignements — exploitable par l'équipe.",
+      "Rend la connaissance utilisateur consultable et réutilisable par d'autres que lui, dans la durée."],
+     ["Sizing d'opportunité","Chiffrer le potentiel d'un problème avant d'engager l'équipe dessus.",
+      "Sait dire combien d'utilisateurs sont concernés.",
+      "Estime un gain attendu — conversion, rétention, coût évité — avec des hypothèses posées.",
+      "Compare plusieurs opportunités sur la même base et assume l'incertitude de ses chiffres."]
+   ]},
+   {k:"Industrialiser", def:"Installer la mesure pour que le problème reste suivi dans le temps.", crit:[
+     ["Définition et challenge des KPI","Choisir peu d'indicateurs, les bons, et accepter de les remettre en cause.",
+      "Suit les indicateurs définis par d'autres.",
+      "Choisit les indicateurs selon le type de produit et en limite le nombre.",
+      "Détecte un indicateur qui pousse au mauvais comportement et le fait changer."],
+     ["Frameworks de mesure","AARRR, HEART, NPS, NSM : savoir lequel sert à quoi.",
+      "Connaît les noms et ce à quoi ils servent.",
+      "Applique un framework complet à son produit.",
+      "Articule plusieurs cadres pour piloter, sans les empiler."],
+     ["Culture de l'impact et data","Décider à partir de données plutôt que d'opinions.",
+      "Lit un tableau de bord existant.",
+      "Va chercher ses propres chiffres — GA, Amplitude, Piano, requêtes — pour trancher.",
+      "Installe la mesure dans l'équipe et exige qu'une décision s'appuie sur un fait."],
+     ["A/B testing","Mettre une hypothèse à l'épreuve plutôt que de la débattre.",
+      "Connaît le principe.",
+      "A déjà conçu et suivi un test, et sait en lire le résultat.",
+      "Dimensionne un test — volume, durée, significativité — et accepte un résultat nul."]
+   ]}
+  ]
+},
+{
+  n:"03", name:"Solution", goal:"Choisir une solution, l'organiser, la préparer.", out:"Jalon : Go Dev",
+  uc:{t:"Du problème validé au Go Dev",
+      ctx:"Le problème est qualifié : les nouveaux comptes décrochent pendant la première semaine. Trois pistes sont sur la table, dont une qui plaît beaucoup au directeur général. Une équipe de quatre développeurs se libère dans deux semaines, et le commerce a déjà annoncé quelque chose pour la fin du trimestre.",
+      ask:"Comment tu cadres le MVP, comment tu choisis entre les trois pistes, et à quoi on verra que c'est réussi ?",
+      ear:"Si des critères de succès sont posés avant le développement. Si la piste préférée du DG est traitée comme une hypothèse ou comme une consigne."},
+  sections:[
+   {k:"Décider", def:"Produire des options, en choisir une, et laisser une trace.", crit:[
+     ["Idéation et exploration de solutions","Produire plusieurs réponses réellement différentes avant de converger sur une.",
+      "Apporte une solution et la défend.",
+      "Explore plusieurs pistes et explique pourquoi il ou elle écarte les autres.",
+      "Fait produire les options par l'équipe et le métier, puis organise la convergence."],
+     ["Cadrage du MVP","Découper la plus petite version qui apprend réellement quelque chose.",
+      "Connaît la logique du MVP.",
+      "Utilise story mapping ou event modeling pour cadrer un périmètre.",
+      "Anime le cadrage de bout en bout et aligne toutes les parties prenantes sur le même périmètre."],
+     ["Roadmap","Rendre lisible ce qui vient, sans promettre des dates qu'on ne tiendra pas.",
+      "Tient une liste de fonctionnalités à venir.",
+      "Construit une roadmap Now / Next / Later à plusieurs niveaux de granularité.",
+      "Priorise l'outcome plutôt que l'output, et tient la roadmap sous pression commerciale."],
+     ["Prise de décision","Trancher avec une information incomplète, et laisser une trace.",
+      "Suit les directives de son manager.",
+      "Décide sur son périmètre et explique son raisonnement.",
+      "Décide vite sur le réversible, lentement sur l'irréversible, et documente."]
+   ]},
+   {k:"Co-construire", def:"Fabriquer la solution avec ceux qui vont la faire.", crit:[
+     ["Collaboration avec le design","Travailler avec un Product Designer : savoir quoi lui demander, et à quel moment.",
+      "Transmet un besoin et attend des maquettes.",
+      "Embarque le design dès la discovery et co-construit le cadrage.",
+      "Partage la responsabilité du problème et challenge une proposition sans la refaire à sa place."],
+     ["Collaboration tech","Comprendre les contraintes d'architecture assez pour arbitrer avec les développeurs.",
+      "Explique le besoin et laisse l'équipe estimer.",
+      "Discute les options techniques et leurs conséquences sur le délai.",
+      "Co-décide des compromis — dette, build ou buy — avec le lead technique."],
+     ["Processus cible","Modéliser le fonctionnement visé avant de spécifier des écrans.",
+      "Sait décrire le processus existant.",
+      "Formalise le processus cible et identifie les écarts avec l'existant.",
+      "Fait valider le processus cible par le métier et la tech avant tout cadrage détaillé."],
+     ["Facilitation et modération","Faire converger un groupe : gérer les silences comme les monopoles de parole.",
+      "Anime une réunion avec un ordre du jour.",
+      "Cadre un atelier de décision et en obtient une sortie claire.",
+      "Fait trancher un groupe en désaccord sans y laisser la relation."],
+     ["Initialisation du backlog","Passer d'une solution cadrée à un premier backlog découpé en lots livrables.",
+      "Sait ce qu'est un backlog et à quoi il sert.",
+      "Découpe un périmètre en lots livrables et séquencés avec l'équipe.",
+      "Découpe de façon à ce que chaque lot apprenne quelque chose ou livre de la valeur, pas à remplir des sprints."]
+   ]},
+   {k:"Valider", def:"S'assurer que ça vaut le coup avant d'engager l'équipe.", crit:[
+     ["Critères de succès avant dev","Définir comment on saura que c'est réussi, avant d'écrire une ligne de code.",
+      "Sait dire ce que la fonctionnalité doit faire.",
+      "Pose des critères de succès mesurables et l'instrumentation qui va avec.",
+      "Fait des critères de succès une condition d'entrée en développement."],
+     ["Expérimentation et test de la valeur","Mettre une solution à l'épreuve avant de la construire en entier.",
+      "Connaît la logique : tester avant de construire.",
+      "A déjà monté un test — prototype testé, fake door, POC, pilote — et en a tiré une décision.",
+      "Choisit le dispositif le moins cher qui tranche vraiment l'hypothèse, et accepte d'arrêter un sujet."],
+     ["Gestion du risque","Nommer ce qui peut faire échouer, avant que ça échoue.",
+      "Signale un risque quand il le voit.",
+      "Utilise une grille désirabilité / faisabilité / viabilité, ou un pré-mortem.",
+      "Hiérarchise les risques, teste les plus coûteux en premier, et assume un plan B."]
+   ]}
+  ]
+},
+{
+  n:"04", name:"Produit", goal:"Délivrer la valeur et vérifier l'impact réel.", out:"Jalon : Impact",
+  uc:{t:"La V1 est en prod depuis six semaines",
+      ctx:"La V1 est livrée. L'adoption plafonne à dix-huit pour cent des comptes éligibles. L'équipe a déjà enchaîné sur le sujet suivant, le client demande la suite de la roadmap, et personne n'a regardé les chiffres depuis la mise en production.",
+      ask:"Qu'est-ce que tu fais cette semaine, et qu'est-ce que tu mets en place pour que ça ne se reproduise pas sans toi ?",
+      ear:"Si la personne distingue un problème d'adoption d'un problème de produit. Si elle propose quelque chose qui tient après son départ de la mission."},
+  sections:[
+   {k:"Produire", def:"Emmener de la story à la production, à la bonne qualité.", crit:[
+     ["Rituels agiles","Faire vivre les rituels au lieu de les subir.",
+      "Participe aux rituels en place.",
+      "Anime refinement, revue et rétro, et pose DoR et DoD avec l'équipe.",
+      "Adapte les rituels à la maturité de l'équipe et supprime ceux qui ne servent plus."],
+     ["Gestion du backlog et raffinage","Tenir un backlog priorisé, compréhensible sans lui dans la pièce.",
+      "Suit l'avancement et relance si besoin.",
+      "Priorise avec une méthode adaptée à la granularité et tient le backlog propre.",
+      "Anticipe les conflits de priorité et lève l'alerte avant le comité."],
+     ["Écriture des US et critères d'acceptation","Écrire ce que l'équipe doit construire, et comment on saura que c'est fait.",
+      "Connaît la structure d'une user story et de ses critères d'acceptation.",
+      "Écrit des US claires et des critères testables, affinés avec les devs et la QA.",
+      "Rend l'équipe autonome sur les critères grâce à des livrables clairs : comptes rendus, maquettes, exemples."],
+     ["Qualité et stratégie de test","Savoir ce qui est testé, par qui, et ce qu'on accepte de laisser passer.",
+      "Fait des tests fonctionnels et des tests de non-régression.",
+      "Travaille avec la QA sur un plan de test et des tests automatisés.",
+      "Porte une stratégie de test complète et arbitre le niveau de qualité acceptable selon l'enjeu."],
+     ["Mise en production","Emmener jusqu'en production et gérer l'après-livraison.",
+      "A vu des mises en production se faire.",
+      "Prépare une release : notes, feature flag, communication.",
+      "Intègre RGPD, sécurité et déploiement progressif dans sa routine."]
+   ]},
+   {k:"Standardiser", def:"Rendre reprenable ce qui a été construit.", crit:[
+     ["Documentation produit","Laisser un produit reprenable par quelqu'un d'autre.",
+      "Documente quand on le lui demande.",
+      "Tient une documentation à jour, réellement utilisée par l'équipe.",
+      "Organise la connaissance produit pour qu'elle survive à son départ."],
+     ["Standards opératoires","Rendre réplicable ce qui a marché une fois.",
+      "Applique les standards de l'équipe.",
+      "Formalise un process de delivery ou de collaboration.",
+      "Diffuse ses standards à d'autres équipes et les fait adopter."],
+     ["Run, incidents et support","Vivre avec un produit en production : bugs, incidents, demandes utilisateurs.",
+      "Remonte dans le backlog les bugs qu'on lui signale.",
+      "Tient un arbitrage entre run et build, et une boucle avec le support.",
+      "Organise le run pour qu'il ne mange pas la roadmap : niveaux de priorité, astreinte, post-mortem."],
+     ["Montée en qualité de l'équipe","Élever le niveau autour de soi, pas seulement livrer.",
+      "Partage ce qu'il ou elle apprend.",
+      "Accompagne un profil plus junior sur son périmètre.",
+      "Installe des pratiques qui tiennent après son départ : mentorat, formation, revue entre pairs."]
+   ]},
+   {k:"Impacter", def:"Vérifier que ça a servi à quelque chose.", crit:[
+     ["Review produit et analytics","Regarder ce que ça donne après livraison, et reboucler.",
+      "Consulte les chiffres après une mise en production.",
+      "Tient une revue régulière de la performance et en tire des décisions.",
+      "Pilote par l'impact mesuré plutôt que par le volume livré."],
+     ["Adoption et go-to-market","Faire exister ce qui sort, auprès des utilisateurs comme des équipes internes.",
+      "Annonce les nouveautés à l'équipe.",
+      "Prépare le lancement avec le support, le commerce et la communication.",
+      "Suit l'adoption dans le temps et corrige quand elle ne décolle pas."],
+     ["IA dans le cycle produit","Utiliser l'IA dans le produit et dans les pratiques de l'équipe.",
+      "L'utilise pour son propre travail.",
+      "L'a intégrée dans un cycle produit — discovery, rédaction, analyse — avec un gain constaté.",
+      "Cadre un cas d'usage IA dans le produit : valeur, risques, données, coût."]
+   ]}
+  ]
+}
+];
+
+var tier = 2, scores = {}, notes = {}, folded = false, f = {};
+var IDF = ["f-nom","f-date","f-par","f-asp"];
+function sid(di,si){ return di+"-"+si; }
+function load(){
+  var r = YEITA.store.get(KEY, {}); scores = r.s || {}; notes = r.n || {}; tier = r.t || 2; f = r.f || {};
+  IDF.forEach(function(id){ var e = document.getElementById(id); if(e){ e.value = f[id] || ""; if(e.tagName === "TEXTAREA" && e.value) YEITA.autogrow(e); } });
+}
+function save(){ IDF.forEach(function(id){ f[id] = document.getElementById(id).value; }); YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f}); }
+function gv(id){ return (document.getElementById(id).value || "").trim(); }
+
+document.getElementById("legend").innerHTML = Dm.SCALE.map(function(s){ return '<div><b>'+s[0]+'</b><span>'+E(s[1])+'</span></div>'; }).join("");
+document.getElementById("tierSeg").innerHTML = Dm.TIERS.map(function(t,i){ return '<button type="button" role="radio" data-tier="'+(i+1)+'" aria-checked="false">'+E(t)+'</button>'; }).join("");
+
+function scaleHTML(di,si,name){
+  var cur = scores[sid(di,si)], h = '<div class="scale" role="group" aria-label="Note pour l\'étape '+E(name)+'">';
+  for(var v=0; v<=4; v++) h += '<button type="button" data-k="'+sid(di,si)+'" data-v="'+v+'" data-on="'+(cur!==undefined && v<=cur ? 1 : 0)+'" aria-pressed="'+(cur===v)+'" aria-label="Note '+v+'">'+v+'</button>';
+  return h + '</div>';
+}
+function renderDiamonds(){
+  var h = "";
+  D.forEach(function(d,di){
+    h += '<section class="diamond" aria-labelledby="dh-'+di+'"><div class="d-head"><span class="d-num" aria-hidden="true">'+d.n+'</span><h2 id="dh-'+di+'">'+E(d.name)+'</h2>'
+      + '<span class="d-score" id="ds-'+di+'"></span><p class="d-goal">'+E(d.goal)+' '+E(d.out)+'.</p></div>'
+      + '<div class="uc"><span class="ul">Use case</span><h3>'+E(d.uc.t)+'</h3><p class="ctx">'+E(d.uc.ctx)+'</p><p class="ask">'+E(d.uc.ask)+'</p><p class="ear"><b>Ce qu\'on écoute.</b> '+E(d.uc.ear)+'</p></div>';
+    d.sections.forEach(function(s,si){
+      h += '<div class="etape"><div class="e-head"><div><span class="e-n">Étape '+(si+1)+' sur 3</span><h3>'+E(s.k)+'</h3><p class="e-def">'+E(s.def)+'</p></div>'
+        + '<div class="e-note"><span class="gl">Note de l\'étape</span>'+scaleHTML(di,si,s.k)+'</div></div>'
+        + '<div class="aide"><p class="a-lab">Aide de lecture, '+s.crit.length+' critères : ils ne se notent pas</p>'
+        + s.crit.map(function(c){ return '<details class="crit"><summary><span class="c-txt"><span class="r-name">'+E(c[0])+'</span><span class="r-desc">'+E(c[1])+'</span></span><span class="cchev">Repères</span></summary>'
+            + '<div class="grille"><div><em>Junior</em><span>'+E(c[2])+'</span></div><div><em>Intermédiaire</em><span>'+E(c[3])+'</span></div><div><em>Senior</em><span>'+E(c[4])+'</span></div></div></details>'; }).join("")
+        + '</div><div class="ex field"><label for="ex-'+sid(di,si)+'">Exemples cités : une note sans fait rapporté n\'est pas une note</label>'
+        + '<textarea id="ex-'+sid(di,si)+'" data-k="'+sid(di,si)+'" rows="1" placeholder="Ce qui a été dit, en une ligne."></textarea></div></div>';
+    });
+    h += '</section>';
+  });
+  document.getElementById("diamonds").innerHTML = h;
+  Object.keys(notes).forEach(function(k){ var e = document.getElementById("ex-"+k); if(e){ e.value = notes[k]; YEITA.autogrow(e); } });
+}
+function steps(){ var out = []; D.forEach(function(d,di){ d.sections.forEach(function(s,si){ var v = scores[sid(di,si)]; out.push(v===undefined ? null : v); }); }); return out; }
+function code(){ return "YEITA-EC2." + YEITA.b64e({role:"PM", t:tier, s:steps(), n:gv("f-nom"), d:gv("f-date"), par:gv("f-par")}); }
+
+function renderRead(){
+  var st = steps(), names = Dm.stepNames(), rated = st.filter(function(v){ return v!=null; }).length;
+  document.getElementById("summary").innerHTML = D.map(function(d,di){
+    var avg = Dm.avgDiamond(st, di), tg = Dm.expDiamond(tier, di), nr = st.slice(di*3,di*3+3).filter(function(v){ return v!=null; }).length, gap = avg - tg;
+    var cls = nr === 0 ? "" : (gap >= -0.15 ? "ok" : "under");
+    var ds = document.getElementById("ds-"+di); if(ds) ds.innerHTML = '<b>'+YEITA.fr(avg)+'</b>attendu '+YEITA.fr(tg);
+    return '<div class="tile"><span class="t-name"><span>'+d.n+'</span>'+E(d.name)+'</span><span class="t-num">'+YEITA.fr(avg)+' <small>/ 4</small></span>'
+      + '<div class="gauge" aria-hidden="true"><i style="width:'+(avg/4*100)+'%"></i><b style="left:calc('+(tg/4*100)+'% - 1px)"></b></div>'
+      + '<div class="t-steps">'+d.sections.map(function(s,si){ var v = st[di*3+si]; return '<span>'+E(s.k)+' <b>'+(v==null?'—':v)+'</b><u>/ '+Dm.expAt(tier, di*3+si)+'</u></span>'; }).join("")+'</div>'
+      + '<span class="t-gap '+cls+'">Attendu '+YEITA.fr(tg)+', écart '+(gap>=0?'+':'')+YEITA.fr(gap)+', '+nr+' étape'+(nr>1?'s':'')+' notée'+(nr>1?'s':'')+' sur 3</span></div>';
+  }).join("");
+  document.getElementById("radar").innerHTML = YEITA.radar(st, tier, {label:"Radar des douze étapes au palier "+Dm.TIERS[tier-1]});
+  var v;
+  if(!rated) v = "Rien n'est encore noté. La forme apparaît au fil de l'entretien.";
+  else if(rated < 6) v = rated + " étapes notées sur 12. Trop tôt pour lire une forme : on lit des points.";
+  else {
+    var arr = []; st.forEach(function(x,i){ if(x!=null) arr.push({name:names[i], v:x, e:Dm.expAt(tier,i), di:Math.floor(i/3)}); });
+    arr.forEach(function(a){ a.gap = a.v - a.e; });
+    arr.sort(function(a,b){ return b.gap - a.gap; });
+    var hi = arr[0], lo = arr[arr.length-1];
+    v = hi.gap === lo.gap ? "Profil régulier sur les étapes vues : partout à "+(hi.gap>=0?"+":"")+hi.gap+" de l'attendu « "+Dm.TIERS[tier-1]+" »."
+      : "Point d'appui : « "+hi.name+" » ("+D[hi.di].name+", "+hi.v+" pour un attendu de "+hi.e+"). Creux : « "+lo.name+" » ("+D[lo.di].name+", "+lo.v+" pour "+lo.e+"). À dire tel quel en EC3, et à relier au besoin de la mission plutôt qu'au palier.";
+  }
+  document.getElementById("verdict").textContent = v;
+  document.getElementById("code").textContent = rated ? code() : "—";
+  document.getElementById("scoreNote").innerHTML = "<b>Palier discuté : « "+E(Dm.TIERS[tier-1])+" » ("+Dm.TIER_XP[tier-1]+").</b> "+E(Dm.TIER_WHY[tier-1])+" Une étape non abordée compte 0 et tire la moyenne vers le bas : une fiche partielle doit se voir.";
+  var m = '<table><thead><tr><th class="k" scope="col">Palier</th>'+names.map(function(n,i){ return '<th scope="col"'+(i%3===0?' class="first"':'')+'>'+E(n)+'</th>'; }).join("")+'</tr></thead><tbody>';
+  Dm.TIER_EXP.forEach(function(row,t){ m += '<tr'+(t===tier-1?' class="cur"':'')+'><td class="k">'+E(Dm.TIERS[t])+'<small>'+Dm.TIER_XP[t]+'</small></td>'+row.map(function(x,i){ return '<td'+(i%3===0?' class="first"':'')+'><span class="cell l'+x+'">'+x+'</span></td>'; }).join("")+'</tr>'; });
+  document.getElementById("matrix").innerHTML = m + '</tbody></table>';
+  document.querySelectorAll("#tierSeg button").forEach(function(b){ b.setAttribute("aria-checked", String(+b.dataset.tier === tier)); });
+}
+
+function notionText(){
+  var st = steps(), names = Dm.stepNames();
+  var t = "FICHE D'ENTRETIEN CANDIDAT #2 — Scorecard 4 diamants\n" + (gv("f-nom")||"—") + ", " + (gv("f-date")||"—") + ", mené par " + (gv("f-par")||"—") + "\nRôle : Product Manager. Palier discuté : " + Dm.TIERS[tier-1] + " (" + Dm.TIER_XP[tier-1] + ")\n";
+  D.forEach(function(d,di){
+    t += "\n" + d.n + " " + d.name.toUpperCase() + " — moyenne " + YEITA.fr(Dm.avgDiamond(st,di)) + ", attendu " + YEITA.fr(Dm.expDiamond(tier,di)) + "\n";
+    d.sections.forEach(function(s,si){ var i = di*3+si, n = notes[sid(di,si)];
+      t += "· " + s.k + " : " + (st[i]==null ? "non vu" : st[i]) + " / attendu " + Dm.expAt(tier,i) + (n ? " — " + n : "") + "\n"; });
+  });
+  t += "\nLECTURE\n" + document.getElementById("verdict").textContent + "\n";
+  t += "\nASPIRATIONS (interne)\n" + (gv("f-asp")||"—") + "\n";
+  t += "\nCODE EC2 (pour la carte d'identité)\n" + code() + "\n";
+  return t;
+}
+
+document.addEventListener("click", function(e){
+  var b = e.target.closest(".scale button");
+  if(b){
+    var k = b.dataset.k, v = +b.dataset.v;
+    if(scores[k] === v) delete scores[k]; else scores[k] = v;
+    var cur = scores[k];
+    Array.prototype.forEach.call(b.parentElement.children, function(x,i){ x.dataset.on = (cur !== undefined && i<=cur) ? 1 : 0; x.setAttribute("aria-pressed", String(cur === i)); });
+    save(); renderRead(); document.getElementById("live").textContent = cur === undefined ? "Note retirée" : "Note " + cur;
+    return;
+  }
+  var t = e.target.closest("#tierSeg button"); if(t){ tier = +t.dataset.tier; save(); renderRead(); return; }
+  if(e.target.id === "fold"){ folded = !folded; document.querySelectorAll("details.crit").forEach(function(d){ d.open = folded; }); e.target.textContent = folded ? "Replier les repères" : "Déplier les repères"; return; }
+  var dc = e.target.closest("[data-copy]"); if(dc){ var bb = dc; if(dc.dataset.copy === "notion") YEITA.copy(notionText(), function(ok){ YEITA.flash(bb, ok ? "Copié pour Notion" : "Copie refusée"); }); else if(steps().some(function(v){ return v!=null; })) YEITA.copy(code(), function(ok){ YEITA.flash(bb, ok ? "Code EC2 copié" : "Copie refusée : sélectionne le code"); }); else YEITA.flash(bb, "Aucune note"); return; }
+  if(e.target.id === "copy-notion"){ var b1 = e.target; YEITA.copy(notionText(), function(ok){ YEITA.flash(b1, ok ? "Copié pour Notion" : "Copie refusée"); }); return; }
+  if(e.target.id === "copy-code"){ var b2 = e.target; if(!steps().some(function(v){ return v!=null; })){ YEITA.flash(b2, "Aucune note"); return; } YEITA.copy(code(), function(ok){ YEITA.flash(b2, ok ? "Code EC2 copié" : "Copie refusée : sélectionne le code"); }); return; }
+  if(e.target.id === "reset"){ document.getElementById("confirm").hidden = false; document.getElementById("cf-yes").focus(); return; }
+  if(e.target.id === "cf-no"){ document.getElementById("confirm").hidden = true; document.getElementById("reset").focus(); return; }
+  if(e.target.id === "cf-yes"){ scores = {}; notes = {}; f = {}; YEITA.store.set(KEY, {s:{}, n:{}, t:tier, f:{}}); load(); renderDiamonds(); renderRead(); document.getElementById("confirm").hidden = true; YEITA.flash(null, "Fiche vidée"); return; }
+  if(e.target.id === "demo"){
+    var s = [2,3,2, 4,3,2, 3,3,2, 3,2,null];
+    scores = {}; s.forEach(function(v,i){ if(v!=null) scores[sid(Math.floor(i/3), i%3)] = v; });
+    notes = {"0-0":"Est partie du contrat du gros client avant de parler roadmap.","0-2":"A cité RICE puis a expliqué pourquoi elle ne l'utilise plus.","1-0":"A recruté des utilisateurs via le support quand le client a bloqué l'accès direct.","2-0":"A décrit un pré-mortem mené avant un lancement."};
+    tier = 2; f = {"f-nom":"Camille Rousseau","f-date":"2026-10-21","f-par":"Thélo","f-asp":"Veut se former au cadrage stratégique. Préfère un binôme les premières semaines. Aucun frein sur le présentiel."};
+    YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f}); load(); renderDiamonds(); renderRead(); YEITA.flash(null, "Exemple chargé"); return;
+  }
+});
+document.addEventListener("input", function(e){
+  if(e.target.matches(".ex textarea")){ notes[e.target.dataset.k] = e.target.value; YEITA.autogrow(e.target); save(); return; }
+  if(IDF.indexOf(e.target.id) >= 0){ if(e.target.tagName === "TEXTAREA") YEITA.autogrow(e.target); save(); renderRead(); }
+});
+
+document.getElementById("quarters").innerHTML = D.map(function(d){ return '<li><b>'+d.n+'</b>'+E(d.name)+' : '+d.sections.map(function(x){ return E(x.k); }).join(", ")+'</li>'; }).join("");
+load(); renderDiamonds(); renderRead();
+})();
+</script>
+</body>
+</html>
