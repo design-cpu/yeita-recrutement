@@ -29,6 +29,8 @@
 .imp-msg.good{color:var(--go)} .imp-msg.bad{color:var(--stop)}
 .state-row{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center}
 .state-row .gl{font-size:14px; font-weight:650; color:var(--ink-2)}
+.frompar{margin-top:16px; display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; background:var(--surface-2); border-radius:12px; padding:10px 14px; font-size:15px}
+.frompar a{font-weight:650}
 .process{display:flex; gap:10px; align-items:flex-start; font-size:15px; background:var(--yellow-soft); border-radius:12px; padding:10px 14px; max-width:78ch}
 .process .icon{flex:none; margin-top:2px}
 
@@ -211,6 +213,7 @@ details.interne > summary .ic{font-size:14px; font-weight:600; color:var(--muted
     <p class="lede">La fiche que la personne reçoit, qu'on continue ou qu'on s'arrête. Elle se compose toute seule à partir du report des fiches #1 et #2. Sous la carte, la partie interne réunit ce que Yeita garde pour elle.</p>
   </div>
 
+  <p class="frompar noprint" id="frompar" hidden></p>
   <div class="panel panel-in noprint">
     <div class="drow">
       <div class="field"><label for="sel">Candidat</label><select id="sel"></select></div>
@@ -556,8 +559,17 @@ var hs = (location.hash||"").replace("#","");
 var hashState = hs === "ec1" || hs === "ec2" ? hs : (hs === "embauche" ? "hire" : null);
 if(hashState) DEMO.restitution.etat = hashState;
 if(hs === "interne") intEl.open = true;
-migrateCodes().then(function(){ return refresh(hashState ? "__demo" : undefined); }).then(function(){
+/* Depuis le module Candidatures : #c-<id> ouvre la carte de cette candidature, #p-<id> l'ouvre et lance l'export (impression ou PDF). */
+var cm = /^(c|p)-([A-Za-z0-9._~-]+)$/.exec(hs), fromCand = cm ? cm[2] : null, printNow = !!(cm && cm[1] === "p");
+if(fromCand) DOSSIER.setCurrent(fromCand);
+migrateCodes().then(function(){ return refresh(hashState ? "__demo" : (fromCand || undefined)); }).then(function(){
   if(hs === "interne") intEl.scrollIntoView({block:"start"});
+  if(fromCand && cur && cur.id === fromCand){
+    var fp = document.getElementById("frompar"); fp.hidden = false;
+    fp.innerHTML = '<span>Carte de la candidature de <b>'+E(cur.candidat.nom)+'</b>.</span><a href="candidatures.html#c-'+E(cur.id)+'">Retour au parcours</a>'
+      + (printNow ? (YEITA.inFrame() ? '<span>L\'export PDF passe par l\'impression, bloquée dans cet aperçu : ouvre la page depuis le site du recrutement.</span>' : '<span>Dans la fenêtre d\'impression, choisis « Enregistrer au format PDF ».</span>') : '');
+    if(printNow && !YEITA.inFrame()) setTimeout(function(){ window.print(); }, 400);
+  }
 });
 })();
 </script>

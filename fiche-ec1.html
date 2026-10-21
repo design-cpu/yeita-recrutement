@@ -86,6 +86,13 @@
 .rstate.err{color:var(--stop); font-weight:600}
 .code{font-family:var(--f-mono); font-size:13px; background:var(--surface-2); border-radius:10px; padding:10px 12px; word-break:break-all; color:var(--ink-2); min-height:44px; max-height:140px; overflow:auto}
 
+/* Mode candidat (#c-<id>) : la fiche est celle d'une candidature du module Candidatures */
+.candbar{position:sticky; top:env(safe-area-inset-top, 0px); z-index:6; margin-bottom:14px; background:var(--emph-bg); color:var(--emph-fg); border-radius:12px; padding:10px 14px; display:flex; flex-wrap:wrap; gap:6px 16px; align-items:center; justify-content:space-between}
+.candbar p{font-size:15px}
+.candbar .sv{font-size:13.5px; color:var(--emph-sub)}
+.candbar a{color:var(--emph-fg); font-weight:650}
+.candbar.err{background:var(--stop-tint); color:var(--ink)}
+.candbar.err a{color:var(--violet)}
 /* Repères */
 .refs{margin-top:36px; display:grid; gap:12px}
 details.ref{border:1px solid var(--line); border-radius:var(--radius); background:var(--surface)}
@@ -139,6 +146,7 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
     <p class="lede">Remplie juste après l'EC1, par le recruteur avec les notes de l'observateur. Elle réunit la lecture de l'entretien et ce qui passe à l'EC2, puis part vers la carte d'identité.</p>
   </div>
 
+  <div class="candbar" id="candbar" hidden role="status"></div>
   <div class="toolbar">
     <button type="button" class="btn quiet small" id="demo">Charger un exemple</button>
     <button type="button" class="btn quiet small" id="toggle-all">Tout déplier</button>
@@ -315,6 +323,41 @@ var FIELDS = ["f-nom","f-date","f-par","f-obs","f-fmt","f-why","f-def","f-emp","
 function fresh(passationDone){ return {dom:null, sec:null, partial:false, start:null, source:"saisie", diam:[null,null,null,null], crit:{}, f:{}, open:Object.assign({}, DEFAULT_OPEN),
   dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:!!passationDone}; }
 var st = YEITA.store.get(KEY, null) || fresh(false);
+/* Mode candidat : fiche-ec1.html#c-<id> ouvre la fiche d'une candidature et l'enregistre sur elle. Sans ce lien, la fiche marche seule, comme avant. */
+var candM = /^#c-([A-Za-z0-9._~-]+)$/.exec(location.hash || ""), candId = candM ? candM[1] : null, cand = null, candT = null;
+function persist(){
+  if(!cand){ YEITA.store.set(KEY, st); return; }
+  clearTimeout(candT); candT = setTimeout(saveCand, 350);
+}
+function saveCand(){
+  if(!cand) return;
+  collect();
+  cand.fiches = cand.fiches || {};
+  cand.fiches.ec1 = JSON.parse(JSON.stringify(st));
+  cand.ec1 = hasContent() ? Object.assign(ec1Data(), {reporteLe: DOSSIER.now()}) : null;
+  return DOSSIER.save(cand).then(function(c){ cand = c; renderCandBar(new Date()); });
+}
+/* Une candidature qui n'a qu'une lecture EC1 (code collé, ancien report) : on reconstruit l'écran depuis cette lecture. */
+function fromEC1(c){
+  var x = fresh(true), e = c.ec1; if(!e) return x;
+  var m = e.match || {};
+  x.dom = m.dominante || null; x.sec = m.seconde || null; x.partial = !!m.partielle; x.source = m.source || "saisie";
+  x.start = (e.employabilite && e.employabilite.demarrage) || null;
+  x.diam = (e.diamants || [null,null,null,null]).slice();
+  x.crit = JSON.parse(JSON.stringify((e.employabilite && e.employabilite.criteres) || {}));
+  x.f = {"f-date": e.date || "", "f-par": e.recruteur || "", "f-obs": e.observateur || "", "f-fmt": e.format || "presentiel", "f-why": m.pourquoi || "", "f-def": e.percu || "",
+    "f-emp": (e.employabilite && e.employabilite.note) || "", "f-vig": e.vigilance || "", "f-qec2": e.questionsEC2 || ""};
+  Y.VALUES.forEach(function(v){ if(e.valeurs && e.valeurs[v.id]) x.f["v-"+v.id] = e.valeurs[v.id]; });
+  return x;
+}
+function renderCandBar(savedAt){
+  var b = document.getElementById("candbar");
+  if(!cand){ return; }
+  var back = '<a href="candidatures.html#c-'+E(cand.id)+'">Retour au parcours de '+E(cand.identite.prenom || cand.candidat.nom)+'</a>';
+  b.className = "candbar"; b.hidden = false;
+  b.innerHTML = '<p>Fiche #1 de <b>'+E(cand.candidat.nom)+'</b>. Chaque modification s\'enregistre sur sa candidature et remplit sa carte d\'identité.'
+    + (savedAt ? ' <span class="sv">Enregistré à '+savedAt.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"})+'.</span>' : '')+'</p>' + back;
+}
 /* Brouillons d'avant la fusion : on complète ce qui manque. */
 if(!st.diam) st.diam = [null,null,null,null];
 if(!st.open) st.open = Object.assign({}, DEFAULT_OPEN);
@@ -408,6 +451,7 @@ function renderFrom(){
   var r = YEITA.store.get("yeita-match-resultat", null), el = document.getElementById("from");
   if(!r || !r.dominant || (Date.now() - (r.at||0)) > 12*3600*1000){ el.innerHTML = ""; return; }
   if(st.dom === r.dominant && st.sec === r.second && !st.partial){ el.innerHTML = ""; return; }
+  if(cand && r.cand && DOSSIER.norm(r.cand) !== DOSSIER.norm(cand.candidat.nom)){ el.innerHTML = ""; return; }
   el.innerHTML = '<div class="from"><p>Résultat de la feuille de décompte'+(r.cand ? ' pour <b>'+E(r.cand)+'</b>' : '')+' : '+E(Y.value(r.dominant).label)+' › '+E(Y.value(r.second).label)+'.</p>'
     + '<button type="button" class="btn small primary" id="take">Reprendre ce résultat</button></div>';
 }
@@ -438,7 +482,7 @@ function fill(){
   document.querySelectorAll('input[name=start]').forEach(function(r){ r.checked = r.value === st.start; });
 }
 function changed(){ if(st.reportedAt) st.dirty = true; }
-function save(){ collect(); YEITA.store.set(KEY, st); renderStates(); renderCode(); renderReport(); }
+function save(){ collect(); persist(); renderStates(); renderCode(); renderReport(); }
 
 /* La lecture de l'EC1 au format du dossier candidat (assets/dossier.js) */
 function ec1Data(){
@@ -467,6 +511,12 @@ function fmtDate(s){ if(/^\d{4}-\d{2}-\d{2}$/.test(s)){ return new Date(s+"T12:0
 /* ---------- Report vers la carte : pas encore reporté → reporté → modifié depuis ---------- */
 var reportError = "";
 function renderReport(){
+  if(cand){
+    var rs = document.getElementById("rstate"); rs.className = "rstate ok";
+    rs.textContent = "Enregistré sur la candidature de " + cand.candidat.nom + " à chaque modification : la carte d'identité est toujours à jour.";
+    document.getElementById("report").hidden = true; document.getElementById("r-t").textContent = "La carte d'identité de " + cand.identite.prenom;
+    return;
+  }
   var el = document.getElementById("rstate"), b = document.getElementById("report");
   el.className = "rstate";
   if(reportError){ el.textContent = reportError; el.classList.add("err"); }
@@ -486,7 +536,7 @@ function doReport(btn){
   var id = (st.dossierId && DOSSIER.norm(st.dossierNom) === DOSSIER.norm(nom)) ? st.dossierId : null;
   DOSSIER.report("ec1", nom, ec1Data(), id).then(function(d){
     st.dossierId = d.id; st.dossierNom = d.candidat.nom; st.reportedAt = d.ec1.reporteLe; st.dirty = false;
-    YEITA.store.set(KEY, st); renderReport(); renderCode();
+    persist(); renderReport(); renderCode();
   }).catch(function(e){ reportError = e.message; renderReport(); });
 }
 
@@ -523,7 +573,7 @@ function syncToggleAll(){
 }
 SECS.forEach(function(id){
   document.getElementById(id).addEventListener("toggle", function(e){
-    st.open[id] = e.target.open; YEITA.store.set(KEY, st); syncToggleAll();
+    st.open[id] = e.target.open; persist(); syncToggleAll();
     if(e.target.open) e.target.querySelectorAll("textarea").forEach(function(t){ if(t.value) YEITA.autogrow(t); });
   });
 });
@@ -595,13 +645,14 @@ document.addEventListener("click", function(e){
   if(e.target.id === "toggle-all"){
     var open = !SECS.every(function(id){ return document.getElementById(id).open; });
     SECS.forEach(function(id){ document.getElementById(id).open = open; st.open[id] = open; });
-    YEITA.store.set(KEY, st); syncToggleAll(); return;
+    persist(); syncToggleAll(); return;
   }
   if(e.target.id === "clear"){ document.getElementById("confirm").hidden = false; document.getElementById("cf-yes").focus(); return; }
   if(e.target.id === "cf-no"){ document.getElementById("confirm").hidden = true; document.getElementById("clear").focus(); return; }
   if(e.target.id === "cf-yes"){
     var keepOpen = st.open;
     st = fresh(true); st.open = keepOpen; reportError = "";
+    if(cand){ st.f["f-nom"] = cand.candidat.nom; st.dossierId = cand.id; st.dossierNom = cand.candidat.nom; }
     document.querySelectorAll("#sheet textarea").forEach(function(t){ t.style.height = ""; });
     fill(); renderPicker(); renderDiam(); renderCrits(); save(); renderFrom();
     document.getElementById("confirm").hidden = true; YEITA.flash(null, "Fiche vidée"); document.getElementById("clear").focus(); return;
@@ -652,7 +703,30 @@ document.getElementById("axes").innerHTML = AXES.map(function(a, i){
 }).join("");
 document.getElementById("elim").innerHTML = ["Prétentions hors grille, sans marge de discussion","Pas de pied-à-terre à Paris","Cherche un statut freelance","N'est pas intéressé par Yeita","Ego, individualisme","Cherche un salaire, pas un projet","Ne parle pas anglais","Parle plus de process que d'impact","Rejette la faute sur les autres","Des réponses théoriques, sans exemple concret","Rigidité face au changement"].map(function(x){ return '<li>'+E(x)+'</li>'; }).join("");
 
-fill(); renderPicker(); renderDiam(); renderCrits(); applyOpen(); YEITA.store.set(KEY, st); renderStates(); renderCode(); renderReport(); renderFrom();
+function boot(){ fill(); renderPicker(); renderDiam(); renderCrits(); applyOpen(); renderStates(); renderCode(); renderReport(); renderFrom(); }
+if(candId){
+  DOSSIER.get(candId).then(function(c){
+    if(!c){
+      var b = document.getElementById("candbar"); b.hidden = false; b.className = "candbar err";
+      b.innerHTML = '<p>Cette candidature n\'existe pas dans ce navigateur. La fiche s\'ouvre seule, sans être reliée.</p><a href="candidatures.html">Voir les candidatures</a>';
+      boot(); return;
+    }
+    cand = c;
+    st = (c.fiches && c.fiches.ec1) ? Object.assign(fresh(true), c.fiches.ec1) : fromEC1(c);
+    st.passationDone = true; st.dossierId = c.id; st.dossierNom = c.candidat.nom;
+    st.f["f-nom"] = c.candidat.nom;
+    if(!st.f["f-par"]) st.f["f-par"] = YEITA.store.get("yeita-recruteur", "") || "";
+    if(!st.f["f-date"]) st.f["f-date"] = new Date().toISOString().slice(0,10);
+    var nomEl = document.getElementById("f-nom"); nomEl.readOnly = true; nomEl.setAttribute("aria-describedby", "candbar");
+    document.getElementById("demo").hidden = true;
+    document.getElementById("cf-t").innerHTML = "<b>Vider la fiche #1 de " + E(c.candidat.nom) + " ?</b> Ce qui est écrit ici disparaît de sa candidature et de sa carte d'identité.";
+    document.getElementById("open-card").href = "carte-identite.html#c-" + c.id;
+    document.title = "Fiche #1 · " + c.candidat.nom;
+    renderCandBar(null); boot();
+  });
+} else { YEITA.store.set(KEY, st); boot(); }
+/* En quittant la page, le dernier enregistrement en attente part tout de suite. */
+window.addEventListener("pagehide", function(){ if(cand && candT){ clearTimeout(candT); candT = null; saveCand(); } });
 if(location.hash === "#yeita-match"){ var y = document.getElementById("yeita-match"); y.open = true; y.scrollIntoView({block:"start"}); y.querySelector("summary").focus({preventScroll:true}); }
 })();
 </script>

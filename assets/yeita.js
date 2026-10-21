@@ -167,7 +167,8 @@ function radar(steps, tier, o){
 
 /* Une page publiée dans un artefact ne peut pas ouvrir l'impression : le bouton n'apparaît qu'hors cadre (GitHub Pages). */
 function inFrame(){ try{ return window.self !== window.top; }catch(e){ return true; } }
-var SITE = "https://yeichati.github.io/yeita-recrutement/";
+/* L'adresse du site GitHub Pages du recrutement. À changer si le dépôt passe chez Yeichati. */
+var SITE = "https://leofuster-story.github.io/yeita-recrutement/";
 function wirePrint(){
   var btns = document.querySelectorAll("[data-print]");
   btns.forEach(function(b){
