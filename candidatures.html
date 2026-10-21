@@ -602,7 +602,7 @@ function exitsHTML(c){
 function refusHTML(c){
   var et = c.parcours.etape, hasCarte = !!c.ec1;
   return '<section class="refus" aria-labelledby="rf-t"><h3 id="rf-t" tabindex="-1">Appel de refus</h3>'
-    + '<p class="rappel">'+YEITA.icon("Phone", 18, 2.2)+'<span>Le refus se fait par téléphone, d\'abord : « pas aujourd\'hui, parce que… ». '+(hasCarte ? 'La carte d\'identité suit par mail, si la personne la veut.' : 'À cette étape, pas de carte : un mail court confirme l\'appel.')+'</span></p>'
+    + '<p class="rappel">'+YEITA.icon("Phone", 18, 2.2)+'<span>Le refus se fait par téléphone, d\'abord : « pas aujourd\'hui, parce que… ». '+(hasCarte ? 'La carte d\'identité suit par mail, si la personne la veut.' : (et === "appel" ? 'À cette étape, pas de carte : un mail court confirme l\'appel.' : 'La fiche #1 est vide : la carte n\'a rien à dire. Remplis la fiche avant de l\'envoyer, ou confirme l\'appel par un mail court.'))+'</span></p>'
     + '<div class="grid-fields"><div class="field"><label for="rf-motif">Motif de clôture</label><select id="rf-motif"><option value="">Choisis un motif</option>'+S.MOTIFS.map(function(m){ return '<option value="'+m[0]+'">'+E(m[1])+'</option>'; }).join("")+'</select></div>'
     + '<div class="field"><label for="rf-detail">En une phrase</label><input type="text" id="rf-detail" autocomplete="off" placeholder="Ce qui a été dit au téléphone"></div></div>'
     + (hasCarte ? '<div class="actions"><a class="btn" href="carte-identite.html#p-'+E(c.id)+'">Exporter la carte (PDF)</a><label class="check"><input type="checkbox" id="rf-sent">Carte d\'identité envoyée</label></div>' : '')
