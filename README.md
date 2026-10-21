@@ -23,7 +23,7 @@ La fiche de passation n'existe plus : son volet EC1 → EC2 est dans la fiche #1
 ## Comment les fiches se parlent
 
 - Le jeu en ligne exporte un fichier JSON de session, que la fiche #1 sait importer. En physique, la feuille de décompte reporte le résultat dans la fiche #1.
-- Les fiches #1 et #2 ont un bouton **Reporter vers la carte d'identité** : il range leur lecture dans le **dossier du candidat** (`assets/dossier.js`). La carte d'identité lit ce dossier et s'affiche aussitôt.
+- Les fiches #1 et #2 ont un bouton **Reporter vers la carte d'identité** : il range leur lecture dans le **dossier du candidat** (`assets/dossier.js`). La carte d'identité lit ce dossier et s'affiche aussitôt. La fiche #2 affiche en tête ce que l'EC1 a laissé ouvert (questions à creuser, hypothèses sur les diamants, vigilance), et la carte réunit sous elle, dans une partie interne jamais imprimée, l'EC1 à gauche et l'EC2 à droite, points en suspens pour l'EC3 en tête.
 - Le dossier vit dans le navigateur (stockage local). Rien n'est envoyé nulle part. Pour passer d'un ordinateur à l'autre, en attendant l'ATS, chaque fiche donne un code `YEITA-EC1.…` ou `YEITA-EC2.…` à coller dans la page Notion du candidat, puis dans la carte. Ces codes portent aussi les éléments internes : ils ne partent jamais chez le candidat.
 - L'ATS remplacera le stockage local sans réécrire les pages : voir `docs/modele-de-donnees.md` et `docs/dossier-candidat.schema.json`.
 

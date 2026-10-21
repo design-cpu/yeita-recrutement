@@ -363,7 +363,7 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
             <dt>Palier</dt><dd>Je fais, J'apporte de la valeur, Je diffuse et j'accompagne, Je transforme. Il porte l'attendu et la grille de salaire.</dd>
             <dt>Report vers la carte</dt><dd>Le bouton des fiches #1 et #2 qui envoie leur lecture vers la carte d'identité du candidat, et l'interne dans sa partie réservée à Yeita.</dd>
             <dt>Code EC1, code EC2</dt><dd>Le texte en fin de fiche qui ouvre la carte d'identité sur un autre ordinateur, en attendant l'ATS. Il se colle dans Notion, jamais chez le candidat.</dd>
-            <dt>Trous dans la raquette</dt><dd>Ce qu'un entretien n'a pas pu voir, transmis au suivant. Après l'EC1 : les questions à creuser en EC2.</dd>
+            <dt>Trous dans la raquette</dt><dd>Ce qu'un entretien n'a pas pu voir, transmis au suivant. Après l'EC1 : les questions à creuser en EC2, en tête de la fiche #2. Après l'EC2 : les points en suspens pour l'EC3, en tête de la partie interne de la carte.</dd>
             <dt>Employabilité</dt><dd>Lecture interne, formulée en question de staffing, en huit critères : salaire, localisation et présentiel, Product Owner ou Product Manager, discovery ou delivery, adéquation avec nos projets, parcours, posture, anglais. Un critère n'apparaît sur la carte que si on le coche, avec une phrase écrite pour la personne.</dd>
           </dl>
         </div>
@@ -410,7 +410,7 @@ var S = {
   kit:        {name:"Kit Yeita Match", sub:"Cartes et plateau", role:"Le jeu de l'EC1 en présentiel.", when:"5", fmt:"À imprimer", href:"yeita-match-kit.html"},
   decompte:   {name:"Feuille de décompte Yeita Match", sub:"Partie de Yeita Match", role:"Cocher les cartes pendant le jeu, compter, départager, trouver la dominante et la seconde.", when:"5", fmt:"Imprimable ou en ligne", href:"yeita-match-decompte.html"},
   fiche1:     {name:"Fiche d'entretien candidat #1", sub:"Yeita Match & Valeurs Yeita", role:"Écrire la lecture de l'EC1 et les questions à creuser en EC2, puis les reporter vers la carte d'identité.", when:"5, 6", fmt:"En ligne", href:"fiche-ec1.html"},
-  fiche2:     {name:"Fiche d'entretien candidat #2", sub:"Scorecard 4 diamants", role:"Noter les douze étapes et produire le code EC2.", when:"7, 8", fmt:"En ligne", href:"fiche-ec2.html"},
+  fiche2:     {name:"Fiche d'entretien candidat #2", sub:"Scorecard 4 diamants", role:"Noter les douze étapes, écrire les points en suspens pour l'EC3, puis les reporter vers la carte d'identité.", when:"7, 8", fmt:"En ligne", href:"fiche-ec2.html"},
   carte:      {name:"Carte d'identité Yeita", sub:"Fiche de sortie candidat", role:"Ce que la personne reçoit, qu'on continue ou qu'on s'arrête.", when:"Après chaque arrêt, 9 à 11", fmt:"Imprimable", href:"carte-identite.html"},
   employabilite:{name:"Employabilité", sub:"Notion", role:"Green flags, red flags, critères éliminatoires.", when:"2, 3, 5", fmt:"Notion", href:NOTION_EMP, ext:true},
   referentiel:{name:"Référentiel des compétences", sub:"Notion", role:"Les critères des diamants, en relecture collective.", when:"7", fmt:"Notion", href:NOTION_REF, ext:true},
@@ -559,24 +559,24 @@ var STEPS = [
   {id:"ec2", n:7, yeita:["Où en est la personne dans son métier, sur les quatre diamants, avec des faits.", "Le palier où la placer, et donc la fourchette de salaire.", "Décider s'il y a un EC3."], vit:["Parler métier avec un pair, pas devant un jury.", "Être challengée sur des situations réelles, sans piège.", "Mesurer le niveau d'exigence de Yeita, et avoir envie d'y aller."], train:true,
    short:"EC2", name:"EC2 — Mise en perspective métier", dur:"1 h 30", who:"Un pair du métier", type:"entretien",
    key:"Le seul étage chiffré, et le seul qui se traduit en fourchette de salaire. Pas de note sans fait rapporté.",
-   avant:["Lire les questions à creuser que l'EC1 a laissées, et l'hypothèse sur les diamants.","Lire le CV et le portfolio, choisir le palier visé dans la fiche #2.","Product Designer : la grille arrive. En attendant, l'EC2 se mène avec le référentiel Notion."],
+   avant:["Ouvrir la fiche #2 au nom du candidat : ce que l'EC1 a laissé ouvert s'affiche en tête, questions à creuser et hypothèses sur les diamants.","Lire le CV et le portfolio, choisir le palier visé dans la fiche #2, la grille de salaire à côté.","Product Designer : la grille arrive. En attendant, l'EC2 se mène avec le référentiel Notion."],
    pendant:{parts:[
      {t:"Accueil", d:"5 min", p:"Se présenter, Yeita en deux phrases, le cadre de l'heure et demie. Pas de pitch : il a été fait en EC1 et sera déroulé en EC3."},
      {t:"Pour démarrer", d:"≈ 15 min", p:"Son objectif, son contexte, les décisions clés récentes. On ne note rien : cette partie sert à choisir le premier use case."},
      {t:"Mises en perspective", d:"≈ 50 min", p:"Quatre use cases, un par diamant. Douze notes de 0 à 4, une par étape. La grille de lecture reste sous les yeux du pair, jamais sous ceux du candidat."},
      {t:"Aspirations", d:"≈ 15 min", p:"Formations en tête, besoin d'autonomie ou d'accompagnement, freins éventuels. Non noté : prépare le staffing et l'EC3."}]},
-   sort:{text:"La fiche d'entretien candidat #2 : douze notes, le radar, l'écart à l'attendu du palier. Le code EC2 et le compte rendu complet vont dans Notion.",
+   sort:{text:"La fiche d'entretien candidat #2 : douze notes, le radar, l'écart à l'attendu du palier. Elle se termine au débrief.",
          go:"EC3.", stop:"Débrief téléphonique de 30 min au plus, puis la carte d'identité Yeita complète."}, tools:["fiche2","referentiel"]},
   {id:"debrief-ec2", n:8, yeita:["Ce qui reste ouvert pour l'EC3 : les trous dans la raquette, les zones d'ombre, ce qui risque d'être contesté."], vit:["Toujours rien de visible : une réponse rapide."], train:false,
    short:"Débrief EC2", name:"Débrief EC2", dur:"15 min", who:"Le pair de l'EC2 et le fondateur", type:"int",
    key:"Les angles morts des deux entretiens, réunis : rien de ce qui est resté ouvert depuis l'EC1 ne se perd.",
    avant:["La fiche #2 remplie, et les questions que l'EC1 avait laissées."],
-   pendant:{list:["Écrire ce qui passe à l'EC3 : palier proposé, diamants solides et creux, trois orientations au plus, ce qui risque d'être contesté, ce qui doit être confirmé avant la proposition."]},
-   sort:{text:"Le fondateur a tout réuni : il arrive en EC3 avec des angles précis."}, tools:["fiche2"]},
+   pendant:{list:["Remplir les points en suspens pour l'EC3, dans la fiche #2 : palier proposé, diamants solides et creux, trois questions au plus, ce qui risque d'être contesté, ce qui doit être confirmé avant la proposition.","Reporter vers la carte d'identité, puis copier le compte rendu dans la page Notion du candidat."]},
+   sort:{text:"La carte complète, et en tête de sa partie interne les points en suspens : le fondateur arrive en EC3 avec des angles précis, sans autre document à lire."}, tools:["fiche2","carte"]},
   {id:"ec3", n:9, yeita:["Lever les dernières zones d'ombre.", "Vérifier que la personne se reconnaît dans sa carte d'identité.", "Décider de la proposition."], vit:["Rencontrer un fondateur et comprendre d'où vient Yeita.", "Se reconnaître dans ce qu'on a écrit sur elle, et pouvoir le corriger.", "Avoir envie de dire oui."], train:true,
    short:"EC3", name:"EC3 — La mise au point", dur:"1 h, en présentiel", who:"Un fondateur", type:"entretien",
    key:"Le seul moment où un fondateur raconte Yeita en entier, et le seul où la personne corrige ce qu'on a écrit sur elle.",
-   avant:["L'EC3 n'a lieu que si on pense retenir. On ne fait pas déplacer quelqu'un pour lui dire non.","Lire ce que l'EC1 et l'EC2 ont laissé ouvert.","Ouvrir la carte d'identité du candidat : les fiches #1 et #2 l'ont remplie."],
+   avant:["L'EC3 n'a lieu que si on pense retenir. On ne fait pas déplacer quelqu'un pour lui dire non.","Lire la partie interne de la carte d'identité : les points en suspens pour l'EC3 en tête, ce que l'EC1 a laissé ouvert à côté.","Ouvrir la carte d'identité du candidat : les fiches #1 et #2 l'ont remplie."],
    pendant:{parts:[
      {t:"Le talk de fondateur", d:"première partie", p:"D'où vient Yeita, pourquoi, comment elle a évolué. Les valeurs illustrées par des exemples concrets. Tout ce qui n'a été que mentionné en EC1 se déroule ici."},
      {t:"Les trous dans la raquette", d:"deuxième partie", p:"Les questions laissées ouvertes par l'EC1 et l'EC2 : des angles préparés, pas un tour d'horizon."},
