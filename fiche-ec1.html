@@ -304,7 +304,7 @@ function notionText(){
   collect();
   var p = profile(), t = "FICHE D'ENTRETIEN CANDIDAT #1 — Yeita Match & Valeurs Yeita\n";
   t += (g("f-nom")||"—") + ", " + (fmtDate(g("f-date"))||"—") + ", mené par " + (g("f-par")||"—") + " (" + (g("f-fmt")==="visio" ? "visio, jeu en ligne" : "présentiel, kit Yeita Match") + ")\n";
-  t += "\nPROFIL YEITA_MATCH\n";
+  t += "\nPROFIL YEITA MATCH\n";
   if(st.partial) t += "Lecture partielle. " + (g("f-why")||"") + "\n";
   else if(p) t += p.label + " — " + Y.value(st.dom).label + " › " + Y.value(st.sec).label + ". " + formula() + "\n";
   else t += "—\n";
