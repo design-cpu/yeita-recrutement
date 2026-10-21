@@ -34,9 +34,31 @@ var ICONS = {
   Layers3: '<path d="m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/>',
   CircleHelp: '<circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 1c0 2-3 2-3 5M12 18h.01"/>',
   MessageCircle: '<path d="M21 11.5a8.5 8.5 0 0 1-12 7.7L3 21l1.8-6A8.5 8.5 0 1 1 21 11.5z"/>',
-  ShieldCheck: '<path d="m12 2 9 4v6c0 5-4 8-9 10-5-2-9-5-9-10V6z"/><path d="m8 12 3 3 5-6"/>'
+  ShieldCheck: '<path d="m12 2 9 4v6c0 5-4 8-9 10-5-2-9-5-9-10V6z"/><path d="m8 12 3 3 5-6"/>',
+  /* Interface seulement (sections dépliantes), jamais pour une valeur */
+  ChevronRight: '<path d="m9 6 6 6-6 6"/>',
+  Phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>'
 };
 var VALUE_ICON = {"collectif":"HeartHandshake", "sans-chichi":"Target", "explorateur":"Compass", "meilleure-version":"Sparkles"};
+/* Définition courte de chaque valeur, tirée de son attendu dans le jeu (« On attend que tu… »).
+   Elle accompagne la dominante et la seconde sur la fiche #1, la feuille de décompte et la carte d'identité. */
+var VALUE_DEF = {
+  "collectif":"Rendre l'équipe meilleure, pas seulement son travail.",
+  "sans-chichi":"Dire les choses comme elles sont, preuves à l'appui.",
+  "explorateur":"Aller voir par soi-même, et revenir avec autre chose que des certitudes.",
+  "meilleure-version":"Savoir où on en est, et bouger de là."
+};
+/* Le résultat de Yeita Match, en petit : la dominante et la seconde, avec leur icône et leur définition.
+   Plus de nom de profil. Partagé par la fiche #1, la feuille de décompte et la carte. */
+function matchBlock(dom, sec, opts){
+  opts = opts || {};
+  if(!dom || !sec || !window.YEITA_MATCH) return "";
+  var rows = [[dom, "en premier"], [sec, "ensuite"]].map(function(x){
+    var v = YEITA_MATCH.value(x[0]);
+    return '<div class="ymv" data-v="'+v.id+'"><b>'+picto(v.id, opts.size||16)+esc(v.label)+'<small>'+x[1]+'</small></b><p>'+esc(VALUE_DEF[v.id])+'</p></div>';
+  }).join("");
+  return '<div class="ym'+(opts.cls ? " "+opts.cls : "")+'">'+(opts.title === false ? "" : '<span class="ymh">'+esc(opts.title || "Yeita Match : les deux valeurs que tu as choisies le plus")+'</span>')+'<div class="ymr">'+rows+'</div></div>';
+}
 /* Icônes des cartes du jeu, par position A à D (PlayScreen.jsx). */
 var CARD_ICONS = ["Compass","HeartHandshake","Target","Sparkles"];
 function icon(name, size, stroke){
@@ -145,7 +167,10 @@ function radar(steps, tier, o){
 
 /* Une page publiée dans un artefact ne peut pas ouvrir l'impression : le bouton n'apparaît qu'hors cadre (GitHub Pages). */
 function inFrame(){ try{ return window.self !== window.top; }catch(e){ return true; } }
-var SITE = "https://yeichati.github.io/yeita-recrutement/";
+/* L'adresse du site GitHub Pages du recrutement. À changer si le dépôt passe chez Yeichati. */
+var SITE = "https://leofuster-story.github.io/yeita-recrutement/";
+/* L'adresse du hub dans Claude. Un lien direct vers une page passe par lui : HUB_URL + "#fiche-ec1", par exemple. */
+var HUB_URL = "https://claude.ai/artifact/XHFqCUicW1LboUFN9qSx1d";
 function wirePrint(){
   var btns = document.querySelectorAll("[data-print]");
   btns.forEach(function(b){
@@ -159,7 +184,7 @@ function wirePrint(){
         n.insertAdjacentHTML("beforeend", ' <a href="'+SITE+page+'" target="_blank" rel="noopener">Ouvrir sur le site</a>');
       }
     }
-    else b.addEventListener("click", function(){ window.print(); });
+    else if(!b.hasAttribute("data-print-own")) b.addEventListener("click", function(){ window.print(); });
   });
 }
 
@@ -185,7 +210,7 @@ function tabs(list, onSelect){
   items.forEach(function(t){ t.addEventListener("click", function(){ onSelect(t); }); });
 }
 
-window.YEITA = {logo:logo, picto:picto, icon:icon, CARD_ICONS:CARD_ICONS, VALUE_ICON:VALUE_ICON, esc:esc, store:store, copy:copy, flash:flash, b64e:b64e, b64d:b64d,
+window.YEITA = {logo:logo, picto:picto, icon:icon, CARD_ICONS:CARD_ICONS, VALUE_ICON:VALUE_ICON, VALUE_DEF:VALUE_DEF, matchBlock:matchBlock, esc:esc, store:store, copy:copy, flash:flash, b64e:b64e, b64d:b64d,
   readEC1:readEC1, readEC2:readEC2, radar:radar, inFrame:inFrame, wirePrint:wirePrint, autogrow:autogrow, fr:fr, tabs:tabs,
-  HUB:"index.html", SITE:SITE};
+  HUB:"index.html", SITE:SITE, HUB_URL:HUB_URL};
 })();

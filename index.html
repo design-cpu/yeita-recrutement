@@ -1,9 +1,3 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
 <title>Expérience Collaborateur Yeita</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,7 +71,9 @@
 }
 
 /* Vues */
-.views{margin-top:34px; display:flex; flex-wrap:wrap; gap:6px; border-bottom:1.5px solid var(--line); padding-bottom:0}
+.views-row{margin-top:34px; display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; border-bottom:1.5px solid var(--line)}
+.views{display:flex; flex-wrap:wrap; gap:6px; padding-bottom:0}
+.views-cta{margin-block:4px 8px}
 .views [role="tab"]{appearance:none; border:0; background:transparent; cursor:pointer; font-weight:650; font-size:16px; color:var(--muted);
   padding:11px 14px 12px; border-bottom:3px solid transparent; margin-bottom:-1.5px; min-height:44px; border-radius:8px 8px 0 0}
 .views [role="tab"]:hover{color:var(--ink)}
@@ -163,11 +159,27 @@ details.more > .in{padding:0 18px 18px}
 .out{font-size:15px; color:var(--ink)}
 .exits{display:grid; gap:8px}
 .s-nav{display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; padding-top:6px}
+/* Les deux objectifs d'une étape : ce que Yeita cherche, ce que la personne vit */
+.goals{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px}
+@media (max-width:760px){ .goals{grid-template-columns:1fr} }
+.goal{border-radius:var(--radius); padding:16px 18px; display:grid; gap:8px; align-content:start; min-width:0}
+.goal h4{font-size:16px}
+.goal ul{margin:0; padding-left:19px; display:grid; gap:5px; font-size:15px}
+.goal.yeita{background:var(--surface); border:1.5px solid var(--ink)}
+.goal.yeita ul{color:var(--ink-2)}
+.goal.cand{background:var(--yellow-soft); color:var(--ink)}
+.tools .soonlink{display:inline-flex; align-items:center; gap:6px; font-size:14.5px; font-weight:600; border:1.5px dashed var(--line-strong); color:var(--ink-2);
+  border-radius:10px; padding:6px 12px; min-height:40px}
+.tools .soonlink .ext{font-size:12.5px; font-weight:500; color:var(--muted)}
+.guide-intro{display:grid; gap:6px; max-width:78ch; margin-bottom:20px}
+.guide-intro p{font-size:15px; color:var(--ink-2)}
+.guide-intro p b{color:var(--ink)}
 
 /* Supports */
 .inv td .nm{font-weight:650; display:block}
 .inv td .sb{font-size:14px; color:var(--muted)}
 .inv td a{font-weight:600}
+.inv .linkcopy{appearance:none; border:0; background:none; padding:4px 0; margin-top:2px; display:block; font:inherit; font-size:13.5px; font-weight:600; color:var(--violet); cursor:pointer; text-decoration:underline; text-underline-offset:3px}
 .fmt{font-size:13.5px; color:var(--ink-2); white-space:nowrap}
 .arch td{color:var(--ink-2)}
 .arch .dead{font-size:13px; font-weight:650; color:var(--stop); white-space:nowrap}
@@ -181,12 +193,11 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
 .values4 > div{border-radius:12px; background:var(--vt); padding:14px 16px; display:grid; gap:6px}
 .values4 .vn{display:flex; align-items:center; gap:8px; font-weight:700; font-size:17px; color:var(--vc)}
 .values4 p{font-size:14.5px; color:var(--ink)}
+.panel.bias p{font-size:15px; color:var(--ink-2)}
+.panel.bias p b{color:var(--ink)}
 .never{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; padding:0; list-style:none}
 .never li{font-size:14px; border-radius:999px; padding:4px 12px; background:var(--surface-2); color:var(--ink-2); text-decoration:line-through; text-decoration-color:var(--stop); text-decoration-thickness:2px}
 </style>
-</head>
-<body>
-
 
 <div id="live" aria-live="polite"></div>
 <div class="wrap">
@@ -194,6 +205,7 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
     <span id="logo"></span>
     <span class="where">Expérience collaborateur</span>
     <nav aria-label="Raccourcis">
+      <a href="candidatures.html">Candidatures</a>
       <a href="#guide">Guide du recruteur</a>
       <a href="#supports">Supports</a>
       <a href="one-pager.html">Vue candidat</a>
@@ -222,7 +234,7 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
     <div class="pillars">
       <div><b>L'heure appartient au candidat</b><span>Yeita se présente en cinq minutes en EC1. Le récit complet revient au fondateur, en EC3.</span></div>
       <div><b>Personne ne repart les mains vides</b><span>Un non se dit au téléphone, jamais dans un entretien monté pour ça. Puis la carte d'identité suit.</span></div>
-      <div><b>Rien ne se perd entre deux étapes</b><span>Quinze minutes de passation après chaque entretien. Ce qu'on n'a pas vu devient une orientation pour la suivante.</span></div>
+      <div><b>Rien ne se perd entre deux étapes</b><span>Quinze minutes de débrief après chaque entretien. Ce qu'on n'a pas vu devient une question pour le suivant.</span></div>
     </div>
 
     <figure class="frise" aria-labelledby="t-frise">
@@ -231,11 +243,14 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
       <ol class="track" id="track"></ol>
     </figure>
 
-    <div class="views" role="tablist" aria-label="Vues du recrutement" id="views">
-      <button role="tab" id="tab-demarche" aria-controls="demarche" aria-selected="true" tabindex="0">La démarche</button>
-      <button role="tab" id="tab-guide" aria-controls="guide" aria-selected="false" tabindex="-1">Guide du recruteur</button>
-      <button role="tab" id="tab-supports" aria-controls="supports" aria-selected="false" tabindex="-1">Supports</button>
-      <button role="tab" id="tab-glossaire" aria-controls="glossaire" aria-selected="false" tabindex="-1">Glossaire</button>
+    <div class="views-row">
+      <div class="views" role="tablist" aria-label="Vues du recrutement" id="views">
+        <button role="tab" id="tab-demarche" aria-controls="demarche" aria-selected="true" tabindex="0">La démarche</button>
+        <button role="tab" id="tab-guide" aria-controls="guide" aria-selected="false" tabindex="-1">Guide du recruteur</button>
+        <button role="tab" id="tab-supports" aria-controls="supports" aria-selected="false" tabindex="-1">Supports</button>
+        <button role="tab" id="tab-glossaire" aria-controls="glossaire" aria-selected="false" tabindex="-1">Glossaire</button>
+      </div>
+      <a class="btn small primary views-cta" href="candidatures.html">Candidatures</a>
     </div>
 
     <!-- Vue 1 : la démarche -->
@@ -247,7 +262,7 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
           <thead><tr><th scope="col">Étage</th><th scope="col">Ce qu'on lit</th><th scope="col">Ce qui en sort</th><th scope="col">Qui mène</th></tr></thead>
           <tbody>
             <tr><td class="k">Appel de découverte</td><td>L'alignement</td><td>Oui ou non, et les réponses aux quatre blocs</td><td>Un recruteur</td></tr>
-            <tr><td class="k">EC1</td><td>La personne</td><td>Un profil Yeita Match et des mots, jamais une note</td><td>Un recruteur</td></tr>
+            <tr><td class="k">EC1</td><td>La personne</td><td>Deux valeurs Yeita Match et des mots, jamais une note</td><td>Un recruteur, avec un observateur</td></tr>
             <tr><td class="k">EC2</td><td>Le métier</td><td>De 0 à 4 sur les douze étapes des quatre diamants</td><td>Un pair du métier</td></tr>
             <tr><td class="k">EC3</td><td>L'accord</td><td>La carte d'identité, corrigée avec la personne</td><td>Un fondateur</td></tr>
           </tbody>
@@ -265,9 +280,9 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
         <div class="panel">
           <h3>Où vivent les informations</h3>
           <ul>
-            <li><b>Notion, page du candidat</b> : le compte rendu de chaque fiche (bouton « Copier pour Notion »), la passation, les codes EC1 et EC2.</li>
-            <li><b>Les fiches en ligne</b> ne stockent rien ailleurs que dans ton navigateur, le temps de les remplir.</li>
-            <li><b>Les codes EC1 et EC2</b> ne transportent que ce qui figure sur la carte d'identité : ni la passation, ni l'employabilité, ni les exemples cités.</li>
+            <li><b>La carte d'identité</b> se remplit avec le bouton « Reporter vers la carte d'identité » des fiches #1 et #2. Les éléments internes la suivent, sans jamais s'imprimer.</li>
+            <li><b>Notion, page du candidat</b> : le compte rendu de chaque fiche (bouton « Copier pour Notion ») et les codes EC1 et EC2.</li>
+            <li><b>Rien ne quitte ton navigateur.</b> Pour ouvrir la carte sur un autre ordinateur, on y colle le code EC1 ou EC2. Ces codes portent aussi l'interne : ils restent dans Notion et disparaîtront avec l'ATS.</li>
           </ul>
         </div>
       </div>
@@ -300,7 +315,10 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
 
     <!-- Vue 2 : guide du recruteur -->
     <div class="view" role="tabpanel" id="guide" aria-labelledby="tab-guide" tabindex="0" hidden>
-      <p class="note" style="margin-bottom:18px">Ce que tu ouvres cinq minutes avant l'entretien. Chaque étape tient en trois blocs : avant, pendant, ce qui sort. Lien direct vers une étape : l'adresse du hub suivie de <span class="mono">#ec1</span>, <span class="mono">#ec2</span>, <span class="mono">#ec3</span>…</p>
+      <div class="panel flat guide-intro">
+        <p><b>Un aide-mémoire, pas une formation.</b> Ce guide sert de référence et de rappel, à ouvrir cinq minutes avant un entretien. Il ne remplace pas la formation : on apprend à mener un entretien Yeita avec quelqu'un qui en a déjà mené, en observant d'abord, puis en binôme.</p>
+        <p>Chaque étape dit ce que Yeita cherche à savoir et ce que la personne doit vivre, puis ce qu'on fait avant, pendant, et ce qui en sort. Lien direct vers une étape : l'adresse du hub suivie de <span class="mono">#ec1</span>, <span class="mono">#ec2</span>, <span class="mono">#ec3</span>…</p>
+      </div>
       <div class="guide">
         <ol class="steplist" role="tablist" aria-orientation="vertical" aria-label="Étapes du recrutement" id="steplist"></ol>
         <div role="tabpanel" id="steppanel" tabindex="0"></div>
@@ -337,40 +355,48 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
           <h4>Les supports</h4>
           <dl style="margin-top:12px">
             <dt>Ton parcours chez Yeita</dt><dd>Le one-pager envoyé après l'appel de découverte : étapes, durées, délais, ce que la personne reçoit.</dd>
-            <dt>Yeita Match</dt><dd>Le jeu de cartes de l'EC1 : en présentiel avec le kit, en visio avec le jeu en ligne. La feuille de décompte en fait partie.</dd>
-            <dt>Fiche d'entretien candidat #1</dt><dd>Yeita Match &amp; Valeurs Yeita. Ce que le recruteur écrit après l'EC1 : le profil, une phrase de définition, les quatre valeurs.</dd>
+            <dt>Yeita Match</dt><dd>Le jeu de cartes de l'EC1 : en présentiel avec le kit, en visio avec le jeu en ligne. La feuille de décompte en fait partie. Version actuelle : V1, centrée sur nos valeurs (voir plus bas).</dd>
+            <dt>Fiche d'entretien candidat #1</dt><dd>Yeita Match &amp; Valeurs Yeita. Ce que le recruteur et l'observateur écrivent après l'EC1, en sections dépliantes : le résultat du jeu, ce qu'on a perçu, les quatre valeurs, l'employabilité, et pour finir les questions à creuser en EC2.</dd>
             <dt>Fiche d'entretien candidat #2</dt><dd>Scorecard 4 diamants. Les douze notes de l'EC2, posées par un pair du métier.</dd>
-            <dt>Fiche de passation candidat</dt><dd>Interne. Alimentée par les deux entretiens, transmise pour les trous dans la raquette.</dd>
-            <dt>Carte d'identité Yeita</dt><dd>La fiche de sortie remise au candidat : la lecture EC1 à gauche, l'EC2 à droite.</dd>
+            <dt>Carte d'identité Yeita</dt><dd>La fiche de sortie remise au candidat : ce qu'on a perçu, les critères qu'on a choisi de lui dire, ses deux valeurs Yeita Match, puis son métier lu en EC2. Dessous, une partie interne qui ne s'imprime jamais.</dd>
           </dl>
         </div>
         <div class="panel">
           <h4>Les mots de la lecture</h4>
           <dl style="margin-top:12px">
-            <dt>Profil</dt><dd>Un des douze profils Yeita Match, donné par la combinaison dominante › seconde.</dd>
-            <dt>Dominante, seconde</dt><dd>Les deux valeurs les plus choisies pendant la partie de Yeita Match, dans cet ordre.</dd>
-            <dt>Lecture partielle</dt><dd>Quand on n'a pas assez vu pour poser un profil. On le dit, plutôt que coller un nom faux.</dd>
+                        <dt>Dominante, seconde</dt><dd>Les deux valeurs les plus choisies pendant la partie de Yeita Match, dans cet ordre. C'est tout le résultat du jeu : pas de nom de profil.</dd>
+            <dt>Lecture partielle</dt><dd>Quand on n'a pas assez vu pour lire une dominante. On le dit, plutôt que forcer une lecture.</dd>
             <dt>Diamant, étape</dt><dd>Quatre diamants (Stratégie, Problème, Solution, Produit), trois étapes chacun : douze étapes notées de 0 à 4.</dd>
             <dt>Palier</dt><dd>Je fais, J'apporte de la valeur, Je diffuse et j'accompagne, Je transforme. Il porte l'attendu et la grille de salaire.</dd>
-            <dt>Code EC1, code EC2</dt><dd>Le texte copié en fin de fiche, collé dans Notion, qui remplit la carte d'identité.</dd>
-            <dt>Trous dans la raquette</dt><dd>Ce qu'un entretien n'a pas pu voir, transmis au suivant.</dd>
-            <dt>Employabilité</dt><dd>Lecture interne, formulée en question de staffing. Jamais sur la carte d'identité.</dd>
+            <dt>Report vers la carte</dt><dd>Le bouton des fiches #1 et #2 qui envoie leur lecture vers la carte d'identité du candidat, et l'interne dans sa partie réservée à Yeita.</dd>
+            <dt>Code EC1, code EC2</dt><dd>Le texte en fin de fiche qui ouvre la carte d'identité sur un autre ordinateur, en attendant l'ATS. Il se colle dans Notion, jamais chez le candidat.</dd>
+            <dt>Trous dans la raquette</dt><dd>Ce qu'un entretien n'a pas pu voir, transmis au suivant. Après l'EC1 : les questions à creuser en EC2, en tête de la fiche #2. Après l'EC2 : les points en suspens pour l'EC3, en tête de la partie interne de la carte.</dd>
+            <dt>Employabilité</dt><dd>Lecture interne, formulée en question de staffing, en huit critères : salaire, localisation et présentiel, Product Owner ou Product Manager, discovery ou delivery, adéquation avec nos projets, parcours, posture, anglais. Un critère n'apparaît sur la carte que si on le coche, avec une phrase écrite pour la personne.</dd>
           </dl>
         </div>
       </div>
       <h4 style="margin-top:28px">Les quatre valeurs Yeita</h4>
       <p class="note" style="margin-top:6px">Leurs icônes sont celles du jeu Yeita Match, les mêmes partout : le cœur, la cible, la boussole, les étincelles. Sur les cartes du jeu, ces icônes suivent la position A à D et restent décoratives.</p>
       <div class="values4" id="values4"></div>
+      <div class="panel bias" style="margin-top:28px" id="biais">
+        <h4>Yeita Match V1 : ce que le jeu mesure, et ce qu'il ne mesure pas</h4>
+        <div class="two" style="margin-top:10px">
+          <div><p><b>Un MVP centré sur nos valeurs.</b> Les quatre cartes de chaque manche sont toutes des valeurs Yeita. Le jeu situe la personne dans nos valeurs : il dit lesquelles elle choisit d'abord, pas si elle les partage.</p>
+            <p style="margin-top:8px"><b>Il ne détecte pas un non-match.</b> Quelqu'un d'éloigné de nos valeurs obtiendra quand même une dominante et une seconde.</p></div>
+          <div><p><b>Le non-match se lit ailleurs :</b> dans la réaction au pitch Yeita, dans le récit du parcours, et dans l'employabilité, lue tout au long de l'EC1.</p>
+            <p style="margin-top:8px"><b>La V2 envisagée</b> mélangerait des valeurs Yeita et des valeurs hors Yeita, sur le principe des Moving Motivators, pour que le jeu puisse aussi montrer un écart. Elle n'est pas construite.</p></div>
+        </div>
+      </div>
       <h4 style="margin-top:28px">On n'écrit plus</h4>
       <ul class="never">
-        <li>carte de lecture</li><li>définition (pour le document)</li><li>scorecard (pour le document)</li><li>dossier</li><li>carte collaborateur</li><li>couleur secondaire</li><li>Meilleure version de soi-même</li><li>Yeitigai</li><li>Yekigai</li><li>Yei'ta vie</li>
+        <li>carte de lecture</li><li>définition (pour le document)</li><li>scorecard (pour le document)</li><li>dossier</li><li>carte collaborateur</li><li>couleur secondaire</li><li>Meilleure version de soi-même</li><li>Yeitigai</li><li>fiche de passation</li><li>profil Yeita Match, et les douze noms de profil</li><li>Yekigai</li><li>Yei'ta vie</li>
       </ul>
     </div>
   </section>
 
   <footer class="foot">
-    <span>Construit à partir du board « Cercle Recrutement », de la fiche Employabilité, du référentiel des compétences et du jeu Yeita Match. Mis à jour le 20 octobre 2026.</span>
-    <span>Les fiches en ligne n'envoient rien nulle part : ce que tu tapes reste dans ton navigateur jusqu'à ce que tu le copies dans Notion.</span>
+    <span>Construit à partir du board « Cercle Recrutement », de la fiche Employabilité, du référentiel des compétences et du jeu Yeita Match. Mis à jour le 21 octobre 2026, après la réunion de retours.</span>
+    <span>Les fiches en ligne n'envoient rien nulle part : ce que tu tapes reste dans ton navigateur, et le report vers la carte d'identité aussi.</span>
   </footer>
 </div>
 
@@ -379,6 +405,11 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
 <script>
 (function(){
 "use strict";
+/* Liens directs vers une page : index.html#fiche-ec1, #fiche-ec2, #carte, #decompte… Dans Claude, seul le hub a une adresse : il redirige. */
+var DIRECT = {"fiche-ec1":"fiche-ec1.html", "fiche-ec2":"fiche-ec2.html", "carte":"carte-identite.html", "decompte":"yeita-match-decompte.html", "feuille-vierge":"yeita-match-decompte.html#vierge",
+  "kit":"yeita-match-kit.html", "one-pager":"one-pager.html", "candidatures":"candidatures.html"};
+function direct(){ var h = (location.hash || "").slice(1); if(DIRECT[h]){ location.replace(DIRECT[h]); return true; } return false; }
+if(direct()) return;
 var E = YEITA.esc, P = YEITA.picto;
 document.getElementById("logo").innerHTML = YEITA.logo(26);
 
@@ -386,29 +417,29 @@ document.getElementById("logo").innerHTML = YEITA.logo(26);
 var NOTION_EMP = "https://app.notion.com/p/Employabilit-3e64bfab7816801592f4cfdf068968b6";
 var NOTION_REF = "https://app.notion.com/p/3f94bfab781681289c7ccea584e7e7e1";
 var S = {
-  onepager:   {name:"Ton parcours chez Yeita", sub:"One-pager candidat", role:"Expliquer le parcours, les durées, les délais et ce que la personne reçoit.", when:"4", fmt:"Imprimable A4", href:"one-pager.html"},
+  candidatures:{name:"Candidatures", sub:"Module de suivi", role:"Le tableau des candidats, puis le parcours guidé étape par étape, qui ouvre les fiches au bon moment.", when:"3 à 11", fmt:"En ligne", tok:"candidatures", href:"candidatures.html"},
+  onepager:   {name:"Ton parcours chez Yeita", sub:"One-pager candidat", role:"Expliquer le parcours, les durées, les délais et ce que la personne reçoit.", when:"4", fmt:"Imprimable A4", tok:"one-pager", href:"one-pager.html"},
   jeu:        {name:"Yeita Match en ligne", sub:"Jeu yeita-match", role:"Le jeu de l'EC1 en visio, ou en secours du kit.", when:"5", fmt:"En ligne", href:YEITA_MATCH.GAME_URL, ext:true},
-  kit:        {name:"Kit Yeita Match", sub:"Cartes, plateau, profils", role:"Le jeu de l'EC1 en présentiel.", when:"5", fmt:"À imprimer", href:"yeita-match-kit.html"},
-  decompte:   {name:"Feuille de décompte Yeita Match", sub:"Partie de Yeita Match", role:"Cocher les cartes pendant le jeu, compter, départager, trouver le profil.", when:"5", fmt:"Imprimable ou en ligne", href:"yeita-match-decompte.html"},
-  fiche1:     {name:"Fiche d'entretien candidat #1", sub:"Yeita Match & Valeurs Yeita", role:"Écrire la lecture de l'EC1 et produire le code EC1.", when:"5, 6", fmt:"En ligne", href:"fiche-ec1.html"},
-  fiche2:     {name:"Fiche d'entretien candidat #2", sub:"Scorecard 4 diamants", role:"Noter les douze étapes et produire le code EC2.", when:"7, 8", fmt:"En ligne", href:"fiche-ec2.html"},
-  passation:  {name:"Fiche de passation candidat", sub:"Volets EC1 → EC2 et EC2 → EC3", role:"Transmettre ce qu'on n'a pas vu, pour les trous dans la raquette.", when:"6, 8, 9", fmt:"Interne", href:"fiche-passation.html"},
-  carte:      {name:"Carte d'identité Yeita", sub:"Fiche de sortie candidat", role:"Ce que la personne reçoit, qu'on continue ou qu'on s'arrête.", when:"Après chaque arrêt, 9 à 11", fmt:"Imprimable", href:"carte-identite.html"},
+  kit:        {name:"Kit Yeita Match", sub:"Cartes et plateau", role:"Le jeu de l'EC1 en présentiel.", when:"5", fmt:"À imprimer", tok:"kit", href:"yeita-match-kit.html"},
+  decompte:   {name:"Feuille de décompte Yeita Match", sub:"Partie de Yeita Match", role:"Cocher les cartes pendant le jeu, compter, départager, trouver la dominante et la seconde.", when:"5", fmt:"Imprimable ou en ligne", tok:"decompte", href:"yeita-match-decompte.html"},
+  fiche1:     {name:"Fiche d'entretien candidat #1", sub:"Yeita Match & Valeurs Yeita", role:"Écrire la lecture de l'EC1 et les questions à creuser en EC2, puis les reporter vers la carte d'identité.", when:"5, 6", fmt:"En ligne", tok:"fiche-ec1", href:"fiche-ec1.html"},
+  fiche2:     {name:"Fiche d'entretien candidat #2", sub:"Scorecard 4 diamants", role:"Noter les douze étapes, écrire les points en suspens pour l'EC3, puis les reporter vers la carte d'identité.", when:"7, 8", fmt:"En ligne", tok:"fiche-ec2", href:"fiche-ec2.html"},
+  carte:      {name:"Carte d'identité Yeita", sub:"Fiche de sortie candidat", role:"Ce que la personne reçoit, qu'on continue ou qu'on s'arrête.", when:"Après chaque arrêt, 9 à 11", fmt:"Imprimable", tok:"carte", href:"carte-identite.html"},
   employabilite:{name:"Employabilité", sub:"Notion", role:"Green flags, red flags, critères éliminatoires.", when:"2, 3, 5", fmt:"Notion", href:NOTION_EMP, ext:true},
   referentiel:{name:"Référentiel des compétences", sub:"Notion", role:"Les critères des diamants, en relecture collective.", when:"7", fmt:"Notion", href:NOTION_REF, ext:true},
   site:       {name:"Site du recrutement", sub:"GitHub Pages", role:"Les mêmes pages hors de Claude, pour imprimer et exporter en PDF.", when:"Tout le parcours", fmt:"En ligne", href:YEITA.SITE, ext:true}
 };
-var ORDER = ["onepager","jeu","kit","decompte","fiche1","fiche2","passation","carte","employabilite","referentiel","site"];
+var ORDER = ["candidatures","onepager","jeu","kit","decompte","fiche1","fiche2","carte","employabilite","referentiel","site"];
 function link(k){ var s = S[k]; return '<a href="'+s.href+'"'+(s.ext?' target="_blank" rel="noopener"':'')+'>'+E(s.name)+(s.ext?' <span class="ext">'+E(s.sub)+', nouvel onglet</span>':'')+'</a>'; }
 document.getElementById("inv").innerHTML = ORDER.map(function(k){ var s = S[k];
-  return '<tr><td>'+link(k).replace('<a ','<a class="nm" ')+'<span class="sb">'+E(s.sub)+'</span></td><td>'+E(s.role)+'</td><td class="mono">'+E(s.when)+'</td><td class="fmt">'+E(s.fmt)+'</td></tr>';
-}).join("") + '<tr><td><span class="nm">Page Notion du candidat</span><span class="sb">Notion</span></td><td>Là où tout se range : comptes rendus, passation, codes EC1 et EC2.</td><td class="mono">3 à 11</td><td class="fmt">Notion</td></tr>';
+  return '<tr><td>'+link(k).replace('<a ','<a class="nm" ')+'<span class="sb">'+E(s.sub)+'</span>'+(s.tok ? '<button type="button" class="linkcopy" data-tok="'+s.tok+'">Copier le lien direct<span class="sr-only"> : '+E(s.name)+'</span></button>' : '')+'</td><td>'+E(s.role)+'</td><td class="mono">'+E(s.when)+'</td><td class="fmt">'+E(s.fmt)+'</td></tr>';
+}).join("") + '<tr><td><span class="nm">Page Notion du candidat</span><span class="sb">Notion</span></td><td>Là où tout se range : comptes rendus des fiches, codes EC1 et EC2.</td><td class="mono">3 à 11</td><td class="fmt">Notion</td></tr>';
 
 var ARCH = [
   ["Carte de lecture EC1","https://claude.ai/artifact/XnBRk3gYRTq8M3xB82Rbd4","fiche1"],
   ["Scorecard EC2 · 4 Diamants","https://claude.ai/artifact/JtKNQwust3EXsv5k1Knozy","fiche2"],
-  ["Fiche de passation (lecture des codes)","https://claude.ai/artifact/4DxuoRN8LEMoiDdvfS1c7h","passation"],
-  ["Fiche de passation (champs libres, ancienne adresse)","https://claude.ai/artifact/G4jCHGpqDQHrzJQeaqoLie","passation"],
+  ["Fiche de passation (lecture des codes)","https://claude.ai/artifact/4DxuoRN8LEMoiDdvfS1c7h","fiche1"],
+  ["Fiche de passation (champs libres, ancienne adresse)","https://claude.ai/artifact/G4jCHGpqDQHrzJQeaqoLie","fiche1"],
   ["Carte d'identité candidat","https://claude.ai/artifact/VWCff2ff24Qc6SWWMPbN4x","carte"],
   ["Yekigai","https://yeichati.github.io/yekigai/","jeu"],
   ["Yei'ta vie","https://yeichati.github.io/yeita-vie/","jeu"]
@@ -486,17 +517,20 @@ document.getElementById("tree").addEventListener("click", function(e){
 /* ---------- Les onze étapes ---------- */
 var TYPE = {entretien:["entretien","Entretien"], cand:["cand","Vers le candidat"], int:["int","Entre nous"]};
 var STEPS = [
-  {id:"sourcing", n:1, short:"Sourcing", name:"Sourcing", dur:"En continu", who:"Peter, Thélo", type:"cand",
+  {id:"sourcing", n:1, yeita:["Où trouver, avant d'en avoir besoin, les profils qui correspondent aux missions à venir.", "Qui, dans notre réseau, peut nous recommander quelqu'un."], vit:["Découvrir Yeita par quelque chose de vrai : un consultant, un post, une recommandation.", "Avoir envie de postuler, parce que ce qu'il lit ressemble à ce qu'il cherche."], train:false,
+   short:"Sourcing", name:"Sourcing", dur:"En continu", who:"Peter, Thélo", type:"cand",
    key:"Le réseau et la cooptation recrutent plus que l'annonce : c'est le canal à industrialiser en premier.",
    avant:["Le besoin de staffing à venir : rôle, palier, date de démarrage."],
    pendant:{list:["Canaux : cooptation et réseau, LinkedIn, Welcome to the Jungle, Indeed, chasse.","Une publication LinkedIn par mois.","La chasse structurée reste à installer."]},
    sort:{text:"Un vivier de candidatures qualifiées, plutôt qu'un flux entrant subi."}, tools:[]},
-  {id:"tri", n:2, short:"Tri", name:"Tri des candidatures", dur:"Sous 48 h", who:"Thélo", type:"cand",
+  {id:"tri", n:2, yeita:["Ce profil peut-il correspondre à une mission qu'on a, ou qu'on aura ? Un oui ou un non, sous 48 h."], vit:["Une réponse rapide, même quand c'est non.", "Un non qui donne envie de revenir plus tard, pas un mail automatique."], train:false,
+   short:"Tri", name:"Tri des candidatures", dur:"Sous 48 h", who:"Thélo", type:"cand",
    key:"Le mail de refus est le premier contact d'un futur ambassadeur : c'est lui qui mérite d'être réécrit.",
    avant:["Deux files, deux critères : le portfolio pour le design, le contexte produit pour PM, PO, Ops et interne.","Les critères éliminatoires de la fiche Employabilité."],
    pendant:{list:["Lire chaque candidature au regard du besoin, pas seulement du poste publié.","Outils : Welcome to the Jungle, mail automatique de remerciement, tableau de bord candidats."]},
    sort:{go:"Mail de prise de rendez-vous, avec le lien Calendly.", stop:"Mail de refus. À réécrire : pour la plupart des candidats, c'est le seul contact avec Yeita."}, tools:["employabilite"]},
-  {id:"appel", n:3, short:"Appel", name:"Appel de découverte", dur:"30 min", who:"Un recruteur", type:"entretien",
+  {id:"appel", n:3, yeita:["Décider s'il y a un EC1.", "Avoir les réponses aux quatre blocs : le parcours, la recherche, le cadre, les conditions."], vit:["Sentir que Yeita est différent.", "Avoir envie de passer l'EC1.", "Savoir clairement ce qui l'attend et ce qu'est une mission chez Yeita."], train:true,
+   short:"Appel", name:"Appel de découverte", dur:"30 min", who:"Un recruteur", type:"entretien",
    key:"Les quatre blocs de questions sont systématiques : ce qui n'est pas couvert ici devient une zone d'ombre pour toute la suite.",
    avant:["Relire le CV ou le portfolio.","Avoir sous les yeux les critères éliminatoires."],
    pendant:{parts:[
@@ -509,56 +543,66 @@ var STEPS = [
            ["Les conditions","Prétentions et marge de discussion","Autres pistes et leur timing","Disponibilité"]]},
    sort:{text:"Les réponses aux quatre blocs, consignées dans la page Notion du candidat. Elles cadrent l'EC1 et évitent au fondateur de reposer les mêmes questions en EC3.",
          go:"Envoi du one-pager, puis EC1.", stop:"Dit au téléphone, confirmé par un mail court. Pas de lecture écrite."}, tools:["employabilite"]},
-  {id:"one-pager", n:4, short:"One-pager", name:"Envoi du one-pager", dur:"Dans les 24 h", who:"Le recruteur", type:"cand",
+  {id:"one-pager", n:4, yeita:["Rien à évaluer ici. On s'assure que la personne a le parcours en main et un créneau d'EC1."], vit:["Savoir ce qui l'attend : combien d'étapes, avec qui, combien de temps.", "Comprendre que le parcours peut s'arrêter à chaque étape, et qu'on l'appellera si c'est le cas."], train:false,
+   short:"One-pager", name:"Envoi du one-pager", dur:"Dans les 24 h", who:"Le recruteur", type:"cand",
    key:"La personne arrive en EC1 en connaissant le parcours : le pitch tient en cinq minutes et l'heure lui revient.",
    avant:["Choisir le format de l'EC1 : en présentiel avec le kit Yeita Match, ou en visio avec le jeu en ligne.","Valider les délais annoncés dans le one-pager avant le premier envoi : ce sont des engagements."],
    pendant:{list:["Envoyer « Ton parcours chez Yeita » avec « Qui est Yeita ? » et la proposition de créneau.","« Qui est Yeita ? » (millésime 2026) raconte déjà six blocs : qui sommes-nous, les valeurs, la mission, égalité et bien-être, partage et gouvernance, grandir ensemble. Ses valeurs sont à aligner sur les quatre valeurs Yeita : mise à jour en cours."]},
    sort:{text:"Le candidat sait combien d'étapes l'attendent, qui il va rencontrer, combien de temps ça prend, et ce qu'il recevra à chaque arrêt."}, tools:["onepager"]},
-  {id:"ec1", n:5, short:"EC1", name:"EC1 — Yeita Match & Valeurs", dur:"1 h", who:"Un recruteur", type:"entretien",
-   key:"On lit comment la personne fonctionne, on ne l'évalue pas. Le profil sort du jeu et se discute avec elle.",
-   avant:["Présentiel : le kit Yeita Match (plateau, cartes, profils) et une feuille de décompte imprimée.","Visio : le jeu en ligne, partagé à l'écran. La personne choisit, tu cliques.","Relire les notes de l'appel de découverte."],
+  {id:"ec1", n:5, yeita:["Comment la personne fonctionne : où elle se situe dans nos quatre valeurs.", "Si on peut l'imaginer chez un client : l'employabilité, lue tout au long de l'heure.", "Décider s'il y a un EC2."], vit:["Être écoutée avant d'être évaluée : l'heure lui appartient.", "Jouer, pas passer un test : il n'y a pas de bonne réponse.", "Repartir en ayant appris quelque chose sur elle et sur Yeita."], train:true,
+   short:"EC1", name:"EC1 — Yeita Match & Valeurs", dur:"1 h", who:"Un recruteur et un observateur", type:"entretien",
+   key:"On lit comment la personne fonctionne, on ne l'évalue pas. La dominante et la seconde sortent du jeu et se discutent avec elle.",
+   avant:["On est toujours deux : le recruteur mène, l'observateur observe. Se mettre d'accord sur les rôles avant l'arrivée de la personne.","Présentiel : le kit Yeita Match (plateau, cartes de jeu, cartes valeur) et une feuille de décompte imprimée, pour l'observateur.","Visio : le jeu en ligne, partagé à l'écran. La personne choisit, tu cliques.","Relire les notes de l'appel de découverte."],
    pendant:{parts:[
+     {t:"À deux, deux rôles", d:"toute l'heure", p:"Le recruteur mène la conversation et le jeu. L'observateur ne mène pas : il remplit la feuille de décompte, note ce que la personne dit et fait, mot pour mot quand il peut, et prépare le débrief. Il présente son rôle en une phrase au début."},
      {t:"Le pitch Yeita", d:"5 min max", p:"Les quatre valeurs, reliées à ce qui va suivre. La transparence et le collectif (cagnotte collective, formation, grille de salaire ouverte) sont mentionnés, pas déroulés : le fondateur les reprendra en EC3."},
      {t:"Le candidat se raconte", d:"10 à 15 min", p:"Son parcours, ce qu'il y a fait exactement, ce qui n'a pas marché. On écoute la cohérence avec le CV."},
      {t:"Positionnement grille de salaire", d:"≈ 5 min", p:"On pose la fourchette pendant que la conversation porte encore sur le parcours. La grille est publique, on en parle simplement."},
-     {t:"Yeita Match et échange", d:"≈ 30 min", steps:["Pour chaque manche, lire la situation et poser les quatre cartes devant la personne. Elle en choisit deux.","Cocher les deux cartes sur la feuille de décompte, avec un mot de ce qu'elle en dit.","Après la huitième manche, compter les couleurs : la plus fréquente donne la dominante, la suivante la seconde.","En cas d'égalité, une manche de départage avec les seules cartes des valeurs à égalité. Une carte à choisir.","Étaler les douze profils sur la table, trouver celui de la combinaison dominante › seconde, et en parler ensemble.","Noter le profil dans la fiche d'entretien candidat #1."]},
-     {t:"L'employabilité", d:"tout du long", p:"Une lecture induite sur l'heure entière : cohérence du parcours, adéquation à nos missions, souhaits de projets. Elle ne figure jamais sur la carte d'identité."}]},
-   sort:{text:"La fiche d'entretien candidat #1, remplie à chaud en dix minutes : le profil, une phrase, ce qu'on a vu sous chacune des quatre valeurs. Puis le code EC1 et le compte rendu, collés dans Notion.",
-         go:"EC2, annoncé sur Discord #recru.", stop:"Débrief téléphonique de 30 min au plus, puis la carte d'identité Yeita, moitié EC1 seule."}, tools:["kit","decompte","jeu","fiche1","employabilite"]},
-  {id:"debrief-ec1", n:6, short:"Débrief EC1", name:"Débrief EC1", dur:"15 min, à chaud", who:"Le recruteur de l'EC1 et le pair de l'EC2", type:"int",
+     {t:"Yeita Match et échange", d:"≈ 30 min", steps:["Pour chaque manche, lire la situation et poser les quatre cartes devant la personne. Elle en choisit deux.","L'observateur coche les deux cartes sur la feuille de décompte, avec un mot de ce qu'elle en dit.","Après la huitième manche, compter les couleurs : la plus fréquente donne la dominante, la suivante la seconde.","En cas d'égalité, une manche de départage avec les seules cartes des valeurs à égalité. Une carte à choisir.","Poser les deux cartes valeur, la dominante puis la seconde, et en parler ensemble : où elle se reconnaît, où elle ne se reconnaît pas.","Noter la dominante et la seconde dans la fiche d'entretien candidat #1."]},
+     {t:"Ce que le jeu dit, et ce qu'il ne dit pas", d:"à garder en tête", p:"Yeita Match V1 est un MVP centré sur nos valeurs : toutes les cartes proposées sont des valeurs Yeita. Le jeu situe la personne dans nos valeurs, il ne peut pas montrer qu'elle ne les partage pas. Un non-match se lit ailleurs : dans sa réaction au pitch, dans son parcours, dans l'employabilité."},
+     {t:"L'employabilité", d:"tout du long", p:"Une lecture induite sur l'heure entière, en huit critères : salaire, localisation et présentiel, Product Owner ou Product Manager, discovery ou delivery, adéquation avec nos projets, parcours, posture, anglais. Elle reste interne, sauf les critères qu'on coche « Sur la carte », avec une phrase pour la personne."}]},
+   sort:{text:"La fiche d'entretien candidat #1, commencée à chaud : le résultat du jeu, ce qu'on a perçu, ce qu'on a vu sous chacune des quatre valeurs. Elle se termine au débrief.",
+         go:"EC2, annoncé sur Discord #recru.", stop:"Débrief téléphonique de 30 min au plus : « pas aujourd'hui, parce que… ». Puis la carte d'identité par mail, avec ce qu'on a perçu et nos raisons."}, tools:["kit","decompte","jeu","fiche1","employabilite"]},
+  {id:"debrief-ec1", n:6, yeita:["Ce qu'on a vu, ce qu'on n'a pas vu, et ce que l'EC2 doit aller chercher."], vit:["Rien de visible pour elle : elle attend une réponse. Qu'elle arrive vite."], train:false,
+   short:"Débrief EC1", name:"Débrief EC1", dur:"15 min, à chaud", who:"Le recruteur et l'observateur de l'EC1", type:"int",
    key:"Ce qui circule, ce sont des zones à explorer, pas une liste de questions.",
-   avant:["La fiche d'entretien candidat #1 remplie."],
-   pendant:{list:["Remplir le volet EC1 → EC2 de la fiche de passation : la dominante, les faits qui ont porté la lecture, l'hypothèse de départ sur les diamants, trois orientations au plus, un signal de vigilance."]},
-   sort:{text:"La fiche copiée dans la page Notion du candidat. Le pair arrive en EC2 sans repartir de zéro."}, tools:["passation","fiche1"]},
-  {id:"ec2", n:7, short:"EC2", name:"EC2 — Mise en perspective métier", dur:"1 h 30", who:"Un pair du métier", type:"entretien",
+   avant:["La fiche d'entretien candidat #1 remplie.","La feuille de décompte et les notes de l'observateur."],
+   pendant:{list:["Croiser les deux lectures : ce que le recruteur a retenu, ce que l'observateur a noté. Là où elles divergent, on écrit ce qu'on a vu, pas ce qu'on en conclut.","Finir ensemble la fiche #1 : l'hypothèse de départ sur les diamants, un signal de vigilance s'il y en a un, et les questions à creuser en EC2, trois au plus.","Reporter vers la carte d'identité, puis copier le compte rendu dans la page Notion du candidat."]},
+   sort:{text:"La carte d'identité remplie côté EC1, l'interne avec. Le pair arrive en EC2 sans repartir de zéro."}, tools:["fiche1","carte"]},
+  {id:"ec2", n:7, yeita:["Où en est la personne dans son métier, sur les quatre diamants, avec des faits.", "Le palier où la placer, et donc la fourchette de salaire.", "Décider s'il y a un EC3."], vit:["Parler métier avec un pair, pas devant un jury.", "Être challengée sur des situations réelles, sans piège.", "Mesurer le niveau d'exigence de Yeita, et avoir envie d'y aller."], train:true,
+   short:"EC2", name:"EC2 — Mise en perspective métier", dur:"1 h 30", who:"Un pair du métier", type:"entretien",
    key:"Le seul étage chiffré, et le seul qui se traduit en fourchette de salaire. Pas de note sans fait rapporté.",
-   avant:["Lire le volet EC1 → EC2 de la passation dans Notion.","Lire le CV et le portfolio, choisir le palier visé dans la fiche #2.","Product Designer : la grille arrive. En attendant, l'EC2 se mène avec le référentiel Notion."],
+   avant:["Ouvrir la fiche #2 au nom du candidat : ce que l'EC1 a laissé ouvert s'affiche en tête, questions à creuser et hypothèses sur les diamants.","Lire le CV et le portfolio, choisir le palier visé dans la fiche #2, la grille de salaire à côté.","Product Designer : la grille arrive. En attendant, l'EC2 se mène avec le référentiel Notion."],
    pendant:{parts:[
      {t:"Accueil", d:"5 min", p:"Se présenter, Yeita en deux phrases, le cadre de l'heure et demie. Pas de pitch : il a été fait en EC1 et sera déroulé en EC3."},
      {t:"Pour démarrer", d:"≈ 15 min", p:"Son objectif, son contexte, les décisions clés récentes. On ne note rien : cette partie sert à choisir le premier use case."},
      {t:"Mises en perspective", d:"≈ 50 min", p:"Quatre use cases, un par diamant. Douze notes de 0 à 4, une par étape. La grille de lecture reste sous les yeux du pair, jamais sous ceux du candidat."},
      {t:"Aspirations", d:"≈ 15 min", p:"Formations en tête, besoin d'autonomie ou d'accompagnement, freins éventuels. Non noté : prépare le staffing et l'EC3."}]},
-   sort:{text:"La fiche d'entretien candidat #2 : douze notes, le radar, l'écart à l'attendu du palier. Le code EC2 et le compte rendu complet vont dans Notion.",
+   sort:{text:"La fiche d'entretien candidat #2 : douze notes, le radar, l'écart à l'attendu du palier. Elle se termine au débrief.",
          go:"EC3.", stop:"Débrief téléphonique de 30 min au plus, puis la carte d'identité Yeita complète."}, tools:["fiche2","referentiel"]},
-  {id:"debrief-ec2", n:8, short:"Débrief EC2", name:"Débrief EC2", dur:"15 min", who:"Le pair de l'EC2 et le fondateur", type:"int",
+  {id:"debrief-ec2", n:8, yeita:["Ce qui reste ouvert pour l'EC3 : les trous dans la raquette, les zones d'ombre, ce qui risque d'être contesté."], vit:["Toujours rien de visible : une réponse rapide."], train:false,
+   short:"Débrief EC2", name:"Débrief EC2", dur:"15 min", who:"Le pair de l'EC2 et le fondateur", type:"int",
    key:"Les angles morts des deux entretiens, réunis : rien de ce qui est resté ouvert depuis l'EC1 ne se perd.",
-   avant:["La fiche #2 remplie, le volet EC1 → EC2 de la passation."],
-   pendant:{list:["Remplir le volet EC2 → EC3 : palier proposé, diamants solides et creux, trois orientations au plus, ce qui risque d'être contesté, ce qui doit être confirmé avant la proposition."]},
-   sort:{text:"Le fondateur a les deux volets réunis dans Notion : il arrive en EC3 avec des angles précis."}, tools:["passation","fiche2"]},
-  {id:"ec3", n:9, short:"EC3", name:"EC3 — La mise au point", dur:"1 h, en présentiel", who:"Un fondateur", type:"entretien",
+   avant:["La fiche #2 remplie, et les questions que l'EC1 avait laissées."],
+   pendant:{list:["Remplir les points en suspens pour l'EC3, dans la fiche #2 : palier proposé, diamants solides et creux, trois questions au plus, ce qui risque d'être contesté, ce qui doit être confirmé avant la proposition.","Reporter vers la carte d'identité, puis copier le compte rendu dans la page Notion du candidat."]},
+   sort:{text:"La carte complète, et en tête de sa partie interne les points en suspens : le fondateur arrive en EC3 avec des angles précis, sans autre document à lire."}, tools:["fiche2","carte"]},
+  {id:"ec3", n:9, yeita:["Lever les dernières zones d'ombre.", "Vérifier que la personne se reconnaît dans sa carte d'identité.", "Décider de la proposition."], vit:["Rencontrer un fondateur et comprendre d'où vient Yeita.", "Se reconnaître dans ce qu'on a écrit sur elle, et pouvoir le corriger.", "Avoir envie de dire oui."], train:true,
+   short:"EC3", name:"EC3 — La mise au point", dur:"1 h, en présentiel", who:"Un fondateur", type:"entretien",
    key:"Le seul moment où un fondateur raconte Yeita en entier, et le seul où la personne corrige ce qu'on a écrit sur elle.",
-   avant:["L'EC3 n'a lieu que si on pense retenir. On ne fait pas déplacer quelqu'un pour lui dire non.","Lire les deux volets de la fiche de passation.","Préparer la carte d'identité Yeita avec les codes EC1 et EC2."],
+   avant:["L'EC3 n'a lieu que si on pense retenir. On ne fait pas déplacer quelqu'un pour lui dire non.","Lire la partie interne de la carte d'identité : les points en suspens pour l'EC3 en tête, ce que l'EC1 a laissé ouvert à côté.","Ouvrir la carte d'identité du candidat : les fiches #1 et #2 l'ont remplie."],
    pendant:{parts:[
      {t:"Le talk de fondateur", d:"première partie", p:"D'où vient Yeita, pourquoi, comment elle a évolué. Les valeurs illustrées par des exemples concrets. Tout ce qui n'a été que mentionné en EC1 se déroule ici."},
-     {t:"Les trous dans la raquette", d:"deuxième partie", p:"Les orientations des deux passations : des angles préparés, pas un tour d'horizon."},
+     {t:"Les trous dans la raquette", d:"deuxième partie", p:"Les questions laissées ouvertes par l'EC1 et l'EC2 : des angles préparés, pas un tour d'horizon."},
      {t:"La restitution", d:"troisième partie", p:"La carte d'identité posée sur la table. La personne réagit : là où on a vu trop, trop peu, ou rien. On ajuste avec elle. La contestation est le signe que le dispositif fonctionne."}]},
-   sort:{text:"La carte d'identité Yeita, corrigée en séance.", go:"Décision et proposition."}, tools:["passation","carte"]},
-  {id:"decision", n:10, short:"Décision", name:"Décision & proposition", dur:"Sous 5 jours ouvrés", who:"Les fondateurs et l'interne", type:"cand",
+   sort:{text:"La carte d'identité Yeita, corrigée en séance.", go:"Décision et proposition."}, tools:["carte"]},
+  {id:"decision", n:10, yeita:["La proposition juste : un palier et une fourchette, justifiés ligne à ligne."], vit:["Une réponse dans le délai promis.", "Une proposition qu'elle comprend, sans négociation opaque. Ou un non expliqué au téléphone."], train:false,
+   short:"Décision", name:"Décision & proposition", dur:"Sous 5 jours ouvrés", who:"Les fondateurs et l'interne", type:"cand",
    key:"La fourchette vient du palier de l'EC2 et se justifie ligne à ligne. Pas de sur-offre.",
-   avant:["Le palier issu de l'EC2, confirmé en EC3.","Les conditions relevées en passation : prétentions, disponibilité, no-go."],
+   avant:["Le palier issu de l'EC2, confirmé en EC3.","Les conditions relevées au débrief EC2 : prétentions, disponibilité, no-go."],
    pendant:{list:["Une proposition placée dans la fourchette du palier, justifiable ligne à ligne par la fiche #2."]},
    sort:{go:"Proposition, puis signature. La carte d'identité, état « Embauche », est remise.", stop:"Téléphone, puis mail, avec la carte d'identité complète."}, tools:["carte"]},
-  {id:"onboarding", n:11, short:"Onboarding", name:"Passation d'onboarding", dur:"Premiers jours", who:"La personne et son mentor", type:"cand",
+  {id:"onboarding", n:11, yeita:["Ce dont la personne a besoin pour bien démarrer, à partir de sa carte d'identité."], vit:["Se sentir attendue dès le premier jour.", "Garder sa carte comme point de départ, et la tenir elle-même."], train:false,
+   short:"Onboarding", name:"Passation d'onboarding", dur:"Premiers jours", who:"La personne et son mentor", type:"cand",
    key:"C'est pour ce moment que tout le reste existe : la carte d'identité change de propriétaire.",
    avant:["La carte d'identité, état « Embauche »."],
    pendant:{list:["La carte devient l'état initial du suivi : c'est la personne qui la tient, pas son manager.","Déjeuner avec l'équipe, soirée Yeita, accès Discord et réseaux.","À enrichir : un contenu sur les premiers pas dans le collectif."]},
@@ -569,7 +613,7 @@ var STEPS = [
 var STAGES = [
   {n:2, name:"Tri", dur:"48 h", exit:["stop","Non","Mail de refus, à réécrire."]},
   {n:3, name:"Appel de découverte", dur:"30 min", exit:["stop","Non","Dit au téléphone, confirmé par un mail court."]},
-  {n:5, name:"EC1", dur:"1 h", exit:["stop","Non","Téléphone 30 min, puis la carte d'identité, moitié EC1."]},
+  {n:5, name:"EC1", dur:"1 h", exit:["stop","Non","Téléphone 30 min, puis la carte d'identité par mail, avec nos raisons."]},
   {n:7, name:"EC2", dur:"1 h 30", exit:["stop","Non","Téléphone 30 min, puis la carte d'identité complète."]},
   {n:9, name:"EC3", dur:"1 h", exit:["none","Pas de sortie ici","On ne reçoit que ceux qu'on pense retenir."]},
   {n:10, name:"Décision", dur:"5 jours ouvrés", exit:["stop","Non","Téléphone et mail, carte d'identité complète."]},
@@ -585,10 +629,22 @@ document.querySelectorAll("#track .dot").forEach(function(a){ a.style.textDecora
 
 /* ---------- Guide ---------- */
 var curStep = 4;
+/* Supports de formation : emplacement réservé, en attendant les slides et la FAQ de Peter. Remplacer TRAINING_URL par le lien quand il existe. */
+var TRAINING_URL = "";
 function tools(st){
-  if(!st.tools.length) return "";
-  return '<div class="tools"><span class="lab">À ouvrir</span>'+st.tools.map(function(k){ var s = S[k];
-    return '<a href="'+s.href+'"'+(s.ext?' target="_blank" rel="noopener"':'')+'>'+E(s.name)+(s.ext?' <span class="ext">nouvel onglet</span>':'')+'</a>'; }).join("")+'</div>';
+  if(!st.tools.length && !st.train) return "";
+  var h = '<div class="tools"><span class="lab">À ouvrir</span>'+st.tools.map(function(k){ var s = S[k];
+    return '<a href="'+s.href+'"'+(s.ext?' target="_blank" rel="noopener"':'')+'>'+E(s.name)+(s.ext?' <span class="ext">nouvel onglet</span>':'')+'</a>'; }).join("");
+  if(st.train) h += TRAINING_URL ? '<a href="'+TRAINING_URL+'" target="_blank" rel="noopener">Supports de formation <span class="ext">nouvel onglet</span></a>'
+                                 : '<span class="soonlink">Supports de formation <span class="ext">à venir : slides et FAQ</span></span>';
+  return h + '</div>';
+}
+function goals(st){
+  if(!st.yeita) return "";
+  return '<div class="goals">'
+    + '<section class="goal yeita"><h4>Ce que Yeita cherche à savoir</h4><ul>'+st.yeita.map(function(x){ return '<li>'+E(x)+'</li>'; }).join("")+'</ul></section>'
+    + '<section class="goal cand"><h4>Ce que le candidat doit vivre</h4><ul>'+st.vit.map(function(x){ return '<li>'+E(x)+'</li>'; }).join("")+'</ul></section>'
+    + '</div>';
 }
 function pendant(p){
   var h = "";
@@ -611,7 +667,7 @@ function sortie(s){
 }
 function renderSteps(){
   document.getElementById("steplist").innerHTML = STEPS.map(function(st,i){
-    return '<li><button type="button" role="tab" class="is-'+st.type+'" id="st-'+st.id+'" aria-controls="steppanel" aria-selected="'+(i===curStep)+'" tabindex="'+(i===curStep?0:-1)+'">'
+    return '<li role="presentation"><button type="button" role="tab" class="is-'+st.type+'" id="st-'+st.id+'" aria-controls="steppanel" aria-selected="'+(i===curStep)+'" tabindex="'+(i===curStep?0:-1)+'">'
       + '<span class="num">'+st.n+'</span><span>'+E(st.short)+'</span></button></li>';
   }).join("");
 }
@@ -622,6 +678,7 @@ function renderStep(){
   panel.innerHTML = '<article class="step">'
     + '<div class="s-top"><div class="s-meta"><span class="tag '+t[0]+'">'+t[1]+'</span><span class="chip">'+E(st.dur)+'</span><span class="chip">'+E(st.who)+'</span></div>'
     + '<h3><span class="bn">'+st.n+' / 11</span>'+E(st.name)+'</h3><p class="s-key">'+E(st.key)+'</p>'+tools(st)+'</div>'
+    + goals(st)
     + '<div class="blocs">'
     + '<section class="bloc avant"><h4><span class="bi" aria-hidden="true"></span>Avant</h4><ul>'+st.avant.map(function(s){ return '<li>'+E(s)+'</li>'; }).join("")+'</ul></section>'
     + '<section class="bloc pendant"><h4><span class="bi" aria-hidden="true"></span>Pendant</h4>'+pendant(st.pendant)+'</section>'
@@ -640,11 +697,16 @@ function selectStep(i, focus){
   YEITA.store.set("yeita-hub-step", i);
 }
 renderSteps(); renderStep();
-YEITA.tabs(document.getElementById("steplist"), function(btn){ selectStep(STEPS.map(function(s){ return "st-"+s.id; }).indexOf(btn.id)); });
+YEITA.tabs(document.getElementById("steplist"), function(btn){ var i = STEPS.map(function(s){ return "st-"+s.id; }).indexOf(btn.id); selectStep(i); remember(STEPS[i].id); });
 document.getElementById("steppanel").addEventListener("click", function(e){
   var b = e.target.closest("[data-go]"); if(!b) return;
-  selectStep(+b.dataset.go, true);
+  selectStep(+b.dataset.go, true); remember(STEPS[+b.dataset.go].id);
 });
+/* L'onglet et l'étape ouverts vivent dans l'adresse (#guide, #ec1…) : « Précédent » depuis une fiche ramène au même endroit. */
+function remember(h){
+  try{ history.replaceState(history.state, "", "#" + h); }catch(e){}
+  try{ sessionStorage.setItem("yeita-hub-view", h); }catch(e){}
+}
 
 /* ---------- Vues ---------- */
 var VIEWS = ["demarche","guide","supports","glossaire"];
@@ -656,15 +718,18 @@ function selectView(id, scroll){
   });
   if(scroll) document.getElementById("views").scrollIntoView({block:"start"});
 }
-YEITA.tabs(document.getElementById("views"), function(btn){ selectView(btn.id.replace("tab-","")); });
+YEITA.tabs(document.getElementById("views"), function(btn){ var v = btn.id.replace("tab-",""); selectView(v); remember(v === "guide" ? STEPS[curStep].id : v); });
 
 /* ---------- Liens directs : #guide, #supports, #glossaire, #demarche, ou une étape (#ec1…) ---------- */
-function route(){
-  var h = (location.hash || "").replace("#","");
+var NAV = ""; try{ NAV = (performance.getEntriesByType("navigation")[0] || {}).type || ""; }catch(e){}
+function route(initial){
+  if(direct()) return;
+  var h = (location.hash || "").replace("#",""), scroll = initial !== true || NAV === "navigate";
+  if(!h && initial === true){ try{ h = sessionStorage.getItem("yeita-hub-view") || ""; }catch(e){} scroll = false; }
   if(!h) return;
-  if(VIEWS.indexOf(h) >= 0){ selectView(h, true); return; }
+  if(VIEWS.indexOf(h) >= 0){ selectView(h, scroll); return; }
   var i = STEPS.map(function(s){ return s.id; }).indexOf(h);
-  if(i >= 0){ selectView("guide", true); selectStep(i); return; }
+  if(i >= 0){ selectView("guide", scroll); selectStep(i); return; }
   if(h === "recrutement") document.getElementById("recrutement").scrollIntoView({block:"start"});
 }
 document.addEventListener("click", function(e){
@@ -672,17 +737,19 @@ document.addEventListener("click", function(e){
   var h = a.getAttribute("href").slice(1);
   if(VIEWS.indexOf(h) >= 0 || STEPS.some(function(s){ return s.id === h; })){ e.preventDefault(); location.hash = h; route(); }
 });
-window.addEventListener("hashchange", route);
+window.addEventListener("hashchange", function(){ route(); });
+document.getElementById("inv").addEventListener("click", function(e){
+  var b = e.target.closest("[data-tok]"); if(!b) return;
+  var url = YEITA.inFrame() || !/^https?:/.test(location.protocol) ? YEITA.HUB_URL + "#" + b.dataset.tok : new URL(DIRECT[b.dataset.tok], location.href).href;
+  YEITA.copy(url, function(ok){ YEITA.flash(b, ok ? "Lien copié" : "Copie refusée : " + url); });
+});
 
 var saved = YEITA.store.get("yeita-hub-step", null);
 if(typeof saved === "number" && saved >= 0 && saved < STEPS.length) selectStep(saved);
-renderTree(); renderBranch(); route();
+renderTree(); renderBranch(); route(true);
 requestAnimationFrame(drawLinks);
 window.addEventListener("resize", drawLinks);
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(drawLinks);
 setTimeout(drawLinks, 300);
 })();
 </script>
-
-</body>
-</html>

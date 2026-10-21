@@ -97,7 +97,33 @@ details.crit > summary:hover{background:var(--surface-2)}
 .quarters{list-style:none; margin:10px 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:4px 16px; font-size:14px; color:var(--ink-2)}
 .quarters b{font-family:var(--f-mono); font-weight:500; margin-right:6px}
 .verdict{font-size:15px; border-left:4px solid var(--yellow); padding-left:12px; margin-top:10px}
-.code{font-family:var(--f-mono); font-size:13px; background:var(--surface-2); border-radius:10px; padding:10px 12px; word-break:break-all; color:var(--ink-2); min-height:44px}
+.code{font-family:var(--f-mono); font-size:13px; background:var(--surface-2); border-radius:10px; padding:10px 12px; word-break:break-all; color:var(--ink-2); min-height:44px; max-height:140px; overflow:auto}
+.grille{font-size:14px; font-weight:600}
+/* Ce que l'EC1 a laissé ouvert : lu dans la carte du candidat, en tête de fiche */
+.from1{margin-top:22px; border-radius:16px; background:var(--yellow-soft); padding:16px 18px; display:grid; gap:10px}
+.from1 h2{font-size:19px}
+.from1 .cols{display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%,240px),1fr)); gap:10px 22px}
+.from1 h3{font-size:15px; margin-bottom:4px}
+.from1 ul{margin:0; padding-left:18px; display:grid; gap:3px; font-size:15px}
+.from1 dl{margin:0; display:grid; grid-template-columns:auto minmax(0,1fr); gap:3px 12px; font-size:15px}
+.from1 dt{font-weight:650} .from1 dd{margin:0}
+.from1 p{font-size:15px}
+.from1.empty{background:var(--surface-2)}
+.from1.empty p{color:var(--ink-2)}
+/* Points en suspens pour l'EC3, et le report */
+.suspens{display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%,300px),1fr)); gap:14px; margin-top:12px}
+.candbar{position:sticky; top:env(safe-area-inset-top, 0px); z-index:6; margin-top:16px; background:var(--emph-bg); color:var(--emph-fg); border-radius:12px; padding:10px 14px; display:flex; flex-wrap:wrap; gap:6px 16px; align-items:center; justify-content:space-between}
+.candbar p{font-size:15px}
+.candbar .sv{font-size:13.5px; color:var(--emph-sub)}
+.candbar a{color:var(--emph-fg); font-weight:650}
+.candbar.err{background:var(--stop-tint); color:var(--ink)}
+.candbar.err a{color:var(--violet)}
+.report{margin-top:26px; border-radius:18px; background:var(--surface); border:1.5px solid var(--ink); padding:20px 22px; display:grid; gap:14px}
+.report h2{font-size:21px}
+.rstate{font-size:15px; color:var(--ink-2); max-width:70ch}
+.rstate.ok{color:var(--go); font-weight:600}
+.rstate.dirty{color:var(--ink); background:var(--yellow-soft); border-radius:10px; padding:8px 12px}
+.rstate.err{color:var(--stop); font-weight:600}
 .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:var(--surface); margin-top:12px}
 .matrix table{border-collapse:collapse; width:100%; min-width:760px; font-size:14px}
 .matrix th, .matrix td{padding:9px 7px; text-align:center; border-bottom:1px solid var(--line)}
@@ -125,7 +151,7 @@ details.more > .in{padding:0 18px 18px}
     <span class="where">EC2, mise en perspective métier</span>
     <nav aria-label="Supports de l'EC2">
       <a href="index.html#ec2">Guide, étape 7</a>
-      <a href="fiche-passation.html">Fiche de passation</a>
+      <a href="fiche-ec1.html">Fiche #1</a>
       <a href="carte-identite.html">Carte d'identité</a>
     </nav>
   </header>
@@ -146,27 +172,30 @@ details.more > .in{padding:0 18px 18px}
     </div>
     <div class="group"><span class="gl" id="tier-l">Palier visé</span>
       <div class="seg" role="radiogroup" aria-labelledby="tier-l" id="tierSeg"></div>
+      <a class="grille" id="grille" href="https://app.notion.com/p/2564bfab78168099a8f0de61754e3242" target="_blank" rel="noopener">Grille de salaire</a>
     </div>
     <div class="group">
-      <button type="button" class="btn small primary" id="copy-notion">Copier pour Notion</button>
-      <button type="button" class="btn small" id="copy-code">Copier le code EC2</button>
+      <button type="button" class="btn small primary" id="report-top">Reporter vers la carte</button>
+      <button type="button" class="btn small" id="copy-notion">Copier pour Notion</button>
       <button type="button" class="btn small quiet" id="fold">Déplier les repères</button>
       <button type="button" class="btn small quiet" id="demo">Exemple</button>
       <button type="button" class="btn small quiet" id="reset">Vider</button>
     </div>
   </div>
   <div class="callout" id="confirm" hidden role="alertdialog" aria-labelledby="cf-t" style="margin-top:10px">
-    <p id="cf-t"><b>Effacer les notes, les exemples cités et les aspirations ?</b> Pense à copier pour Notion avant.</p>
+    <p id="cf-t"><b>Effacer les notes, les exemples cités, les aspirations et les points en suspens ?</b> Ce qui a déjà été reporté vers la carte d'identité y reste.</p>
     <div class="actions" style="margin-top:10px"><button type="button" class="btn small" id="cf-yes">Effacer</button><button type="button" class="btn quiet small" id="cf-no">Garder</button></div>
   </div></div>
 </div>
 
 <main class="wrap">
+  <div class="candbar" id="candbar" hidden role="status"></div>
   <div class="grid-fields" style="margin-top:24px">
     <div class="field"><label for="f-nom">Candidat</label><input type="text" id="f-nom" autocomplete="off" placeholder="Prénom et nom"></div>
     <div class="field"><label for="f-date">Date</label><input type="date" id="f-date"></div>
     <div class="field"><label for="f-par">Mené par</label><input type="text" id="f-par" autocomplete="off" placeholder="Prénom et nom"></div>
   </div>
+  <section class="from1" id="from1" aria-labelledby="f1-t" aria-live="polite"></section>
 
   <section class="block">
     <h2>La trame, 1 h 30</h2>
@@ -207,9 +236,6 @@ details.more > .in{padding:0 18px 18px}
         <h3>Douze axes, quatre quartiers</h3>
         <p class="note">Le quartier dit le diamant, le rayon dit l'étape. Le pointillé est l'attendu sur le palier discuté : une référence de discussion, pas un seuil d'admission.</p>
         <p class="verdict" id="verdict"></p>
-        <div class="field"><span class="label" id="code-l">Code EC2, pour la carte d'identité</span><p class="code" id="code" aria-labelledby="code-l">—</p></div>
-        <div class="actions"><button type="button" class="btn small primary" data-copy="notion">Copier pour Notion</button><button type="button" class="btn small" data-copy="code">Copier le code EC2</button></div>
-        <p class="note">Le code porte les douze notes, le palier et le rôle. Les critères, les exemples cités et les aspirations restent dans le compte rendu Notion.</p>
       </div>
     </div>
     <p class="note" id="scoreNote" style="margin-top:12px"></p>
@@ -220,17 +246,48 @@ details.more > .in{padding:0 18px 18px}
         <div class="tablewrap matrix" id="matrix"></div>
       </div>
     </details>
-    <div class="callout" style="margin-top:20px"><p><b>Ce qui passe à l'EC3</b> s'écrit au débrief, dans la <a href="fiche-passation.html">fiche de passation candidat</a>, volet EC2 → EC3.</p></div>
+  </section>
+
+  <section class="block" aria-labelledby="t-sus">
+    <h2 id="t-sus">Points en suspens pour l'EC3</h2>
+    <p class="note">Interne. Écrits au débrief, avec le fondateur. Ils remontent avec le report en tête de la partie EC2 de la carte d'identité : c'est ce que le fondateur lit avant l'EC3.</p>
+    <div class="suspens">
+      <div class="field"><label for="p-palier">Palier proposé et rôle</label><textarea id="p-palier" rows="2" placeholder="Ex. : J'apporte de la valeur, Product Manager."></textarea></div>
+      <div class="field"><label for="p-solides">Diamants solides</label><textarea id="p-solides" rows="2" placeholder="Ceux où la personne a prouvé, pas déclaré."></textarea></div>
+      <div class="field"><label for="p-creux">Diamants creux</label><textarea id="p-creux" rows="2" placeholder="Et si c'est un manque d'expérience ou un manque d'intérêt."></textarea></div>
+      <div class="field"><label for="p-questions">À creuser en EC3</label><textarea id="p-questions" rows="3" placeholder="Trois au plus, une par ligne. EC1 et EC2 compris."></textarea></div>
+      <div class="field"><label for="p-contestation">Ce qui risque d'être contesté</label><textarea id="p-contestation" rows="2" placeholder="Là où la personne se verra autrement que nous : prévoir l'échange."></textarea></div>
+      <div class="field"><label for="p-conditions">À confirmer avant la proposition</label><textarea id="p-conditions" rows="2" placeholder="Prétentions, disponibilité, no-go."></textarea></div>
+    </div>
+  </section>
+
+  <section class="report" aria-labelledby="r-t">
+    <h2 id="r-t">Envoyer vers la carte d'identité</h2>
+    <p class="rstate" id="rstate" aria-live="polite"></p>
+    <div class="actions">
+      <button type="button" class="btn primary" id="report">Reporter vers la carte d'identité</button>
+      <button type="button" class="btn" data-copy="notion">Copier pour Notion</button>
+      <a class="btn quiet" href="carte-identite.html">Ouvrir la carte d'identité</a>
+    </div>
+    <details class="other">
+      <summary>La carte s'ouvre sur un autre ordinateur ?</summary>
+      <div class="in">
+        <p class="note">Copie ce code dans la page Notion du candidat : sur l'autre ordinateur, il se colle dans la carte d'identité. Il contient aussi les éléments internes : il ne part jamais chez le candidat. Les codes disparaîtront avec l'ATS.</p>
+        <p class="code" id="code" aria-label="Code EC2">—</p>
+        <div class="actions"><button type="button" class="btn small" data-copy="code">Copier le code EC2</button></div>
+      </div>
+    </details>
   </section>
 
   <footer class="foot">
     <span>48 critères Product Manager rangés en 12 étapes. 36 viennent de la base « Support EC2 » dans Notion, 12 sont des ajouts à relire. La grille Product Designer arrive.</span>
-    <span>Les notes restent dans ce navigateur jusqu'à ce que tu les copies dans Notion.</span>
+    <span>Ce que tu tapes reste dans ce navigateur : le report l'envoie vers la carte d'identité, sur cet ordinateur, et nulle part ailleurs.</span>
   </footer>
 </main>
 
 <script src="assets/yeita.js"></script>
 <script src="assets/data-diamants.js"></script>
+<script src="assets/dossier.js"></script>
 <script>
 (function(){
 "use strict";
@@ -495,13 +552,74 @@ var D = [
 ];
 
 var tier = 2, scores = {}, notes = {}, folded = false, f = {};
-var IDF = ["f-nom","f-date","f-par","f-asp"];
+/* rep : le lien avec la carte d'identité (identifiant du candidat, date du dernier report, modifié depuis) */
+var rep = {dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:false};
+var SUS = ["palier","solides","creux","questions","contestation","conditions"];
+var IDF = ["f-nom","f-date","f-par","f-asp"].concat(SUS.map(function(k){ return "p-"+k; }));
 function sid(di,si){ return di+"-"+si; }
+/* Mode candidat : fiche-ec2.html#c-<id> ouvre la fiche d'une candidature et l'enregistre sur elle. Sans ce lien, la fiche marche seule, comme avant. */
+var candM = /^#c-([A-Za-z0-9._~-]+)$/.exec(location.hash || ""), candId = candM ? candM[1] : null, cand = null, candT = null;
+function persistAll(){
+  if(!cand){ YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f, rep:rep}); return; }
+  clearTimeout(candT); candT = setTimeout(saveCand, 350);
+}
+function hasData(){ return steps().some(function(v){ return v != null; }) || IDF.some(function(id){ return id !== "f-nom" && id !== "f-date" && id !== "f-par" && gv(id); }) || Object.keys(notes).some(function(k){ return (notes[k]||"").trim(); }); }
+function saveCand(){
+  if(!cand) return;
+  cand.fiches = cand.fiches || {};
+  cand.fiches.ec2 = JSON.parse(JSON.stringify({s:scores, n:notes, t:tier, f:f}));
+  cand.ec2 = hasData() ? Object.assign(ec2Data(), {reporteLe: DOSSIER.now()}) : null;
+  if(cand.ec2) cand.ec2.role = (cand.identite && cand.identite.poste) || "PM";
+  return DOSSIER.save(cand).then(function(c){ cand = c; renderCandBar(new Date()); });
+}
+/* Une candidature qui n'a qu'une lecture EC2 (code collé, ancien report) : on reconstruit l'écran depuis cette lecture. */
+function applyCand(c){
+  var fe = c.fiches && c.fiches.ec2;
+  scores = {}; notes = {}; f = {}; tier = 2;
+  if(fe){ scores = fe.s || {}; notes = fe.n || {}; tier = fe.t || 2; f = fe.f || {}; }
+  else if(c.ec2){
+    var e = c.ec2; tier = e.palier || 2;
+    (e.notes || []).forEach(function(v, i){ if(v != null) scores[sid(Math.floor(i/3), i%3)] = v; });
+    (e.exemples || []).forEach(function(t, i){ if(t) notes[sid(Math.floor(i/3), i%3)] = t; });
+    f = {"f-date": e.date || "", "f-par": e.pair || "", "f-asp": e.aspirations || ""};
+    SUS.forEach(function(k){ if(e.suspens && e.suspens[k]) f["p-"+k] = e.suspens[k]; });
+  }
+  f["f-nom"] = c.candidat.nom;
+  if(!f["f-par"]) f["f-par"] = YEITA.store.get("yeita-recruteur", "") || "";
+  if(!f["f-date"]) f["f-date"] = new Date().toISOString().slice(0,10);
+  rep = {dossierId: c.id, dossierNom: c.candidat.nom, reportedAt: null, dirty: false, passationDone: true};
+}
+function renderCandBar(savedAt){
+  if(!cand) return;
+  var b = document.getElementById("candbar"); b.className = "candbar"; b.hidden = false;
+  b.innerHTML = '<p>Fiche #2 de <b>'+E(cand.candidat.nom)+'</b>. Chaque modification s\'enregistre sur sa candidature et remplit sa carte d\'identité.'
+    + (savedAt ? ' <span class="sv">Enregistré à '+savedAt.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"})+'.</span>' : '')+'</p>'
+    + '<a href="candidatures.html#c-'+E(cand.id)+'">Retour au parcours de '+E(cand.identite.prenom || cand.candidat.nom)+'</a>';
+}
 function load(){
-  var r = YEITA.store.get(KEY, {}); scores = r.s || {}; notes = r.n || {}; tier = r.t || 2; f = r.f || {};
+  if(!cand){
+    var r = YEITA.store.get(KEY, {}); scores = r.s || {}; notes = r.n || {}; tier = r.t || 2; f = r.f || {};
+    rep = Object.assign({dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:false}, r.rep || {});
+    migratePassation();
+  }
   IDF.forEach(function(id){ var e = document.getElementById(id); if(e){ e.value = f[id] || ""; if(e.tagName === "TEXTAREA" && e.value) YEITA.autogrow(e); } });
 }
-function save(){ IDF.forEach(function(id){ f[id] = document.getElementById(id).value; }); YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f}); }
+/* La fiche de passation a rejoint les fiches #1 et #2 : son volet EC2 → EC3 en cours est repris une fois. */
+function migratePassation(){
+  if(rep.passationDone) return;
+  rep.passationDone = true;
+  var p = YEITA.store.get("yeita-fiche-passation", null); if(!p || !p.f) return;
+  var o = p.f;
+  if(o["f-nom"] && f["f-nom"] && DOSSIER.norm(o["f-nom"]) !== DOSSIER.norm(f["f-nom"])) return;
+  var map = {palier:"b-pal", solides:"b-forts", creux:"b-creux", contestation:"b-cont", conditions:"b-cond"};
+  Object.keys(map).forEach(function(k){ if(o[map[k]] && !f["p-"+k]) f["p-"+k] = o[map[k]]; });
+  var q = ["b-q1","b-q2","b-q3"].map(function(k){ return ((o[k]||"")+"").trim(); }).filter(Boolean);
+  if(q.length && !f["p-questions"]) f["p-questions"] = q.join("\n");
+  if(o["f-nom"] && !f["f-nom"]) f["f-nom"] = o["f-nom"];
+  YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f, rep:rep});
+}
+function save(){ IDF.forEach(function(id){ f[id] = document.getElementById(id).value; }); persistAll(); renderReport(); }
+function changed(){ if(rep.reportedAt) rep.dirty = true; }
 function gv(id){ return (document.getElementById(id).value || "").trim(); }
 
 document.getElementById("legend").innerHTML = Dm.SCALE.map(function(s){ return '<div><b>'+s[0]+'</b><span>'+E(s[1])+'</span></div>'; }).join("");
@@ -533,7 +651,73 @@ function renderDiamonds(){
   Object.keys(notes).forEach(function(k){ var e = document.getElementById("ex-"+k); if(e){ e.value = notes[k]; YEITA.autogrow(e); } });
 }
 function steps(){ var out = []; D.forEach(function(d,di){ d.sections.forEach(function(s,si){ var v = scores[sid(di,si)]; out.push(v===undefined ? null : v); }); }); return out; }
-function code(){ return "YEITA-EC2." + YEITA.b64e({role:"PM", t:tier, s:steps(), n:gv("f-nom"), d:gv("f-date"), par:gv("f-par")}); }
+/* La lecture de l'EC2 au format du dossier candidat (assets/dossier.js) */
+function ec2Data(){
+  var o = DOSSIER.emptyEC2();
+  o.date = gv("f-date"); o.pair = gv("f-par"); o.role = "PM"; o.palier = tier; o.notes = steps();
+  o.exemples = []; D.forEach(function(d,di){ d.sections.forEach(function(s,si){ o.exemples.push(((notes[sid(di,si)]||"")+"").trim()); }); });
+  o.lecture = document.getElementById("verdict").textContent || "";
+  o.aspirations = gv("f-asp");
+  SUS.forEach(function(k){ o.suspens[k] = gv("p-"+k); });
+  return o;
+}
+function code(){ return DOSSIER.toCode({id: rep.dossierId, candidat: {nom: gv("f-nom"), role: "PM"}, ec2: ec2Data()}, "ec2"); }
+
+/* ---------- Report vers la carte : pas encore reporté → reporté → modifié depuis ---------- */
+var reportError = "";
+function fmtWhen(iso){ try{ return new Date(iso).toLocaleString("fr-FR", {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"}); }catch(e){ return ""; } }
+function renderReport(){
+  var el = document.getElementById("rstate"); if(!el) return;
+  if(cand){
+    el.className = "rstate ok"; el.textContent = "Enregistré sur la candidature de " + cand.candidat.nom + " à chaque modification : la carte d'identité est toujours à jour.";
+    document.getElementById("report").hidden = true; document.getElementById("report-top").hidden = true;
+    document.getElementById("r-t").textContent = "La carte d'identité de " + cand.identite.prenom;
+    return;
+  }
+  el.className = "rstate";
+  if(reportError){ el.textContent = reportError; el.classList.add("err"); }
+  else if(!rep.reportedAt){ el.textContent = "Pas encore reporté. Le report envoie les douze notes et le palier vers la carte d'identité, et le reste dans sa partie réservée à Yeita, points en suspens en tête. Tout reste sur cet ordinateur."; }
+  else if(rep.dirty){ el.textContent = "Modifiée depuis le report du " + fmtWhen(rep.reportedAt) + ". Reporte à nouveau pour mettre la carte à jour."; el.classList.add("dirty"); }
+  else { el.textContent = "Reporté le " + fmtWhen(rep.reportedAt) + ". La carte d'identité est à jour."; el.classList.add("ok"); }
+  var label = rep.reportedAt ? "Mettre à jour la carte" : "Reporter vers la carte d'identité";
+  document.getElementById("report").textContent = label;
+  document.getElementById("report-top").textContent = rep.reportedAt ? "Mettre à jour la carte" : "Reporter vers la carte";
+}
+function doReport(){
+  var nom = gv("f-nom");
+  if(!nom){ reportError = "Indique le nom du candidat, en haut de la fiche, avant de reporter."; renderReport(); document.getElementById("f-nom").focus(); return; }
+  reportError = "";
+  /* Même carte si c'est le même candidat ; un autre nom ouvre une autre carte. */
+  var id = (rep.dossierId && DOSSIER.norm(rep.dossierNom) === DOSSIER.norm(nom)) ? rep.dossierId : null;
+  DOSSIER.report("ec2", nom, ec2Data(), id).then(function(d){
+    rep.dossierId = d.id; rep.dossierNom = d.candidat.nom; rep.reportedAt = d.ec2.reporteLe; rep.dirty = false;
+    persistAll(); renderReport(); renderRead(); renderFrom1();
+    if(document.activeElement && document.activeElement.id === "report-top") document.getElementById("rstate").scrollIntoView({block:"center"});
+  }).catch(function(e){ reportError = e.message; renderReport(); });
+}
+
+/* ---------- Ce que l'EC1 a laissé ouvert, lu dans la carte du même candidat ---------- */
+function linesOf(t){ return String(t||"").split(/\n+/).map(function(x){ return x.trim(); }).filter(Boolean); }
+function renderFrom1(){
+  var el = document.getElementById("from1"), nom = gv("f-nom");
+  (cand ? DOSSIER.get(cand.id) : (nom ? DOSSIER.findByName(nom) : DOSSIER.current())).then(function(d){
+    var e1 = d && d.ec1;
+    if(!e1){
+      el.className = "from1 empty";
+      el.innerHTML = '<h2 id="f1-t">Ce que l\'EC1 a laissé ouvert</h2><p>'+(nom ? 'Rien de reporté pour '+E(nom)+' dans ce navigateur.' : 'Indique le nom du candidat.')+' Les questions de l\'EC1 arrivent ici quand la fiche #1 est reportée, ou quand le code EC1 est collé dans la carte d\'identité.</p>';
+      return;
+    }
+    el.className = "from1";
+    var q = linesOf(e1.questionsEC2), dm = (e1.diamants||[]).some(Boolean);
+    var h = '<h2 id="f1-t">Ce que l\'EC1 a laissé ouvert</h2>';
+    if(!nom) h += '<p>Dernière carte ouverte : <b>'+E(d.candidat.nom)+'</b>. <button type="button" class="btn small" id="take-name">C\'est elle, reprendre son nom</button></p>';
+    h += '<div class="cols">';
+    h += '<div><h3>Questions à creuser</h3>'+(q.length ? '<ul>'+q.map(function(x){ return '<li>'+E(x)+'</li>'; }).join("")+'</ul>' : '<p>Aucune question notée.</p>')+'</div>';
+    if(dm) h += '<div><h3>Où elle a vraiment travaillé, selon l\'EC1</h3><dl>'+Dm.D.map(function(x, i){ return '<dt>'+x.n+' '+E(x.name)+'</dt><dd>'+E(e1.diamants[i] || "Non renseigné")+'</dd>'; }).join("")+'</dl></div>';
+    if(e1.vigilance) h += '<div><h3>Signal de vigilance</h3><p>'+E(e1.vigilance)+'</p></div>';
+    el.innerHTML = h + '</div>';
+  });
+}
 
 function renderRead(){
   var st = steps(), names = Dm.stepNames(), rated = st.filter(function(v){ return v!=null; }).length;
@@ -559,7 +743,9 @@ function renderRead(){
       : "Point d'appui : « "+hi.name+" » ("+D[hi.di].name+", "+hi.v+" pour un attendu de "+hi.e+"). Creux : « "+lo.name+" » ("+D[lo.di].name+", "+lo.v+" pour "+lo.e+"). À dire tel quel en EC3, et à relier au besoin de la mission plutôt qu'au palier.";
   }
   document.getElementById("verdict").textContent = v;
-  document.getElementById("code").textContent = rated ? code() : "—";
+  document.getElementById("code").textContent = (rated || gv("f-nom")) ? code() : "—";
+  var gl = document.getElementById("grille");
+  gl.textContent = "Grille de salaire, palier « " + Dm.TIERS[tier-1] + " »"; gl.setAttribute("aria-label", "Ouvrir la grille de salaire dans Notion, au palier « " + Dm.TIERS[tier-1] + " », nouvel onglet");
   document.getElementById("scoreNote").innerHTML = "<b>Palier discuté : « "+E(Dm.TIERS[tier-1])+" » ("+Dm.TIER_XP[tier-1]+").</b> "+E(Dm.TIER_WHY[tier-1])+" Une étape non abordée compte 0 et tire la moyenne vers le bas : une fiche partielle doit se voir.";
   var m = '<table><thead><tr><th class="k" scope="col">Palier</th>'+names.map(function(n,i){ return '<th scope="col"'+(i%3===0?' class="first"':'')+'>'+E(n)+'</th>'; }).join("")+'</tr></thead><tbody>';
   Dm.TIER_EXP.forEach(function(row,t){ m += '<tr'+(t===tier-1?' class="cur"':'')+'><td class="k">'+E(Dm.TIERS[t])+'<small>'+Dm.TIER_XP[t]+'</small></td>'+row.map(function(x,i){ return '<td'+(i%3===0?' class="first"':'')+'><span class="cell l'+x+'">'+x+'</span></td>'; }).join("")+'</tr>'; });
@@ -576,8 +762,11 @@ function notionText(){
       t += "· " + s.k + " : " + (st[i]==null ? "non vu" : st[i]) + " / attendu " + Dm.expAt(tier,i) + (n ? " — " + n : "") + "\n"; });
   });
   t += "\nLECTURE\n" + document.getElementById("verdict").textContent + "\n";
-  t += "\nASPIRATIONS (interne)\n" + (gv("f-asp")||"—") + "\n";
-  t += "\nCODE EC2 (pour la carte d'identité)\n" + code() + "\n";
+  t += "\n— INTERNE, NE PART PAS AVEC LE CANDIDAT —\n";
+  t += "\nASPIRATIONS\n" + (gv("f-asp")||"—") + "\n";
+  var labels = {palier:"Palier proposé et rôle", solides:"Diamants solides", creux:"Diamants creux", questions:"À creuser en EC3", contestation:"Ce qui risque d'être contesté", conditions:"À confirmer avant la proposition"};
+  t += "\nPOINTS EN SUSPENS POUR L'EC3\n" + (SUS.filter(function(k){ return gv("p-"+k); }).map(function(k){ return labels[k] + " : " + gv("p-"+k); }).join("\n") || "—") + "\n";
+  t += "\nCODE EC2 (pour ouvrir la carte d'identité sur un autre ordinateur)\n" + code() + "\n";
   return t;
 }
 
@@ -588,32 +777,55 @@ document.addEventListener("click", function(e){
     if(scores[k] === v) delete scores[k]; else scores[k] = v;
     var cur = scores[k];
     Array.prototype.forEach.call(b.parentElement.children, function(x,i){ x.dataset.on = (cur !== undefined && i<=cur) ? 1 : 0; x.setAttribute("aria-pressed", String(cur === i)); });
-    save(); renderRead(); document.getElementById("live").textContent = cur === undefined ? "Note retirée" : "Note " + cur;
+    changed(); save(); renderRead(); document.getElementById("live").textContent = cur === undefined ? "Note retirée" : "Note " + cur;
     return;
   }
-  var t = e.target.closest("#tierSeg button"); if(t){ tier = +t.dataset.tier; save(); renderRead(); return; }
+  var t = e.target.closest("#tierSeg button"); if(t){ tier = +t.dataset.tier; changed(); save(); renderRead(); return; }
+  if(e.target.id === "report" || e.target.id === "report-top"){ doReport(); return; }
+  if(e.target.id === "take-name"){ DOSSIER.current().then(function(d){ if(!d) return; document.getElementById("f-nom").value = d.candidat.nom; f["f-nom"] = d.candidat.nom; save(); renderRead(); renderFrom1(); document.getElementById("f-date").focus(); }); return; }
   if(e.target.id === "fold"){ folded = !folded; document.querySelectorAll("details.crit").forEach(function(d){ d.open = folded; }); e.target.textContent = folded ? "Replier les repères" : "Déplier les repères"; return; }
   var dc = e.target.closest("[data-copy]"); if(dc){ var bb = dc; if(dc.dataset.copy === "notion") YEITA.copy(notionText(), function(ok){ YEITA.flash(bb, ok ? "Copié pour Notion" : "Copie refusée"); }); else if(steps().some(function(v){ return v!=null; })) YEITA.copy(code(), function(ok){ YEITA.flash(bb, ok ? "Code EC2 copié" : "Copie refusée : sélectionne le code"); }); else YEITA.flash(bb, "Aucune note"); return; }
   if(e.target.id === "copy-notion"){ var b1 = e.target; YEITA.copy(notionText(), function(ok){ YEITA.flash(b1, ok ? "Copié pour Notion" : "Copie refusée"); }); return; }
-  if(e.target.id === "copy-code"){ var b2 = e.target; if(!steps().some(function(v){ return v!=null; })){ YEITA.flash(b2, "Aucune note"); return; } YEITA.copy(code(), function(ok){ YEITA.flash(b2, ok ? "Code EC2 copié" : "Copie refusée : sélectionne le code"); }); return; }
   if(e.target.id === "reset"){ document.getElementById("confirm").hidden = false; document.getElementById("cf-yes").focus(); return; }
   if(e.target.id === "cf-no"){ document.getElementById("confirm").hidden = true; document.getElementById("reset").focus(); return; }
-  if(e.target.id === "cf-yes"){ scores = {}; notes = {}; f = {}; YEITA.store.set(KEY, {s:{}, n:{}, t:tier, f:{}}); load(); renderDiamonds(); renderRead(); document.getElementById("confirm").hidden = true; YEITA.flash(null, "Fiche vidée"); return; }
+  if(e.target.id === "cf-yes"){ scores = {}; notes = {}; f = {}; if(cand){ f["f-nom"] = cand.candidat.nom; rep = {dossierId:cand.id, dossierNom:cand.candidat.nom, reportedAt:null, dirty:false, passationDone:true}; } else rep = {dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:true}; reportError = ""; persistAll(); document.querySelectorAll("textarea").forEach(function(x){ x.style.height = ""; }); load(); renderDiamonds(); renderRead(); renderReport(); renderFrom1(); document.getElementById("confirm").hidden = true; YEITA.flash(null, "Fiche vidée"); return; }
   if(e.target.id === "demo"){
     var s = [2,3,2, 4,3,2, 3,3,2, 3,2,null];
     scores = {}; s.forEach(function(v,i){ if(v!=null) scores[sid(Math.floor(i/3), i%3)] = v; });
     notes = {"0-0":"Est partie du contrat du gros client avant de parler roadmap.","0-2":"A cité RICE puis a expliqué pourquoi elle ne l'utilise plus.","1-0":"A recruté des utilisateurs via le support quand le client a bloqué l'accès direct.","2-0":"A décrit un pré-mortem mené avant un lancement."};
-    tier = 2; f = {"f-nom":"Camille Rousseau","f-date":"2026-10-21","f-par":"Thélo","f-asp":"Veut se former au cadrage stratégique. Préfère un binôme les premières semaines. Aucun frein sur le présentiel."};
-    YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f}); load(); renderDiamonds(); renderRead(); YEITA.flash(null, "Exemple chargé"); return;
+    tier = 2; f = {"f-nom":"Camille Rousseau","f-date":"2026-10-21","f-par":"Thélo","f-asp":"Veut se former au cadrage stratégique. Préfère un binôme les premières semaines. Aucun frein sur le présentiel.",
+      "p-palier":"J'apporte de la valeur, Product Manager.", "p-solides":"Problème et Solution : des exemples précis, chiffrés.", "p-creux":"Stratégie : manque d'expérience plus que d'intérêt.",
+      "p-questions":"Son appétence réelle pour le cadrage : y aller, ou rester près de l'équipe ?", "p-contestation":"Se voit plus avancée sur la stratégie que ce que la fiche #2 montre.", "p-conditions":"Disponible sous un mois. Prétentions dans la fourchette du palier."};
+    rep = {dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:true}; reportError = "";
+    YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f, rep:rep}); load(); renderDiamonds(); renderRead(); renderReport(); renderFrom1(); YEITA.flash(null, "Exemple chargé"); return;
   }
 });
 document.addEventListener("input", function(e){
-  if(e.target.matches(".ex textarea")){ notes[e.target.dataset.k] = e.target.value; YEITA.autogrow(e.target); save(); return; }
-  if(IDF.indexOf(e.target.id) >= 0){ if(e.target.tagName === "TEXTAREA") YEITA.autogrow(e.target); save(); renderRead(); }
+  if(e.target.matches(".ex textarea")){ notes[e.target.dataset.k] = e.target.value; YEITA.autogrow(e.target); changed(); save(); return; }
+  if(IDF.indexOf(e.target.id) >= 0){ if(e.target.tagName === "TEXTAREA") YEITA.autogrow(e.target); changed(); save(); renderRead(); if(e.target.id === "f-nom"){ clearTimeout(nameT); nameT = setTimeout(renderFrom1, 250); } }
 });
 
 document.getElementById("quarters").innerHTML = D.map(function(d){ return '<li><b>'+d.n+'</b>'+E(d.name)+' : '+d.sections.map(function(x){ return E(x.k); }).join(", ")+'</li>'; }).join("");
-load(); renderDiamonds(); renderRead();
+var nameT = null;
+function boot(){ load(); renderDiamonds(); renderRead(); renderReport(); renderFrom1(); }
+if(candId){
+  DOSSIER.get(candId).then(function(c){
+    if(!c){
+      var b = document.getElementById("candbar"); b.hidden = false; b.className = "candbar err";
+      b.innerHTML = '<p>Cette candidature n\'existe pas dans ce navigateur. La fiche s\'ouvre seule, sans être reliée.</p><a href="candidatures.html">Voir les candidatures</a>';
+      boot(); return;
+    }
+    cand = c; applyCand(c);
+    var nomEl = document.getElementById("f-nom"); nomEl.readOnly = true; nomEl.setAttribute("aria-describedby", "candbar");
+    document.getElementById("demo").hidden = true;
+    document.getElementById("cf-t").innerHTML = "<b>Vider la fiche #2 de " + E(c.candidat.nom) + " ?</b> Les notes, les exemples, les aspirations et les points en suspens disparaissent de sa candidature et de sa carte.";
+    document.title = "Fiche #2 · " + c.candidat.nom;
+    renderCandBar(null); boot();
+  });
+} else boot();
+window.addEventListener("pagehide", function(){ if(cand && candT){ clearTimeout(candT); candT = null; saveCand(); } });
+/* Une fiche #1 reportée dans un autre onglet apparaît ici aussitôt. */
+window.addEventListener("storage", function(e){ if(e.key === "yeita-dossiers") renderFrom1(); });
 })();
 </script>
 </body>

@@ -13,7 +13,8 @@
 /* Kit physique de Yeita Match : le jeu en ligne yeita-match mis au format impression, sans le redessiner.
    Recto des cartes = l'écran de manche et les cartes de choix du jeu, à l'identique (icône par position A à D).
    Verso des cartes réponse = le bandeau de valeur de la page profil du jeu, pour compter les couleurs.
-   Cartes profil = le haut de la page profil et les tuiles « Les 12 profils » du jeu.
+   Cartes valeur = une par valeur, avec sa définition et ses trois comportements : on pose la dominante puis la seconde.
+   Pas de nom de profil : le résultat de Yeita Match, c'est la dominante et la seconde.
    Formats : cartes poker 63 x 88 mm en planches A4 recto-verso bord long, plateau A3 paysage. */
 :root{ padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
   /* jetons du jeu (yeita-match, styles.css) */
@@ -66,14 +67,16 @@ body{background:#efecf3}
 .c-val .exp{font-size:9pt; line-height:1.45}
 .c-val .ref{margin-top:auto; font-size:7.6pt; font-weight:500; color:var(--g-ink); opacity:.75}
 
-/* Profil : le haut de la page profil du jeu */
-.c-pro{background:var(--g-paper); border:.3mm solid var(--g-ink); padding:5.4mm 4.6mm 4.4mm}
-.c-pro .g-eyebrow svg{width:3.6mm; height:3.6mm}
-.c-pro h3{font-size:21pt; font-weight:700; letter-spacing:-1px; line-height:1.03; margin:2.6mm 0 2mm}
-.c-pro .combo{font-weight:700; font-size:9.4pt; margin-bottom:2mm}
-.c-pro .desc{font-size:10pt; line-height:1.35}
-.c-pro .explore{margin-top:auto; border-top:.3mm solid var(--g-line); padding-top:2.4mm; font-size:7.8pt; line-height:1.4; color:var(--g-muted)}
-.c-pro .explore b{color:var(--g-ink); font-weight:600}
+/* Carte valeur : posée sur la table à la fin de la partie, la dominante puis la seconde */
+.c-vc{background:var(--g-paper); border:.3mm solid var(--g-ink); border-top:3.2mm solid var(--value); padding:4.4mm 4.6mm 4.2mm}
+.c-vc .vi{width:11mm; height:11mm; border-radius:3mm; background:var(--value-tint); color:var(--value); display:grid; place-items:center; border:.3mm solid var(--g-ink)}
+.c-vc .vi svg{width:6.2mm; height:6.2mm}
+.c-vc .g-eyebrow{margin-top:3.6mm}
+.c-vc h3{font-size:18pt; font-weight:700; letter-spacing:-.5px; line-height:1.03; margin:1.2mm 0 1.8mm; color:var(--value)}
+.c-vc .def{font-size:10pt; line-height:1.35; font-weight:600}
+.c-vc .beh{list-style:none; margin:3mm 0 0; padding:2.4mm 0 0; border-top:.3mm solid var(--g-line); display:grid; gap:1.2mm; font-size:8.4pt; line-height:1.3}
+.c-vc .beh li::before{content:"·"; color:var(--value); font-weight:700; margin-right:1.4mm}
+.c-vc .how{margin-top:auto; font-size:7.4pt; line-height:1.4; color:var(--g-muted)}
 
 /* Dos : la barre de navigation du jeu */
 .c-back{background:var(--g-ink); color:var(--g-paper); align-items:center; justify-content:center; gap:4mm; border:.3mm solid var(--g-ink)}
@@ -130,11 +133,12 @@ body{background:#efecf3}
 .g-note .t svg{width:5mm; height:5mm}
 .g-note ol{margin:0; padding-left:5mm; display:grid; gap:2.4mm; font-size:9.6pt; line-height:1.4}
 .g-note p{font-size:8.4pt; line-height:1.5; margin:0}
-.profiles-grid{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:2.2mm}
-.profile-tile{border:.3mm solid var(--g-line); border-radius:2.6mm; padding:2.4mm 2.6mm; display:grid; gap:.8mm; align-content:start; background:var(--g-paper); min-height:23mm}
-.tile-combo{font-family:var(--f-mono); font-size:5.6pt; letter-spacing:.4px; text-transform:uppercase; color:var(--value)}
-.profile-tile strong{font-size:9.6pt; font-weight:700}
-.tile-description{font-size:7pt; line-height:1.35; color:var(--g-muted)}
+.values-grid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:2.6mm}
+.value-tile{border:.3mm solid var(--g-line); border-top:1.4mm solid var(--value); border-radius:2.6mm; padding:2.6mm 3mm; display:grid; gap:1mm; align-content:start; background:var(--g-paper)}
+.value-tile strong{display:flex; align-items:center; gap:1.6mm; font-size:11pt; font-weight:700; color:var(--value)}
+.value-tile strong svg{width:4.6mm; height:4.6mm}
+.value-tile span{font-size:8.4pt; line-height:1.35; color:var(--g-ink)}
+.value-tile em{font-style:normal; font-size:7.6pt; line-height:1.35; color:var(--g-muted)}
 
 /* ---------- Page écran ---------- */
 .vitrine{margin-top:22px; border-radius:22px; background:var(--g-paper); border:1px solid var(--line); padding:clamp(18px,4vw,40px); display:grid; gap:18px}
@@ -188,7 +192,7 @@ body{background:#efecf3}
 
     <section class="vitrine" aria-label="Aperçu des cartes">
       <div class="row" id="vitrine"></div>
-      <p class="cap">L'écran de manche, les quatre cartes de choix telles qu'à l'écran, deux versos de valeur et une carte profil.</p>
+      <p class="cap">L'écran de manche, les quatre cartes de choix telles qu'à l'écran, deux versos de valeur et une carte valeur.</p>
     </section>
 
     <section class="block" aria-labelledby="t-c">
@@ -196,8 +200,8 @@ body{background:#efecf3}
       <div class="contents">
         <div><span class="n">10</span><b>Cartes situation</b><p>Les huit manches et les deux dernières manches de départage, reprises de l'écran de jeu.</p></div>
         <div><span class="n">40</span><b>Cartes réponse</b><p>Le recto est la carte de choix du jeu, avec son icône de position. Le verso porte la valeur : couleur, icône et nom.</p></div>
-        <div><span class="n">12</span><b>Cartes profil</b><p>Le haut de la page profil du jeu. On les étale sur la table à la fin de la partie.</p></div>
-        <div><span class="n">A3</span><b>Plateau</b><p>Les cinq emplacements, le décompte des cartes par valeur, la règle et les douze profils du jeu.</p></div>
+        <div><span class="n">4</span><b>Cartes valeur</b><p>Une par valeur : sa définition et ses trois comportements. À la fin de la partie, on pose la dominante, puis la seconde.</p></div>
+        <div><span class="n">A3</span><b>Plateau</b><p>Les cinq emplacements, le décompte des cartes par valeur, la règle et les quatre valeurs.</p></div>
         <div><span class="n">A4</span><b>Feuille de décompte</b><p>À cocher pendant la partie. <a href="yeita-match-decompte.html">L'ouvrir ou l'imprimer</a>.</p></div>
       </div>
     </section>
@@ -209,8 +213,8 @@ body{background:#efecf3}
         <li>La personne en choisit deux. Coche-les sur la feuille de décompte, retourne-les et marque un point dans la ligne de leur valeur.</li>
         <li>Après la huitième manche, compte : la valeur la plus choisie donne la dominante, la suivante la seconde.</li>
         <li>En cas d'égalité, pose une dernière manche avec les seules réponses des valeurs à égalité. Une carte à choisir.</li>
-        <li>Étale les douze profils, trouve celui de la combinaison dominante › seconde et parlez-en ensemble.</li>
-        <li>Note le profil dans la fiche d'entretien candidat #1.</li>
+        <li>Pose les deux cartes valeur, la dominante puis la seconde, et parlez-en ensemble : où elle se reconnaît, où elle ne se reconnaît pas.</li>
+        <li>Note la dominante et la seconde dans la fiche d'entretien candidat #1.</li>
       </ol>
     </section>
 
@@ -261,25 +265,23 @@ function ansBack(c, ref){
   var v = Y.value(c.value);
   return '<div class="card c-val" '+vstyle(v)+'><span class="vi">'+YEITA.picto(v.id, 25, 1.8)+'</span><span class="kick">Valeur Yeita</span><h3>'+E(v.label)+'</h3><p class="exp">« '+E(v.expectation)+' »</p><span class="ref">'+E(ref)+'</span></div>';
 }
-function proCard(p){
-  var d = Y.value(p.dominant), s = Y.value(p.second);
-  var ex = p.presentation[2].replace(/^À explorer ensemble : /, "");
-  return '<div class="card c-pro"><span class="g-eyebrow g-mono">'+I("Sparkles", 14)+' TON PROFIL</span><h3>'+E(p.label)+'</h3>'
-    + '<p class="combo"><span style="color:'+d.color+'">'+E(d.label)+'</span><span aria-hidden="true"> › </span><span style="color:'+s.color+'">'+E(s.label)+'</span></p>'
-    + '<p class="desc">'+E(p.description)+'</p><p class="explore"><b>À explorer ensemble :</b> '+E(ex)+'</p></div>';
+function valCard(v){
+  return '<div class="card c-vc" '+vstyle(v)+'><span class="vi">'+YEITA.picto(v.id, 24, 1.8)+'</span><span class="g-eyebrow g-mono">VALEUR YEITA</span><h3>'+E(v.label)+'</h3>'
+    + '<p class="def">'+E(YEITA.VALUE_DEF[v.id])+'</p><ul class="beh">'+v.behaviors.map(function(b){ return '<li>'+E(b.label)+'</li>'; }).join("")+'</ul>'
+    + '<p class="how">En fin de partie : la dominante d\'abord, la seconde ensuite.</p></div>';
 }
 function back(what){
   return '<div class="card c-back"><div class="brand">'+LOGO(26)+'<span>match</span></div><span class="what g-mono">'+what+'</span>'
     + '<div class="icons">'+YEITA.CARD_ICONS.map(function(n){ return I(n, 18, 1.8); }).join("")+'</div></div>';
 }
 
-/* ---------- Les 62 cartes : [recto, verso] ---------- */
+/* ---------- Les 54 cartes : [recto, verso] ---------- */
 var CARDS = [];
 Y.SITUATIONS.forEach(function(s, i){ CARDS.push([sitCard(s, i+1, Y.SITUATIONS.length, false), back("SITUATION")]); });
 Y.TIEBREAKS.forEach(function(s, i){ CARDS.push([sitCard(s, i+1, 0, true), back("DERNIÈRE MANCHE")]); });
 Y.SITUATIONS.forEach(function(s, i){ s.cards.forEach(function(c, k){ var ref = "Manche "+(i+1)+", carte "+POS[k]; CARDS.push([ansCard(c, k, ref), ansBack(c, ref)]); }); });
 Y.TIEBREAKS.forEach(function(s, i){ s.cards.forEach(function(c, k){ var ref = "Départage "+(i+1)+", carte "+POS[k]; CARDS.push([ansCard(c, k, ref), ansBack(c, ref)]); }); });
-Y.PROFILES.forEach(function(p){ CARDS.push([proCard(p), back("PROFIL")]); });
+Y.VALUES.forEach(function(v){ CARDS.push([valCard(v), back("VALEUR")]); });
 
 /* ---------- Planches : 9 cartes par A4, verso miroir pour le recto-verso bord long ---------- */
 var html = "", pages = Math.ceil(CARDS.length / 9);
@@ -300,7 +302,7 @@ document.getElementById("vitrine").innerHTML = '<div class="scaler">'+sitCard(s0
   + s0.cards.map(function(c,k){ return '<div class="scaler">'+ansCard(c, k, "Manche 1, carte "+POS[k])+'</div>'; }).join("")
   + '<div class="scaler">'+ansBack(s0.cards[0], "Manche 1, carte A")+'</div>'
   + '<div class="scaler">'+ansBack(s0.cards[2], "Manche 1, carte C")+'</div>'
-  + '<div class="scaler">'+proCard(Y.profileFor("explorateur","collectif"))+'</div>';
+  + '<div class="scaler">'+valCard(Y.value("explorateur"))+'</div>';
 
 /* ---------- Plateau ---------- */
 var V = Y.VALUES;
@@ -311,7 +313,7 @@ document.getElementById("plateau").innerHTML =
   +   POS.map(function(p,k){ return '<div class="slot"><span class="g-icon g-pos-'+k+'">'+I(YEITA.CARD_ICONS[k], 23, 1.8)+'</span><span class="big">'+p+'</span><span class="lab">Carte '+p+'</span></div>'; }).join("")
   + '</div></div>'
   + '<div class="p-row2">'
-  +   '<div class="g-panel"><h2 class="p-h">Tes cartes par valeur</h2><p class="p-lead">Chaque carte choisie compte pour sa valeur. Les deux valeurs les plus choisies donnent le profil.</p><ul class="bars">'
+  +   '<div class="g-panel"><h2 class="p-h">Tes cartes par valeur</h2><p class="p-lead">Chaque carte choisie compte pour sa valeur. Les deux valeurs les plus choisies donnent la dominante et la seconde.</p><ul class="bars">'
   +     V.map(function(v){ var cells = ""; for(var i=0;i<8;i++) cells += '<i></i>'; cells += '<i class="tb" title="Dernière manche"></i>';
           return '<li '+vstyle(v)+'><span class="bar-label">'+YEITA.picto(v.id, 19, 2)+E(v.label)+'</span><span class="bar-count">… cartes</span><span class="cells">'+cells+'</span></li>'; }).join("")
   +   '</ul><div class="result"><span>Dominante<i></i></span><span class="sep">›</span><span>Seconde couleur<i></i></span></div>'
@@ -320,13 +322,12 @@ document.getElementById("plateau").innerHTML =
   +     '<li>Pose la situation, lis-la, puis les quatre cartes de A à D.</li>'
   +     '<li>La personne choisit les deux réactions qui lui ressemblent le plus.</li>'
   +     '<li>Retourne les deux cartes : un point dans la ligne de leur valeur.</li>'
-  +     '<li>Après huit manches, les deux lignes les plus remplies donnent le profil.</li>'
+  +     '<li>Après huit manches, les deux lignes les plus remplies donnent la dominante et la seconde.</li>'
   +     '<li>Égalité : une dernière manche, avec les seules cartes à égalité.</li>'
-  +     '<li>Étale les douze profils, trouve le sien, parlez-en.</li>'
+  +     '<li>Pose les deux cartes valeur, la dominante puis la seconde, et parlez-en.</li>'
   +   '</ol><p>Toutes les cartes correspondent à des approches professionnelles possibles : aucune réponse n’est la « bonne » par défaut.</p></div>'
-  +   '<div class="g-panel"><h2 class="p-h">Les 12 profils</h2><div class="profiles-grid">'
-  +     Y.PROFILES.map(function(p){ var d = Y.value(p.dominant), s = Y.value(p.second);
-          return '<div class="profile-tile" '+vstyle(d)+'><span class="tile-combo">'+E(d.label)+' › '+E(s.label)+'</span><strong>'+E(p.label)+'</strong><span class="tile-description">'+E(p.description)+'</span></div>'; }).join("")
+  +   '<div class="g-panel"><h2 class="p-h">Les quatre valeurs</h2><div class="values-grid">'
+  +     V.map(function(v){ return '<div class="value-tile" '+vstyle(v)+'><strong>'+YEITA.picto(v.id, 18, 2)+E(v.label)+'</strong><span>'+E(YEITA.VALUE_DEF[v.id])+'</span><em>'+E(v.behaviors.map(function(b){ return b.label; }).join(", "))+'</em></div>'; }).join("")
   +   '</div></div>'
   + '</div>';
 })();
