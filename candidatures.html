@@ -88,7 +88,7 @@
 .back{display:inline-flex; align-items:center; gap:6px; margin-top:20px; font-weight:600; min-height:40px}
 .chead{display:flex; flex-wrap:wrap; gap:10px 24px; justify-content:space-between; align-items:end; padding-block:8px 18px}
 .chead h1{font-size:clamp(30px,4vw,40px)}
-.chead h1:focus{outline:none}
+.chead h1:focus, .sp-head h2:focus{outline:none}
 .refus h3:focus{outline:none}
 .cmeta{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
 .contact{font-size:15px; color:var(--ink-2); display:grid; gap:2px; text-align:right}
@@ -390,7 +390,7 @@ function renderBoard(){
   document.getElementById("empty").hidden = !empty;
   document.getElementById("kanban").hidden = empty || ui.mode !== "kanban";
   document.getElementById("list").hidden = empty || ui.mode !== "liste";
-  document.querySelectorAll("#mode [role=radio]").forEach(function(b){ b.setAttribute("aria-checked", String(b.dataset.m === ui.mode)); });
+  document.querySelectorAll("#mode [role=radio]").forEach(function(b){ var on = b.dataset.m === ui.mode; b.setAttribute("aria-checked", String(on)); b.tabIndex = on ? 0 : -1; });
   if(empty) return;
   document.getElementById("kanban").innerHTML = columns().map(function(col){
     var items = list.filter(function(c){ return c.parcours.etape === col.id; });
@@ -413,6 +413,7 @@ function renderBoard(){
 document.getElementById("a-prov").innerHTML = S.PROVENANCES.map(function(p, i){ return '<label><input type="radio" name="a-prov" value="'+p[0]+'"'+(i === 0 ? ' checked' : '')+'>'+E(p[1])+'</label>'; }).join("");
 function openAdd(){ var p = document.getElementById("add"); p.hidden = false; document.getElementById("a-prenom").focus(); }
 function closeAdd(){ document.getElementById("add").hidden = true; document.getElementById("add-form").reset(); document.getElementById("a-err").hidden = true; document.getElementById("a-prov-d-w").hidden = true; document.getElementById("add-open").focus(); }
+document.getElementById("add-form").addEventListener("input", function(e){ if(e.target.getAttribute("aria-invalid")){ e.target.removeAttribute("aria-invalid"); e.target.removeAttribute("aria-describedby"); } });
 document.getElementById("add-form").addEventListener("change", function(e){ if(e.target.name === "a-prov") document.getElementById("a-prov-d-w").hidden = e.target.value !== "autre"; });
 document.getElementById("add-form").addEventListener("submit", function(e){
   e.preventDefault();
@@ -425,7 +426,12 @@ document.getElementById("add-form").addEventListener("submit", function(e){
       closeAdd(); say(c.candidat.nom + " ajouté·e à l'appel de découverte");
       return load().then(function(){ var card = document.querySelector('.kc[data-id="'+c.id+'"]'); if(card){ card.classList.add("flash"); var b = card.querySelector("button"); if(b) b.focus(); setTimeout(function(){ card.classList.remove("flash"); }, 2500); } });
     })
-    .catch(function(x){ err.textContent = x.message; err.hidden = false; (g("a-prenom") ? (g("a-nom") ? document.getElementById("a-email") : document.getElementById("a-nom")) : document.getElementById("a-prenom")).focus(); });
+    .catch(function(x){
+      err.textContent = x.message; err.hidden = false;
+      var bad = document.getElementById(g("a-prenom") ? (g("a-nom") ? "a-email" : "a-nom") : "a-prenom");
+      document.querySelectorAll("#add-form [aria-invalid]").forEach(function(i){ i.removeAttribute("aria-invalid"); i.removeAttribute("aria-describedby"); });
+      bad.setAttribute("aria-invalid", "true"); bad.setAttribute("aria-describedby", "a-err"); bad.focus();
+    });
 });
 
 /* ---------- Sauvegarde : export, import, exemples ---------- */
@@ -486,7 +492,7 @@ function renderSteps(){
     var s = stepState(c, e.id), v = viewing === e.id;
     var aria = s === "future" ? ' aria-disabled="true" disabled' : '';
     var tip = s === "future" ? "Pas encore : on avance d'une étape à la fois" : (s === "done" ? "Étape passée, en lecture" : (s === "stop" ? "Parcours arrêté ici" : "Étape en cours"));
-    return '<li class="'+s+(v ? ' viewing' : '')+'"><button type="button" data-step="'+e.id+'" title="'+E(tip)+'"'+(s === "cur" ? ' aria-current="step"' : '')+(v ? ' aria-pressed="true"' : ' aria-pressed="false"')+aria+'><span class="num" aria-hidden="true">'+(s === "done" ? "✓" : (i+1))+'</span>'+E(e.court)+'<span class="sr-only">, '+E(tip)+'</span></button></li>';
+    return '<li class="'+s+(v ? ' viewing' : '')+'"><button type="button" data-step="'+e.id+'" title="'+E(tip)+'"'+(s === "cur" ? ' aria-current="step"' : '')+(v ? ' aria-pressed="true"' : ' aria-pressed="false"')+' aria-controls="panel"'+aria+'><span class="num" aria-hidden="true">'+(s === "done" ? "✓" : (i+1))+'</span>'+E(e.court)+'<span class="sr-only">, '+E(tip)+'</span></button></li>';
   }).join("") + (c.parcours.etape === "clos" ? '<li class="endchip"><span>Pas aujourd\'hui</span></li>' : '');
   var g = PC.etape(viewing); document.getElementById("c-guide").href = "index.html#" + (g && g.guide || "guide");
   document.getElementById("c-guide").textContent = "Ouvrir le guide, étape " + (g && g.n || "");
@@ -502,6 +508,8 @@ function showNotice(text, isErr, undo){
   document.getElementById("notice").innerHTML = '<div class="notice'+(isErr ? ' err' : '')+'" role="status"><span>'+E(text)+'</span>'+(undo ? '<button type="button" id="undo">Annuler ce passage</button>' : '')+'</div>';
 }
 function clearNotice(){ document.getElementById("notice").innerHTML = ""; }
+/* Après un changement d'étape, le clavier et le lecteur d'écran repartent du titre de l'étape, sous le message (qui garde « Annuler »). */
+function focusStep(){ var h = document.querySelector("#panel .sp-head h2"); if(h){ document.getElementById("notice").scrollIntoView({block:"start"}); h.focus({preventScroll:true}); } }
 
 /* ---------- Une étape : objectif, liens, fiche, sorties ---------- */
 function linksHTML(e, extra){
@@ -512,7 +520,7 @@ function linksHTML(e, extra){
 function renderPanel(){
   var c = cur, e = PC.etape(viewing), state = stepState(c, viewing);
   var ro = state === "done" || state === "stop" && c.parcours.etape === "clos" || c.parcours.etape === "onboarding" && viewing !== "onboarding";
-  var h = '<div class="sp-head"><span class="eyebrow">Étape '+(S.ETAPES.indexOf(viewing)+1)+' sur 8</span><h2>'+E(e.label)+'</h2><p class="obj">'+E(e.objectif)+'</p></div>';
+  var h = '<div class="sp-head"><span class="eyebrow">Étape '+(S.ETAPES.indexOf(viewing)+1)+' sur 8</span><h2 tabindex="-1">'+E(e.label)+'</h2><p class="obj">'+E(e.objectif)+'</p></div>';
   if(state === "done"){ var st = c.parcours.etapes[viewing] || {}; h += '<p class="readonly">Étape passée, en lecture'+(st.termineLe ? ', terminée le ' + E(fmtWhen(st.termineLe)) : '')+'. <a href="#" data-step="'+E(c.parcours.etape === "clos" ? c.parcours.cloture.depuis : c.parcours.etape)+'">Revenir à l\'étape en cours</a></p>'; }
   if(c.parcours.etape === "clos" && state === "stop"){ var cl = c.parcours.cloture; h += '<p class="readonly"><b>Parcours arrêté ici</b>, le '+E(fmtWhen(cl.le))+(cl.par ? ' par '+E(cl.par) : '')+'. Motif : '+E(S.motifLabel(cl.motif))+(cl.detail ? ', '+E(cl.detail) : '')+'. '+(cl.carteEnvoyee ? 'Carte d\'identité envoyée.' : 'Carte d\'identité non envoyée.')+'</p>'; }
   var R = RENDER[viewing] || RENDER._soon;
@@ -782,7 +790,7 @@ document.addEventListener("click", function(e){
     var motif = document.getElementById("rf-motif").value, detail = document.getElementById("rf-detail").value, sent = document.getElementById("rf-sent");
     S.closeCandidate(cur.id, {motif: motif, detail: detail, carteEnvoyee: !!(sent && sent.checked), par: S.me()}).then(function(c){
       cur = c; refusOpen = false; viewing = c.parcours.cloture.depuis; lastMove = true;
-      renderCandidate(); showNotice(c.candidat.nom + " passe dans « Pas aujourd'hui ».", false, true); load();
+      renderCandidate(); showNotice(c.candidat.nom + " passe dans « Pas aujourd'hui ».", false, true); load(); focusStep();
     }).catch(function(x){ var er = document.getElementById("rf-err"); er.textContent = x.message; er.hidden = false; (motif ? document.getElementById("rf-detail") : document.getElementById("rf-motif")).focus(); });
     return;
   }
@@ -792,12 +800,12 @@ document.addEventListener("click", function(e){
     S.moveStep(cur.id, {par: S.me(), mode: (de === "passation-ec1" || de === "passation-ec2") ? ((document.querySelector('input[name='+(de === "passation-ec1" ? "pm-mode" : "pm2-mode")+']:checked') || {}).value) : undefined}).then(function(c){
       cur = c; viewing = c.parcours.etape; lastMove = true;
       renderCandidate(); showNotice(label(de) + " terminé. " + c.candidat.nom + " passe à : " + label(c.parcours.etape) + ".", false, true); load();
-      document.getElementById("panel").scrollIntoView({block:"start"});
+      focusStep();
     }).catch(function(x){ showNotice(x.message, true); });
     return;
   }
   if(t.id === "undo"){
-    S.undoLast(cur.id, S.me()).then(function(c){ cur = c; viewing = c.parcours.etape; lastMove = null; renderCandidate(); showNotice("Passage annulé : retour à " + label(c.parcours.etape) + ".", false, false); load(); }).catch(function(x){ showNotice(x.message, true); });
+    S.undoLast(cur.id, S.me()).then(function(c){ cur = c; viewing = c.parcours.etape; lastMove = null; renderCandidate(); showNotice("Passage annulé : retour à " + label(c.parcours.etape) + ".", false, false); load(); focusStep(); }).catch(function(x){ showNotice(x.message, true); });
     return;
   }
   if(t.id === "e-save"){
@@ -814,6 +822,19 @@ document.addEventListener("click", function(e){
   if(t.id === "del-yes"){ var nm = cur.candidat.nom; S.removeCandidate(cur.id).then(function(){ cur = null; location.hash = ""; say(nm + " supprimé·e"); }); return; }
 });
 document.getElementById("q").addEventListener("input", function(e){ q = e.target.value; renderBoard(); });
+/* Clavier : flèches dans le choix Kanban / Liste ; Échap referme ce qui est ouvert (ajout, refus, suppression). */
+document.getElementById("mode").addEventListener("keydown", function(e){
+  if(["ArrowRight","ArrowLeft","ArrowDown","ArrowUp","Home","End"].indexOf(e.key) < 0) return;
+  e.preventDefault();
+  ui.mode = (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === "End") ? "liste" : "kanban";
+  YEITA.store.set(KEY, ui); renderBoard(); document.querySelector('#mode [data-m="'+ui.mode+'"]').focus();
+});
+document.addEventListener("keydown", function(e){
+  if(e.key !== "Escape") return;
+  if(!document.getElementById("add").hidden && document.getElementById("add").contains(document.activeElement)){ closeAdd(); return; }
+  if(cur && refusOpen){ refusOpen = false; renderPanel(); var r = document.getElementById("refuse"); if(r) r.focus(); return; }
+  if(cur && !document.getElementById("del-confirm").hidden){ document.getElementById("del-confirm").hidden = true; document.getElementById("del").focus(); }
+});
 
 /* ---------- Navigation : #c-<id> ouvre une candidature, sinon le tableau ---------- */
 function route(){
