@@ -34,7 +34,9 @@ var ICONS = {
   Layers3: '<path d="m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/>',
   CircleHelp: '<circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 1c0 2-3 2-3 5M12 18h.01"/>',
   MessageCircle: '<path d="M21 11.5a8.5 8.5 0 0 1-12 7.7L3 21l1.8-6A8.5 8.5 0 1 1 21 11.5z"/>',
-  ShieldCheck: '<path d="m12 2 9 4v6c0 5-4 8-9 10-5-2-9-5-9-10V6z"/><path d="m8 12 3 3 5-6"/>'
+  ShieldCheck: '<path d="m12 2 9 4v6c0 5-4 8-9 10-5-2-9-5-9-10V6z"/><path d="m8 12 3 3 5-6"/>',
+  /* Interface seulement (sections dépliantes), jamais pour une valeur */
+  ChevronRight: '<path d="m9 6 6 6-6 6"/>'
 };
 var VALUE_ICON = {"collectif":"HeartHandshake", "sans-chichi":"Target", "explorateur":"Compass", "meilleure-version":"Sparkles"};
 /* Icônes des cartes du jeu, par position A à D (PlayScreen.jsx). */

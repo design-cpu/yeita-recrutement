@@ -146,6 +146,35 @@ input:focus-visible, textarea:focus-visible, select:focus-visible{outline:3px so
 .seg button[disabled]{color:var(--muted); cursor:not-allowed}
 .seg button:focus-visible{outline-offset:-3px}
 
+/* Sections dépliantes des fiches : un titre, un repère « sur la carte » ou « interne », un état */
+details.sec{border:1px solid var(--line); border-radius:var(--radius); background:var(--surface)}
+details.sec + details.sec{margin-top:10px}
+details.sec > summary{list-style:none; cursor:pointer; display:grid; grid-template-columns:20px auto minmax(0,1fr) auto; gap:6px 12px; align-items:center; padding:13px 18px; min-height:56px; border-radius:var(--radius)}
+details.sec > summary::-webkit-details-marker{display:none}
+details.sec > summary:hover{background:var(--surface-2)}
+details.sec > summary .chev{display:grid; place-items:center; color:var(--muted); transition:transform .15s ease}
+details.sec[open] > summary .chev{transform:rotate(90deg)}
+details.sec > summary .sn{font-family:var(--f-mono); font-size:14px; color:var(--muted)}
+details.sec > summary .stt{font-weight:650; font-size:17px; display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0}
+details.sec > summary .state{font-size:13.5px; font-weight:600; color:var(--muted); text-align:right}
+details.sec > summary .state.ok{color:var(--go)}
+details.sec > .in{padding:4px 18px 20px 50px; display:grid; gap:14px}
+@media (max-width:640px){
+  details.sec > summary{grid-template-columns:20px minmax(0,1fr)}
+  details.sec > summary .sn{display:none}
+  details.sec > summary .state{grid-column:2; text-align:left}
+  details.sec > .in{padding-left:18px}
+}
+/* Zone secondaire repliée (« sur un autre ordinateur ? ») */
+details.other{border-top:1px solid var(--line); padding-top:12px}
+details.other > summary{list-style:none; cursor:pointer; font-weight:600; font-size:15px; color:var(--ink-2); min-height:40px; display:flex; align-items:center; gap:10px}
+details.other > summary::-webkit-details-marker{display:none}
+details.other > summary::before{content:""; flex:none; width:7px; height:7px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(-45deg); transition:transform .15s ease; margin-inline:2px 1px}
+details.other[open] > summary::before{transform:rotate(45deg)}
+details.other > summary:hover{color:var(--ink)}
+details.other .in{display:grid; gap:10px; margin-top:8px}
+.tag.carte{border-color:var(--violet); color:var(--violet-ink); background:var(--violet-soft)}
+
 /* Pied de page */
 .foot{border-top:1px solid var(--line); margin-top:56px; padding-block:22px 44px; color:var(--muted); font-size:14px; display:grid; gap:6px}
 

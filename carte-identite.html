@@ -16,10 +16,16 @@
 :root{ padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
   --card-w:1123px; }
 .panel-in{display:grid; gap:14px; margin-top:20px}
-.codes{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:12px}
-.codes input{font-family:var(--f-mono); font-size:13.5px}
-.codes .ok{font-size:13.5px; font-weight:600}
-.codes .ok.good{color:var(--go)} .codes .ok.bad{color:var(--stop)}
+.drow{display:grid; grid-template-columns:minmax(0,340px) minmax(0,1fr); gap:10px 18px; align-items:end}
+@media (max-width:700px){ .drow{grid-template-columns:1fr} }
+.dstate{font-size:14.5px; color:var(--ink-2); padding-bottom:10px}
+.dstate b{color:var(--ink)}
+.dstate.demo{background:var(--yellow-soft); color:var(--ink); border-radius:10px; padding:8px 12px}
+.imp-row{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:end}
+@media (max-width:560px){ .imp-row{grid-template-columns:1fr} }
+.imp-row input{font-family:var(--f-mono); font-size:13.5px}
+.imp-msg{font-size:14px; font-weight:600}
+.imp-msg.good{color:var(--go)} .imp-msg.bad{color:var(--stop)}
 .state-row{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center}
 .state-row .gl{font-size:14px; font-weight:650; color:var(--ink-2)}
 
@@ -129,13 +135,13 @@
   </header>
   <div class="page-head">
     <h1>Carte d'identité Yeita</h1>
-    <p class="lede">La fiche que la personne reçoit, qu'on continue ou qu'on s'arrête. Colle les codes EC1 et EC2, choisis l'état de sortie : la carte se compose. Elle part toujours après le débrief téléphonique, jamais avant.</p>
+    <p class="lede">La fiche que la personne reçoit, qu'on continue ou qu'on s'arrête. Elle se compose toute seule à partir du report des fiches #1 et #2. Elle part toujours après le débrief téléphonique, jamais avant.</p>
   </div>
 
   <div class="panel panel-in noprint">
-    <div class="codes">
-      <div class="field"><label for="c1">Code EC1</label><input type="text" id="c1" placeholder="YEITA-EC1.…" autocomplete="off" spellcheck="false"><span class="ok" id="ok1" aria-live="polite"></span></div>
-      <div class="field"><label for="c2">Code EC2</label><input type="text" id="c2" placeholder="YEITA-EC2.…" autocomplete="off" spellcheck="false"><span class="ok" id="ok2" aria-live="polite"></span></div>
+    <div class="drow">
+      <div class="field"><label for="sel">Candidat</label><select id="sel"></select></div>
+      <p class="dstate" id="dstate" aria-live="polite"></p>
     </div>
     <div class="state-row">
       <span class="gl" id="state-l">État de sortie</span>
@@ -146,11 +152,25 @@
       </div>
     </div>
     <div class="actions">
-      <button type="button" class="btn quiet small" id="demo">Charger l'exemple</button>
-      <button type="button" class="btn quiet small" id="clear">Vider</button>
       <button type="button" class="btn small primary" data-print>Imprimer ou enregistrer en PDF</button>
       <span class="note" data-print-note hidden>Pour imprimer ou exporter en PDF, ouvre cette page depuis le site GitHub du recrutement.</span>
+      <button type="button" class="btn quiet small" id="del">Effacer cette carte</button>
     </div>
+    <div class="callout" id="del-confirm" hidden role="alertdialog" aria-labelledby="del-t">
+      <p id="del-t"></p>
+      <div class="actions" style="margin-top:10px"><button type="button" class="btn small" id="del-yes">Effacer</button><button type="button" class="btn quiet small" id="del-no">Garder</button></div>
+    </div>
+    <details class="other" id="imp">
+      <summary>La fiche a été remplie sur un autre ordinateur ?</summary>
+      <div class="in">
+        <p class="note">Colle le code EC1 ou EC2 copié dans la page Notion du candidat. Il rejoint la carte du même candidat, ou en crée une. Les codes disparaîtront avec l'ATS.</p>
+        <div class="imp-row">
+          <div class="field"><label for="code-in">Code EC1 ou EC2</label><input type="text" id="code-in" placeholder="YEITA-EC1.… ou YEITA-EC2.…" autocomplete="off" spellcheck="false"></div>
+          <button type="button" class="btn small" id="import">Ajouter à la carte</button>
+        </div>
+        <p class="imp-msg" id="imp-msg" aria-live="polite"></p>
+      </div>
+    </details>
   </div>
 
   <div class="stage">
@@ -170,16 +190,17 @@
   </div>
 
   <div class="notes noprint">
-    <div><h2 style="font-size:17px">Ce qui ne figure jamais ici</h2><p>La décision, la passation, l'employabilité, les critères des diamants et les exemples cités. Les codes ne les transportent pas.</p></div>
+    <div><h2 style="font-size:17px">Ce qui ne figure jamais ici</h2><p>La décision, l'employabilité, les hypothèses sur les diamants, le signal de vigilance, les questions pour l'étape suivante et les exemples cités. Ils restent côté Yeita.</p></div>
     <div><h2 style="font-size:17px">Arrêt après l'EC1</h2><p>Seule la moitié gauche est remplie. La droite reste vide, sans mention : on ne promet pas une étape qui n'aura pas lieu.</p></div>
     <div><h2 style="font-size:17px">Embauche</h2><p>La carte, corrigée en EC3, devient le point de départ de la personne chez Yeita. C'est elle qui la tient ensuite.</p></div>
   </div>
-  <footer class="foot noprint"><span>Les codes sont lus dans ce navigateur et ne partent nulle part.</span></footer>
+  <footer class="foot noprint"><span>Les cartes et leurs éléments internes restent dans ce navigateur et ne partent nulle part.</span></footer>
 </div>
 
 <script src="assets/yeita.js"></script>
 <script src="assets/data-yeita-match.js"></script>
 <script src="assets/data-diamants.js"></script>
+<script src="assets/dossier.js"></script>
 <script>
 (function(){
 "use strict";
@@ -188,100 +209,170 @@ document.getElementById("logo").innerHTML = YEITA.logo(26);
 document.getElementById("blogo").innerHTML = YEITA.logo(30);
 document.getElementById("flogo").innerHTML = YEITA.logo(18);
 YEITA.wirePrint();
-var st = YEITA.store.get(KEY, null) || {a:"", b:"", s:"ec2"};
-var ec1 = null, ec2 = null;
+var st = YEITA.store.get(KEY, null) || {};
+var all = [], cur = null;
+
+/* L'exemple : affiché tant qu'aucun dossier n'existe dans ce navigateur. Jamais enregistré. */
+var DEMO = {schema: DOSSIER.SCHEMA, version: DOSSIER.VERSION, id: "__demo", demo: true,
+  candidat: {nom: "Camille Rousseau", role: "PM"},
+  ec1: Object.assign(DOSSIER.emptyEC1(), {date: "2026-10-14", recruteur: "Pauline", observateur: "Peter",
+    match: {dominante: "explorateur", seconde: "collectif", partielle: false, pourquoi: "", source: "decompte"},
+    percu: "Part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites. Cite l'équipe avant elle-même, y compris sur ce qu'elle a porté seule.",
+    valeurs: {"collectif": "A cité trois fois l'équipe avant de se citer elle-même, y compris sur une réussite qu'elle portait seule.",
+      "sans-chichi": "A dit « je ne sais pas » deux fois sans chercher à rattraper, et a proposé d'aller vérifier.",
+      "explorateur": "Raconte un changement de méthode décidé après un test raté, avec ce que ça a coûté.",
+      "meilleure-version": "Sait nommer ce qu'elle ne maîtrise pas encore, le cadrage amont, et ce qu'elle fait pour y aller."},
+    employabilite: {demarrage: "binome", note: "Pitch clair et chiffré. A tenu le fil quand on l'a relancée sur un échec.", criteres: {}},
+    diamants: ["À creuser", "Fort", "Fort", "Non vu"],
+    vigilance: "Deux relances sans exemple concret dès qu'on monte au niveau du cadrage amont.",
+    questionsEC2: "Ce qu'elle a réellement porté seule sur le dernier produit.\nSa façon d'arbitrer quand un sponsor pousse une solution."}),
+  ec2: Object.assign(DOSSIER.emptyEC2(), {date: "2026-10-21", pair: "Thélo", role: "PM", palier: 2,
+    notes: [2,3,2, 4,3,2, 3,3,2, 3,2,null]}),
+  restitution: {etat: st.demoEtat || "ec2"}, meta: {}};
 
 function fmtDate(s){ if(/^\d{4}-\d{2}-\d{2}$/.test(s||"")){ return new Date(s+"T12:00:00").toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}); } return s || ""; }
+function fmtWhen(iso){ try{ return new Date(iso).toLocaleString("fr-FR", {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"}); }catch(e){ return ""; } }
+function etat(){ return (cur && cur.restitution && cur.restitution.etat) || "ec2"; }
 
+/* ---------- La carte ---------- */
 function renderHead(){
-  var name = (ec1 && ec1.n) || (ec2 && ec2.n) || "";
+  var name = cur.candidat.nom || "", e1 = cur.ec1, e2 = cur.ec2, s = etat();
   var who = document.getElementById("who");
   who.textContent = name || "Prénom et nom"; who.classList.toggle("empty", !name);
   var m = [];
-  if(ec1 && ec1.d) m.push("Entretien 1, " + fmtDate(ec1.d));
-  if(st.s !== "ec1" && ec2 && ec2.d) m.push("Entretien 2, " + fmtDate(ec2.d));
+  if(e1 && e1.date) m.push("Entretien 1, " + fmtDate(e1.date));
+  if(s !== "ec1" && e2 && e2.date) m.push("Entretien 2, " + fmtDate(e2.date));
   document.getElementById("meta").innerHTML = m.map(function(x){ return '<span>'+E(x)+'</span>'; }).join("");
-  var s = document.getElementById("start");
-  s.hidden = st.s !== "hire";
-  s.innerHTML = YEITA.icon("ArrowRight", 20, 2.2) + 'Ton point de départ chez Yeita, corrigé ensemble en EC3. C\'est toi qui la fais vivre, bilan après bilan.';
-  document.getElementById("fline").textContent = st.s === "hire" ? "Ton état initial : la même carte servira à chaque bilan, sur les mêmes repères." : "Ni note, ni verdict. Une lecture à un instant T, qu'on corrige ensemble.";
+  var b = document.getElementById("start");
+  b.hidden = s !== "hire";
+  b.innerHTML = YEITA.icon("ArrowRight", 20, 2.2) + 'Ton point de départ chez Yeita, corrigé ensemble en EC3. C\'est toi qui la fais vivre, bilan après bilan.';
+  document.getElementById("fline").textContent = s === "hire" ? "Ton état initial : la même carte servira à chaque bilan, sur les mêmes repères." : "Ni note, ni verdict. Une lecture à un instant T, qu'on corrige ensemble.";
 }
-
 function renderLeft(){
-  var el = document.getElementById("left");
-  if(!ec1){ el.innerHTML = ""; return; }
-  var name, form = "", combo = "";
-  if(ec1.p === "partial"){ name = "Lecture partielle"; form = ec1.why || "On n'a pas assez vu pour poser un profil. Ce qui suit est ce qu'on a pu lire, et rien de plus."; }
-  else if(ec1.p){
-    var k = ec1.p.split("|"), d = Y.value(k[0]), s = Y.value(k[1]), p = Y.profileFor(k[0], k[1]);
+  var el = document.getElementById("left"), e1 = cur.ec1;
+  if(!e1){ el.innerHTML = ""; return; }
+  var m = e1.match || {}, name = "", form = "", combo = "";
+  if(m.partielle){ name = "Lecture partielle"; form = m.pourquoi || "On n'a pas assez vu pour lire une dominante. Ce qui suit est ce qu'on a pu lire, et rien de plus."; }
+  else if(m.dominante && m.seconde){
+    var d = Y.value(m.dominante), s = Y.value(m.seconde), p = Y.profileFor(m.dominante, m.seconde);
     if(p){ name = p.label; form = "Un profil « " + d.label.toLowerCase() + " » qui " + s.verb + ". " + p.description;
       combo = '<div class="combo"><span class="vchip" data-v="'+d.id+'">'+P(d.id,15)+E(d.label)+'</span><span aria-hidden="true">›</span><span class="vchip" data-v="'+s.id+'">'+P(s.id,15)+E(s.label)+'</span></div>'; }
   }
   var h = '<span class="h-lab">Ce qu\'on a perçu de toi</span>';
   if(name) h += '<div style="display:grid; gap:8px"><span class="prof-name">'+E(name)+'</span>'+combo+'<p class="prof-form">'+E(form)+'</p></div>';
-  if(ec1.def) h += '<p class="def">'+E(ec1.def)+'</p>';
-  h += '<div class="vals">' + Y.VALUES.map(function(v, i){
-    var txt = (ec1.v && ec1.v[i]) ? ec1.v[i] : "";
+  if(e1.percu) h += '<p class="def">'+E(e1.percu)+'</p>';
+  h += '<div class="vals">' + Y.VALUES.map(function(v){
+    var txt = (e1.valeurs && e1.valeurs[v.id]) || "";
     return '<div class="vrow" data-v="'+v.id+'"><b>'+P(v.id,16)+E(v.label)+'</b><q>'+E(v.expectation)+'</q>'
       + (txt ? '<p>'+E(txt)+'</p>' : '<p class="none">Rien d\'écrit sur cette valeur.</p>') + '</div>';
   }).join("") + '</div>';
   el.innerHTML = h;
 }
-
 function renderRight(){
-  var el = document.getElementById("right");
+  var el = document.getElementById("right"), e2 = cur.ec2;
   // Arrêt après l'EC1 : on n'écrit rien, la moitié reste vide.
-  if(st.s === "ec1" || !ec2){ el.innerHTML = ""; return; }
-  var T = ec2.tier, h = '<span class="h-lab">Ton métier, sur les quatre diamants</span>';
-  h += '<div class="radar">'+YEITA.radar(ec2.steps, T, {w:540, h:390, r:132, label:"Tes douze étapes et l'attendu au palier "+Dm.TIERS[T-1]})+'</div>';
+  if(etat() === "ec1" || !e2){ el.innerHTML = ""; return; }
+  var T = e2.palier || 2, notes = e2.notes, h = '<span class="h-lab">Ton métier, sur les quatre diamants</span>';
+  h += '<div class="radar">'+YEITA.radar(notes, T, {w:540, h:390, r:132, label:"Tes douze étapes et l'attendu au palier "+Dm.TIERS[T-1]})+'</div>';
   h += '<div class="dgroups">' + Dm.D.map(function(d, di){
-    var avg = Dm.avgDiamond(ec2.steps, di), att = Dm.expDiamond(T, di);
+    var avg = Dm.avgDiamond(notes, di), att = Dm.expDiamond(T, di);
     return '<div class="dg"><div class="dh"><b><span>'+d.n+'</span>'+E(d.name)+'</b><span class="n">'+YEITA.fr(avg)+' <small>/ attendu '+YEITA.fr(att)+'</small></span></div>'
       + '<div class="bar" aria-hidden="true"><u style="width:'+(Math.max(0,Math.min(4,avg))/4*100)+'%"></u><s style="left:calc('+(att/4*100)+'% - 1px)"></s></div></div>';
   }).join("") + '</div>';
-  h += '<div class="palier"><span class="pl">Palier discuté ensemble</span><b>'+E(Dm.TIERS[T-1])+'</b><p>'+E(Dm.TIER_XP[T-1])+'. À ce palier, '+E(Dm.TIER_WHY_YOU[T-1])+'. Le pointillé est l\'attendu, pas un seuil d\'admission : c\'est le point de départ de la conversation.</p>'
-    + (ec2.legacy ? '<p>Ancien format de code : seules les moyennes par diamant sont disponibles.</p>' : '') + '</div>';
+  h += '<div class="palier"><span class="pl">Palier discuté ensemble</span><b>'+E(Dm.TIERS[T-1])+'</b><p>'+E(Dm.TIER_XP[T-1])+'. À ce palier, '+E(Dm.TIER_WHY_YOU[T-1])+'. Le pointillé est l\'attendu, pas un seuil d\'admission : c\'est le point de départ de la conversation.</p></div>';
   el.innerHTML = h;
 }
 
-function read(){
-  var a = document.getElementById("c1").value, b = document.getElementById("c2").value;
-  var r1 = YEITA.readEC1(a), r2 = YEITA.readEC2(b);
-  ec1 = r1 || null; ec2 = r2 || null;
-  var o1 = document.getElementById("ok1"), o2 = document.getElementById("ok2");
-  o1.textContent = r1 === false ? "Code EC1 illisible : recopie-le depuis la fiche #1." : (ec1 ? "Code EC1 lu" : ""); o1.className = "ok " + (r1 === false ? "bad" : "good");
-  o2.textContent = r2 === false ? "Code EC2 illisible : recopie-le depuis la fiche #2." : (ec2 ? "Code EC2 lu" : ""); o2.className = "ok " + (r2 === false ? "bad" : "good");
-  st.a = a; st.b = b; YEITA.store.set(KEY, st);
-  renderHead(); renderLeft(); renderRight();
-  document.querySelectorAll("#state [role=radio]").forEach(function(x){ x.setAttribute("aria-checked", String(x.dataset.s === st.s)); });
+/* ---------- Le dossier affiché ---------- */
+function partLine(label, part){
+  if(!part) return label + " : pas encore reporté";
+  return label + " : reporté le " + fmtWhen(part.reporteLe || "");
+}
+function renderPanel(){
+  var sel = document.getElementById("sel");
+  sel.innerHTML = all.map(function(d){
+    var parts = [d.ec1 ? "EC1" : "", d.ec2 ? "EC2" : ""].filter(Boolean).join(" et ");
+    return '<option value="'+E(d.id)+'">'+E(d.candidat.nom || "Sans nom")+(parts ? " · " + parts : "")+'</option>';
+  }).join("") + '<option value="__demo">Exemple (Camille Rousseau)</option>';
+  sel.value = cur.id;
+  var ds = document.getElementById("dstate");
+  ds.classList.toggle("demo", !!cur.demo);
+  if(cur.demo){
+    ds.innerHTML = all.length ? "<b>Exemple.</b> Ce n'est pas un vrai candidat : choisis-en un dans la liste."
+      : "<b>Exemple.</b> Aucune carte dans ce navigateur. Reporte une fiche #1 pour composer une vraie carte.";
+  } else {
+    ds.innerHTML = E(partLine("EC1", cur.ec1)) + "<br>" + E(partLine("EC2", cur.ec2));
+  }
+  document.getElementById("del").hidden = !!cur.demo;
+  document.getElementById("del-confirm").hidden = true;
+  document.querySelectorAll("#state [role=radio]").forEach(function(x){ x.setAttribute("aria-checked", String(x.dataset.s === etat())); });
+}
+function render(){ renderPanel(); renderHead(); renderLeft(); renderRight(); }
+
+/* Charge la liste, puis affiche le dossier demandé, sinon le dossier courant, sinon l'exemple. */
+function refresh(wantId){
+  return DOSSIER.list().then(function(list){
+    all = list;
+    if(wantId === "__demo" || !list.length){ cur = DEMO; return; }
+    var hit = wantId ? list.filter(function(d){ return d.id === wantId; })[0] : null;
+    if(hit){ cur = hit; return; }
+    return DOSSIER.current().then(function(d){ cur = d || DEMO; });
+  }).then(render);
 }
 
-var DEMO1 = {n:"Camille Rousseau", d:"2026-10-14", par:"Pauline", p:"explorateur|collectif",
-  def:"Part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites.", why:"",
-  v:["A cité trois fois l'équipe avant de se citer elle-même, y compris sur une réussite qu'elle portait seule.",
-     "A dit « je ne sais pas » deux fois sans chercher à rattraper, et a proposé d'aller vérifier.",
-     "Raconte un changement de méthode décidé après un test raté, avec ce que ça a coûté.",
-     "Sait nommer ce qu'elle ne maîtrise pas encore, le cadrage amont, et ce qu'elle fait pour y aller."]};
-var DEMO2 = {role:"PM", t:2, s:[2,3,2, 4,3,2, 3,3,2, 3,2,null], n:"Camille Rousseau", d:"2026-10-21", par:"Thélo"};
-
-document.getElementById("c1").addEventListener("input", read);
-document.getElementById("c2").addEventListener("input", read);
-document.getElementById("state").addEventListener("click", function(e){ var b = e.target.closest("[role=radio]"); if(!b) return; st.s = b.dataset.s; read(); });
-document.addEventListener("click", function(e){
-  if(e.target.id === "demo"){
-    document.getElementById("c1").value = "YEITA-EC1." + YEITA.b64e(DEMO1);
-    document.getElementById("c2").value = "YEITA-EC2." + YEITA.b64e(DEMO2);
-    read(); YEITA.flash(null, "Exemple chargé"); return;
-  }
-  if(e.target.id === "clear"){ document.getElementById("c1").value = ""; document.getElementById("c2").value = ""; read(); return; }
+/* ---------- Événements ---------- */
+document.getElementById("sel").addEventListener("change", function(e){
+  var id = e.target.value;
+  if(id !== "__demo") DOSSIER.setCurrent(id);
+  refresh(id);
 });
-/* L'exemple s'affiche à la première ouverture, pour voir la carte composée. */
-document.getElementById("c1").value = st.a || ("YEITA-EC1." + YEITA.b64e(DEMO1));
-document.getElementById("c2").value = st.b || (st.a ? "" : "YEITA-EC2." + YEITA.b64e(DEMO2));
-/* Lien direct vers un état : #ec1, #ec2 ou #embauche */
+document.getElementById("state").addEventListener("click", function(e){
+  var b = e.target.closest("[role=radio]"); if(!b) return;
+  if(cur.demo){ DEMO.restitution.etat = b.dataset.s; st.demoEtat = b.dataset.s; YEITA.store.set(KEY, st); render(); return; }
+  DOSSIER.setRestitution(cur.id, {etat: b.dataset.s}).then(function(d){ if(d) cur = d; render(); });
+});
+function doImport(){
+  var inp = document.getElementById("code-in"), msg = document.getElementById("imp-msg");
+  if(!inp.value.trim()){ msg.textContent = "Colle d'abord un code EC1 ou EC2."; msg.className = "imp-msg bad"; inp.focus(); return; }
+  DOSSIER.importCode(inp.value).then(function(r){
+    msg.textContent = "Code " + r.part.toUpperCase() + " ajouté à la carte de " + r.dossier.candidat.nom + ".";
+    msg.className = "imp-msg good"; inp.value = "";
+    return refresh(r.dossier.id);
+  }).catch(function(err){ msg.textContent = err.message; msg.className = "imp-msg bad"; });
+}
+document.getElementById("code-in").addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); doImport(); } });
+document.addEventListener("click", function(e){
+  if(e.target.id === "import"){ doImport(); return; }
+  if(e.target.id === "del"){
+    document.getElementById("del-t").innerHTML = "<b>Effacer la carte de " + E(cur.candidat.nom || "ce candidat") + " ?</b> La carte et les éléments internes disparaissent de ce navigateur. Les brouillons des fiches #1 et #2 ne bougent pas.";
+    document.getElementById("del-confirm").hidden = false; document.getElementById("del-yes").focus(); return;
+  }
+  if(e.target.id === "del-no"){ document.getElementById("del-confirm").hidden = true; document.getElementById("del").focus(); return; }
+  if(e.target.id === "del-yes"){
+    var nom = cur.candidat.nom;
+    DOSSIER.remove(cur.id).then(function(){ return refresh(); }).then(function(){ YEITA.flash(null, "Carte de " + nom + " effacée"); document.getElementById("sel").focus(); });
+    return;
+  }
+});
+/* Une fiche reportée dans un autre onglet met la carte à jour aussitôt. */
+window.addEventListener("storage", function(e){ if(e.key === "yeita-dossiers" || e.key === null) refresh(cur && !cur.demo ? cur.id : undefined); });
+
+/* Les codes collés dans l'ancienne version de la carte rejoignent les dossiers, une fois. L'exemple est ignoré. */
+function migrateCodes(){
+  if(st.codesDone) return Promise.resolve();
+  st.codesDone = true; YEITA.store.set(KEY, st);
+  var todo = [st.a, st.b].filter(function(c){
+    if(!c) return false;
+    try{ return DOSSIER.fromCode(c).nom !== "Camille Rousseau"; }catch(e){ return false; }
+  });
+  return todo.reduce(function(p, c){ return p.then(function(){ return DOSSIER.importCode(c).catch(function(){}); }); }, Promise.resolve());
+}
+
+/* Lien direct vers un état de l'exemple : #ec1, #ec2 ou #embauche */
 var hs = (location.hash||"").replace("#","");
-if(hs === "ec1" || hs === "ec2") st.s = hs; else if(hs === "embauche") st.s = "hire";
-read();
+var hashState = hs === "ec1" || hs === "ec2" ? hs : (hs === "embauche" ? "hire" : null);
+if(hashState) DEMO.restitution.etat = hashState;
+migrateCodes().then(function(){ return refresh(hashState ? "__demo" : undefined); });
 })();
 </script>
 </body>

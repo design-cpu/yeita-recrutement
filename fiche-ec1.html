@@ -10,15 +10,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="assets/yeita.css">
 <style>
-/* Fiche #1 : une feuille à remplir en dix minutes, puis les repères repliés en dessous. */
+/* Fiche #1 : la lecture de l'EC1 et ce qui passe à l'EC2, en sections dépliantes.
+   Chaque section dit si elle part sur la carte d'identité ou si elle reste interne. Le report l'envoie vers la carte. */
 :root{ padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px) }
 .sub-title{font-size:19px; font-weight:600; color:var(--ink-2)}
-.sheet{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:clamp(18px,3vw,30px); display:grid; gap:28px}
-.sheet > section{display:grid; gap:14px}
-.sheet h2{font-size:21px; display:flex; gap:12px; align-items:baseline}
-.sheet h2 .sn{font-family:var(--f-mono); font-size:14px; font-weight:500; color:var(--muted)}
+.toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:14px}
 .sheet .hint{font-size:14.5px; color:var(--muted); max-width:70ch}
-.toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:16px}
 
 .from{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; background:var(--yellow-soft); border-radius:12px; padding:12px 14px}
 .from p{font-size:15px; flex:1 1 280px}
@@ -41,21 +38,34 @@
 .profile.empty{background:var(--surface-2); color:var(--ink-2)}
 .profile.empty .pl{color:var(--muted)}
 
-.vals{display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:14px}
+.vals{display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%,280px),1fr)); gap:14px}
 .vrow{display:grid; gap:8px; border-top:3px solid var(--vf); padding-top:10px}
-.vrow .vt{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
 .vrow .vt b{display:inline-flex; align-items:center; gap:7px; color:var(--vc); font-size:16.5px}
 .vrow q{font-size:14px; color:var(--muted); quotes:"« " " »"}
 
-.intern{border:1.5px dashed var(--line-strong); border-radius:14px; padding:18px 20px; display:grid; gap:14px}
-.intern .flag{font-size:14px; font-weight:650; color:var(--stop)}
 .radios{display:grid; gap:6px}
 .radios label{display:grid; grid-template-columns:22px minmax(0,1fr); gap:10px; align-items:center; padding:8px 12px; border-radius:10px; border:1.5px solid var(--line); cursor:pointer; min-height:44px; font-size:15px}
 .radios input{width:18px; height:18px; margin:0; accent-color:var(--violet)}
 .radios label:has(input:checked){border-color:var(--ink); background:var(--surface-2)}
 
-.code{font-family:var(--f-mono); font-size:13px; background:var(--surface-2); border-radius:10px; padding:10px 12px; word-break:break-all; color:var(--ink-2); min-height:44px}
-.outs{display:grid; gap:12px}
+.diam{display:grid; gap:8px}
+.drow{border:1px solid var(--line); border-radius:12px; padding:10px 14px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px 16px; align-items:center}
+@media (max-width:760px){ .drow{grid-template-columns:1fr} }
+.drow b{font-size:16px; display:flex; gap:8px; align-items:baseline}
+.drow b span{font-family:var(--f-mono); font-weight:500; color:var(--muted)}
+.drow p{font-size:14px; color:var(--ink-2)}
+.pills{display:flex; flex-wrap:wrap; gap:6px}
+.pills button{appearance:none; cursor:pointer; border:1.5px solid var(--line-strong); background:transparent; color:var(--ink-2); border-radius:999px; padding:6px 13px; font-weight:600; font-size:14px; min-height:38px}
+.pills button[aria-checked="true"]{border-color:var(--ink); background:var(--ink); color:var(--paper)}
+
+/* Le report : le geste qui envoie la fiche vers la carte d'identité */
+.report{margin-top:22px; border-radius:18px; background:var(--surface); border:1.5px solid var(--ink); padding:20px 22px; display:grid; gap:14px}
+.report h2{font-size:21px}
+.rstate{font-size:15px; color:var(--ink-2); max-width:70ch}
+.rstate.ok{color:var(--go); font-weight:600}
+.rstate.dirty{color:var(--ink); background:var(--yellow-soft); border-radius:10px; padding:8px 12px}
+.rstate.err{color:var(--stop); font-weight:600}
+.code{font-family:var(--f-mono); font-size:13px; background:var(--surface-2); border-radius:10px; padding:10px 12px; word-break:break-all; color:var(--ink-2); min-height:44px; max-height:140px; overflow:auto}
 
 /* Repères */
 .refs{margin-top:36px; display:grid; gap:12px}
@@ -106,85 +116,124 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
     <nav aria-label="Supports de l'EC1">
       <a href="index.html#ec1">Guide, étape 5</a>
       <a href="yeita-match-decompte.html">Feuille de décompte</a>
-      <a href="fiche-passation.html">Fiche de passation</a>
+      <a href="carte-identite.html">Carte d'identité</a>
     </nav>
   </header>
 
   <div class="page-head">
     <h1>Fiche d'entretien candidat #1</h1>
     <p class="sub-title">Yeita Match &amp; Valeurs Yeita</p>
-    <p class="lede">Remplie par le recruteur juste après l'EC1, en dix minutes, à chaud, avec les notes de l'observateur. Deux sorties : le compte rendu pour Notion, et le code EC1 qui remplit la carte d'identité Yeita.</p>
+    <p class="lede">Remplie juste après l'EC1, par le recruteur avec les notes de l'observateur. Elle réunit la lecture de l'entretien et ce qui passe à l'EC2, puis part vers la carte d'identité.</p>
   </div>
 
   <div class="toolbar">
     <button type="button" class="btn quiet small" id="demo">Charger un exemple</button>
+    <button type="button" class="btn quiet small" id="toggle-all">Tout déplier</button>
     <button type="button" class="btn quiet small" id="clear">Vider la fiche</button>
   </div>
   <div class="callout" id="confirm" hidden role="alertdialog" aria-labelledby="cf-t" style="margin-bottom:16px">
-    <p id="cf-t"><b>Vider la fiche ?</b> Tout ce qui est écrit ici sera effacé de ce navigateur. Pense à copier pour Notion avant.</p>
+    <p id="cf-t"><b>Vider la fiche ?</b> Tout ce qui est écrit ici sera effacé de ce navigateur. Ce qui a déjà été reporté vers la carte d'identité y reste.</p>
     <div class="actions" style="margin-top:10px"><button type="button" class="btn small" id="cf-yes">Vider</button><button type="button" class="btn quiet small" id="cf-no">Garder</button></div>
   </div>
 
   <form class="sheet" id="sheet" autocomplete="off" onsubmit="return false">
-    <section aria-labelledby="s1">
-      <h2 id="s1"><span class="sn">1</span>L'entretien</h2>
-      <div class="grid-fields">
-        <div class="field"><label for="f-nom">Candidat</label><input type="text" id="f-nom" placeholder="Prénom et nom"></div>
-        <div class="field"><label for="f-date">Date</label><input type="date" id="f-date"></div>
-        <div class="field"><label for="f-par">Mené par</label><input type="text" id="f-par" placeholder="Prénom et nom"></div>
-        <div class="field"><label for="f-obs">Observé par</label><input type="text" id="f-obs" placeholder="Prénom et nom"></div>
-        <div class="field"><label for="f-fmt">Format</label><select id="f-fmt"><option value="presentiel">Présentiel, kit Yeita Match</option><option value="visio">Visio, jeu en ligne</option></select></div>
-      </div>
-    </section>
 
-    <section aria-labelledby="s2" id="yeita-match" tabindex="-1">
-      <h2 id="s2"><span class="sn">2</span>Le résultat de Yeita Match</h2>
-      <div id="from"></div>
-      <div class="importer">
-        <label for="f-json" class="hint">En visio, importe la partie exportée par le jeu en ligne (fichier .json) :</label>
-        <input type="file" id="f-json" accept="application/json,.json">
-      </div>
-      <div class="picker" id="picker"></div>
-      <div id="profile"></div>
-      <div class="field" id="whywrap" hidden><label for="f-why">Pourquoi on ne tranche pas</label><textarea id="f-why" rows="2" placeholder="Ce qui a manqué pour poser un profil : le temps, les exemples, le format…"></textarea></div>
-    </section>
-
-    <section aria-labelledby="s3">
-      <h2 id="s3"><span class="sn">3</span>Ce qu'on a perçu de toi</h2>
-      <p class="hint">Une phrase, deux lignes au plus. Ce qu'on a vu, pas ce qu'on en déduit. Elle figure sur la carte d'identité.</p>
-      <div class="field"><label for="f-def" class="sr-only">Ce qu'on a perçu</label><textarea id="f-def" rows="2" placeholder="Ex. : part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites."></textarea></div>
-    </section>
-
-    <section aria-labelledby="s4">
-      <h2 id="s4"><span class="sn">4</span>Les quatre valeurs</h2>
-      <p class="hint">Sous chaque valeur : ce qu'on a vu, et ce qu'on n'a pas pu voir. Un seul signal négatif sur l'ensemble, cité et factuel.</p>
-      <div class="vals" id="vals"></div>
-    </section>
-
-    <section aria-labelledby="s5" class="intern">
-      <h2 id="s5"><span class="sn">5</span>L'employabilité</h2>
-      <p class="flag">Interne. Ne part jamais avec le candidat, ni dans le code EC1.</p>
-      <fieldset style="border:0; padding:0; margin:0; display:grid; gap:8px">
-        <legend style="font-weight:650; font-size:15px; margin-bottom:6px">Là où on le voit démarrer aujourd'hui</legend>
-        <div class="radios" id="start"></div>
-      </fieldset>
-      <div class="field"><label for="f-emp">Ce qui fonde cette lecture</label><textarea id="f-emp" rows="2" placeholder="Se présenter, tenir le fil, encaisser : ce qu'on a observé, avec un exemple."></textarea></div>
-      <p class="hint">La passation vers l'EC2 s'écrit au débrief, dans la <a href="fiche-passation.html">fiche de passation candidat</a>.</p>
-    </section>
-
-    <section aria-labelledby="s6">
-      <h2 id="s6"><span class="sn">6</span>Les sorties</h2>
-      <div class="outs">
-        <div class="actions">
-          <button type="button" class="btn primary" id="copy-notion">Copier pour Notion</button>
-          <button type="button" class="btn" id="copy-code">Copier le code EC1</button>
-          <a class="btn quiet" href="carte-identite.html">Ouvrir la carte d'identité</a>
+    <details class="sec" id="s-id">
+      <summary><span class="chev" aria-hidden="true"></span><span class="sn">1</span><span class="stt">L'entretien</span><span class="state" id="st-s-id"></span></summary>
+      <div class="in">
+        <div class="grid-fields">
+          <div class="field"><label for="f-nom">Candidat</label><input type="text" id="f-nom" placeholder="Prénom et nom"></div>
+          <div class="field"><label for="f-date">Date</label><input type="date" id="f-date"></div>
+          <div class="field"><label for="f-par">Mené par</label><input type="text" id="f-par" placeholder="Prénom et nom"></div>
+          <div class="field"><label for="f-obs">Observé par</label><input type="text" id="f-obs" placeholder="Prénom et nom"></div>
+          <div class="field"><label for="f-fmt">Format</label><select id="f-fmt"><option value="presentiel">Présentiel, kit Yeita Match</option><option value="visio">Visio, jeu en ligne</option></select></div>
         </div>
-        <p class="hint">Le compte rendu (interne compris) se colle dans la page Notion du candidat. Le code ne porte que ce qui va sur la carte d'identité.</p>
-        <div class="field"><span class="label" id="code-l">Code EC1</span><p class="code" id="code" aria-labelledby="code-l">—</p></div>
       </div>
-    </section>
+    </details>
+
+    <details class="sec" id="yeita-match">
+      <summary><span class="chev" aria-hidden="true"></span><span class="sn">2</span><span class="stt">Le résultat de Yeita Match <span class="tag carte">Sur la carte</span></span><span class="state" id="st-yeita-match"></span></summary>
+      <div class="in">
+        <div id="from"></div>
+        <div class="importer">
+          <label for="f-json" class="hint">En visio, importe la partie exportée par le jeu en ligne (fichier .json) :</label>
+          <input type="file" id="f-json" accept="application/json,.json">
+        </div>
+        <div class="picker" id="picker"></div>
+        <div id="profile"></div>
+        <div class="field" id="whywrap" hidden><label for="f-why">Pourquoi on ne tranche pas</label><textarea id="f-why" rows="2" placeholder="Ce qui a manqué pour lire une dominante : le temps, les exemples, le format…"></textarea></div>
+      </div>
+    </details>
+
+    <details class="sec" id="s-percu">
+      <summary><span class="chev" aria-hidden="true"></span><span class="sn">3</span><span class="stt">Ce qu'on a perçu de toi <span class="tag carte">Sur la carte</span></span><span class="state" id="st-s-percu"></span></summary>
+      <div class="in">
+        <p class="hint">Deux ou trois phrases, au cœur de la carte. Ce qu'on a vu, pas ce qu'on en déduit.</p>
+        <div class="field"><label for="f-def" class="sr-only">Ce qu'on a perçu</label><textarea id="f-def" rows="3" placeholder="Ex. : part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites."></textarea></div>
+      </div>
+    </details>
+
+    <details class="sec" id="s-vals">
+      <summary><span class="chev" aria-hidden="true"></span><span class="sn">4</span><span class="stt">Les quatre valeurs <span class="tag int">Interne</span></span><span class="state" id="st-s-vals"></span></summary>
+      <div class="in">
+        <p class="hint">Sous chaque valeur : ce qu'on a vu, et ce qu'on n'a pas pu voir. Un seul signal négatif sur l'ensemble, cité et factuel. Ces notes nourrissent la section 3 et le débrief.</p>
+        <div class="vals" id="vals"></div>
+      </div>
+    </details>
+
+    <details class="sec" id="s-emp">
+      <summary><span class="chev" aria-hidden="true"></span><span class="sn">5</span><span class="stt">L'employabilité <span class="tag int">Interne</span></span><span class="state" id="st-s-emp"></span></summary>
+      <div class="in">
+        <fieldset style="border:0; padding:0; margin:0; display:grid; gap:8px">
+          <legend style="font-weight:650; font-size:15px; margin-bottom:6px">Là où on la voit démarrer aujourd'hui</legend>
+          <div class="radios" id="start"></div>
+        </fieldset>
+        <div class="field"><label for="f-emp">Ce qui fonde cette lecture</label><textarea id="f-emp" rows="2" placeholder="Se présenter, tenir le fil, encaisser : ce qu'on a observé, avec un exemple."></textarea></div>
+      </div>
+    </details>
+
+    <details class="sec" id="s-diam">
+      <summary><span class="chev" aria-hidden="true"></span><span class="sn">6</span><span class="stt">Où la personne a vraiment travaillé <span class="tag int">Interne</span></span><span class="state" id="st-s-diam"></span></summary>
+      <div class="in">
+        <p class="hint">Situé pendant le récit du parcours, diamant par diamant. C'est l'hypothèse de départ de l'EC2, à confirmer ou à casser.</p>
+        <div class="diam" id="diam"></div>
+      </div>
+    </details>
+
+    <details class="sec" id="s-vig">
+      <summary><span class="chev" aria-hidden="true"></span><span class="sn">7</span><span class="stt">Un signal de vigilance <span class="tag int">Interne</span></span><span class="state" id="st-s-vig"></span></summary>
+      <div class="in">
+        <p class="hint">Facultatif. Un seul signal, cité et factuel : ce qui a été dit ou fait, mot pour mot si possible. Pas une liste de griefs.</p>
+        <div class="field"><label for="f-vig" class="sr-only">Signal de vigilance</label><textarea id="f-vig" rows="2" placeholder="Ex. : deux relances sans exemple concret dès qu'on monte au niveau du cadrage amont."></textarea></div>
+      </div>
+    </details>
+
+    <details class="sec" id="s-qec2">
+      <summary><span class="chev" aria-hidden="true"></span><span class="sn">8</span><span class="stt">Questions à creuser en EC2 <span class="tag int">Interne</span></span><span class="state" id="st-s-qec2"></span></summary>
+      <div class="in">
+        <p class="hint">Trois au plus, une par ligne. Des directions pour le pair de l'EC2, pas des questions à poser mot pour mot. Elles remontent avec le report, dans la partie interne de la carte d'identité.</p>
+        <div class="field"><label for="f-qec2" class="sr-only">Questions à creuser en EC2</label><textarea id="f-qec2" rows="4" placeholder="Ex. : ce qu'elle a réellement porté seule sur le dernier produit.&#10;Sa façon d'arbitrer quand un sponsor pousse une solution."></textarea></div>
+      </div>
+    </details>
   </form>
+
+  <section class="report" aria-labelledby="r-t">
+    <h2 id="r-t">Envoyer vers la carte d'identité</h2>
+    <p class="rstate" id="rstate" aria-live="polite"></p>
+    <div class="actions">
+      <button type="button" class="btn primary" id="report">Reporter vers la carte d'identité</button>
+      <button type="button" class="btn" id="copy-notion">Copier pour Notion</button>
+      <a class="btn quiet" href="carte-identite.html" id="open-card">Ouvrir la carte d'identité</a>
+    </div>
+    <details class="other">
+      <summary>La carte s'ouvre sur un autre ordinateur ?</summary>
+      <div class="in">
+        <p class="note">Copie ce code dans la page Notion du candidat : sur l'autre ordinateur, il se colle dans la carte d'identité. Il contient aussi les éléments internes : il ne part jamais chez le candidat. Les codes disparaîtront avec l'ATS.</p>
+        <p class="code" id="code" aria-label="Code EC1">—</p>
+        <div class="actions"><button type="button" class="btn small" id="copy-code">Copier le code EC1</button></div>
+      </div>
+    </details>
+  </section>
 
   <div class="refs">
     <h2 style="font-size:22px; margin-top:8px">Repères</h2>
@@ -204,7 +253,7 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
       </div>
       <ol class="rules">
         <li><b>On écrit ce qu'on a vu, jamais ce qu'on en conclut.</b> « Aucun exemple où tu as changé d'avis » s'écrit. « Tu es rigide » ne s'écrit pas.</li>
-        <li><b>Quand le signal est trop pauvre, pas de nom de profil.</b> On choisit « Lecture partielle » et on dit pourquoi.</li>
+        <li><b>Quand le signal est trop pauvre, on ne tranche pas.</b> On choisit « Lecture partielle » et on dit pourquoi.</li>
         <li><b>Rien n'est écrit qui n'ait d'abord été dit.</b> Le débrief téléphonique passe toujours avant l'envoi.</li>
         <li><b>Un signal franchement négatif : un seul, cité, factuel.</b></li>
         <li><b>Rien qui ne soit pas relié au travail.</b> Ni l'allure, ni l'accent, ni la vie personnelle, ni l'âge, ni l'origine, ni la santé.</li>
@@ -222,17 +271,20 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
   </div>
 
   <footer class="foot">
-    <span>Valeurs, comportements et profils identiques au jeu Yeita Match. Ce que tu tapes reste dans ce navigateur jusqu'à ce que tu le copies dans Notion.</span>
+    <span>Valeurs et comportements identiques au jeu Yeita Match. Ce que tu tapes reste dans ce navigateur : le report l'envoie vers la carte d'identité, sur cet ordinateur, et nulle part ailleurs.</span>
   </footer>
 </div>
 
 <script src="assets/yeita.js"></script>
 <script src="assets/data-yeita-match.js"></script>
+<script src="assets/data-diamants.js"></script>
+<script src="assets/dossier.js"></script>
 <script>
 (function(){
 "use strict";
-var Y = YEITA_MATCH, E = YEITA.esc, P = YEITA.picto, KEY = "yeita-fiche-ec1";
+var Y = YEITA_MATCH, Dm = DIAMANTS, E = YEITA.esc, P = YEITA.picto, KEY = "yeita-fiche-ec1";
 document.getElementById("logo").innerHTML = YEITA.logo(26);
+document.querySelectorAll("#sheet .chev").forEach(function(c){ c.innerHTML = YEITA.icon("ChevronRight", 18, 2.2); });
 
 var START = [
   ["auto","En autonomie face au client dès le premier jour"],
@@ -240,10 +292,34 @@ var START = [
   ["cadre","Sur un périmètre cadré, avec un référent présent"],
   ["non","Pas sur de la mission client aujourd'hui"]
 ];
-var FIELDS = ["f-nom","f-date","f-par","f-obs","f-fmt","f-why","f-def","f-emp"].concat(Y.VALUES.map(function(v){ return "v-"+v.id; }));
-var st = YEITA.store.get(KEY, null) || {dom:null, sec:null, partial:false, start:null, f:{}};
+var LEVELS = DOSSIER.DIAM_LEVELS;
+var SECS = ["s-id","yeita-match","s-percu","s-vals","s-emp","s-diam","s-vig","s-qec2"];
+var DEFAULT_OPEN = {"s-id":true, "yeita-match":true, "s-percu":true, "s-qec2":true};
+var FIELDS = ["f-nom","f-date","f-par","f-obs","f-fmt","f-why","f-def","f-emp","f-vig","f-qec2"].concat(Y.VALUES.map(function(v){ return "v-"+v.id; }));
+/* passationDone : le brouillon de l'ancienne fiche de passation n'est repris qu'une fois. */
+function fresh(passationDone){ return {dom:null, sec:null, partial:false, start:null, source:"saisie", diam:[null,null,null,null], f:{}, open:Object.assign({}, DEFAULT_OPEN),
+  dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:!!passationDone}; }
+var st = YEITA.store.get(KEY, null) || fresh(false);
+/* Brouillons d'avant la fusion : on complète ce qui manque. */
+if(!st.diam) st.diam = [null,null,null,null];
+if(!st.open) st.open = Object.assign({}, DEFAULT_OPEN);
+if(!st.f) st.f = {};
 
-/* ---------- Rendu ---------- */
+/* La fiche de passation a rejoint cette fiche : son volet EC1 → EC2 en cours est repris une fois. */
+(function migratePassation(){
+  if(st.passationDone) return;
+  st.passationDone = true;
+  var p = YEITA.store.get("yeita-fiche-passation", null); if(!p || !p.f) return;
+  var f = p.f;
+  if(f["f-nom"] && st.f["f-nom"] && DOSSIER.norm(f["f-nom"]) !== DOSSIER.norm(st.f["f-nom"])) return;
+  var q = ["a-q1","a-q2","a-q3"].map(function(k){ return ((f[k]||"")+"").trim(); }).filter(Boolean);
+  if(q.length && !st.f["f-qec2"]) st.f["f-qec2"] = q.join("\n");
+  if(f["a-att"] && !st.f["f-vig"]) st.f["f-vig"] = f["a-att"];
+  if(p.diam && st.diam.every(function(x){ return !x; })) [0,1,2,3].forEach(function(i){ if(p.diam[i]) st.diam[i] = p.diam[i]; });
+  if(f["f-nom"] && !st.f["f-nom"]) st.f["f-nom"] = f["f-nom"];
+})();
+
+/* ---------- Rendu des sections ---------- */
 document.getElementById("vals").innerHTML = Y.VALUES.map(function(v){
   return '<div class="vrow" data-v="'+v.id+'"><div class="vt"><b>'+P(v.id,18)+E(v.label)+'</b></div><q>'+E(v.expectation)+'</q>'
     + '<div class="field"><label for="v-'+v.id+'" class="sr-only">'+E(v.label)+'</label><textarea id="v-'+v.id+'" rows="3" placeholder="Ce qu\'on a vu, et ce qu\'on n\'a pas pu voir."></textarea></div></div>';
@@ -251,7 +327,13 @@ document.getElementById("vals").innerHTML = Y.VALUES.map(function(v){
 document.getElementById("start").innerHTML = START.map(function(s){
   return '<label><input type="radio" name="start" value="'+s[0]+'"><span>'+E(s[1])+'</span></label>';
 }).join("");
-
+function renderDiam(){
+  document.getElementById("diam").innerHTML = Dm.D.map(function(d, di){
+    return '<div class="drow"><div><b><span>'+d.n+'</span>'+E(d.name)+'</b><p>'+E(d.hint)+'</p></div>'
+      + '<div class="pills" role="radiogroup" aria-label="Hypothèse pour le diamant '+E(d.name)+'">'+LEVELS.map(function(n){
+          return '<button type="button" role="radio" data-d="'+di+'" data-n="'+n+'" aria-checked="'+(st.diam[di]===n)+'">'+n+'</button>'; }).join("")+'</div></div>';
+  }).join("");
+}
 function renderPicker(){
   var h = '<div class="row" role="radiogroup" aria-label="Valeur dominante"><span>Dominante</span>'
     + Y.VALUES.map(function(v){ return '<button type="button" role="radio" class="vbtn" data-v="'+v.id+'" data-r="dom" aria-checked="'+(st.dom===v.id)+'"'+(st.partial?' disabled':'')+'>'+P(v.id,16)+E(v.label)+'</button>'; }).join("") + '</div>'
@@ -262,44 +344,94 @@ function renderPicker(){
   renderProfile();
 }
 function profile(){ return (!st.partial && st.dom && st.sec) ? Y.profileFor(st.dom, st.sec) : null; }
-function formula(){
-  var d = Y.value(st.dom), s = Y.value(st.sec);
-  return "Un profil « " + d.label.toLowerCase() + " » qui " + s.verb + ".";
-}
+function formula(){ var d = Y.value(st.dom), s = Y.value(st.sec); return "Un profil « " + d.label.toLowerCase() + " » qui " + s.verb + "."; }
 function renderProfile(){
   var el = document.getElementById("profile"), p = profile();
   document.getElementById("whywrap").hidden = !st.partial;
-  if(st.partial){ el.innerHTML = '<div class="profile"><span class="pl">Ce qu\'on a perçu de toi</span><span class="pn">Lecture partielle</span><p class="pf">On n\'a pas assez vu pour poser un profil. Ce qui suit est ce qu\'on a pu lire, et rien de plus.</p></div>'; return; }
+  if(st.partial){ el.innerHTML = '<div class="profile"><span class="pl">Ce qu\'on a perçu de toi</span><span class="pn">Lecture partielle</span><p class="pf">On n\'a pas assez vu pour lire une dominante. Ce qui suit est ce qu\'on a pu lire, et rien de plus.</p></div>'; return; }
   if(!p){ el.innerHTML = '<div class="profile empty"><span class="pl">Profil</span><p class="pf">Choisis la dominante puis la seconde, reprends le résultat de la feuille de décompte, ou importe la partie jouée en ligne.</p></div>'; return; }
   el.innerHTML = '<div class="profile"><span class="pl">Profil Yeita Match</span><span class="pn">'+E(p.label)+'</span><p class="pf">'+E(formula())+' '+E(p.description)+'</p></div>';
 }
-
 /* Résultat laissé par la feuille de décompte (même navigateur, moins de 12 h) */
 function renderFrom(){
   var r = YEITA.store.get("yeita-match-resultat", null), el = document.getElementById("from");
   if(!r || !r.dominant || (Date.now() - (r.at||0)) > 12*3600*1000){ el.innerHTML = ""; return; }
-  var p = Y.profileFor(r.dominant, r.second);
   if(st.dom === r.dominant && st.sec === r.second && !st.partial){ el.innerHTML = ""; return; }
-  el.innerHTML = '<div class="from"><p>Résultat de la feuille de décompte'+(r.cand ? ' pour <b>'+E(r.cand)+'</b>' : '')+' : <b>'+E(p.label)+'</b>, '+E(Y.value(r.dominant).label)+' › '+E(Y.value(r.second).label)+'.</p>'
+  el.innerHTML = '<div class="from"><p>Résultat de la feuille de décompte'+(r.cand ? ' pour <b>'+E(r.cand)+'</b>' : '')+' : '+E(Y.value(r.dominant).label)+' › '+E(Y.value(r.second).label)+'.</p>'
     + '<button type="button" class="btn small primary" id="take">Reprendre ce résultat</button></div>';
 }
 
-/* ---------- État ---------- */
+/* ---------- État des sections, lisible même repliées ---------- */
+function g(id){ return ((st.f[id]||"")+"").trim(); }
+function setState(id, text, ok){ var el = document.getElementById("st-"+id); el.textContent = text; el.classList.toggle("ok", !!ok); }
+function renderStates(){
+  var idOk = !!(g("f-nom") && g("f-date"));
+  setState("s-id", idOk ? "Rempli" : "À remplir", idOk);
+  setState("yeita-match", st.partial ? "Lecture partielle" : (st.dom && st.sec ? Y.value(st.dom).short + " › " + Y.value(st.sec).short : "À remplir"), st.partial || (st.dom && st.sec));
+  setState("s-percu", g("f-def") ? "Rempli" : "À remplir", !!g("f-def"));
+  var nv = Y.VALUES.filter(function(v){ return g("v-"+v.id); }).length;
+  setState("s-vals", nv + " sur 4", nv === 4);
+  setState("s-emp", st.start ? "Rempli" : "À remplir", !!st.start);
+  var nd = st.diam.filter(Boolean).length;
+  setState("s-diam", nd + " sur 4", nd === 4);
+  setState("s-vig", g("f-vig") ? "Rempli" : "Facultatif", !!g("f-vig"));
+  setState("s-qec2", g("f-qec2") ? "Rempli" : "À remplir", !!g("f-qec2"));
+}
+
+/* ---------- Données ---------- */
 function collect(){ FIELDS.forEach(function(id){ var e = document.getElementById(id); if(e) st.f[id] = e.value; }); }
 function fill(){
   FIELDS.forEach(function(id){ var e = document.getElementById(id); if(e){ e.value = st.f[id] || (id === "f-fmt" ? "presentiel" : ""); if(e.tagName === "TEXTAREA" && e.value) YEITA.autogrow(e); } });
   document.querySelectorAll('input[name=start]').forEach(function(r){ r.checked = r.value === st.start; });
 }
-function save(){ collect(); YEITA.store.set(KEY, st); renderCode(); }
-function g(id){ return ((st.f[id]||"")+"").trim(); }
+function changed(){ if(st.reportedAt) st.dirty = true; }
+function save(){ collect(); YEITA.store.set(KEY, st); renderStates(); renderCode(); renderReport(); }
 
-function code(){
-  return "YEITA-EC1." + YEITA.b64e({n:g("f-nom"), d:g("f-date"), par:g("f-par"), def:g("f-def"), why: st.partial ? g("f-why") : "",
-    p: st.partial ? "partial" : (st.dom && st.sec ? st.dom+"|"+st.sec : ""), v: Y.VALUES.map(function(v){ return g("v-"+v.id); })});
+/* La lecture de l'EC1 au format du dossier candidat (assets/dossier.js) */
+function ec1Data(){
+  collect();
+  var o = DOSSIER.emptyEC1();
+  o.date = g("f-date"); o.recruteur = g("f-par"); o.observateur = g("f-obs"); o.format = st.f["f-fmt"] || "presentiel";
+  o.match = {dominante: st.partial ? null : st.dom, seconde: st.partial ? null : st.sec, partielle: !!st.partial, pourquoi: st.partial ? g("f-why") : "", source: st.source || "saisie"};
+  o.percu = g("f-def");
+  Y.VALUES.forEach(function(v){ var t = g("v-"+v.id); if(t) o.valeurs[v.id] = t; });
+  o.employabilite = {demarrage: st.start, note: g("f-emp"), criteres: {}};
+  o.diamants = st.diam.slice();
+  o.vigilance = g("f-vig");
+  o.questionsEC2 = g("f-qec2");
+  return o;
 }
-function hasContent(){ return !!(g("f-nom") || g("f-def") || st.dom || st.partial || Y.VALUES.some(function(v){ return g("v-"+v.id); })); }
-function renderCode(){ document.getElementById("code").textContent = hasContent() ? code() : "—"; }
-function fmtDate(s){ if(/^\d{4}-\d{2}-\d{2}$/.test(s)){ var d = new Date(s+"T12:00:00"); return d.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}); } return s; }
+function hasContent(){ return !!(g("f-nom") || g("f-def") || st.dom || st.partial || g("f-qec2")); }
+function codeNow(){ return DOSSIER.toCode({id: st.dossierId, candidat: {nom: g("f-nom"), role: "PM"}, ec1: ec1Data()}, "ec1"); }
+function renderCode(){ document.getElementById("code").textContent = hasContent() ? codeNow() : "—"; }
+function fmtWhen(iso){ try{ return new Date(iso).toLocaleString("fr-FR", {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"}); }catch(e){ return ""; } }
+function fmtDate(s){ if(/^\d{4}-\d{2}-\d{2}$/.test(s)){ return new Date(s+"T12:00:00").toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}); } return s; }
+
+/* ---------- Report vers la carte : pas encore reporté → reporté → modifié depuis ---------- */
+var reportError = "";
+function renderReport(){
+  var el = document.getElementById("rstate"), b = document.getElementById("report");
+  el.className = "rstate";
+  if(reportError){ el.textContent = reportError; el.classList.add("err"); }
+  else if(!st.reportedAt){ el.textContent = "Pas encore reporté. Le report envoie la lecture vers la carte d'identité, et les éléments internes dans sa partie réservée à Yeita. Tout reste sur cet ordinateur."; }
+  else if(st.dirty){ el.textContent = "Modifiée depuis le report du " + fmtWhen(st.reportedAt) + ". Reporte à nouveau pour mettre la carte à jour."; el.classList.add("dirty"); }
+  else { el.textContent = "Reporté le " + fmtWhen(st.reportedAt) + ". La carte d'identité est à jour."; el.classList.add("ok"); }
+  b.textContent = st.reportedAt ? "Mettre à jour la carte" : "Reporter vers la carte d'identité";
+}
+function doReport(btn){
+  var nom = g("f-nom");
+  if(!nom){
+    reportError = "Indique le nom du candidat, dans la section 1, avant de reporter.";
+    renderReport(); document.getElementById("s-id").open = true; document.getElementById("f-nom").focus(); return;
+  }
+  reportError = "";
+  /* Même dossier si c'est le même candidat ; un autre nom ouvre un autre dossier. */
+  var id = (st.dossierId && DOSSIER.norm(st.dossierNom) === DOSSIER.norm(nom)) ? st.dossierId : null;
+  DOSSIER.report("ec1", nom, ec1Data(), id).then(function(d){
+    st.dossierId = d.id; st.dossierNom = d.candidat.nom; st.reportedAt = d.ec1.reporteLe; st.dirty = false;
+    YEITA.store.set(KEY, st); renderReport(); renderCode();
+  }).catch(function(e){ reportError = e.message; renderReport(); });
+}
 
 function notionText(){
   collect();
@@ -310,31 +442,48 @@ function notionText(){
   else if(p) t += p.label + " — " + Y.value(st.dom).label + " › " + Y.value(st.sec).label + ". " + formula() + "\n";
   else t += "—\n";
   t += "\nCE QU'ON A PERÇU\n" + (g("f-def")||"—") + "\n";
+  t += "\n— INTERNE, NE PART PAS AVEC LE CANDIDAT —\n";
   Y.VALUES.forEach(function(v){ t += "\n" + v.label.toUpperCase() + "\n" + (g("v-"+v.id)||"—") + "\n"; });
   var sv = START.filter(function(s){ return s[0] === st.start; })[0];
-  t += "\n— INTERNE, NE PART PAS AVEC LE CANDIDAT —\nLà où on le voit démarrer : " + (sv ? sv[1] : "—") + "\n" + (g("f-emp") ? g("f-emp") + "\n" : "");
-  t += "\nCODE EC1 (pour la carte d'identité)\n" + code() + "\n";
+  t += "\nEMPLOYABILITÉ\nLà où on la voit démarrer : " + (sv ? sv[1] : "—") + "\n" + (g("f-emp") ? g("f-emp") + "\n" : "");
+  t += "\nOÙ LA PERSONNE A VRAIMENT TRAVAILLÉ\n" + Dm.D.map(function(d, i){ return "· " + d.n + " " + d.name + " : " + (st.diam[i] || "non renseigné"); }).join("\n") + "\n";
+  t += "\nSIGNAL DE VIGILANCE\n" + (g("f-vig")||"—") + "\n";
+  t += "\nQUESTIONS À CREUSER EN EC2\n" + (g("f-qec2")||"—") + "\n";
+  t += "\nCODE EC1 (pour ouvrir la carte d'identité sur un autre ordinateur)\n" + codeNow() + "\n";
   return t;
 }
 
+/* ---------- Sections dépliantes ---------- */
+function applyOpen(){ SECS.forEach(function(id){ document.getElementById(id).open = !!st.open[id]; }); syncToggleAll(); }
+function syncToggleAll(){
+  var all = SECS.every(function(id){ return document.getElementById(id).open; });
+  document.getElementById("toggle-all").textContent = all ? "Tout replier" : "Tout déplier";
+}
+SECS.forEach(function(id){
+  document.getElementById(id).addEventListener("toggle", function(e){
+    st.open[id] = e.target.open; YEITA.store.set(KEY, st); syncToggleAll();
+    if(e.target.open) e.target.querySelectorAll("textarea").forEach(function(t){ if(t.value) YEITA.autogrow(t); });
+  });
+});
+
 /* ---------- Événements ---------- */
 document.addEventListener("input", function(e){
-  if(e.target.closest("#sheet")){ if(e.target.tagName === "TEXTAREA") YEITA.autogrow(e.target); save(); }
+  if(e.target.closest("#sheet")){ if(e.target.tagName === "TEXTAREA") YEITA.autogrow(e.target); changed(); save(); }
 });
 document.addEventListener("change", function(e){
-  if(e.target.name === "start"){ st.start = e.target.value; save(); }
-  if(e.target.id === "f-fmt"){ save(); }
+  if(e.target.name === "start"){ st.start = e.target.value; changed(); save(); }
+  if(e.target.id === "f-fmt"){ changed(); save(); }
   if(e.target.id === "f-json"){
     var file = e.target.files && e.target.files[0]; if(!file) return;
     var rd = new FileReader();
     rd.onload = function(){
       try{
         var s = Y.readSession(JSON.parse(rd.result));
-        st.dom = s.dominant; st.sec = s.second; st.partial = false;
+        st.dom = s.dominant; st.sec = s.second; st.partial = false; st.source = "jeu-en-ligne";
         st.f["f-nom"] = st.f["f-nom"] || s.candidate; st.f["f-date"] = st.f["f-date"] || s.date; st.f["f-par"] = st.f["f-par"] || s.host; st.f["f-fmt"] = "visio";
         Y.VALUES.forEach(function(v){ if(s.notes[v.id] && !st.f["v-"+v.id]) st.f["v-"+v.id] = s.notes[v.id]; });
-        fill(); renderPicker(); save();
-        YEITA.flash(null, "Partie importée : " + Y.profileFor(s.dominant, s.second).label);
+        changed(); fill(); renderPicker(); save();
+        YEITA.flash(null, "Partie importée : " + Y.value(s.dominant).label + " › " + Y.value(s.second).label);
       }catch(err){ YEITA.flash(null, err.message); alertInline(err.message); }
       e.target.value = "";
     };
@@ -342,46 +491,63 @@ document.addEventListener("change", function(e){
   }
 });
 function alertInline(msg){
-  var el = document.getElementById("from");
-  el.innerHTML = '<div class="from" role="alert" style="background:var(--stop-tint)"><p>'+E(msg)+' Vérifie que le fichier vient du bouton d\'export du jeu en ligne.</p></div>';
+  document.getElementById("from").innerHTML = '<div class="from" role="alert" style="background:var(--stop-tint)"><p>'+E(msg)+' Vérifie que le fichier vient du bouton d\'export du jeu en ligne.</p></div>';
 }
 document.addEventListener("click", function(e){
   var b = e.target.closest(".vbtn");
   if(b && !b.disabled){
     if(b.dataset.r === "dom"){ st.dom = st.dom === b.dataset.v ? null : b.dataset.v; if(st.sec === st.dom) st.sec = null; }
     else st.sec = st.sec === b.dataset.v ? null : b.dataset.v;
-    renderPicker(); save(); renderFrom(); return;
+    st.source = "saisie"; changed(); renderPicker(); save(); renderFrom(); return;
   }
-  if(e.target.id === "partial"){ st.partial = !st.partial; renderPicker(); save(); return; }
+  var pill = e.target.closest(".pills button");
+  if(pill){
+    var di = +pill.dataset.d; st.diam[di] = st.diam[di] === pill.dataset.n ? null : pill.dataset.n;
+    Array.prototype.forEach.call(pill.parentElement.children, function(x){ x.setAttribute("aria-checked", String(x.dataset.n === st.diam[di])); });
+    changed(); save(); return;
+  }
+  if(e.target.id === "partial"){ st.partial = !st.partial; changed(); renderPicker(); save(); return; }
   if(e.target.id === "take"){
     var r = YEITA.store.get("yeita-match-resultat", null); if(!r) return;
-    st.dom = r.dominant; st.sec = r.second; st.partial = false;
+    st.dom = r.dominant; st.sec = r.second; st.partial = false; st.source = "decompte";
     if(!st.f["f-nom"] && r.cand) st.f["f-nom"] = r.cand;
     if(!st.f["f-date"] && r.date) st.f["f-date"] = r.date;
     if(!st.f["f-par"] && r.host) st.f["f-par"] = r.host;
     if(!st.f["f-obs"] && r.obs) st.f["f-obs"] = r.obs;
     if(r.fmt) st.f["f-fmt"] = r.fmt;
-    fill(); renderPicker(); save(); renderFrom(); YEITA.flash(null, "Résultat repris"); return;
+    changed(); fill(); renderPicker(); save(); renderFrom(); YEITA.flash(null, "Résultat repris"); return;
   }
-  if(e.target.id === "copy-notion"){ var b1 = e.target; YEITA.copy(notionText(), function(ok){ YEITA.flash(b1, ok ? "Copié pour Notion" : "Copie refusée : sélectionne le code à la main"); }); return; }
-  if(e.target.id === "copy-code"){ var b2 = e.target; save(); YEITA.copy(code(), function(ok){ YEITA.flash(b2, ok ? "Code EC1 copié" : "Copie refusée : sélectionne le code à la main"); }); return; }
+  if(e.target.id === "report"){ doReport(e.target); return; }
+  if(e.target.id === "copy-notion"){ var b1 = e.target; YEITA.copy(notionText(), function(ok){ YEITA.flash(b1, ok ? "Copié pour Notion" : "Copie refusée : sélectionne le texte à la main"); }); return; }
+  if(e.target.id === "copy-code"){ var b2 = e.target; if(!hasContent()){ YEITA.flash(b2, "La fiche est vide"); return; } YEITA.copy(codeNow(), function(ok){ YEITA.flash(b2, ok ? "Code EC1 copié" : "Copie refusée : sélectionne le code à la main"); }); return; }
+  if(e.target.id === "toggle-all"){
+    var open = !SECS.every(function(id){ return document.getElementById(id).open; });
+    SECS.forEach(function(id){ document.getElementById(id).open = open; st.open[id] = open; });
+    YEITA.store.set(KEY, st); syncToggleAll(); return;
+  }
   if(e.target.id === "clear"){ document.getElementById("confirm").hidden = false; document.getElementById("cf-yes").focus(); return; }
   if(e.target.id === "cf-no"){ document.getElementById("confirm").hidden = true; document.getElementById("clear").focus(); return; }
   if(e.target.id === "cf-yes"){
-    st = {dom:null, sec:null, partial:false, start:null, f:{}}; YEITA.store.set(KEY, st); fill(); renderPicker(); renderCode(); renderFrom();
+    var keepOpen = st.open;
+    st = fresh(true); st.open = keepOpen; reportError = "";
     document.querySelectorAll("#sheet textarea").forEach(function(t){ t.style.height = ""; });
-    document.getElementById("confirm").hidden = true; YEITA.flash(null, "Fiche vidée"); return;
+    fill(); renderPicker(); renderDiam(); save(); renderFrom();
+    document.getElementById("confirm").hidden = true; YEITA.flash(null, "Fiche vidée"); document.getElementById("clear").focus(); return;
   }
   if(e.target.id === "demo"){
-    st = {dom:"explorateur", sec:"collectif", partial:false, start:"binome", f:{
-      "f-nom":"Camille Rousseau", "f-date":"2026-10-14", "f-par":"Pauline", "f-obs":"Peter", "f-fmt":"presentiel",
-      "f-def":"Part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites.",
+    st = fresh(true);
+    st.dom = "explorateur"; st.sec = "collectif"; st.start = "binome"; st.source = "decompte";
+    st.diam = ["À creuser", "Fort", "Fort", "Non vu"];
+    st.f = {"f-nom":"Camille Rousseau", "f-date":"2026-10-14", "f-par":"Pauline", "f-obs":"Peter", "f-fmt":"presentiel",
+      "f-def":"Part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites. Cite l'équipe avant elle-même, y compris sur ce qu'elle a porté seule.",
       "v-collectif":"A cité trois fois l'équipe avant de se citer elle-même, y compris sur une réussite qu'elle portait seule.",
       "v-sans-chichi":"A dit « je ne sais pas » deux fois sans chercher à rattraper, et a proposé d'aller vérifier.",
       "v-explorateur":"Raconte un changement de méthode décidé après un test raté, avec ce que ça a coûté.",
       "v-meilleure-version":"Sait nommer ce qu'elle ne maîtrise pas encore, le cadrage amont, et ce qu'elle fait pour y aller.",
-      "f-emp":"Pitch clair et chiffré. A tenu le fil quand on l'a relancée sur un échec. Hésite dès qu'on parle d'arbitrage face à un sponsor."}};
-    fill(); renderPicker(); save(); renderFrom(); YEITA.flash(null, "Exemple chargé"); return;
+      "f-emp":"Pitch clair et chiffré. A tenu le fil quand on l'a relancée sur un échec. Hésite dès qu'on parle d'arbitrage face à un sponsor.",
+      "f-vig":"Deux relances sans exemple concret dès qu'on monte au niveau du cadrage amont.",
+      "f-qec2":"Ce qu'elle a réellement porté seule sur le dernier produit.\nSa façon d'arbitrer quand un sponsor pousse une solution."};
+    fill(); renderPicker(); renderDiam(); applyOpen(); save(); renderFrom(); YEITA.flash(null, "Exemple chargé"); return;
   }
 });
 
@@ -411,8 +577,8 @@ document.getElementById("axes").innerHTML = AXES.map(function(a, i){
 }).join("");
 document.getElementById("elim").innerHTML = ["Prétentions hors grille, sans marge de discussion","Pas de pied-à-terre à Paris","Cherche un statut freelance","N'est pas intéressé par Yeita","Ego, individualisme","Cherche un salaire, pas un projet","Ne parle pas anglais","Parle plus de process que d'impact","Rejette la faute sur les autres","Des réponses théoriques, sans exemple concret","Rigidité face au changement"].map(function(x){ return '<li>'+E(x)+'</li>'; }).join("");
 
-fill(); renderPicker(); renderCode(); renderFrom();
-if(location.hash === "#yeita-match"){ var y = document.getElementById("yeita-match"); y.scrollIntoView({block:"start"}); y.focus({preventScroll:true}); }
+fill(); renderPicker(); renderDiam(); applyOpen(); YEITA.store.set(KEY, st); renderStates(); renderCode(); renderReport(); renderFrom();
+if(location.hash === "#yeita-match"){ var y = document.getElementById("yeita-match"); y.open = true; y.scrollIntoView({block:"start"}); y.querySelector("summary").focus({preventScroll:true}); }
 })();
 </script>
 </body>
