@@ -58,6 +58,30 @@
 .pills button{appearance:none; cursor:pointer; border:1.5px solid var(--line-strong); background:transparent; color:var(--ink-2); border-radius:999px; padding:6px 13px; font-weight:600; font-size:14px; min-height:38px}
 .pills button[aria-checked="true"]{border-color:var(--ink); background:var(--ink); color:var(--paper)}
 
+/* Critères d'employabilité : un état, une note interne, une phrase qu'on choisit d'envoyer sur la carte */
+.crits-h{display:grid; gap:4px; margin-top:6px}
+.crits-h h3{font-size:16.5px}
+.crits{display:grid; gap:8px}
+.crit{border:1px solid var(--line); border-radius:12px; padding:12px 14px; display:grid; gap:12px}
+.crit.on{border-color:var(--violet); box-shadow:inset 3px 0 0 var(--violet)}
+.crit .ch{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px 16px; align-items:center}
+@media (max-width:760px){ .crit .ch{grid-template-columns:1fr} }
+.crit .ct b{font-size:16px; display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center}
+.crit .ct p{font-size:14px; color:var(--ink-2); max-width:62ch}
+.crit .cb{display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start}
+@media (max-width:760px){ .crit .cb{grid-template-columns:1fr} }
+.cpills{display:flex; flex-wrap:wrap; gap:6px}
+.cpills button{appearance:none; cursor:pointer; border:1.5px solid var(--line-strong); background:transparent; color:var(--ink-2); border-radius:999px; padding:6px 13px; font-weight:600; font-size:14px; min-height:38px}
+.cpills button[data-s="aligne"][aria-checked="true"]{border-color:var(--go); background:var(--go-tint); color:var(--go)}
+.cpills button[data-s="a-discuter"][aria-checked="true"]{border-color:var(--ink); background:var(--yellow-soft); color:var(--ink)}
+.cpills button[data-s="pas-aujourdhui"][aria-checked="true"]{border-color:var(--stop); background:var(--stop-tint); color:var(--stop)}
+.cpills button[aria-checked="true"]::after{content:" ✓"}
+.cpa{display:flex; flex-wrap:wrap; gap:4px 16px; align-items:center; justify-content:space-between}
+.onc{display:inline-flex; gap:8px; align-items:center; font-weight:650; font-size:14.5px; min-height:40px; cursor:pointer}
+.onc input{width:18px; height:18px; margin:0; accent-color:var(--violet)}
+.onc:has(input:disabled){color:var(--muted); cursor:not-allowed}
+.linkbtn{appearance:none; background:none; border:0; padding:8px 0; color:var(--violet); font-weight:600; font-size:14px; cursor:pointer; text-decoration:underline; text-underline-offset:3px; min-height:40px}
+
 /* Le report : le geste qui envoie la fiche vers la carte d'identité */
 .report{margin-top:22px; border-radius:18px; background:var(--surface); border:1.5px solid var(--ink); padding:20px 22px; display:grid; gap:14px}
 .report h2{font-size:21px}
@@ -189,6 +213,11 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
           <div class="radios" id="start"></div>
         </fieldset>
         <div class="field"><label for="f-emp">Ce qui fonde cette lecture</label><textarea id="f-emp" rows="2" placeholder="Se présenter, tenir le fil, encaisser : ce qu'on a observé, avec un exemple."></textarea></div>
+        <div class="crits-h">
+          <h3>Les critères</h3>
+          <p class="hint">Choisis un état pour chaque critère vérifié. Une phrase type s'écrit pour la personne : ajuste-la, puis coche « Sur la carte » si elle doit la lire. Sans coche, tout reste interne.</p>
+        </div>
+        <div class="crits" id="crits"></div>
       </div>
     </details>
 
@@ -278,11 +307,12 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
 <script src="assets/yeita.js"></script>
 <script src="assets/data-yeita-match.js"></script>
 <script src="assets/data-diamants.js"></script>
+<script src="assets/data-employabilite.js"></script>
 <script src="assets/dossier.js"></script>
 <script>
 (function(){
 "use strict";
-var Y = YEITA_MATCH, Dm = DIAMANTS, E = YEITA.esc, P = YEITA.picto, KEY = "yeita-fiche-ec1";
+var Y = YEITA_MATCH, Dm = DIAMANTS, EMP = EMPLOYABILITE, E = YEITA.esc, P = YEITA.picto, KEY = "yeita-fiche-ec1";
 document.getElementById("logo").innerHTML = YEITA.logo(26);
 document.querySelectorAll("#sheet .chev").forEach(function(c){ c.innerHTML = YEITA.icon("ChevronRight", 18, 2.2); });
 
@@ -297,13 +327,14 @@ var SECS = ["s-id","yeita-match","s-percu","s-vals","s-emp","s-diam","s-vig","s-
 var DEFAULT_OPEN = {"s-id":true, "yeita-match":true, "s-percu":true, "s-qec2":true};
 var FIELDS = ["f-nom","f-date","f-par","f-obs","f-fmt","f-why","f-def","f-emp","f-vig","f-qec2"].concat(Y.VALUES.map(function(v){ return "v-"+v.id; }));
 /* passationDone : le brouillon de l'ancienne fiche de passation n'est repris qu'une fois. */
-function fresh(passationDone){ return {dom:null, sec:null, partial:false, start:null, source:"saisie", diam:[null,null,null,null], f:{}, open:Object.assign({}, DEFAULT_OPEN),
+function fresh(passationDone){ return {dom:null, sec:null, partial:false, start:null, source:"saisie", diam:[null,null,null,null], crit:{}, f:{}, open:Object.assign({}, DEFAULT_OPEN),
   dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:!!passationDone}; }
 var st = YEITA.store.get(KEY, null) || fresh(false);
 /* Brouillons d'avant la fusion : on complète ce qui manque. */
 if(!st.diam) st.diam = [null,null,null,null];
 if(!st.open) st.open = Object.assign({}, DEFAULT_OPEN);
 if(!st.f) st.f = {};
+if(!st.crit) st.crit = {};
 
 /* La fiche de passation a rejoint cette fiche : son volet EC1 → EC2 en cours est repris une fois. */
 (function migratePassation(){
@@ -333,6 +364,42 @@ function renderDiam(){
       + '<div class="pills" role="radiogroup" aria-label="Hypothèse pour le diamant '+E(d.name)+'">'+LEVELS.map(function(n){
           return '<button type="button" role="radio" data-d="'+di+'" data-n="'+n+'" aria-checked="'+(st.diam[di]===n)+'">'+n+'</button>'; }).join("")+'</div></div>';
   }).join("");
+}
+function crit(id){ return st.crit[id] || (st.crit[id] = {statut:null, note:"", phrase:"", afficher:false}); }
+function renderCrits(){
+  document.getElementById("crits").innerHTML = EMP.CRITERES.map(function(c){
+    return '<div class="crit" data-c="'+c.id+'"><div class="ch"><div class="ct"><b id="cl-'+c.id+'">'+E(c.label)+'</b><p>'+E(c.question)+'</p></div>'
+      + '<div class="cpills" role="radiogroup" aria-labelledby="cl-'+c.id+'">'+EMP.STATUTS.map(function(s){
+          return '<button type="button" role="radio" data-c="'+c.id+'" data-s="'+s.id+'" aria-checked="false">'+E(s.label)+'</button>'; }).join("")+'</div></div>'
+      + '<div class="cb" hidden>'
+      + '<div class="field"><label for="cn-'+c.id+'">Note interne</label><textarea id="cn-'+c.id+'" rows="2" placeholder="Ce qui a été dit, mot pour mot si possible."></textarea></div>'
+      + '<div class="field"><label for="cp-'+c.id+'">Phrase pour la carte</label><textarea id="cp-'+c.id+'" rows="2"></textarea>'
+      + '<div class="cpa"><label class="onc"><input type="checkbox" id="ca-'+c.id+'">Sur la carte</label><button type="button" class="linkbtn" data-reset="'+c.id+'">Reprendre la phrase type</button></div></div>'
+      + '</div></div>';
+  }).join("");
+  EMP.CRITERES.forEach(function(c){ syncCrit(c.id); });
+}
+function syncCrit(id){
+  var v = st.crit[id] || {}, row = document.querySelector('.crit[data-c="'+id+'"]');
+  row.querySelectorAll(".cpills button").forEach(function(b){ b.setAttribute("aria-checked", String(b.dataset.s === v.statut)); });
+  row.querySelector(".cb").hidden = !v.statut;
+  var n = document.getElementById("cn-"+id), p = document.getElementById("cp-"+id), a = document.getElementById("ca-"+id);
+  if(n.value !== (v.note||"")) n.value = v.note || "";
+  if(p.value !== (v.phrase||"")) p.value = v.phrase || "";
+  if(!v.statut){ n.style.height = ""; p.style.height = ""; } else { YEITA.autogrow(p); if(n.value) YEITA.autogrow(n); }
+  a.disabled = !(v.phrase||"").trim();
+  a.checked = !!v.afficher && !a.disabled;
+  row.classList.toggle("on", a.checked);
+  var tpl = v.statut ? EMP.critere(id).phrases[v.statut] : "";
+  row.querySelector("[data-reset]").hidden = !v.statut || (v.phrase||"") === tpl;
+}
+/* Changer d'état réécrit la phrase type, sauf si elle a été ajustée à la main. */
+function setStatut(id, s){
+  var v = crit(id), C = EMP.critere(id), prevTpl = v.statut ? C.phrases[v.statut] : "";
+  v.statut = v.statut === s ? null : s;
+  if(!(v.phrase||"").trim() || v.phrase === prevTpl) v.phrase = v.statut ? C.phrases[v.statut] : "";
+  if(!v.statut) v.afficher = false;
+  syncCrit(id);
 }
 function renderPicker(){
   var h = '<div class="row" role="radiogroup" aria-label="Valeur dominante"><span>Dominante</span>'
@@ -371,7 +438,9 @@ function renderStates(){
   setState("s-percu", g("f-def") ? "Rempli" : "À remplir", !!g("f-def"));
   var nv = Y.VALUES.filter(function(v){ return g("v-"+v.id); }).length;
   setState("s-vals", nv + " sur 4", nv === 4);
-  setState("s-emp", st.start ? "Rempli" : "À remplir", !!st.start);
+  var nc = EMP.CRITERES.filter(function(c){ return st.crit[c.id] && st.crit[c.id].statut; }).length;
+  var na = EMP.surLaCarte(st.crit).length;
+  setState("s-emp", (!st.start && !nc) ? "À remplir" : nc + " critère" + (nc > 1 ? "s" : "") + " sur 8" + (na ? ", " + na + " sur la carte" : ""), !!st.start && nc > 0);
   var nd = st.diam.filter(Boolean).length;
   setState("s-diam", nd + " sur 4", nd === 4);
   setState("s-vig", g("f-vig") ? "Rempli" : "Facultatif", !!g("f-vig"));
@@ -396,6 +465,10 @@ function ec1Data(){
   o.percu = g("f-def");
   Y.VALUES.forEach(function(v){ var t = g("v-"+v.id); if(t) o.valeurs[v.id] = t; });
   o.employabilite = {demarrage: st.start, note: g("f-emp"), criteres: {}};
+  EMP.CRITERES.forEach(function(c){
+    var v = st.crit[c.id];
+    if(v && (v.statut || (v.note||"").trim())) o.employabilite.criteres[c.id] = {statut: v.statut || null, note: (v.note||"").trim(), phrase: (v.phrase||"").trim(), afficher: !!(v.afficher && v.statut && (v.phrase||"").trim())};
+  });
   o.diamants = st.diam.slice();
   o.vigilance = g("f-vig");
   o.questionsEC2 = g("f-qec2");
@@ -446,6 +519,11 @@ function notionText(){
   Y.VALUES.forEach(function(v){ t += "\n" + v.label.toUpperCase() + "\n" + (g("v-"+v.id)||"—") + "\n"; });
   var sv = START.filter(function(s){ return s[0] === st.start; })[0];
   t += "\nEMPLOYABILITÉ\nLà où on la voit démarrer : " + (sv ? sv[1] : "—") + "\n" + (g("f-emp") ? g("f-emp") + "\n" : "");
+  EMP.CRITERES.forEach(function(c){
+    var v = st.crit[c.id]; if(!v || !v.statut) return;
+    t += "· " + c.label + " : " + EMP.statut(v.statut).label + ((v.note||"").trim() ? ". " + v.note.trim() : "") + "\n";
+    if(v.afficher && (v.phrase||"").trim()) t += "  Sur la carte : « " + v.phrase.trim() + " »\n";
+  });
   t += "\nOÙ LA PERSONNE A VRAIMENT TRAVAILLÉ\n" + Dm.D.map(function(d, i){ return "· " + d.n + " " + d.name + " : " + (st.diam[i] || "non renseigné"); }).join("\n") + "\n";
   t += "\nSIGNAL DE VIGILANCE\n" + (g("f-vig")||"—") + "\n";
   t += "\nQUESTIONS À CREUSER EN EC2\n" + (g("f-qec2")||"—") + "\n";
@@ -468,11 +546,17 @@ SECS.forEach(function(id){
 
 /* ---------- Événements ---------- */
 document.addEventListener("input", function(e){
-  if(e.target.closest("#sheet")){ if(e.target.tagName === "TEXTAREA") YEITA.autogrow(e.target); changed(); save(); }
+  if(!e.target.closest("#sheet")) return;
+  if(e.target.tagName === "TEXTAREA") YEITA.autogrow(e.target);
+  var m = /^c([np])-(.+)$/.exec(e.target.id);
+  if(m){ var v = crit(m[2]); if(m[1] === "n") v.note = e.target.value; else { v.phrase = e.target.value; if(!v.phrase.trim()) v.afficher = false; } syncCrit(m[2]); }
+  changed(); save();
 });
 document.addEventListener("change", function(e){
   if(e.target.name === "start"){ st.start = e.target.value; changed(); save(); }
   if(e.target.id === "f-fmt"){ changed(); save(); }
+  var ca = /^ca-(.+)$/.exec(e.target.id || "");
+  if(ca){ crit(ca[1]).afficher = e.target.checked; syncCrit(ca[1]); changed(); save(); }
   if(e.target.id === "f-json"){
     var file = e.target.files && e.target.files[0]; if(!file) return;
     var rd = new FileReader();
@@ -506,6 +590,10 @@ document.addEventListener("click", function(e){
     Array.prototype.forEach.call(pill.parentElement.children, function(x){ x.setAttribute("aria-checked", String(x.dataset.n === st.diam[di])); });
     changed(); save(); return;
   }
+  var cp = e.target.closest(".cpills button");
+  if(cp){ setStatut(cp.dataset.c, cp.dataset.s); changed(); save(); return; }
+  var rs = e.target.closest("[data-reset]");
+  if(rs){ var id = rs.dataset.reset, v = crit(id); v.phrase = EMP.critere(id).phrases[v.statut]; syncCrit(id); changed(); save(); document.getElementById("cp-"+id).focus(); return; }
   if(e.target.id === "partial"){ st.partial = !st.partial; changed(); renderPicker(); save(); return; }
   if(e.target.id === "take"){
     var r = YEITA.store.get("yeita-match-resultat", null); if(!r) return;
@@ -531,13 +619,20 @@ document.addEventListener("click", function(e){
     var keepOpen = st.open;
     st = fresh(true); st.open = keepOpen; reportError = "";
     document.querySelectorAll("#sheet textarea").forEach(function(t){ t.style.height = ""; });
-    fill(); renderPicker(); renderDiam(); save(); renderFrom();
+    fill(); renderPicker(); renderDiam(); renderCrits(); save(); renderFrom();
     document.getElementById("confirm").hidden = true; YEITA.flash(null, "Fiche vidée"); document.getElementById("clear").focus(); return;
   }
   if(e.target.id === "demo"){
     st = fresh(true);
     st.dom = "explorateur"; st.sec = "collectif"; st.start = "binome"; st.source = "decompte";
     st.diam = ["À creuser", "Fort", "Fort", "Non vu"];
+    st.crit = {
+      "salaire": {statut:"aligne", note:"Vise 58 k€, dans la fourchette du palier 2.", phrase:EMP.critere("salaire").phrases["aligne"], afficher:false},
+      "localisation": {statut:"aligne", note:"Habite Paris 11e. Trois jours sur place : aucun souci.", phrase:EMP.critere("localisation").phrases["aligne"], afficher:false},
+      "poste": {statut:"aligne", note:"", phrase:EMP.critere("poste").phrases["aligne"], afficher:true},
+      "discovery": {statut:"a-discuter", note:"Trois exemples sur quatre côté livraison. Une seule interview utilisateur citée.", phrase:EMP.critere("discovery").phrases["a-discuter"], afficher:true},
+      "projets": {statut:"aligne", note:"Ouverte à la banque et à l'énergie. Pas de no-go.", phrase:EMP.critere("projets").phrases["aligne"], afficher:false}
+    };
     st.f = {"f-nom":"Camille Rousseau", "f-date":"2026-10-14", "f-par":"Pauline", "f-obs":"Peter", "f-fmt":"presentiel",
       "f-def":"Part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites. Cite l'équipe avant elle-même, y compris sur ce qu'elle a porté seule.",
       "v-collectif":"A cité trois fois l'équipe avant de se citer elle-même, y compris sur une réussite qu'elle portait seule.",
@@ -547,7 +642,7 @@ document.addEventListener("click", function(e){
       "f-emp":"Pitch clair et chiffré. A tenu le fil quand on l'a relancée sur un échec. Hésite dès qu'on parle d'arbitrage face à un sponsor.",
       "f-vig":"Deux relances sans exemple concret dès qu'on monte au niveau du cadrage amont.",
       "f-qec2":"Ce qu'elle a réellement porté seule sur le dernier produit.\nSa façon d'arbitrer quand un sponsor pousse une solution."};
-    fill(); renderPicker(); renderDiam(); applyOpen(); save(); renderFrom(); YEITA.flash(null, "Exemple chargé"); return;
+    fill(); renderPicker(); renderDiam(); renderCrits(); applyOpen(); save(); renderFrom(); YEITA.flash(null, "Exemple chargé"); return;
   }
 });
 
@@ -577,7 +672,7 @@ document.getElementById("axes").innerHTML = AXES.map(function(a, i){
 }).join("");
 document.getElementById("elim").innerHTML = ["Prétentions hors grille, sans marge de discussion","Pas de pied-à-terre à Paris","Cherche un statut freelance","N'est pas intéressé par Yeita","Ego, individualisme","Cherche un salaire, pas un projet","Ne parle pas anglais","Parle plus de process que d'impact","Rejette la faute sur les autres","Des réponses théoriques, sans exemple concret","Rigidité face au changement"].map(function(x){ return '<li>'+E(x)+'</li>'; }).join("");
 
-fill(); renderPicker(); renderDiam(); applyOpen(); YEITA.store.set(KEY, st); renderStates(); renderCode(); renderReport(); renderFrom();
+fill(); renderPicker(); renderDiam(); renderCrits(); applyOpen(); YEITA.store.set(KEY, st); renderStates(); renderCode(); renderReport(); renderFrom();
 if(location.hash === "#yeita-match"){ var y = document.getElementById("yeita-match"); y.open = true; y.scrollIntoView({block:"start"}); y.querySelector("summary").focus({preventScroll:true}); }
 })();
 </script>

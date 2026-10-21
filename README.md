@@ -16,7 +16,7 @@ La version de travail reste l'artefact **Expérience Collaborateur** sur Claude.
 | `fiche-ec2.html` | Fiche d'entretien candidat #2 · Scorecard 4 diamants | Pair du métier, EC2 |
 | `carte-identite.html` | Carte d'identité Yeita, 3 états : arrêt après EC1, arrêt après EC2, embauche (A4 paysage). Lit le dossier du candidat | Candidat, EC3 |
 
-Les pages partagent `assets/` : la charte (`yeita.css`), les utilitaires et les icônes du jeu (`yeita.js`), les données de Yeita Match (`data-yeita-match.js`, reprises du dépôt `yeita-match`) la grille des 4 diamants (`data-diamants.js`) et le dossier candidat (`dossier.js`).
+Les pages partagent `assets/` : la charte (`yeita.css`), les utilitaires et les icônes du jeu (`yeita.js`), les données de Yeita Match (`data-yeita-match.js`, reprises du dépôt `yeita-match`) la grille des 4 diamants (`data-diamants.js`), les critères d'employabilité et leurs phrases (`data-employabilite.js`) et le dossier candidat (`dossier.js`).
 
 La fiche de passation n'existe plus : son volet EC1 → EC2 est dans la fiche #1, son volet EC2 → EC3 rejoint la fiche #2.
 
