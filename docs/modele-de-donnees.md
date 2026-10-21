@@ -4,9 +4,9 @@ Ce document prépare l'arrivée de l'ATS. Il décrit ce que les entretiens produ
 
 ## Aujourd'hui, demain
 
-**Aujourd'hui.** Aucune donnée candidat ne quitte l'ordinateur. Les fiches #1 et #2 reportent leur lecture dans un **dossier candidat** rangé dans le navigateur (`assets/dossier.js`, adaptateur « navigateur »). La carte d'identité lit ce dossier. Pour passer d'un ordinateur à l'autre, on colle un code `YEITA-EC1` ou `YEITA-EC2` dans la page Notion du candidat.
+**Aujourd'hui.** Une candidature est un **dossier candidat v2**, créé dans le module Candidatures (`candidatures.html`) ou repris d'une fiche d'avant le module. Il est rangé dans le navigateur (`assets/dossier.js`, adaptateur « navigateur », repli en mémoire si le navigateur refuse d'enregistrer). Les fiches #1 et #2 ouvertes depuis une candidature (`fiche-ec1.html#c-<id>`) écrivent directement dessus ; la carte d'identité le lit. On passe d'un ordinateur à l'autre par l'export et l'import JSON du module. Les codes `YEITA-EC1` et `YEITA-EC2` restent en secours. **Données fictives uniquement** tant que le stockage n'est pas décidé : voir `STORAGE.md`.
 
-**Demain, avec l'ATS.** On remplace l'adaptateur de stockage par un adaptateur qui parle à la base, avec la même interface en promesses :
+**Demain, avec une base partagée.** On remplace l'adaptateur, avec la même interface en promesses :
 
 | Méthode | Rôle |
 |---|---|
@@ -15,13 +15,18 @@ Ce document prépare l'arrivée de l'ATS. Il décrit ce que les entretiens produ
 | `put(dossier)` | Crée ou met à jour un dossier, le rend tel qu'enregistré |
 | `remove(id)` | Supprime un dossier |
 
-Un appel suffit dans chaque page : `DOSSIER.use(adaptateurATS)`. Les codes disparaissent alors, ainsi que la zone « Coller un code » de la carte.
+`DOSSIER.use(adaptateur)` suffit côté pages. L'adaptateur Supabase est prêt, non branché : `assets/adapter-supabase.js`, avec le schéma et la mise en place dans `docs/backend/`.
 
 ## Le dossier en un coup d'œil
 
 ```
-Dossier candidat
-├── candidat          nom, rôle (PM ou PrD)
+Dossier candidat v2
+├── candidat          nom affiché, rôle (suit l'identité)
+├── identite          prénom, nom, e-mail, téléphone, provenance (LinkedIn, Welcome to the Jungle, autre), poste (PM ou PrD)
+├── parcours          étape en cours (appel → ec1 → passation-ec1 → ec2 → passation-ec2 → ec3 → decision → onboarding, ou clos)
+│   ├── etapes        par étape : démarrée le, terminée le, par qui
+│   └── cloture       depuis quelle étape, motif, détail, carte envoyée, le, par
+├── appel             date, mené par, notes sur les quatre blocs, one-pager envoyé le
 ├── ec1               lecture de l'EC1 (fiche #1)
 │   ├── match         dominante, seconde, lecture partielle
 │   ├── percu         la phrase « ce qu'on a perçu de toi »
@@ -30,13 +35,20 @@ Dossier candidat
 │   ├── diamants      hypothèses sur les quatre diamants (interne)
 │   ├── vigilance     un signal, cité et factuel (interne)
 │   └── questionsEC2  ce que l'EC2 doit aller chercher (interne)
+├── passations        EC1 et EC2 : faite le, par, en appel ou en asynchrone
 ├── ec2               lecture de l'EC2 (fiche #2)
 │   ├── notes         douze notes d'étape, de 0 à 4
 │   ├── exemples      un fait rapporté par étape (interne)
 │   ├── palier        palier discuté
 │   ├── aspirations   (interne)
 │   └── suspens       points en suspens pour l'EC3 (interne)
-└── restitution       état de la carte : arrêt après EC1, après EC2, embauche
+├── ec3               bloc-notes, mené par, date (interne)
+├── decision          appel au candidat fait le, par
+├── fiches            brouillons d'écran des fiches #1 et #2, pour les rouvrir telles quelles
+├── restitution       état de la carte : arrêt après EC1, après EC2, embauche
+├── historique        chaque passage : de, vers, le, par, motif ; une annulation ajoute une ligne
+├── notesLibres       hors MVP, désactivé
+└── meta              créé le, modifié le, exemple fictif, origine
 ```
 
 Le schéma complet est dans `dossier-candidat.schema.json`.
@@ -58,7 +70,9 @@ Le schéma complet est dans `dossier-candidat.schema.json`.
 
 La section interne de la carte ne s'imprime jamais et ne part jamais avec le candidat.
 
-## Proposition de tables pour l'ATS
+## Tables cibles, pour les bilans
+
+La base préparée range le dossier tel quel, en JSONB, une ligne par candidature (`docs/backend/schema.sql`) : rien à changer dans les pages. Les tables ci-dessous restent la cible pour les bilans ; elles se dérivent du JSON par des vues SQL, le jour où on en a besoin.
 
 | Table | Colonnes | Notes |
 |---|---|---|
@@ -74,10 +88,12 @@ La section interne de la carte ne s'imprime jamais et ne part jamais avec le can
 
 Les référentiels ne dépendent pas du candidat et restent des fichiers de configuration : les quatre valeurs et le jeu (`data-yeita-match.js`), les diamants et les paliers (`data-diamants.js`), les critères d'employabilité et leurs phrases (`data-employabilite.js`).
 
-## À cadrer avant l'ATS (RGPD)
+## RGPD
 
-- **Minimisation.** Les règles d'écriture s'appliquent déjà : rien qui ne soit relié au travail (ni âge, ni origine, ni santé, ni vie personnelle).
-- **Durée de conservation.** À fixer pour les candidats non retenus. La CNIL recommande en général deux ans au plus après le dernier contact : à confirmer avec la personne en charge des données chez Yeita.
-- **Information des candidats.** Le one-pager peut porter la mention : quelles données, pour quoi, combien de temps.
-- **Droit d'accès et d'effacement.** La carte d'identité est déjà une restitution. En local, « Effacer ce dossier » supprime tout ; l'ATS devra offrir la même chose.
-- **Accès par rôle.** Le recruteur et l'observateur écrivent l'EC1, le pair écrit l'EC2, le fondateur lit la carte et sa section interne.
+Le détail, les options de stockage et les décisions à prendre sont dans `STORAGE.md`. En bref :
+
+- **Minimisation.** Les règles d'écriture s'appliquent à tous les champs libres, y compris les notes de l'appel et de l'EC3 : rien qui ne soit relié au travail (ni âge, ni origine, ni santé, ni vie personnelle).
+- **Durée de conservation.** La purge est prête dans `schema.sql`, la durée reste à fixer. Le référentiel de la CNIL d'avril 2026 donne le cadre : en base active jusqu'à la réponse ; pour une personne non retenue, le CV sort au plus tard 2 ans après le dernier contact, sauf accord de sa part.
+- **Information des candidats.** Le one-pager ou le mail d'après l'appel porte la mention : quelles données, pour quoi, combien de temps, à qui écrire.
+- **Droit d'accès et d'effacement.** La carte d'identité est déjà une restitution. « Supprimer la candidature », dans « Coordonnées et suppression », efface tout ; la base journalise la suppression sans garder le contenu.
+- **Accès par rôle.** Recruteur et fondateur écrivent ; le rôle « lecture » consulte. Le journal dit qui a fait quoi.

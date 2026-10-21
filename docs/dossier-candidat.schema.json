@@ -2,110 +2,690 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://yeichati.github.io/yeita-recrutement/docs/dossier-candidat.schema.json",
   "title": "Dossier candidat Yeita",
-  "description": "Ce que les entretiens EC1 et EC2 produisent pour un candidat. Version 1, octobre 2026.",
+  "description": "Une candidature : identité, parcours étape par étape, et ce que les entretiens produisent. Version 2, octobre 2026 (module Candidatures). Un dossier v1 est migré à la lecture (assets/dossier.js, upgrade).",
   "type": "object",
-  "required": ["schema", "version", "id", "candidat", "restitution", "meta"],
+  "required": [
+    "schema",
+    "version",
+    "id",
+    "candidat",
+    "identite",
+    "parcours",
+    "restitution",
+    "historique",
+    "meta"
+  ],
   "properties": {
-    "schema": {"const": "yeita-dossier-candidat"},
-    "version": {"const": 1},
-    "id": {"type": "string", "description": "Identifiant local (cand-…). L'ATS fournira le sien."},
+    "schema": {
+      "const": "yeita-dossier-candidat"
+    },
+    "version": {
+      "const": 2
+    },
+    "id": {
+      "type": "string",
+      "description": "Identifiant local (cand-…). L'ATS fournira le sien."
+    },
     "candidat": {
       "type": "object",
-      "required": ["nom"],
+      "required": [
+        "nom"
+      ],
       "properties": {
-        "nom": {"type": "string"},
-        "role": {"enum": ["PM", "PrD"]}
+        "nom": {
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "PM",
+            "PrD"
+          ]
+        }
       }
     },
-    "ec1": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/ec1"}]},
-    "ec2": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/ec2"}]},
+    "identite": {
+      "type": "object",
+      "properties": {
+        "prenom": {
+          "type": "string"
+        },
+        "nom": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "description": "Vide, ou une adresse avec un @ et un domaine"
+        },
+        "telephone": {
+          "type": "string"
+        },
+        "provenance": {
+          "enum": [
+            "linkedin",
+            "wttj",
+            "autre"
+          ]
+        },
+        "provenanceDetail": {
+          "type": "string",
+          "description": "Quand la provenance est « autre » : cooptation, salon…"
+        },
+        "poste": {
+          "enum": [
+            "PM",
+            "PrD"
+          ]
+        }
+      }
+    },
+    "parcours": {
+      "type": "object",
+      "required": [
+        "etape"
+      ],
+      "properties": {
+        "etape": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/etape"
+            },
+            {
+              "const": "clos"
+            }
+          ],
+          "description": "L'étape en cours, ou « clos » quand le parcours s'arrête (colonne « Pas aujourd'hui »)"
+        },
+        "etapes": {
+          "type": "object",
+          "description": "Clé : identifiant d'étape",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "debuteLe": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Premier « Démarrer »"
+              },
+              "termineLe": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "par": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "cloture": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "depuis",
+                "motif",
+                "le"
+              ],
+              "properties": {
+                "depuis": {
+                  "enum": [
+                    "appel",
+                    "ec1",
+                    "ec2",
+                    "decision"
+                  ]
+                },
+                "motif": {
+                  "enum": [
+                    "salaire",
+                    "localisation",
+                    "poste",
+                    "projets",
+                    "niveau",
+                    "posture",
+                    "anglais",
+                    "desistement",
+                    "autre"
+                  ]
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "carteEnvoyee": {
+                  "type": "boolean"
+                },
+                "le": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "par": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "appel": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "AAAA-MM-JJ"
+        },
+        "par": {
+          "type": "string"
+        },
+        "blocs": {
+          "type": "object",
+          "description": "Notes de l'appel, sur les quatre blocs du guide",
+          "properties": {
+            "parcours": {
+              "type": "string"
+            },
+            "recherche": {
+              "type": "string"
+            },
+            "cadre": {
+              "type": "string"
+            },
+            "conditions": {
+              "type": "string"
+            }
+          }
+        },
+        "onePager": {
+          "type": "object",
+          "properties": {
+            "envoyeLe": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time",
+              "description": "Requis pour passer à l'EC1"
+            },
+            "par": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "ec1": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/ec1"
+        }
+      ]
+    },
+    "fiches": {
+      "type": "object",
+      "description": "Brouillons d'écran des fiches #1 et #2 en mode candidat (fiche-ec1.html#c-<id>), pour les rouvrir telles qu'on les a laissées. La lecture qui fait foi est dans ec1 et ec2.",
+      "properties": {
+        "ec1": {
+          "type": "object"
+        },
+        "ec2": {
+          "type": "object"
+        }
+      }
+    },
+    "passations": {
+      "type": "object",
+      "properties": {
+        "ec1": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "faiteLe": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "par": {
+                  "type": "string"
+                },
+                "mode": {
+                  "enum": [
+                    "appel",
+                    "asynchrone"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "ec2": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "faiteLe": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "par": {
+                  "type": "string"
+                },
+                "mode": {
+                  "enum": [
+                    "appel",
+                    "asynchrone"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ec2": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/ec2"
+        }
+      ]
+    },
+    "ec3": {
+      "type": "object",
+      "properties": {
+        "notes": {
+          "type": "string",
+          "description": "Bloc-notes de l'EC3. Interne"
+        },
+        "par": {
+          "type": "string"
+        },
+        "le": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "AAAA-MM-JJ"
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "properties": {
+        "appelFaitLe": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "L'appel au candidat, avant le mail"
+        },
+        "par": {
+          "type": "string"
+        }
+      }
+    },
     "restitution": {
       "type": "object",
       "properties": {
-        "etat": {"enum": ["ec1", "ec2", "hire"], "description": "Arrêt après l'EC1, après l'EC2, ou embauche"}
+        "etat": {
+          "enum": [
+            "ec1",
+            "ec2",
+            "hire"
+          ],
+          "description": "Arrêt après l'EC1, après l'EC2, ou embauche"
+        }
+      }
+    },
+    "historique": {
+      "type": "array",
+      "description": "Un passage par ligne, dans l'ordre. Une annulation ajoute une ligne, elle n'efface rien.",
+      "items": {
+        "type": "object",
+        "required": [
+          "vers",
+          "le"
+        ],
+        "properties": {
+          "de": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/$defs/etape"
+              },
+              {
+                "const": "clos"
+              }
+            ],
+            "description": "null pour l'entrée dans le parcours"
+          },
+          "vers": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/etape"
+              },
+              {
+                "const": "clos"
+              }
+            ]
+          },
+          "le": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "par": {
+            "type": "string"
+          },
+          "motif": {
+            "type": "string"
+          },
+          "annulation": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "notesLibres": {
+      "type": "object",
+      "description": "Hors MVP : une note libre par étape (PARCOURS.FEATURES.notesLibres)",
+      "additionalProperties": {
+        "type": "string"
       }
     },
     "meta": {
       "type": "object",
       "properties": {
-        "creeLe": {"type": "string", "format": "date-time"},
-        "modifieLe": {"type": "string", "format": "date-time"}
+        "creeLe": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modifieLe": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "demo": {
+          "type": "boolean",
+          "description": "Exemple fictif, retiré par « Retirer les exemples »"
+        },
+        "origine": {
+          "enum": [
+            "module",
+            "fiche"
+          ],
+          "description": "Créé dans le module, ou repris d'une fiche d'avant le module"
+        }
       }
     }
   },
   "$defs": {
-    "valeur": {"enum": ["collectif", "sans-chichi", "explorateur", "meilleure-version"]},
-    "texte": {"type": "string"},
+    "valeur": {
+      "enum": [
+        "collectif",
+        "sans-chichi",
+        "explorateur",
+        "meilleure-version"
+      ]
+    },
+    "texte": {
+      "type": "string"
+    },
     "ec1": {
       "type": "object",
       "properties": {
-        "date": {"type": "string", "description": "AAAA-MM-JJ"},
-        "recruteur": {"type": "string"},
-        "observateur": {"type": "string"},
-        "format": {"enum": ["presentiel", "visio"]},
+        "date": {
+          "type": "string",
+          "description": "AAAA-MM-JJ"
+        },
+        "recruteur": {
+          "type": "string"
+        },
+        "observateur": {
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "presentiel",
+            "visio"
+          ]
+        },
         "match": {
           "type": "object",
           "properties": {
-            "dominante": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/valeur"}]},
-            "seconde": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/valeur"}]},
-            "partielle": {"type": "boolean"},
-            "pourquoi": {"type": "string"},
-            "source": {"enum": ["decompte", "jeu-en-ligne", "saisie", "code"]}
+            "dominante": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/valeur"
+                }
+              ]
+            },
+            "seconde": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/valeur"
+                }
+              ]
+            },
+            "partielle": {
+              "type": "boolean"
+            },
+            "pourquoi": {
+              "type": "string"
+            },
+            "source": {
+              "enum": [
+                "decompte",
+                "jeu-en-ligne",
+                "saisie",
+                "code"
+              ]
+            }
           }
         },
-        "percu": {"type": "string", "description": "Sur la carte"},
-        "valeurs": {"type": "object", "description": "Interne. Une note par valeur.", "additionalProperties": {"type": "string"}},
+        "percu": {
+          "type": "string",
+          "description": "Sur la carte"
+        },
+        "valeurs": {
+          "type": "object",
+          "description": "Interne. Une note par valeur.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "employabilite": {
           "type": "object",
           "properties": {
-            "demarrage": {"enum": [null, "auto", "binome", "cadre", "non"], "description": "Interne"},
-            "note": {"type": "string", "description": "Interne"},
+            "demarrage": {
+              "enum": [
+                null,
+                "auto",
+                "binome",
+                "cadre",
+                "non"
+              ],
+              "description": "Interne"
+            },
+            "note": {
+              "type": "string",
+              "description": "Interne"
+            },
             "criteres": {
               "type": "object",
               "description": "Clé : identifiant du critère dans data-employabilite.js",
               "additionalProperties": {
                 "type": "object",
                 "properties": {
-                  "statut": {"enum": [null, "aligne", "a-discuter", "pas-aujourdhui"]},
-                  "note": {"type": "string", "description": "Interne"},
-                  "phrase": {"type": "string", "description": "Phrase pour le candidat"},
-                  "afficher": {"type": "boolean", "description": "Apparaît sur la carte si vrai"}
+                  "statut": {
+                    "enum": [
+                      null,
+                      "aligne",
+                      "a-discuter",
+                      "pas-aujourdhui"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "description": "Interne"
+                  },
+                  "phrase": {
+                    "type": "string",
+                    "description": "Phrase pour le candidat"
+                  },
+                  "afficher": {
+                    "type": "boolean",
+                    "description": "Apparaît sur la carte si vrai"
+                  }
                 }
               }
             }
           }
         },
-        "diamants": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"enum": [null, "Fort", "À creuser", "Absent", "Non vu"]}},
-        "vigilance": {"type": "string", "description": "Interne"},
-        "questionsEC2": {"type": "string", "description": "Interne"},
-        "reporteLe": {"type": ["string", "null"], "format": "date-time"}
+        "diamants": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "enum": [
+              null,
+              "Fort",
+              "À creuser",
+              "Absent",
+              "Non vu"
+            ]
+          }
+        },
+        "vigilance": {
+          "type": "string",
+          "description": "Interne"
+        },
+        "questionsEC2": {
+          "type": "string",
+          "description": "Interne"
+        },
+        "reporteLe": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
       }
     },
     "ec2": {
       "type": "object",
       "properties": {
-        "date": {"type": "string"},
-        "pair": {"type": "string"},
-        "role": {"enum": ["PM", "PrD"]},
-        "palier": {"type": "integer", "minimum": 1, "maximum": 4},
-        "notes": {"type": "array", "minItems": 12, "maxItems": 12, "items": {"type": ["integer", "null"], "minimum": 0, "maximum": 4}},
-        "exemples": {"type": "array", "minItems": 12, "maxItems": 12, "items": {"type": "string"}, "description": "Interne"},
-        "lecture": {"type": "string", "description": "Interne"},
-        "aspirations": {"type": "string", "description": "Interne"},
+        "date": {
+          "type": "string"
+        },
+        "pair": {
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "PM",
+            "PrD"
+          ]
+        },
+        "palier": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "notes": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 12,
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 4
+          }
+        },
+        "exemples": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 12,
+          "items": {
+            "type": "string"
+          },
+          "description": "Interne"
+        },
+        "lecture": {
+          "type": "string",
+          "description": "Interne"
+        },
+        "aspirations": {
+          "type": "string",
+          "description": "Interne"
+        },
         "suspens": {
           "type": "object",
           "description": "Points en suspens pour l'EC3. Interne.",
           "properties": {
-            "palier": {"type": "string"},
-            "solides": {"type": "string"},
-            "creux": {"type": "string"},
-            "questions": {"type": "string"},
-            "contestation": {"type": "string"},
-            "conditions": {"type": "string"}
+            "palier": {
+              "type": "string"
+            },
+            "solides": {
+              "type": "string"
+            },
+            "creux": {
+              "type": "string"
+            },
+            "questions": {
+              "type": "string"
+            },
+            "contestation": {
+              "type": "string"
+            },
+            "conditions": {
+              "type": "string"
+            }
           }
         },
-        "reporteLe": {"type": ["string", "null"], "format": "date-time"}
+        "reporteLe": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
       }
+    },
+    "etape": {
+      "enum": [
+        "appel",
+        "ec1",
+        "passation-ec1",
+        "ec2",
+        "passation-ec2",
+        "ec3",
+        "decision",
+        "onboarding"
+      ]
     }
   }
 }
