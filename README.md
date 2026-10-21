@@ -38,6 +38,7 @@ La fiche de passation n'existe plus : son volet EC1 → EC2 est dans la fiche #1
 | `python3 tools/e2e.py` | Le hub, les fiches, la carte, le décompte |
 | `python3 tools/e2e-candidatures.py` | Le module de bout en bout : ajout, appel, EC1 à l'onboarding, refus en EC1, export et import |
 | `python3 tools/e2e-liens.py` | « Précédent », liens directs, feuille de décompte vierge |
+| `python3 tools/e2e-pdf.py` | Exports PDF : carte d'une candidature, feuille vierge |
 | `python3 tools/e2e-backend.py` | L'écran de connexion, avec un faux client Supabase |
 
 Les tests de navigateur demandent le site construit et servi : `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site`.

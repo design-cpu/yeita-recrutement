@@ -560,16 +560,27 @@ var hashState = hs === "ec1" || hs === "ec2" ? hs : (hs === "embauche" ? "hire" 
 if(hashState) DEMO.restitution.etat = hashState;
 if(hs === "interne") intEl.open = true;
 /* Depuis le module Candidatures : #c-<id> ouvre la carte de cette candidature, #p-<id> l'ouvre et lance l'export (impression ou PDF). */
-var cm = /^(c|p)-([A-Za-z0-9._~-]+)$/.exec(hs), fromCand = cm ? cm[2] : null, printNow = !!(cm && cm[1] === "p");
-if(fromCand) DOSSIER.setCurrent(fromCand);
-migrateCodes().then(function(){ return refresh(hashState ? "__demo" : (fromCand || undefined)); }).then(function(){
+function candHash(h){ var m = /^(c|p)-([A-Za-z0-9._~-]+)$/.exec(h); return m ? {id: m[2], print: m[1] === "p"} : null; }
+function showFrom(fc){
+  var fp = document.getElementById("frompar");
+  if(!fc || !cur || cur.id !== fc.id){ fp.hidden = true; return; }
+  fp.hidden = false;
+  fp.innerHTML = '<span>Carte de la candidature de <b>'+E(cur.candidat.nom)+'</b>.</span><a href="candidatures.html#c-'+E(cur.id)+'">Retour au parcours</a>'
+    + (fc.print ? (YEITA.inFrame() ? '<span>L\'export PDF passe par l\'impression, bloquée dans cet aperçu : ouvre la page depuis le site du recrutement.</span>' : '<span>Dans la fenêtre d\'impression, choisis « Enregistrer au format PDF ».</span>') : '');
+  if(fc.print && !YEITA.inFrame()) setTimeout(function(){ window.print(); }, 400);
+}
+var fromCand = candHash(hs);
+if(fromCand) DOSSIER.setCurrent(fromCand.id);
+migrateCodes().then(function(){ return refresh(hashState ? "__demo" : (fromCand ? fromCand.id : undefined)); }).then(function(){
   if(hs === "interne") intEl.scrollIntoView({block:"start"});
-  if(fromCand && cur && cur.id === fromCand){
-    var fp = document.getElementById("frompar"); fp.hidden = false;
-    fp.innerHTML = '<span>Carte de la candidature de <b>'+E(cur.candidat.nom)+'</b>.</span><a href="candidatures.html#c-'+E(cur.id)+'">Retour au parcours</a>'
-      + (printNow ? (YEITA.inFrame() ? '<span>L\'export PDF passe par l\'impression, bloquée dans cet aperçu : ouvre la page depuis le site du recrutement.</span>' : '<span>Dans la fenêtre d\'impression, choisis « Enregistrer au format PDF ».</span>') : '');
-    if(printNow && !YEITA.inFrame()) setTimeout(function(){ window.print(); }, 400);
-  }
+  showFrom(fromCand);
+});
+/* Une autre candidature demandée sur la même page (#c- ou #p- changé) : on la charge. */
+window.addEventListener("hashchange", function(){
+  var fc = candHash((location.hash || "").replace("#", ""));
+  if(!fc) return;
+  DOSSIER.setCurrent(fc.id);
+  Promise.resolve(refresh(fc.id)).then(function(){ showFrom(fc); window.scrollTo(0, 0); });
 });
 })();
 </script>
