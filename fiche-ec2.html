@@ -112,6 +112,12 @@ details.crit > summary:hover{background:var(--surface-2)}
 .from1.empty p{color:var(--ink-2)}
 /* Points en suspens pour l'EC3, et le report */
 .suspens{display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%,300px),1fr)); gap:14px; margin-top:12px}
+.candbar{position:sticky; top:env(safe-area-inset-top, 0px); z-index:6; margin-top:16px; background:var(--emph-bg); color:var(--emph-fg); border-radius:12px; padding:10px 14px; display:flex; flex-wrap:wrap; gap:6px 16px; align-items:center; justify-content:space-between}
+.candbar p{font-size:15px}
+.candbar .sv{font-size:13.5px; color:var(--emph-sub)}
+.candbar a{color:var(--emph-fg); font-weight:650}
+.candbar.err{background:var(--stop-tint); color:var(--ink)}
+.candbar.err a{color:var(--violet)}
 .report{margin-top:26px; border-radius:18px; background:var(--surface); border:1.5px solid var(--ink); padding:20px 22px; display:grid; gap:14px}
 .report h2{font-size:21px}
 .rstate{font-size:15px; color:var(--ink-2); max-width:70ch}
@@ -183,6 +189,7 @@ details.more > .in{padding:0 18px 18px}
 </div>
 
 <main class="wrap">
+  <div class="candbar" id="candbar" hidden role="status"></div>
   <div class="grid-fields" style="margin-top:24px">
     <div class="field"><label for="f-nom">Candidat</label><input type="text" id="f-nom" autocomplete="off" placeholder="Prénom et nom"></div>
     <div class="field"><label for="f-date">Date</label><input type="date" id="f-date"></div>
@@ -550,10 +557,51 @@ var rep = {dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passatio
 var SUS = ["palier","solides","creux","questions","contestation","conditions"];
 var IDF = ["f-nom","f-date","f-par","f-asp"].concat(SUS.map(function(k){ return "p-"+k; }));
 function sid(di,si){ return di+"-"+si; }
+/* Mode candidat : fiche-ec2.html#c-<id> ouvre la fiche d'une candidature et l'enregistre sur elle. Sans ce lien, la fiche marche seule, comme avant. */
+var candM = /^#c-([A-Za-z0-9._~-]+)$/.exec(location.hash || ""), candId = candM ? candM[1] : null, cand = null, candT = null;
+function persistAll(){
+  if(!cand){ YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f, rep:rep}); return; }
+  clearTimeout(candT); candT = setTimeout(saveCand, 350);
+}
+function hasData(){ return steps().some(function(v){ return v != null; }) || IDF.some(function(id){ return id !== "f-nom" && id !== "f-date" && id !== "f-par" && gv(id); }) || Object.keys(notes).some(function(k){ return (notes[k]||"").trim(); }); }
+function saveCand(){
+  if(!cand) return;
+  cand.fiches = cand.fiches || {};
+  cand.fiches.ec2 = JSON.parse(JSON.stringify({s:scores, n:notes, t:tier, f:f}));
+  cand.ec2 = hasData() ? Object.assign(ec2Data(), {reporteLe: DOSSIER.now()}) : null;
+  if(cand.ec2) cand.ec2.role = (cand.identite && cand.identite.poste) || "PM";
+  return DOSSIER.save(cand).then(function(c){ cand = c; renderCandBar(new Date()); });
+}
+/* Une candidature qui n'a qu'une lecture EC2 (code collé, ancien report) : on reconstruit l'écran depuis cette lecture. */
+function applyCand(c){
+  var fe = c.fiches && c.fiches.ec2;
+  scores = {}; notes = {}; f = {}; tier = 2;
+  if(fe){ scores = fe.s || {}; notes = fe.n || {}; tier = fe.t || 2; f = fe.f || {}; }
+  else if(c.ec2){
+    var e = c.ec2; tier = e.palier || 2;
+    (e.notes || []).forEach(function(v, i){ if(v != null) scores[sid(Math.floor(i/3), i%3)] = v; });
+    (e.exemples || []).forEach(function(t, i){ if(t) notes[sid(Math.floor(i/3), i%3)] = t; });
+    f = {"f-date": e.date || "", "f-par": e.pair || "", "f-asp": e.aspirations || ""};
+    SUS.forEach(function(k){ if(e.suspens && e.suspens[k]) f["p-"+k] = e.suspens[k]; });
+  }
+  f["f-nom"] = c.candidat.nom;
+  if(!f["f-par"]) f["f-par"] = YEITA.store.get("yeita-recruteur", "") || "";
+  if(!f["f-date"]) f["f-date"] = new Date().toISOString().slice(0,10);
+  rep = {dossierId: c.id, dossierNom: c.candidat.nom, reportedAt: null, dirty: false, passationDone: true};
+}
+function renderCandBar(savedAt){
+  if(!cand) return;
+  var b = document.getElementById("candbar"); b.className = "candbar"; b.hidden = false;
+  b.innerHTML = '<p>Fiche #2 de <b>'+E(cand.candidat.nom)+'</b>. Chaque modification s\'enregistre sur sa candidature et remplit sa carte d\'identité.'
+    + (savedAt ? ' <span class="sv">Enregistré à '+savedAt.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"})+'.</span>' : '')+'</p>'
+    + '<a href="candidatures.html#c-'+E(cand.id)+'">Retour au parcours de '+E(cand.identite.prenom || cand.candidat.nom)+'</a>';
+}
 function load(){
-  var r = YEITA.store.get(KEY, {}); scores = r.s || {}; notes = r.n || {}; tier = r.t || 2; f = r.f || {};
-  rep = Object.assign({dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:false}, r.rep || {});
-  migratePassation();
+  if(!cand){
+    var r = YEITA.store.get(KEY, {}); scores = r.s || {}; notes = r.n || {}; tier = r.t || 2; f = r.f || {};
+    rep = Object.assign({dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:false}, r.rep || {});
+    migratePassation();
+  }
   IDF.forEach(function(id){ var e = document.getElementById(id); if(e){ e.value = f[id] || ""; if(e.tagName === "TEXTAREA" && e.value) YEITA.autogrow(e); } });
 }
 /* La fiche de passation a rejoint les fiches #1 et #2 : son volet EC2 → EC3 en cours est repris une fois. */
@@ -570,7 +618,7 @@ function migratePassation(){
   if(o["f-nom"] && !f["f-nom"]) f["f-nom"] = o["f-nom"];
   YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f, rep:rep});
 }
-function save(){ IDF.forEach(function(id){ f[id] = document.getElementById(id).value; }); YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f, rep:rep}); renderReport(); }
+function save(){ IDF.forEach(function(id){ f[id] = document.getElementById(id).value; }); persistAll(); renderReport(); }
 function changed(){ if(rep.reportedAt) rep.dirty = true; }
 function gv(id){ return (document.getElementById(id).value || "").trim(); }
 
@@ -620,6 +668,12 @@ var reportError = "";
 function fmtWhen(iso){ try{ return new Date(iso).toLocaleString("fr-FR", {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"}); }catch(e){ return ""; } }
 function renderReport(){
   var el = document.getElementById("rstate"); if(!el) return;
+  if(cand){
+    el.className = "rstate ok"; el.textContent = "Enregistré sur la candidature de " + cand.candidat.nom + " à chaque modification : la carte d'identité est toujours à jour.";
+    document.getElementById("report").hidden = true; document.getElementById("report-top").hidden = true;
+    document.getElementById("r-t").textContent = "La carte d'identité de " + cand.identite.prenom;
+    return;
+  }
   el.className = "rstate";
   if(reportError){ el.textContent = reportError; el.classList.add("err"); }
   else if(!rep.reportedAt){ el.textContent = "Pas encore reporté. Le report envoie les douze notes et le palier vers la carte d'identité, et le reste dans sa partie réservée à Yeita, points en suspens en tête. Tout reste sur cet ordinateur."; }
@@ -637,7 +691,7 @@ function doReport(){
   var id = (rep.dossierId && DOSSIER.norm(rep.dossierNom) === DOSSIER.norm(nom)) ? rep.dossierId : null;
   DOSSIER.report("ec2", nom, ec2Data(), id).then(function(d){
     rep.dossierId = d.id; rep.dossierNom = d.candidat.nom; rep.reportedAt = d.ec2.reporteLe; rep.dirty = false;
-    YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f, rep:rep}); renderReport(); renderRead(); renderFrom1();
+    persistAll(); renderReport(); renderRead(); renderFrom1();
     if(document.activeElement && document.activeElement.id === "report-top") document.getElementById("rstate").scrollIntoView({block:"center"});
   }).catch(function(e){ reportError = e.message; renderReport(); });
 }
@@ -646,7 +700,7 @@ function doReport(){
 function linesOf(t){ return String(t||"").split(/\n+/).map(function(x){ return x.trim(); }).filter(Boolean); }
 function renderFrom1(){
   var el = document.getElementById("from1"), nom = gv("f-nom");
-  (nom ? DOSSIER.findByName(nom) : DOSSIER.current()).then(function(d){
+  (cand ? DOSSIER.get(cand.id) : (nom ? DOSSIER.findByName(nom) : DOSSIER.current())).then(function(d){
     var e1 = d && d.ec1;
     if(!e1){
       el.className = "from1 empty";
@@ -734,7 +788,7 @@ document.addEventListener("click", function(e){
   if(e.target.id === "copy-notion"){ var b1 = e.target; YEITA.copy(notionText(), function(ok){ YEITA.flash(b1, ok ? "Copié pour Notion" : "Copie refusée"); }); return; }
   if(e.target.id === "reset"){ document.getElementById("confirm").hidden = false; document.getElementById("cf-yes").focus(); return; }
   if(e.target.id === "cf-no"){ document.getElementById("confirm").hidden = true; document.getElementById("reset").focus(); return; }
-  if(e.target.id === "cf-yes"){ scores = {}; notes = {}; f = {}; rep = {dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:true}; reportError = ""; YEITA.store.set(KEY, {s:{}, n:{}, t:tier, f:{}, rep:rep}); document.querySelectorAll("textarea").forEach(function(x){ x.style.height = ""; }); load(); renderDiamonds(); renderRead(); renderReport(); renderFrom1(); document.getElementById("confirm").hidden = true; YEITA.flash(null, "Fiche vidée"); return; }
+  if(e.target.id === "cf-yes"){ scores = {}; notes = {}; f = {}; if(cand){ f["f-nom"] = cand.candidat.nom; rep = {dossierId:cand.id, dossierNom:cand.candidat.nom, reportedAt:null, dirty:false, passationDone:true}; } else rep = {dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:true}; reportError = ""; persistAll(); document.querySelectorAll("textarea").forEach(function(x){ x.style.height = ""; }); load(); renderDiamonds(); renderRead(); renderReport(); renderFrom1(); document.getElementById("confirm").hidden = true; YEITA.flash(null, "Fiche vidée"); return; }
   if(e.target.id === "demo"){
     var s = [2,3,2, 4,3,2, 3,3,2, 3,2,null];
     scores = {}; s.forEach(function(v,i){ if(v!=null) scores[sid(Math.floor(i/3), i%3)] = v; });
@@ -753,7 +807,23 @@ document.addEventListener("input", function(e){
 
 document.getElementById("quarters").innerHTML = D.map(function(d){ return '<li><b>'+d.n+'</b>'+E(d.name)+' : '+d.sections.map(function(x){ return E(x.k); }).join(", ")+'</li>'; }).join("");
 var nameT = null;
-load(); renderDiamonds(); renderRead(); renderReport(); renderFrom1();
+function boot(){ load(); renderDiamonds(); renderRead(); renderReport(); renderFrom1(); }
+if(candId){
+  DOSSIER.get(candId).then(function(c){
+    if(!c){
+      var b = document.getElementById("candbar"); b.hidden = false; b.className = "candbar err";
+      b.innerHTML = '<p>Cette candidature n\'existe pas dans ce navigateur. La fiche s\'ouvre seule, sans être reliée.</p><a href="candidatures.html">Voir les candidatures</a>';
+      boot(); return;
+    }
+    cand = c; applyCand(c);
+    var nomEl = document.getElementById("f-nom"); nomEl.readOnly = true; nomEl.setAttribute("aria-describedby", "candbar");
+    document.getElementById("demo").hidden = true;
+    document.getElementById("cf-t").innerHTML = "<b>Vider la fiche #2 de " + E(c.candidat.nom) + " ?</b> Les notes, les exemples, les aspirations et les points en suspens disparaissent de sa candidature et de sa carte.";
+    document.title = "Fiche #2 · " + c.candidat.nom;
+    renderCandBar(null); boot();
+  });
+} else boot();
+window.addEventListener("pagehide", function(){ if(cand && candT){ clearTimeout(candT); candT = null; saveCand(); } });
 /* Une fiche #1 reportée dans un autre onglet apparaît ici aussitôt. */
 window.addEventListener("storage", function(e){ if(e.key === "yeita-dossiers") renderFrom1(); });
 })();

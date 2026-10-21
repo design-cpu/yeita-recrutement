@@ -101,6 +101,53 @@ async def main():
         await pg.goto(B+exp, wait_until="networkidle"); await pg.wait_for_timeout(500)
         check("export : carte de la candidature, invitation PDF", (await pg.locator("#who").inner_text()) == "Léna Garnier" and "PDF" in await pg.locator("#frompar").inner_text())
 
+        # EC2 → onboarding, sur la même candidature
+        lid = C[0]["id"]
+        await pg.goto(B+"candidatures.html#c-"+lid, wait_until="networkidle"); await pg.wait_for_timeout(400)
+        check("EC2 : ce que l'EC1 demande d'aller chercher", "mesuré après la refonte" in await pg.locator("#panel .onepager").inner_text())
+        links = await pg.locator("#panel .links a").all_inner_texts()
+        check("EC2 : grille de salaire et référentiel", any("Grille" in l for l in links) and any("Référentiel" in l for l in links))
+        check("EC2 : fiche #2 vide signalée", "fiche #2 est encore vide" in await pg.locator("#why").inner_text())
+        await pg.click("a[href^='fiche-ec2.html#c-']"); await pg.wait_for_load_state("networkidle"); await pg.wait_for_timeout(500)
+        check("fiche #2 : barre du candidat, nom verrouillé", "Léna Garnier" in await pg.locator("#candbar").inner_text() and await pg.locator("#f-nom").evaluate("e=>e.readOnly"))
+        check("fiche #2 : pas d'exemple ni de bouton Reporter", not await pg.locator("#demo").is_visible() and not await pg.locator("#report-top").is_visible())
+        check("fiche #2 : l'EC1 de la candidature affichée", "mesuré après la refonte" in await pg.locator("#from1").inner_text())
+        await pg.click('.scale button[data-k="0-0"][data-v="3"]'); await pg.click('.scale button[data-k="1-0"][data-v="2"]')
+        await pg.fill("#ex-0-0", "A chiffré l'impact de la refonte sur les rendez-vous manqués.")
+        await pg.click('#tierSeg button[data-tier="2"]')
+        await pg.fill("#p-questions", "Son envie de cadrer la stratégie\nSa mobilité sur Paris")
+        await pg.fill("#p-conditions", "Prétentions à confirmer dans la grille."); await pg.wait_for_timeout(700)
+        check("fiche #2 : enregistré sur la candidature", "Enregistré à" in await pg.locator("#candbar").inner_text())
+        C = {c["id"]: c for c in await cands(pg)}
+        e2 = C[lid]["ec2"]
+        check("candidature : lecture EC2 (notes, exemples, suspens)", e2 and e2["notes"][0] == 3 and e2["notes"][3] == 2 and "rendez-vous" in e2["exemples"][0] and "Paris" in e2["suspens"]["questions"])
+        check("fiche #2 seule intacte", "Léna" not in (await pg.evaluate("localStorage.getItem('yeita-fiche-ec2')") or ""))
+        await pg.reload(wait_until="networkidle"); await pg.wait_for_timeout(500)
+        check("fiche #2 : rouverte telle qu'on l'a laissée", (await pg.locator("#ex-0-0").input_value()).startswith("A chiffré") and await pg.locator('.scale button[data-k="0-0"][data-v="3"]').get_attribute("aria-pressed") == "true")
+        await pg.click("#candbar a"); await pg.wait_for_load_state("networkidle"); await pg.wait_for_timeout(500)
+        check("retour sur l'EC2, fiche enregistrée", "Enregistrée" in await pg.locator("#panel .status").first.inner_text() and "2 étapes notées" in await pg.locator("#panel .status").first.inner_text())
+        await pg.click("#next"); await pg.wait_for_timeout(400)
+        check("passation EC2 : points en suspens et export pour l'EC3", "Sa mobilité sur Paris" in await pg.locator("#panel .carteprev").inner_text() and await pg.locator("#panel a", has_text="pour l'EC3").count() == 1)
+        await pg.click("#next"); await pg.wait_for_timeout(400)
+        C = {c["id"]: c for c in await cands(pg)}
+        check("passation EC2 faite → EC3, en appel par défaut", C[lid]["parcours"]["etape"] == "ec3" and C[lid]["passations"]["ec2"]["mode"] == "appel")
+        check("EC3 : questions ouvertes en tête", "Son envie de cadrer" in await pg.locator("#panel .ask3").inner_text())
+        check("EC3 : pas de Non retenu, une seule sortie", await pg.locator("#refuse").count() == 0 and (await pg.locator("#next").inner_text()) == "Envoyer en décision")
+        await pg.fill("#e3-par", "Mattéo"); await pg.fill("#e3-notes", "Confirme le cadrage. Mobilité : OK trois jours par semaine."); await pg.wait_for_timeout(600)
+        C = {c["id"]: c for c in await cands(pg)}
+        check("EC3 : bloc-notes enregistré", "trois jours" in C[lid]["ec3"]["notes"] and C[lid]["ec3"]["par"] == "Mattéo")
+        await pg.click("#next"); await pg.wait_for_timeout(400)
+        check("décision : rappel de l'appel, notes de l'EC3", "Appel au candidat" in await pg.locator("#panel .onepager h3").inner_text() and "trois jours" in await pg.locator("#panel .carteprev").inner_text())
+        check("décision : Non retenu possible", await pg.locator("#refuse").count() == 1)
+        await pg.check("#dec-call"); await pg.wait_for_timeout(300)
+        await pg.click("#next"); await pg.wait_for_timeout(400)
+        C = {c["id"]: c for c in await cands(pg)}
+        check("onboarding : fin du parcours, carte en « embauche »", C[lid]["parcours"]["etape"] == "onboarding" and C[lid]["restitution"]["etat"] == "hire" and C[lid]["decision"]["appelFaitLe"])
+        rec = await pg.locator("#panel .recap").inner_text()
+        check("onboarding : récapitulatif des passages", "Passation EC1" in rec and "en asynchrone" in rec and "Thélo" in rec)
+        check("onboarding : pas de barre de sorties", await pg.locator(".exits").count() == 0)
+        check("historique complet : l'entrée et 7 passages, avec l'auteur", len(C[lid]["historique"]) == 8 and all(h["par"] == "Thélo" for h in C[lid]["historique"][1:]))
+
         # Refus en EC1, puis annulation, puis refus confirmé
         await pg.goto(B+"candidatures.html", wait_until="networkidle"); await pg.wait_for_timeout(300)
         await pg.click("#add-open"); await pg.fill("#a-prenom", "Noé"); await pg.fill("#a-nom", "Faure"); await pg.click("#add-form button[type=submit]"); await pg.wait_for_timeout(300)
@@ -120,6 +167,7 @@ async def main():
         await pg.click("#back"); await pg.wait_for_timeout(400)
         clos = await pg.locator(".kcol.clos").inner_text()
         check("tableau : colonne « Pas aujourd'hui » avec le motif", "Noé Faure" in clos and "Type de poste" in clos)
+        check("tableau : Léna en onboarding", "Léna Garnier" in await pg.locator(".kcol", has_text="Onboarding").first.inner_text())
 
         # Liste, recherche
         await pg.click("#mode [data-m=liste]"); await pg.wait_for_timeout(200)

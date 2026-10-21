@@ -154,6 +154,19 @@
 .carteprev dd{margin:0; color:var(--ink-2)}
 @media (max-width:560px){ .carteprev dl{grid-template-columns:1fr; gap:2px} .carteprev dd{margin-bottom:6px} }
 .carteprev ul{margin:0; padding-left:18px}
+.carteprev h4.sub{font-size:15px; margin-bottom:8px}
+.carteprev dd.pre{white-space:pre-line}
+fieldset.plain{border:0; padding:0; margin:0; min-width:0}
+.onepager ul.asks{margin:0; padding-left:20px; display:grid; gap:4px}
+/* EC3 : les questions ouvertes passent devant tout le reste */
+.ask3{border:2px solid var(--violet); background:var(--violet-soft); border-radius:var(--radius); padding:16px 18px; display:grid; gap:10px}
+.ask3 h3{font-size:18px; color:var(--violet-ink)}
+.ask3 ol{margin:0; padding-left:22px; display:grid; gap:6px; font-size:16.5px; font-weight:600}
+.recap{list-style:none; margin:0; padding:0; display:grid; gap:0}
+.recap li{display:grid; grid-template-columns:minmax(0,9em) minmax(0,1fr); gap:2px 14px; font-size:15px; border-top:1px solid var(--line); padding-block:8px}
+.recap li:first-child{border-top:0}
+.recap .d{font-size:14px; color:var(--muted); font-variant-numeric:tabular-nums}
+@media (max-width:560px){ .recap li{grid-template-columns:1fr} }
 
 /* Les sorties de l'étape : collées en bas de l'écran pendant qu'on remplit */
 .exits{position:sticky; bottom:0; z-index:5; background:var(--paper); border-top:1.5px solid var(--ink); padding-block:12px calc(12px + env(safe-area-inset-bottom, 0px)); display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; justify-content:space-between}
@@ -503,7 +516,7 @@ function renderPanel(){
   if(state === "done"){ var st = c.parcours.etapes[viewing] || {}; h += '<p class="readonly">Étape passée, en lecture'+(st.termineLe ? ', terminée le ' + E(fmtWhen(st.termineLe)) : '')+'. <a href="#" data-step="'+E(c.parcours.etape === "clos" ? c.parcours.cloture.depuis : c.parcours.etape)+'">Revenir à l\'étape en cours</a></p>'; }
   if(c.parcours.etape === "clos" && state === "stop"){ var cl = c.parcours.cloture; h += '<p class="readonly"><b>Parcours arrêté ici</b>, le '+E(fmtWhen(cl.le))+(cl.par ? ' par '+E(cl.par) : '')+'. Motif : '+E(S.motifLabel(cl.motif))+(cl.detail ? ', '+E(cl.detail) : '')+'. '+(cl.carteEnvoyee ? 'Carte d\'identité envoyée.' : 'Carte d\'identité non envoyée.')+'</p>'; }
   var R = RENDER[viewing] || RENDER._soon;
-  h += R(c, ro);
+  h += R(c, ro) + notesLibresHTML(c, viewing);
   if(!ro && state === "cur") h += refusOpen ? refusHTML(c) : exitsHTML(c);
   document.getElementById("panel").innerHTML = h;
   document.querySelectorAll("#panel textarea").forEach(function(t){ if(t.value) YEITA.autogrow(t); });
@@ -569,11 +582,11 @@ function cartePreview(c, part){
   var e1 = c.ec1 || {}, list = EMP.surLaCarte(e1.employabilite && e1.employabilite.criteres), m = e1.match || {};
   var q = String(e1.questionsEC2 || "").split(/\n+/).filter(function(x){ return x.trim(); });
   var h = '<div class="grid2 carteprev">'
-    + '<div><h4 style="font-size:15px; margin-bottom:8px">Sur la carte</h4><dl>'
+    + '<div><h4 class="sub">Sur la carte</h4><dl>'
     + '<dt>Yeita Match</dt><dd>'+(m.partielle ? "Lecture partielle" : (m.dominante && m.seconde ? E(Y.value(m.dominante).label + " › " + Y.value(m.seconde).label) : "Non renseigné"))+'</dd>'
     + '<dt>Ce qu\'on a perçu</dt><dd>'+E(e1.percu || "Non renseigné")+'</dd>'
     + '<dt>Critères</dt><dd>'+(list.length ? list.map(function(x){ return E(x.critere.label + " : " + x.statut.label); }).join("<br>") : "Aucun critère coché")+'</dd></dl></div>'
-    + '<div><h4 style="font-size:15px; margin-bottom:8px">Remarques internes</h4><dl>'
+    + '<div><h4 class="sub">Remarques internes</h4><dl>'
     + '<dt>À creuser en EC2</dt><dd>'+(q.length ? '<ul>'+q.map(function(x){ return '<li>'+E(x)+'</li>'; }).join("")+'</ul>' : "Aucune question notée")+'</dd>'
     + '<dt>Vigilance</dt><dd>'+E(e1.vigilance || "Aucun signal")+'</dd>'
     + '<dt>Diamants</dt><dd>'+((e1.diamants||[]).some(Boolean) ? Dm.D.map(function(d, i){ return E(d.name + " : " + (e1.diamants[i] || "non renseigné")); }).join("<br>") : "Non renseigné")+'</dd></dl></div></div>';
@@ -583,24 +596,132 @@ RENDER["passation-ec1"] = function(c, ro){
   var e = PC.etape("passation-ec1"), p = c.passations.ec1 || {};
   var h = linksHTML(e, [["Le guide de la passation", "index.html#debrief-ec1"]]);
   h += '<div class="onepager"><h3>Caler un call de 15 min de débrief candidat</h3><p>Le recruteur et l\'observateur croisent leurs lectures, ou font la passation en asynchrone. Ce qui en sort part dans la carte, et dans sa partie interne pour le pair de l\'EC2.</p>'
-    + '<fieldset style="border:0; padding:0; margin:0"><legend class="sr-only">Forme de la passation</legend><div class="radios-inline"><label><input type="radio" name="pm-mode" value="appel"'+(p.mode !== "asynchrone" ? ' checked' : '')+'>En appel, 15 min</label><label><input type="radio" name="pm-mode" value="asynchrone"'+(p.mode === "asynchrone" ? ' checked' : '')+'>En asynchrone</label></div></fieldset></div>';
+    + modeHTML("pm-mode", p) + '</div>';
   h += '<div class="box"><h3>La carte d\'identité, avec ses remarques</h3>' + (c.ec1 ? cartePreview(c) : '<p class="status"><span class="todo">La fiche #1 n\'a rien enregistré : la carte est vide.</span> <a href="fiche-ec1.html#c-'+E(c.id)+'">Ouvrir la fiche #1</a></p>')
     + '<div class="actions"><a class="btn" href="carte-identite.html#c-'+E(c.id)+'">Ouvrir la carte d\'identité</a><a class="btn" href="carte-identite.html#p-'+E(c.id)+'">Exporter la carte (PDF)</a><a class="btn quiet" href="fiche-ec1.html#c-'+E(c.id)+'">Compléter la fiche #1</a></div></div>';
   return h;
 };
 
+/* Étape 4 : EC2 */
+function lines(t){ return String(t || "").split(/\n+/).map(function(x){ return x.trim(); }).filter(Boolean); }
+function ulOr(arr, empty){ return arr.length ? '<ul>'+arr.map(function(x){ return '<li>'+E(x)+'</li>'; }).join("")+'</ul>' : E(empty); }
+RENDER.ec2 = function(c, ro){
+  var e = PC.etape("ec2"), q = lines(c.ec1 && c.ec1.questionsEC2);
+  var h = linksHTML(e, [["Le guide de l'EC2", "index.html#ec2"]]);
+  h += '<div class="onepager"><h3>Ce que l\'EC1 demande d\'aller chercher</h3>'
+    + (q.length ? '<ul class="asks">'+q.map(function(x){ return '<li>'+E(x)+'</li>'; }).join("")+'</ul>' : '<p>La passation EC1 n\'a pas laissé de question pour l\'EC2. La fiche #2 couvre les douze étapes.</p>')
+    + (c.ec1 && c.ec1.vigilance ? '<p><b>Vigilance :</b> '+E(c.ec1.vigilance)+'</p>' : '') + '</div>';
+  h += '<div class="box"><h3>La fiche d\'entretien candidat #2 · Scorecard 4 diamants</h3>' + ficheStatus("ec2", c)
+    + '<p class="hint">La fiche s\'ouvre en pleine page, déjà au nom de '+E(c.identite.prenom)+'. Les douze notes, les exemples cités et les points en suspens s\'enregistrent sur la candidature et remplissent la carte d\'identité.</p>'
+    + '<div class="actions"><a class="btn'+(c.ec2 ? '' : ' primary')+'" href="fiche-ec2.html#c-'+E(c.id)+'">'+(c.ec2 ? "Reprendre la fiche #2" : "Ouvrir la fiche #2")+'</a><a class="btn" href="carte-identite.html#c-'+E(c.id)+'">Voir la carte d\'identité</a></div></div>';
+  return h;
+};
+
+/* Étape 5 : passation EC2 */
+var SUS_LABELS = [["palier","Palier proposé et rôle"], ["solides","Diamants solides"], ["creux","Diamants creux"], ["questions","À creuser en EC3"], ["contestation","Ce qui risque d'être contesté"], ["conditions","À confirmer avant la proposition"]];
+function suspensHTML(c, only){
+  var su = (c.ec2 && c.ec2.suspens) || {};
+  return '<dl>' + SUS_LABELS.filter(function(x){ return !only || only.indexOf(x[0]) >= 0; }).map(function(x){
+    var v = x[0] === "questions" ? ulOr(lines(su.questions), "Aucune question notée") : E(su[x[0]] || "Non renseigné");
+    return '<dt>'+E(x[1])+'</dt><dd>'+v+'</dd>';
+  }).join("") + '</dl>';
+}
+function modeHTML(name, p){
+  return '<fieldset class="plain"><legend class="sr-only">Forme de la passation</legend><div class="radios-inline"><label><input type="radio" name="'+name+'" value="appel"'+(p.mode !== "asynchrone" ? ' checked' : '')+'>En appel, 15 min</label><label><input type="radio" name="'+name+'" value="asynchrone"'+(p.mode === "asynchrone" ? ' checked' : '')+'>En asynchrone</label></div></fieldset>';
+}
+RENDER["passation-ec2"] = function(c, ro){
+  var e = PC.etape("passation-ec2"), p = c.passations.ec2 || {};
+  var h = linksHTML(e, [["Le guide de la passation", "index.html#debrief-ec2"]]);
+  h += '<div class="onepager"><h3>Caler un call de 15 min de débrief candidat</h3><p>Le pair de l\'EC2 et le recruteur relisent les points en suspens, ou font la passation en asynchrone. Puis la carte part à l\'impression : le fondateur la corrige avec la personne en EC3.</p>' + modeHTML("pm2-mode", p) + '</div>';
+  h += '<div class="box"><h3>La carte d\'identité, avec ce qui reste ouvert</h3>'
+    + (c.ec2 ? '<div class="carteprev">'+suspensHTML(c)+'</div>' : '<p class="status"><span class="todo">La fiche #2 n\'a rien enregistré : les points en suspens sont vides.</span> <a href="fiche-ec2.html#c-'+E(c.id)+'">Ouvrir la fiche #2</a></p>')
+    + '<div class="actions"><a class="btn primary" href="carte-identite.html#p-'+E(c.id)+'">Exporter la carte pour l\'EC3 (PDF)</a><a class="btn" href="carte-identite.html#c-'+E(c.id)+'">Ouvrir la carte d\'identité</a><a class="btn quiet" href="fiche-ec2.html#c-'+E(c.id)+'">Compléter la fiche #2</a></div>'
+    + '<p class="hint">Le PDF s\'imprime en A4 : une carte par personne, posée sur la table de l\'EC3.</p></div>';
+  return h;
+};
+
+/* Étape 6 : EC3 */
+RENDER.ec3 = function(c, ro){
+  var e = PC.etape("ec3"), e1 = c.ec1 || {}, e2 = c.ec2, m = e1.match || {}, x = c.ec3 || {};
+  var q = lines(e2 && e2.suspens && e2.suspens.questions); if(!q.length) q = lines(e1.questionsEC2);
+  var h = linksHTML(e, [["Le guide de l'EC3", "index.html#ec3"]]);
+  h += '<div class="ask3"><h3>À creuser en EC3</h3>'+(q.length ? '<ol>'+q.map(function(t){ return '<li>'+E(t)+'</li>'; }).join("")+'</ol>' : '<p>Aucune question ouverte : l\'EC3 confirme la carte avec la personne.</p>')+'</div>';
+  h += '<div class="box"><h3>La carte complète</h3><div class="grid2 carteprev">'
+    + '<div><h4 class="sub">EC1 · les valeurs</h4><dl><dt>Yeita Match</dt><dd>'+(m.partielle ? "Lecture partielle" : (m.dominante && m.seconde ? E(Y.value(m.dominante).label + " › " + Y.value(m.seconde).label) : "Non renseigné"))+'</dd>'
+    + '<dt>Ce qu\'on a perçu</dt><dd>'+E(e1.percu || "Non renseigné")+'</dd></dl></div>'
+    + '<div><h4 class="sub">EC2 · le métier</h4>'+(e2 ? '<dl><dt>Palier discuté</dt><dd>'+E(Dm.TIERS[(e2.palier || 2) - 1])+'</dd></dl>' + suspensHTML(c, ["solides","creux","contestation","conditions"]) : '<p class="status"><span class="todo">La fiche #2 est vide.</span></p>')+'</div></div>'
+    + '<div class="actions"><a class="btn" href="carte-identite.html#c-'+E(c.id)+'">Ouvrir la carte d\'identité</a><a class="btn" href="carte-identite.html#p-'+E(c.id)+'">Exporter la carte (PDF)</a>'
+    + (PC.FEATURES.reeditionProfil ? '<a class="btn quiet" href="carte-identite.html#c-'+E(c.id)+'">Corriger le profil avec la personne</a>' : '') + '</div></div>';
+  h += '<div class="box"><h3>Bloc-notes de l\'EC3</h3><div class="grid-fields">'
+    + '<div class="field"><label for="e3-le">Date de l\'EC3</label><input type="date" id="e3-le" data-f="ec3.le" value="'+E(x.le || "")+'"></div>'
+    + '<div class="field"><label for="e3-par">Mené par</label><input type="text" id="e3-par" data-f="ec3.par" value="'+E(x.par || "")+'" autocomplete="off" placeholder="Le fondateur"></div></div>'
+    + '<div class="field"><label for="e3-notes">Notes</label><textarea id="e3-notes" data-f="ec3.notes" rows="6" placeholder="Les réponses aux questions ouvertes, ce que la personne corrige sur sa carte, ce qui reste à trancher en décision.">'+E(x.notes || "")+'</textarea></div>'
+    + '<span class="saved" id="saved" aria-live="polite"></span></div>';
+  return h;
+};
+
+/* Étape 7 : décision */
+RENDER.decision = function(c, ro){
+  var e = PC.etape("decision"), e2 = c.ec2, d = c.decision || {}, done = !!d.appelFaitLe;
+  var h = linksHTML(e, [["Le guide de la décision", "index.html#decision"]]);
+  h += '<div class="onepager"><h3>Appel au candidat</h3><p>La décision se dit au téléphone d\'abord : une proposition placée dans la grille, ou un non expliqué. Le mail vient après, avec la carte d\'identité.</p>'
+    + '<div class="actions"><label class="check"><input type="checkbox" id="dec-call"'+(done ? ' checked' : '')+'>Appel fait</label>'
+    + (done ? '<span class="saved">le '+E(fmtWhen(d.appelFaitLe))+(d.par ? ', par '+E(d.par) : '')+'</span>' : '') + '</div></div>';
+  h += '<div class="box"><h3>Pour décider</h3><div class="carteprev"><dl>'
+    + '<dt>Palier proposé</dt><dd>'+(e2 ? E((e2.suspens && e2.suspens.palier) || Dm.TIERS[(e2.palier || 2) - 1]) : "Non renseigné")+'</dd>'
+    + '<dt>À confirmer avant la proposition</dt><dd>'+E((e2 && e2.suspens && e2.suspens.conditions) || "Non renseigné")+'</dd>'
+    + '<dt>Notes de l\'EC3</dt><dd class="pre">'+E((c.ec3 && c.ec3.notes) || "Aucune note")+'</dd></dl></div>'
+    + '<div class="actions"><a class="btn" href="carte-identite.html#c-'+E(c.id)+'">Ouvrir la carte d\'identité</a></div></div>';
+  return h;
+};
+
+/* Étape 8 : onboarding. Fin du parcours dans le MVP. */
+function passageOf(c, sid){
+  for(var i = c.historique.length - 1; i >= 0; i--){ var x = c.historique[i]; if(x.de === sid && !x.annulation) return x; }
+  return null;
+}
+RENDER.onboarding = function(c, ro){
+  var e = PC.etape("onboarding");
+  var h = linksHTML(e, [["Le guide de l'onboarding", "index.html#onboarding"]]);
+  h += '<div class="box"><h3>Le parcours de '+E(c.identite.prenom)+'</h3><ol class="recap">'
+    + PC.ETAPES.filter(function(x){ return x.id !== "onboarding"; }).map(function(x){
+      var p = passageOf(c, x.id), extra = "";
+      if(x.id === "passation-ec1" || x.id === "passation-ec2"){ var pm = c.passations[x.id === "passation-ec1" ? "ec1" : "ec2"]; if(pm && pm.mode) extra = pm.mode === "asynchrone" ? " · en asynchrone" : " · en appel"; }
+      return '<li><span class="d">'+(p ? E(fmtDay(p.le)) : "·")+'</span><span><b>'+E(x.label)+'</b>'+(p && p.par ? ', '+E(p.par) : '')+E(extra)+'</span></li>';
+    }).join("") + '</ol></div>';
+  h += '<div class="onepager"><h3>La carte d\'identité, point de départ avec sa Nanny</h3><p>La carte devient le point de départ de '+E(c.identite.prenom)+' : sa Nanny la lit avant le premier jour, et la reprend avec la personne pendant les premières semaines.</p>'
+    + '<div class="actions"><a class="btn primary" href="carte-identite.html#p-'+E(c.id)+'">Exporter la carte (PDF)</a><a class="btn" href="carte-identite.html#c-'+E(c.id)+'">Ouvrir la carte d\'identité</a></div></div>';
+  return h;
+};
+
+/* Hors MVP : notes libres sur chaque étape. Emplacement prêt, activé par PARCOURS.FEATURES.notesLibres. */
+function notesLibresHTML(c, sid){
+  if(!PC.FEATURES.notesLibres) return "";
+  return '<div class="box"><h3>Notes libres</h3><div class="field"><label for="nl-'+sid+'" class="sr-only">Notes libres sur cette étape</label><textarea id="nl-'+sid+'" data-f="notesLibres.'+sid+'" rows="3">'+E((c.notesLibres || {})[sid] || "")+'</textarea></div></div>';
+}
+
 /* ---------- Sorties ---------- */
 var NEXT_LABEL = {"appel":"Passer à l'EC1", "ec1":"Passer à la passation EC1", "passation-ec1":"Passation faite, passer à l'EC2", "ec2":"Passer à la passation EC2", "passation-ec2":"Passation faite, passer à l'EC3", "ec3":"Envoyer en décision", "decision":"Passer à l'onboarding"};
+/* Ce qu'on rappelle à côté du bouton, sans bloquer le passage. */
+function WHY(c){
+  var et = c.parcours.etape;
+  if(et === "ec1" && !c.ec1) return "La fiche #1 est encore vide.";
+  if(et === "ec2" && !c.ec2) return "La fiche #2 est encore vide.";
+  if(et === "ec3") return "Pas de refus en EC3 : la décision tranche.";
+  if(et === "decision" && !(c.decision && c.decision.appelFaitLe)) return "L'appel au candidat n'est pas encore coché.";
+  return "";
+}
 function exitsHTML(c){
   var et = c.parcours.etape, b = S.blocker(c);
   var canRefuse = S.REFUS_DEPUIS.indexOf(et) >= 0, exportable = et === "ec1" || et === "ec2";
   var left = (canRefuse ? '<button type="button" class="btn stop" id="refuse">Non retenu</button>' : '')
     + (exportable ? '<a class="btn quiet" href="carte-identite.html#p-'+E(c.id)+'">Exporter la carte (PDF)</a>' : '');
-  var right = NEXT_LABEL[et] ? '<span class="why" id="why">'+E(b || (et === "ec1" && !c.ec1 ? "La fiche #1 est encore vide." : (et === "ec3" ? "Pas de refus en EC3 : la décision tranche." : "")))+'</span><button type="button" class="btn primary" id="next"'+(b ? ' disabled aria-describedby="why"' : '')+'>'+E(NEXT_LABEL[et])+'</button>' : '';
+  var right = NEXT_LABEL[et] ? '<span class="why" id="why">'+E(b || WHY(c))+'</span><button type="button" class="btn primary" id="next"'+(b ? ' disabled aria-describedby="why"' : '')+'>'+E(NEXT_LABEL[et])+'</button>' : '';
+  if(!left && !right) return "";
   return '<div class="exits" role="group" aria-label="Sorties de l\'étape"><div class="l">'+left+'</div><div class="r">'+right+'</div></div>';
 }
 function refusHTML(c){
-  var et = c.parcours.etape, hasCarte = !!c.ec1;
+  var et = c.parcours.etape, hasCarte = !!(c.ec1 || c.ec2);
   return '<section class="refus" aria-labelledby="rf-t"><h3 id="rf-t" tabindex="-1">Appel de refus</h3>'
     + '<p class="rappel">'+YEITA.icon("Phone", 18, 2.2)+'<span>Le refus se fait par téléphone, d\'abord : « pas aujourd\'hui, parce que… ». '+(hasCarte ? 'La carte d\'identité suit par mail, si la personne la veut.' : (et === "appel" ? 'À cette étape, pas de carte : un mail court confirme l\'appel.' : 'La fiche #1 est vide : la carte n\'a rien à dire. Remplis la fiche avant de l\'envoyer, ou confirme l\'appel par un mail court.'))+'</span></p>'
     + '<div class="grid-fields"><div class="field"><label for="rf-motif">Motif de clôture</label><select id="rf-motif"><option value="">Choisis un motif</option>'+S.MOTIFS.map(function(m){ return '<option value="'+m[0]+'">'+E(m[1])+'</option>'; }).join("")+'</select></div>'
@@ -627,9 +748,15 @@ document.addEventListener("change", function(e){
     cur.appel.onePager = e.target.checked ? {envoyeLe: DOSSIER.now(), par: S.me()} : {envoyeLe: null, par: ""};
     S.saveCandidate(cur).then(function(c){ cur = c; renderPanel(); say(e.target.checked ? "One-pager noté comme envoyé" : "Envoi du one-pager retiré"); var n = document.getElementById(e.target.checked ? "next" : "op-sent"); if(n) n.focus(); });
   }
-  if(e.target.name === "pm-mode"){
-    cur.passations.ec1 = Object.assign({}, cur.passations.ec1 || {}, {mode: e.target.value});
+  if(e.target.name === "pm-mode" || e.target.name === "pm2-mode"){
+    var k = e.target.name === "pm-mode" ? "ec1" : "ec2";
+    cur.passations[k] = Object.assign({}, cur.passations[k] || {}, {mode: e.target.value});
     S.saveCandidate(cur).then(function(c){ cur = c; });
+  }
+  if(e.target.id === "dec-call"){
+    if(e.target.checked && needMe()){ e.target.checked = false; return; }
+    cur.decision = e.target.checked ? {appelFaitLe: DOSSIER.now(), par: S.me()} : {appelFaitLe: null, par: ""};
+    S.saveCandidate(cur).then(function(c){ cur = c; renderPanel(); say(e.target.checked ? "Appel au candidat noté" : "Appel au candidat retiré"); var n = document.getElementById("dec-call"); if(n) n.focus(); });
   }
 });
 
@@ -662,7 +789,7 @@ document.addEventListener("click", function(e){
   if(t.id === "next"){
     if(needMe()) return;
     var de = cur.parcours.etape;
-    S.moveStep(cur.id, {par: S.me(), mode: de === "passation-ec1" ? ((document.querySelector('input[name=pm-mode]:checked') || {}).value) : undefined}).then(function(c){
+    S.moveStep(cur.id, {par: S.me(), mode: (de === "passation-ec1" || de === "passation-ec2") ? ((document.querySelector('input[name='+(de === "passation-ec1" ? "pm-mode" : "pm2-mode")+']:checked') || {}).value) : undefined}).then(function(c){
       cur = c; viewing = c.parcours.etape; lastMove = true;
       renderCandidate(); showNotice(label(de) + " terminé. " + c.candidat.nom + " passe à : " + label(c.parcours.etape) + ".", false, true); load();
       document.getElementById("panel").scrollIntoView({block:"start"});

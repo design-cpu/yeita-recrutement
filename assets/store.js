@@ -135,6 +135,7 @@ function undoLast(id, par){
     if(cur !== last.vers) return err("Le dernier passage ne correspond plus à l'étape en cours.");
     c.parcours.etape = last.de;
     if(cur === CLOS) c.parcours.cloture = null;
+    if(cur === "onboarding" && c.restitution.etat === "hire") c.restitution.etat = "ec2";
     var s = c.parcours.etapes[last.de]; if(s) delete s.termineLe;
     h.push({de: cur, vers: last.de, le: D.now(), par: par || me(), motif: "Annulation du dernier passage", annulation: true});
     return D.save(c);
@@ -149,7 +150,7 @@ var PROCHAINE = {
   "ec2": function(c){ return c.ec2 ? "Passer à la passation EC2" : "Mener l'EC2 et remplir la fiche #2"; },
   "passation-ec2": function(){ return "Caler le débrief, imprimer la carte"; },
   "ec3": function(){ return "Mener l'EC3, puis envoyer en décision"; },
-  "decision": function(){ return "Appeler la personne"; },
+  "decision": function(c){ return c.decision && c.decision.appelFaitLe ? "Passer à l'onboarding" : "Appeler la personne"; },
   "onboarding": function(){ return "Remettre la carte à la Nanny"; },
   "clos": function(c){ return c.parcours.cloture && c.parcours.cloture.carteEnvoyee ? "Carte envoyée" : "Envoyer la carte si besoin"; }
 };
@@ -208,7 +209,7 @@ function loadDemo(){
   var P = me() || "Thélo";
   var specs = [
     {p:"Inès", n:"Bernard", prov:"linkedin", poste:"PM", etape:"appel", started:false, age:1},
-    {p:"Hugo", n:"Petit", prov:"wttj", poste:"PM", etape:"appel", started:true, age:3, onePager:true,
+    {p:"Hugo", n:"Petit", prov:"wttj", poste:"PM", etape:"ec3", started:true, age:1, onePager:true, ec1:true, ec2:true,
      blocs:{parcours:"Deux ans PM dans une néobanque, une équipe de six. A porté seul la refonte de l'onboarding.", recherche:"Veut sortir du produit unique. Ouvert à la banque et à l'énergie.", cadre:"Jamais travaillé en ESN, curieux du modèle. Habite Paris 11e.", conditions:"Vise 55 k€. Disponible dans deux mois."}},
     {p:"Maëlle", n:"Durand", prov:"autre", provD:"Cooptation", poste:"PrD", etape:"ec1", started:true, age:2, onePager:true},
     {p:"Yanis", n:"Morel", prov:"linkedin", poste:"PM", etape:"passation-ec1", started:false, age:9, onePager:true, ec1:true},
@@ -230,6 +231,17 @@ function loadDemo(){
     var cur = s.etape === "clos" ? s.from : s.etape;
     if(!s.started && s.etape !== "clos") delete c.parcours.etapes[cur].debuteLe;
     c.parcours.etape = s.etape;
+    if(s.ec2){
+      c.ec2 = Object.assign(D.emptyEC2(), {date: daysAgo(s.age + 1).slice(0,10), pair: "Andrea", role: s.poste, palier: 2,
+        notes: [3,3,2, 3,2,2, 2,3,2, 2,1,null],
+        exemples: ["A chiffré le coût de l'abandon à l'onboarding avant de proposer quoi que ce soit.", "", "", "A recruté des testeurs via le support quand l'accès direct était bloqué.", "", "", "", "A tenu une revue de lancement avec la conformité.", "", "", "", ""],
+        lecture: "", aspirations: "Veut apprendre à cadrer une stratégie produit. Préfère un binôme les premières semaines.",
+        suspens: {palier: "J'apporte de la valeur, Product Manager.", solides: "Problème et Solution : des exemples précis, chiffrés.", creux: "Stratégie : peu d'occasions de la pratiquer jusqu'ici.",
+          questions: "Son envie réelle de cadrer la stratégie, ou de rester près de l'équipe\nCe qu'il attend du binôme les premières semaines", contestation: "Se voit plus avancé sur la stratégie que ce que la fiche #2 montre.", conditions: "Prétentions à placer dans la grille. Disponible dans deux mois."},
+        reporteLe: daysAgo(s.age + 1)});
+      c.passations = {ec1: {faiteLe: daysAgo(s.age + 1), par: P, mode: "appel"}, ec2: {faiteLe: daysAgo(s.age), par: "Andrea", mode: "asynchrone"}};
+      c.restitution.etat = "ec2";
+    }
     if(s.ec1){
       c.ec1 = Object.assign(D.emptyEC1(), {date: daysAgo(s.age).slice(0,10), recruteur: P, observateur: "Peter",
         match: {dominante: "collectif", seconde: "sans-chichi", partielle: false, pourquoi: "", source: "decompte"},
