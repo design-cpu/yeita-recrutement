@@ -85,8 +85,9 @@
   .page-head h1{font-size:18pt}
   .page-head .lede{font-size:10pt}
   .ident{margin-top:2mm}
-  .grid-fields{grid-template-columns:repeat(4,1fr); gap:3mm}
+  .grid-fields{grid-template-columns:repeat(5,1fr); gap:3mm}
   input[type="text"], input[type="date"], textarea{border:0; border-bottom:1px solid #000; border-radius:0; min-height:0; padding:1mm 0; background:transparent}
+  input::placeholder, textarea::placeholder{color:transparent} /* sur papier, les lignes restent vierges */
   .field > label{font-size:8.5pt}
   .rounds{gap:3mm; margin-top:4mm}
   .round{padding:2.5mm 3mm; gap:1.5mm; border-color:#999; border-radius:3mm}
@@ -160,7 +161,7 @@
 
   <div class="page-head">
     <h1>Feuille de décompte Yeita Match</h1>
-    <p class="lede">À cocher pendant le jeu : deux cartes par manche. À l'écran, le décompte, le départage et le profil se font tout seuls. Sur papier, suis les cases.</p>
+    <p class="lede">Remplie par l'observateur pendant le jeu : deux cartes par manche. À l'écran, le décompte, le départage et le profil se font tout seuls. Sur papier, suis les cases.</p>
     <div class="head-actions">
       <button type="button" class="btn quiet small" id="demo">Charger un exemple</button>
       <button type="button" class="btn quiet small" id="reset">Vider la feuille</button>
@@ -176,7 +177,8 @@
   <div class="grid-fields ident">
     <div class="field"><label for="f-cand">Candidat</label><input type="text" id="f-cand" autocomplete="off" placeholder="Prénom et nom"></div>
     <div class="field"><label for="f-date">Date</label><input type="date" id="f-date"></div>
-    <div class="field"><label for="f-host">Maître du jeu</label><input type="text" id="f-host" autocomplete="off" placeholder="Prénom et nom"></div>
+    <div class="field"><label for="f-host">Recruteur</label><input type="text" id="f-host" autocomplete="off" placeholder="Qui mène l'entretien"></div>
+    <div class="field"><label for="f-obs">Observateur</label><input type="text" id="f-obs" autocomplete="off" placeholder="Qui remplit cette feuille"></div>
     <div class="field"><span class="label" id="fmt-l">Format</span>
       <div class="seg" role="radiogroup" aria-labelledby="fmt-l" id="fmt">
         <button type="button" role="radio" aria-checked="true" data-f="presentiel">Présentiel</button>
@@ -189,7 +191,7 @@
 
   <ol class="how">
     <li>Pour chaque manche, lis la situation et pose les quatre cartes, dans l'ordre A à D.</li>
-    <li>La personne en choisit deux. Coche-les ici, avec un mot de ce qu'elle en dit.</li>
+    <li>La personne en choisit deux. L'observateur les coche ici, avec un mot de ce qu'elle en dit.</li>
     <li>Après la huitième manche, le décompte donne la dominante et la seconde.</li>
     <li>Égalité : une manche de départage, avec les seules cartes à égalité.</li>
     <li>Le profil s'affiche. Étale les profils sur la table, puis reporte-le dans la fiche #1.</li>
@@ -349,7 +351,7 @@ function refresh(){
 }
 
 function fillIdent(){
-  ["cand","date","host"].forEach(function(k){ document.getElementById("f-"+k).value = st.f[k] || ""; });
+  ["cand","date","host","obs"].forEach(function(k){ document.getElementById("f-"+k).value = st.f[k] || ""; });
   document.querySelectorAll("#fmt [role=radio]").forEach(function(b){ b.setAttribute("aria-checked", String(b.dataset.f === (st.fmt||"presentiel"))); });
 }
 
@@ -383,7 +385,7 @@ document.addEventListener("click", function(e){
   if(e.target.id === "tb-undo"){ st.tb = []; save(); refresh(); return; }
   if(e.target.id === "to-fiche"){
     var S = state();
-    YEITA.store.set("yeita-match-resultat", {cand: st.f.cand||"", date: st.f.date||"", host: st.f.host||"", fmt: st.fmt,
+    YEITA.store.set("yeita-match-resultat", {cand: st.f.cand||"", date: st.f.date||"", host: st.f.host||"", obs: st.f.obs||"", fmt: st.fmt,
       dominant: S.r.dominant, second: S.r.second, totals: S.totals, tb: st.tb.length, at: Date.now()});
     location.href = "fiche-ec1.html#yeita-match";
     return;
@@ -397,7 +399,7 @@ document.addEventListener("click", function(e){
   if(e.target.id === "demo"){
     // Exemple : une partie complète, avec une égalité pour la seconde place
     var pick = {s17:["s17-c","s17-a"], s01:["s01-c","s01-a"], s09:["s09-c","s09-a"], s25:["s25-c","s25-a"], s44:["s44-c","s44-b"], s33:["s33-c","s33-b"], s13:["s13-c","s13-b"], s38:["s38-c","s38-b"]};
-    st = {answers: pick, notes:{s17:"« Je repars toujours du problème du client »", s33:"Cite un retour reçu en mission, sans se justifier"}, tb:[], f:{cand:"Camille Rousseau", date:"2026-10-14", host:"Pauline"}, fmt:"presentiel"};
+    st = {answers: pick, notes:{s17:"« Je repars toujours du problème du client »", s33:"Cite un retour reçu en mission, sans se justifier"}, tb:[], f:{cand:"Camille Rousseau", date:"2026-10-14", host:"Pauline", obs:"Peter"}, fmt:"presentiel"};
     save(); fillIdent(); renderAll(); YEITA.flash(null, "Exemple chargé"); return;
   }
 });

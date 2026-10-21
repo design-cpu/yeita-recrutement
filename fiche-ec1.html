@@ -113,7 +113,7 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
   <div class="page-head">
     <h1>Fiche d'entretien candidat #1</h1>
     <p class="sub-title">Yeita Match &amp; Valeurs Yeita</p>
-    <p class="lede">Remplie par le recruteur juste après l'EC1, en dix minutes, à chaud. Deux sorties : le compte rendu pour Notion, et le code EC1 qui remplit la carte d'identité Yeita.</p>
+    <p class="lede">Remplie par le recruteur juste après l'EC1, en dix minutes, à chaud, avec les notes de l'observateur. Deux sorties : le compte rendu pour Notion, et le code EC1 qui remplit la carte d'identité Yeita.</p>
   </div>
 
   <div class="toolbar">
@@ -132,6 +132,7 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
         <div class="field"><label for="f-nom">Candidat</label><input type="text" id="f-nom" placeholder="Prénom et nom"></div>
         <div class="field"><label for="f-date">Date</label><input type="date" id="f-date"></div>
         <div class="field"><label for="f-par">Mené par</label><input type="text" id="f-par" placeholder="Prénom et nom"></div>
+        <div class="field"><label for="f-obs">Observé par</label><input type="text" id="f-obs" placeholder="Prénom et nom"></div>
         <div class="field"><label for="f-fmt">Format</label><select id="f-fmt"><option value="presentiel">Présentiel, kit Yeita Match</option><option value="visio">Visio, jeu en ligne</option></select></div>
       </div>
     </section>
@@ -239,7 +240,7 @@ var START = [
   ["cadre","Sur un périmètre cadré, avec un référent présent"],
   ["non","Pas sur de la mission client aujourd'hui"]
 ];
-var FIELDS = ["f-nom","f-date","f-par","f-fmt","f-why","f-def","f-emp"].concat(Y.VALUES.map(function(v){ return "v-"+v.id; }));
+var FIELDS = ["f-nom","f-date","f-par","f-obs","f-fmt","f-why","f-def","f-emp"].concat(Y.VALUES.map(function(v){ return "v-"+v.id; }));
 var st = YEITA.store.get(KEY, null) || {dom:null, sec:null, partial:false, start:null, f:{}};
 
 /* ---------- Rendu ---------- */
@@ -303,7 +304,7 @@ function fmtDate(s){ if(/^\d{4}-\d{2}-\d{2}$/.test(s)){ var d = new Date(s+"T12:
 function notionText(){
   collect();
   var p = profile(), t = "FICHE D'ENTRETIEN CANDIDAT #1 — Yeita Match & Valeurs Yeita\n";
-  t += (g("f-nom")||"—") + ", " + (fmtDate(g("f-date"))||"—") + ", mené par " + (g("f-par")||"—") + " (" + (g("f-fmt")==="visio" ? "visio, jeu en ligne" : "présentiel, kit Yeita Match") + ")\n";
+  t += (g("f-nom")||"—") + ", " + (fmtDate(g("f-date"))||"—") + ", mené par " + (g("f-par")||"—") + ", observé par " + (g("f-obs")||"—") + " (" + (g("f-fmt")==="visio" ? "visio, jeu en ligne" : "présentiel, kit Yeita Match") + ")\n";
   t += "\nPROFIL YEITA MATCH\n";
   if(st.partial) t += "Lecture partielle. " + (g("f-why")||"") + "\n";
   else if(p) t += p.label + " — " + Y.value(st.dom).label + " › " + Y.value(st.sec).label + ". " + formula() + "\n";
@@ -358,6 +359,7 @@ document.addEventListener("click", function(e){
     if(!st.f["f-nom"] && r.cand) st.f["f-nom"] = r.cand;
     if(!st.f["f-date"] && r.date) st.f["f-date"] = r.date;
     if(!st.f["f-par"] && r.host) st.f["f-par"] = r.host;
+    if(!st.f["f-obs"] && r.obs) st.f["f-obs"] = r.obs;
     if(r.fmt) st.f["f-fmt"] = r.fmt;
     fill(); renderPicker(); save(); renderFrom(); YEITA.flash(null, "Résultat repris"); return;
   }
@@ -372,7 +374,7 @@ document.addEventListener("click", function(e){
   }
   if(e.target.id === "demo"){
     st = {dom:"explorateur", sec:"collectif", partial:false, start:"binome", f:{
-      "f-nom":"Camille Rousseau", "f-date":"2026-10-14", "f-par":"Pauline", "f-fmt":"presentiel",
+      "f-nom":"Camille Rousseau", "f-date":"2026-10-14", "f-par":"Pauline", "f-obs":"Peter", "f-fmt":"presentiel",
       "f-def":"Part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites.",
       "v-collectif":"A cité trois fois l'équipe avant de se citer elle-même, y compris sur une réussite qu'elle portait seule.",
       "v-sans-chichi":"A dit « je ne sais pas » deux fois sans chercher à rattraper, et a proposé d'aller vérifier.",
