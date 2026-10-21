@@ -31,12 +31,7 @@
 .vbtn[disabled]{opacity:.35; cursor:not-allowed}
 .partial-t{appearance:none; border:1.5px dashed var(--line-strong); background:transparent; border-radius:999px; padding:7px 14px; font-weight:600; font-size:14.5px; color:var(--ink-2); cursor:pointer; min-height:40px}
 .partial-t[aria-pressed="true"]{border-style:solid; border-color:var(--ink); background:var(--surface-2); color:var(--ink)}
-.profile{border-radius:14px; background:var(--emph-bg); color:var(--emph-fg); padding:18px 20px; display:grid; gap:6px}
-.profile .pl{font-size:14px; font-weight:600; color:var(--emph-sub)}
-.profile .pn{font-size:clamp(26px,3.6vw,34px); font-weight:700; line-height:1.05}
-.profile .pf{font-size:15.5px; max-width:64ch}
-.profile.empty{background:var(--surface-2); color:var(--ink-2)}
-.profile.empty .pl{color:var(--muted)}
+.ym .ymp{font-size:14.5px; color:var(--ink-2); max-width:64ch}
 
 .vals{display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%,280px),1fr)); gap:14px}
 .vrow{display:grid; gap:8px; border-top:3px solid var(--vf); padding-top:10px}
@@ -106,12 +101,6 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
 .vcol li b{display:block; font-size:15px}
 .vcol li span{font-size:14px; color:var(--ink-2)}
 .vcol li small{display:block; font-family:var(--f-mono); font-size:12px; color:var(--ink-2); margin-top:2px}
-.profs{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:10px}
-.prof{border-radius:12px; border:1px solid var(--line); padding:12px 14px; display:grid; gap:4px}
-.prof .pc{display:flex; flex-wrap:wrap; gap:5px; align-items:center; font-size:13px}
-.prof .pc .vchip{font-size:12.5px; padding:2px 9px 2px 6px}
-.prof b{font-size:16px}
-.prof span{font-size:14px; color:var(--ink-2)}
 .shapes{display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:12px}
 .shape{border-radius:12px; background:var(--surface-2); padding:14px 16px; display:grid; gap:6px}
 .shape .ex{font-style:italic; color:var(--ink)}
@@ -184,7 +173,7 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
           <input type="file" id="f-json" accept="application/json,.json">
         </div>
         <div class="picker" id="picker"></div>
-        <div id="profile"></div>
+        <div id="match"></div>
         <div class="field" id="whywrap" hidden><label for="f-why">Pourquoi on ne tranche pas</label><textarea id="f-why" rows="2" placeholder="Ce qui a manqué pour lire une dominante : le temps, les exemples, le format…"></textarea></div>
       </div>
     </details>
@@ -192,8 +181,8 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
     <details class="sec" id="s-percu">
       <summary><span class="chev" aria-hidden="true"></span><span class="sn">3</span><span class="stt">Ce qu'on a perçu de toi <span class="tag carte">Sur la carte</span></span><span class="state" id="st-s-percu"></span></summary>
       <div class="in">
-        <p class="hint">Deux ou trois phrases, au cœur de la carte. Ce qu'on a vu, pas ce qu'on en déduit.</p>
-        <div class="field"><label for="f-def" class="sr-only">Ce qu'on a perçu</label><textarea id="f-def" rows="3" placeholder="Ex. : part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites."></textarea></div>
+        <p class="hint">Deux ou trois phrases, au cœur de la carte. Écris-les en tutoyant la personne : elle les lira. Ce qu'on a vu, pas ce qu'on en déduit.</p>
+        <div class="field"><label for="f-def" class="sr-only">Ce qu'on a perçu</label><textarea id="f-def" rows="3" placeholder="Ex. : tu pars du terrain avant de parler méthode, et tu racontes tes échecs aussi vite que tes réussites."></textarea></div>
       </div>
     </details>
 
@@ -270,10 +259,6 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
       <p class="note">Les onze soft skills de référence, réécrites dans la langue de Yeita, plus une ligne sur l'apprentissage de soi. Ce sont les comportements derrière les cartes de Yeita Match.</p>
       <div class="vcols" id="vcols"></div>
     </div></details>
-    <details class="ref"><summary>Les douze profils</summary><div class="in">
-      <p class="note">Une dominante, une seconde : douze combinaisons, douze noms. Des amorces de conversation, pas des cases. Un nom se conteste, et c'est ce qu'on veut entendre en EC3.</p>
-      <div class="profs" id="profs"></div>
-    </div></details>
     <details class="ref"><summary>Comment on écrit, surtout quand c'est non</summary><div class="in">
       <div class="shapes">
         <div class="shape"><b>Le fait</b><p class="ex">« Sur Jouer collectif, voici ce qu'on a vu : tes trois exemples portaient sur des décisions prises seul. »</p><p>Ce qui s'est passé pendant l'heure. Un fait se conteste avec un contre-exemple.</p></div>
@@ -286,7 +271,7 @@ details.ref > .in{padding:0 18px 20px; display:grid; gap:14px}
         <li><b>Rien n'est écrit qui n'ait d'abord été dit.</b> Le débrief téléphonique passe toujours avant l'envoi.</li>
         <li><b>Un signal franchement négatif : un seul, cité, factuel.</b></li>
         <li><b>Rien qui ne soit pas relié au travail.</b> Ni l'allure, ni l'accent, ni la vie personnelle, ni l'âge, ni l'origine, ni la santé.</li>
-        <li><b>La décision ne figure pas sur la carte.</b> Le non se dit au téléphone, la carte porte la lecture.</li>
+        <li><b>Le non se dit d'abord au téléphone.</b> La carte le reprend ensuite par mail, avec ses raisons : « pas aujourd'hui, parce que… ».</li>
         <li><b>Quatre yeux avant envoi.</b> Est-ce que je pourrais dire ça à cette personne, calmement, en la regardant ?</li>
       </ol>
       <p class="pitch">« On ne note pas des gens, on mesure une distance entre deux endroits. On écrit ce qu'on a vu, jamais ce qu'on en conclut. Ce qu'on n'a pas vu est écrit comme tel. Et rien n'est écrit qui n'ait d'abord été dit au téléphone. »</p>
@@ -408,16 +393,15 @@ function renderPicker(){
     + Y.VALUES.map(function(v){ return '<button type="button" role="radio" class="vbtn" data-v="'+v.id+'" data-r="sec" aria-checked="'+(st.sec===v.id)+'"'+((st.partial || st.dom===v.id)?' disabled':'')+'>'+P(v.id,16)+E(v.label)+'</button>'; }).join("") + '</div>'
     + '<div class="row"><span></span><button type="button" class="partial-t" id="partial" aria-pressed="'+st.partial+'">Lecture partielle : on ne tranche pas</button></div>';
   document.getElementById("picker").innerHTML = h;
-  renderProfile();
+  renderMatch();
 }
-function profile(){ return (!st.partial && st.dom && st.sec) ? Y.profileFor(st.dom, st.sec) : null; }
-function formula(){ var d = Y.value(st.dom), s = Y.value(st.sec); return "Un profil « " + d.label.toLowerCase() + " » qui " + s.verb + "."; }
-function renderProfile(){
-  var el = document.getElementById("profile"), p = profile();
+/* Ce que la carte affichera : la dominante et la seconde, avec leur définition. Plus de nom de profil. */
+function renderMatch(){
+  var el = document.getElementById("match");
   document.getElementById("whywrap").hidden = !st.partial;
-  if(st.partial){ el.innerHTML = '<div class="profile"><span class="pl">Ce qu\'on a perçu de toi</span><span class="pn">Lecture partielle</span><p class="pf">On n\'a pas assez vu pour lire une dominante. Ce qui suit est ce qu\'on a pu lire, et rien de plus.</p></div>'; return; }
-  if(!p){ el.innerHTML = '<div class="profile empty"><span class="pl">Profil</span><p class="pf">Choisis la dominante puis la seconde, reprends le résultat de la feuille de décompte, ou importe la partie jouée en ligne.</p></div>'; return; }
-  el.innerHTML = '<div class="profile"><span class="pl">Profil Yeita Match</span><span class="pn">'+E(p.label)+'</span><p class="pf">'+E(formula())+' '+E(p.description)+'</p></div>';
+  if(st.partial){ el.innerHTML = '<div class="ym"><span class="ymh">Sur la carte : lecture partielle</span><p class="ymp">On n\'a pas assez vu pour lire une dominante. Dis pourquoi juste en dessous : la carte le reprend.</p></div>'; return; }
+  if(!(st.dom && st.sec)){ el.innerHTML = '<div class="ym"><span class="ymh">Sur la carte</span><p class="ymp">Choisis la dominante puis la seconde, reprends le résultat de la feuille de décompte, ou importe la partie jouée en ligne.</p></div>'; return; }
+  el.innerHTML = YEITA.matchBlock(st.dom, st.sec, {title:"Sur la carte"});
 }
 /* Résultat laissé par la feuille de décompte (même navigateur, moins de 12 h) */
 function renderFrom(){
@@ -508,11 +492,11 @@ function doReport(btn){
 
 function notionText(){
   collect();
-  var p = profile(), t = "FICHE D'ENTRETIEN CANDIDAT #1 — Yeita Match & Valeurs Yeita\n";
+  var t = "FICHE D'ENTRETIEN CANDIDAT #1 — Yeita Match & Valeurs Yeita\n";
   t += (g("f-nom")||"—") + ", " + (fmtDate(g("f-date"))||"—") + ", mené par " + (g("f-par")||"—") + ", observé par " + (g("f-obs")||"—") + " (" + (g("f-fmt")==="visio" ? "visio, jeu en ligne" : "présentiel, kit Yeita Match") + ")\n";
-  t += "\nPROFIL YEITA MATCH\n";
+  t += "\nYEITA MATCH\n";
   if(st.partial) t += "Lecture partielle. " + (g("f-why")||"") + "\n";
-  else if(p) t += p.label + " — " + Y.value(st.dom).label + " › " + Y.value(st.sec).label + ". " + formula() + "\n";
+  else if(st.dom && st.sec) t += "Dominante : " + Y.value(st.dom).label + ". Seconde : " + Y.value(st.sec).label + ".\n";
   else t += "—\n";
   t += "\nCE QU'ON A PERÇU\n" + (g("f-def")||"—") + "\n";
   t += "\n— INTERNE, NE PART PAS AVEC LE CANDIDAT —\n";
@@ -634,7 +618,7 @@ document.addEventListener("click", function(e){
       "projets": {statut:"aligne", note:"Ouverte à la banque et à l'énergie. Pas de no-go.", phrase:EMP.critere("projets").phrases["aligne"], afficher:false}
     };
     st.f = {"f-nom":"Camille Rousseau", "f-date":"2026-10-14", "f-par":"Pauline", "f-obs":"Peter", "f-fmt":"presentiel",
-      "f-def":"Part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites. Cite l'équipe avant elle-même, y compris sur ce qu'elle a porté seule.",
+      "f-def":"Tu pars du terrain avant de parler méthode, et tu racontes tes échecs aussi vite que tes réussites. Tu cites l'équipe avant toi, y compris sur ce que tu as porté seule.",
       "v-collectif":"A cité trois fois l'équipe avant de se citer elle-même, y compris sur une réussite qu'elle portait seule.",
       "v-sans-chichi":"A dit « je ne sais pas » deux fois sans chercher à rattraper, et a proposé d'aller vérifier.",
       "v-explorateur":"Raconte un changement de méthode décidé après un test raté, avec ce que ça a coûté.",
@@ -650,10 +634,6 @@ document.addEventListener("click", function(e){
 document.getElementById("vcols").innerHTML = Y.VALUES.map(function(v){
   return '<div class="vcol" data-v="'+v.id+'"><span class="vn">'+P(v.id,18)+E(v.label)+'</span><ul>'
     + v.behaviors.map(function(b){ return '<li><b>'+E(b.label)+'</b><span>'+E(b.description)+'</span><small>'+E(b.softSkills)+'</small></li>'; }).join("") + '</ul></div>';
-}).join("");
-document.getElementById("profs").innerHTML = Y.PROFILES.map(function(p){
-  var d = Y.value(p.dominant), s = Y.value(p.second);
-  return '<div class="prof"><span class="pc"><span class="vchip" data-v="'+d.id+'">'+P(d.id,13)+E(d.short)+'</span><span aria-hidden="true">›</span><span class="vchip" data-v="'+s.id+'">'+P(s.id,13)+E(s.short)+'</span></span><b>'+E(p.label)+'</b><span>'+E(p.description)+'</span></div>';
 }).join("");
 var AXES = [
   {t:"Cohérence du parcours, du CV et de la posture",

@@ -17,7 +17,7 @@ var CRITERES = [
    phrases:{
      "aligne":"Tes attentes de salaire tombent dans la fourchette du palier dont on a parlé.",
      "a-discuter":"Tes attentes de salaire sont en haut de la fourchette du palier dont on a parlé. On en reparle, grille en main.",
-     "pas-aujourdhui":"Pas aujourd'hui, parce que tes attentes de salaire dépassent la fourchette du palier où on peut te placer. Notre grille est publique : c'est elle qui fixe le salaire, pas la négociation."}},
+     "pas-aujourdhui":"Pas aujourd'hui, parce que tes attentes de salaire dépassent la fourchette du palier où on te place. Notre grille est publique et vaut pour tout le monde : on ne la contourne pas, même quand on aimerait."}},
   {id:"localisation", axe:3, label:"Localisation et présentiel",
    question:"Un pied-à-terre à Paris ? Trois jours par semaine sur place chez le client, c'est tenable ?",
    phrases:{
@@ -29,7 +29,7 @@ var CRITERES = [
    phrases:{
      "aligne":"Le rôle que tu cherches est celui qu'on tient en mission : Product Manager, du problème jusqu'à l'impact.",
      "a-discuter":"Ton expérience est surtout côté Product Owner, près du backlog. Chez Yeita, on porte aussi le cadrage et la stratégie : on en parle.",
-     "pas-aujourdhui":"Pas aujourd'hui, parce que tu cherches un poste de Product Owner centré sur le backlog, et nos missions demandent un Product Manager, de la stratégie jusqu'à l'impact."}},
+     "pas-aujourdhui":"Pas aujourd'hui, parce que tu cherches un poste de Product Owner centré sur le backlog, et nos missions demandent un Product Manager, de la stratégie jusqu'à l'impact. C'est une question de poste, pas de niveau."}},
   {id:"discovery", axe:2, label:"Discovery ou delivery",
    question:"Où passe-t-elle son temps : à explorer le problème (interviews, données, hypothèses) ou à livrer (backlog, rituels, mise en production) ?",
    phrases:{
@@ -41,7 +41,7 @@ var CRITERES = [
    phrases:{
      "aligne":"Les secteurs et les contextes qui t'intéressent sont ceux de nos missions en ce moment.",
      "a-discuter":"Tes envies de projets sont précises. On regarde ensemble ce qu'on a en ce moment, et ce qui arrive.",
-     "pas-aujourdhui":"Pas aujourd'hui, parce que les projets que tu cherches ne sont pas ceux qu'on a en ce moment. Si ça change, on te le dira."}},
+     "pas-aujourdhui":"Pas aujourd'hui, parce que les projets que tu cherches ne sont pas ceux qu'on a en ce moment. Nos missions changent vite : reviens vers nous quand tu veux."}},
   {id:"parcours", axe:1, label:"Cohérence du parcours",
    question:"Pour chaque expérience : le contexte, l'équipe, son rôle exact, un résultat concret. Le récit colle-t-il au CV ?",
    phrases:{
@@ -69,5 +69,7 @@ function surLaCarte(criteres){
   return CRITERES.map(function(c){ var v = criteres[c.id]; return v && v.afficher && v.statut && (v.phrase||"").trim() ? {critere:c, statut:statut(v.statut), phrase:v.phrase.trim()} : null; })
     .filter(Boolean);
 }
-window.EMPLOYABILITE = {STATUTS:STATUTS, AXES:AXES, CRITERES:CRITERES, critere:critere, statut:statut, surLaCarte:surLaCarte};
+/* Les trois refus types, montrés en exemple sous la carte d'identité. */
+var REFUS_TYPES = [["salaire","Salaire"],["poste","Type de poste"],["projets","Projets disponibles"]];
+window.EMPLOYABILITE = {REFUS_TYPES:REFUS_TYPES, STATUTS:STATUTS, AXES:AXES, CRITERES:CRITERES, critere:critere, statut:statut, surLaCarte:surLaCarte};
 })();

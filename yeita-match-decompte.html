@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="assets/yeita.css">
 <style>
 /* Feuille de décompte : à l'écran elle compte toute seule, sur papier elle se coche en suivant les cases.
-   Deux colonnes de manches, puis le décompte, le départage et la matrice des douze profils. */
+   Deux colonnes de manches, puis le décompte, le départage et le résultat : une dominante, une seconde. */
 :root{ padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px) }
 .head-actions{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:4px}
 .print-note{font-size:14px; color:var(--muted)}
@@ -59,21 +59,21 @@
 .result{margin-top:18px; border-radius:var(--radius); background:var(--emph-bg); color:var(--emph-fg); padding:20px 22px; display:grid; gap:8px}
 .result .rl{font-size:14px; font-weight:600; color:var(--emph-sub)}
 .result .rp{font-size:clamp(28px,4vw,40px); font-weight:700; line-height:1.05}
-.result .rd{font-size:16px; max-width:60ch}
-.result .combo{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
-.result .combo .vchip{background:var(--paper); }
+.result .rd{font-size:16px; max-width:64ch}
+.result .rd b{color:var(--emph-fg)}
 .result .btn{border-color:var(--emph-fg); color:var(--emph-fg)}
 .result .btn.primary{background:var(--emph-fg); color:var(--emph-bg)}
 
-.matrix{margin-top:14px; overflow-x:auto}
-.matrix table{border-collapse:separate; border-spacing:4px; width:100%; min-width:560px}
-.matrix th{font-size:13px; font-weight:650; text-align:left; padding:4px 6px; vertical-align:bottom}
-.matrix th .vchip{font-size:12.5px}
-.matrix td{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:8px 10px; font-size:14px; font-weight:650; vertical-align:top}
-.matrix td.na{background:transparent; border:1px dashed var(--line)}
-.matrix td.hit{background:var(--ink); color:var(--paper); border-color:var(--ink)}
-.matrix td small{display:block; font-weight:400; font-size:12.5px; color:var(--muted); margin-top:2px}
-.matrix td.hit small{color:var(--paper); opacity:.8}
+.vres{margin-top:14px; display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%,210px),1fr)); gap:10px}
+.vr{border:1.5px solid var(--line); border-top:4px solid var(--vf); border-radius:12px; padding:12px 14px; display:grid; gap:6px; align-content:start; background:var(--surface)}
+.vr b{display:flex; align-items:center; gap:7px; color:var(--vc); font-size:16px}
+.vr p{font-size:14px; color:var(--ink-2)}
+.vr .marks{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:2px; font-size:13.5px; font-weight:650; color:var(--muted)}
+.vr .marks span{display:inline-flex; align-items:center; gap:6px}
+.vr .marks i{width:14px; height:14px; border:1.5px solid var(--line-strong); border-radius:4px; display:inline-block}
+.vr.dom, .vr.sec{border-color:var(--vf); background:var(--vt)}
+.vr.dom .m-dom, .vr.sec .m-sec{color:var(--ink)}
+.vr.dom .m-dom i, .vr.sec .m-sec i{background:var(--ink); border-color:var(--ink)}
 
 /* Impression A4 : la feuille se coche à la main, le compteur et la matrice restent lisibles en noir et blanc */
 @page{size:A4; margin:11mm}
@@ -103,8 +103,11 @@
   .tv{padding:3mm}
   .result{background:#fff !important; color:#000 !important; border:1.5px solid #000}
   .result .rl{color:#000}
-  .matrix table{min-width:0}
-  .matrix td{font-size:9pt; padding:1.5mm 2mm}
+  .vres{grid-template-columns:repeat(4, minmax(0,1fr)); gap:3mm; margin-top:2mm}
+  .vr{padding:2.5mm 3mm; gap:1.4mm; border-radius:3mm}
+  .vr b{font-size:10.5pt}
+  .vr p{font-size:8.5pt}
+  .vr .marks{font-size:8.5pt}
   /* la page imprimée fait moins de 820px : on force les colonnes de l'écran large */
   .rounds{grid-template-columns:repeat(2, minmax(0,1fr))}
   .tally{grid-template-columns:repeat(4, minmax(0,1fr)); gap:3mm; margin-top:3mm}
@@ -114,9 +117,6 @@
   .sec-break h2{font-size:14pt}
   .sec-break h3{font-size:12pt; margin-top:6mm !important}
   .sec-break .note{font-size:9pt}
-  .matrix{margin-top:2mm; overflow:visible}
-  .matrix th{font-size:8.5pt}
-  .matrix td small{font-size:8pt}
   /* manches compactes : deux pages en tout, l'icône du jeu suffit à dire la valeur (légende en tête) */
   .print-legend{display:flex !important}
   .r-top h3{font-size:9.5pt}
@@ -139,8 +139,6 @@
   .opt{padding:.5mm 1.4mm}
   .opt .lab{font-size:8.5pt; line-height:1.2}
   .round textarea{height:5.5mm !important; min-height:0; font-size:8.5pt}
-  .matrix td small{display:none}
-  .matrix td{padding:1.6mm 2mm; height:9mm}
 }
 .print-legend{display:none; flex-wrap:wrap; gap:2mm 5mm; margin-top:3mm; font-size:8.5pt; font-weight:600}
 .print-legend span{display:inline-flex; align-items:center; gap:1.5mm; color:var(--vc)}
@@ -161,7 +159,7 @@
 
   <div class="page-head">
     <h1>Feuille de décompte Yeita Match</h1>
-    <p class="lede">Remplie par l'observateur pendant le jeu : deux cartes par manche. À l'écran, le décompte, le départage et le profil se font tout seuls. Sur papier, suis les cases.</p>
+    <p class="lede">Remplie par l'observateur pendant le jeu : deux cartes par manche. À l'écran, le décompte, le départage et le résultat se font tout seuls. Sur papier, suis les cases.</p>
     <div class="head-actions">
       <button type="button" class="btn quiet small" id="demo">Charger un exemple</button>
       <button type="button" class="btn quiet small" id="reset">Vider la feuille</button>
@@ -194,7 +192,7 @@
     <li>La personne en choisit deux. L'observateur les coche ici, avec un mot de ce qu'elle en dit.</li>
     <li>Après la huitième manche, le décompte donne la dominante et la seconde.</li>
     <li>Égalité : une manche de départage, avec les seules cartes à égalité.</li>
-    <li>Le profil s'affiche. Étale les profils sur la table, puis reporte-le dans la fiche #1.</li>
+    <li>La dominante et la seconde s'affichent, avec ce qu'elles veulent dire. Parlez-en ensemble, puis reporte-les dans la fiche #1.</li>
   </ol>
 
   <section aria-labelledby="t-rounds">
@@ -210,9 +208,9 @@
     <div class="tiebreak" id="tiebreak"></div>
     <div id="result"></div>
 
-    <h3 style="margin-top:30px">Les douze profils</h3>
-    <p class="note" style="margin-top:6px">Ligne : la dominante. Colonne : la seconde. C'est aussi l'ordre dans lequel étaler les cartes profil sur la table.</p>
-    <div class="matrix" id="matrix"></div>
+    <h3 style="margin-top:30px">Le résultat</h3>
+    <p class="note" style="margin-top:6px">Les deux valeurs les plus choisies : la dominante, puis la seconde. Sur papier, coche une case de chaque. On en parle avec la personne : où elle se reconnaît, où elle ne se reconnaît pas.</p>
+    <div class="vres" id="vres"></div>
   </section>
 
   <footer class="foot noprint">
@@ -309,28 +307,21 @@ function paperTiebreaks(){
 
 function renderResult(S){
   var el = document.getElementById("result");
-  if(!S.r || !S.r.dominant){ el.innerHTML = ""; renderMatrix(null); return; }
-  var p = Y.profileFor(S.r.dominant, S.r.second), d = Y.value(S.r.dominant), s2 = Y.value(S.r.second);
-  el.innerHTML = '<div class="result" aria-live="polite"><span class="rl">Profil Yeita Match</span><span class="rp">'+E(p.label)+'</span>'
-    + '<div class="combo"><span class="vchip" data-v="'+d.id+'">'+P(d.id,16)+E(d.label)+'</span><span aria-hidden="true">›</span><span class="vchip" data-v="'+s2.id+'">'+P(s2.id,16)+E(s2.label)+'</span></div>'
-    + '<p class="rd">'+E(p.description)+'</p>'
+  if(!S.r || !S.r.dominant){ el.innerHTML = ""; renderVres(null, null); return; }
+  var d = Y.value(S.r.dominant), s2 = Y.value(S.r.second), D = YEITA.VALUE_DEF;
+  el.innerHTML = '<div class="result" aria-live="polite"><span class="rl">Le résultat de Yeita Match</span><span class="rp">'+E(d.label)+' <span aria-hidden="true">›</span><span class="sr-only">, puis</span> '+E(s2.label)+'</span>'
+    + '<p class="rd"><b>En premier, '+E(d.label)+'</b> : '+E(D[d.id])+'<br><b>Ensuite, '+E(s2.label)+'</b> : '+E(D[s2.id])+'</p>'
     + '<div class="actions noprint" style="margin-top:6px"><button type="button" class="btn primary" id="to-fiche">Reporter dans la fiche #1</button></div></div>';
-  renderMatrix(p);
+  renderVres(d.id, s2.id);
 }
 
-function renderMatrix(hit){
-  var V = Y.VALUES;
-  var h = '<table><thead><tr><th scope="col">Dominante ↓ · Seconde →</th>'+V.map(function(v){ return '<th scope="col"><span class="vchip" data-v="'+v.id+'">'+P(v.id,14)+E(v.short)+'</span></th>'; }).join("")+'</tr></thead><tbody>';
-  V.forEach(function(d){
-    h += '<tr><th scope="row"><span class="vchip" data-v="'+d.id+'">'+P(d.id,14)+E(d.short)+'</span></th>';
-    V.forEach(function(s){
-      if(d.id === s.id){ h += '<td class="na" aria-label="Sans objet"></td>'; return; }
-      var p = Y.profileFor(d.id, s.id), on = hit && hit.id === p.id;
-      h += '<td'+(on?' class="hit"':'')+'>'+E(p.label)+'<small>'+E(p.description)+'</small></td>';
-    });
-    h += '</tr>';
-  });
-  document.getElementById("matrix").innerHTML = h + '</tbody></table>';
+/* Les quatre valeurs et leur définition : à l'écran, la dominante et la seconde ressortent ; sur papier, on coche. */
+function renderVres(dom, sec){
+  document.getElementById("vres").innerHTML = Y.VALUES.map(function(v){
+    var cls = v.id === dom ? " dom" : (v.id === sec ? " sec" : "");
+    return '<div class="vr'+cls+'" data-v="'+v.id+'"><b>'+P(v.id,17)+E(v.label)+'</b><p>'+E(YEITA.VALUE_DEF[v.id])+'</p>'
+      + '<span class="marks"><span class="m-dom"><i aria-hidden="true"></i>Dominante'+(v.id === dom ? '<span class="sr-only"> : oui</span>' : '')+'</span><span class="m-sec"><i aria-hidden="true"></i>Seconde'+(v.id === sec ? '<span class="sr-only"> : oui</span>' : '')+'</span></span></div>';
+  }).join("");
 }
 
 function renderAll(){ renderRounds(); refresh(); }

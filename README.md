@@ -10,7 +10,7 @@ La version de travail reste l'artefact **Expérience Collaborateur** sur Claude.
 |---|---|---|
 | `index.html` | Le hub : la démarche, le guide du recruteur étape par étape, l'inventaire des supports, le glossaire | Interne |
 | `one-pager.html` | Ton parcours chez Yeita : les étapes, les durées, les délais (A4) | Candidat |
-| `yeita-match-kit.html` | Kit physique Yeita Match : 62 cartes sur 7 planches recto-verso et plateau A3, à l'identique du jeu en ligne | EC1 |
+| `yeita-match-kit.html` | Kit physique Yeita Match : 54 cartes sur 6 planches recto-verso (dont 4 cartes valeur) et plateau A3, sur le modèle du jeu en ligne | EC1 |
 | `yeita-match-decompte.html` | Feuille de décompte : se coche pendant le jeu, compte toute seule à l'écran (2 pages A4) | Recruteur, EC1 |
 | `fiche-ec1.html` | Fiche d'entretien candidat #1 · Yeita Match & Valeurs Yeita, en sections dépliantes, jusqu'aux questions à creuser en EC2 | Recruteur et observateur, EC1 |
 | `fiche-ec2.html` | Fiche d'entretien candidat #2 · Scorecard 4 diamants | Pair du métier, EC2 |

@@ -255,7 +255,7 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
           <thead><tr><th scope="col">Étage</th><th scope="col">Ce qu'on lit</th><th scope="col">Ce qui en sort</th><th scope="col">Qui mène</th></tr></thead>
           <tbody>
             <tr><td class="k">Appel de découverte</td><td>L'alignement</td><td>Oui ou non, et les réponses aux quatre blocs</td><td>Un recruteur</td></tr>
-            <tr><td class="k">EC1</td><td>La personne</td><td>Un profil Yeita Match et des mots, jamais une note</td><td>Un recruteur, avec un observateur</td></tr>
+            <tr><td class="k">EC1</td><td>La personne</td><td>Deux valeurs Yeita Match et des mots, jamais une note</td><td>Un recruteur, avec un observateur</td></tr>
             <tr><td class="k">EC2</td><td>Le métier</td><td>De 0 à 4 sur les douze étapes des quatre diamants</td><td>Un pair du métier</td></tr>
             <tr><td class="k">EC3</td><td>L'accord</td><td>La carte d'identité, corrigée avec la personne</td><td>Un fondateur</td></tr>
           </tbody>
@@ -351,15 +351,14 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
             <dt>Yeita Match</dt><dd>Le jeu de cartes de l'EC1 : en présentiel avec le kit, en visio avec le jeu en ligne. La feuille de décompte en fait partie. Version actuelle : V1, centrée sur nos valeurs (voir plus bas).</dd>
             <dt>Fiche d'entretien candidat #1</dt><dd>Yeita Match &amp; Valeurs Yeita. Ce que le recruteur et l'observateur écrivent après l'EC1, en sections dépliantes : le résultat du jeu, ce qu'on a perçu, les quatre valeurs, l'employabilité, et pour finir les questions à creuser en EC2.</dd>
             <dt>Fiche d'entretien candidat #2</dt><dd>Scorecard 4 diamants. Les douze notes de l'EC2, posées par un pair du métier.</dd>
-            <dt>Carte d'identité Yeita</dt><dd>La fiche de sortie remise au candidat : la lecture EC1 à gauche, l'EC2 à droite.</dd>
+            <dt>Carte d'identité Yeita</dt><dd>La fiche de sortie remise au candidat : ce qu'on a perçu, les critères qu'on a choisi de lui dire, ses deux valeurs Yeita Match, puis son métier lu en EC2. Dessous, une partie interne qui ne s'imprime jamais.</dd>
           </dl>
         </div>
         <div class="panel">
           <h4>Les mots de la lecture</h4>
           <dl style="margin-top:12px">
-            <dt>Profil</dt><dd>Un des douze profils Yeita Match, donné par la combinaison dominante › seconde.</dd>
-            <dt>Dominante, seconde</dt><dd>Les deux valeurs les plus choisies pendant la partie de Yeita Match, dans cet ordre.</dd>
-            <dt>Lecture partielle</dt><dd>Quand on n'a pas assez vu pour poser un profil. On le dit, plutôt que coller un nom faux.</dd>
+                        <dt>Dominante, seconde</dt><dd>Les deux valeurs les plus choisies pendant la partie de Yeita Match, dans cet ordre. C'est tout le résultat du jeu : pas de nom de profil.</dd>
+            <dt>Lecture partielle</dt><dd>Quand on n'a pas assez vu pour lire une dominante. On le dit, plutôt que forcer une lecture.</dd>
             <dt>Diamant, étape</dt><dd>Quatre diamants (Stratégie, Problème, Solution, Produit), trois étapes chacun : douze étapes notées de 0 à 4.</dd>
             <dt>Palier</dt><dd>Je fais, J'apporte de la valeur, Je diffuse et j'accompagne, Je transforme. Il porte l'attendu et la grille de salaire.</dd>
             <dt>Report vers la carte</dt><dd>Le bouton des fiches #1 et #2 qui envoie leur lecture vers la carte d'identité du candidat, et l'interne dans sa partie réservée à Yeita.</dd>
@@ -383,7 +382,7 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
       </div>
       <h4 style="margin-top:28px">On n'écrit plus</h4>
       <ul class="never">
-        <li>carte de lecture</li><li>définition (pour le document)</li><li>scorecard (pour le document)</li><li>dossier</li><li>carte collaborateur</li><li>couleur secondaire</li><li>Meilleure version de soi-même</li><li>Yeitigai</li><li>fiche de passation</li><li>Yekigai</li><li>Yei'ta vie</li>
+        <li>carte de lecture</li><li>définition (pour le document)</li><li>scorecard (pour le document)</li><li>dossier</li><li>carte collaborateur</li><li>couleur secondaire</li><li>Meilleure version de soi-même</li><li>Yeitigai</li><li>fiche de passation</li><li>profil Yeita Match, et les douze noms de profil</li><li>Yekigai</li><li>Yei'ta vie</li>
       </ul>
     </div>
   </section>
@@ -408,8 +407,8 @@ var NOTION_REF = "https://app.notion.com/p/3f94bfab781681289c7ccea584e7e7e1";
 var S = {
   onepager:   {name:"Ton parcours chez Yeita", sub:"One-pager candidat", role:"Expliquer le parcours, les durées, les délais et ce que la personne reçoit.", when:"4", fmt:"Imprimable A4", href:"one-pager.html"},
   jeu:        {name:"Yeita Match en ligne", sub:"Jeu yeita-match", role:"Le jeu de l'EC1 en visio, ou en secours du kit.", when:"5", fmt:"En ligne", href:YEITA_MATCH.GAME_URL, ext:true},
-  kit:        {name:"Kit Yeita Match", sub:"Cartes, plateau, profils", role:"Le jeu de l'EC1 en présentiel.", when:"5", fmt:"À imprimer", href:"yeita-match-kit.html"},
-  decompte:   {name:"Feuille de décompte Yeita Match", sub:"Partie de Yeita Match", role:"Cocher les cartes pendant le jeu, compter, départager, trouver le profil.", when:"5", fmt:"Imprimable ou en ligne", href:"yeita-match-decompte.html"},
+  kit:        {name:"Kit Yeita Match", sub:"Cartes et plateau", role:"Le jeu de l'EC1 en présentiel.", when:"5", fmt:"À imprimer", href:"yeita-match-kit.html"},
+  decompte:   {name:"Feuille de décompte Yeita Match", sub:"Partie de Yeita Match", role:"Cocher les cartes pendant le jeu, compter, départager, trouver la dominante et la seconde.", when:"5", fmt:"Imprimable ou en ligne", href:"yeita-match-decompte.html"},
   fiche1:     {name:"Fiche d'entretien candidat #1", sub:"Yeita Match & Valeurs Yeita", role:"Écrire la lecture de l'EC1 et les questions à creuser en EC2, puis les reporter vers la carte d'identité.", when:"5, 6", fmt:"En ligne", href:"fiche-ec1.html"},
   fiche2:     {name:"Fiche d'entretien candidat #2", sub:"Scorecard 4 diamants", role:"Noter les douze étapes et produire le code EC2.", when:"7, 8", fmt:"En ligne", href:"fiche-ec2.html"},
   carte:      {name:"Carte d'identité Yeita", sub:"Fiche de sortie candidat", role:"Ce que la personne reçoit, qu'on continue ou qu'on s'arrête.", when:"Après chaque arrêt, 9 à 11", fmt:"Imprimable", href:"carte-identite.html"},
@@ -539,18 +538,18 @@ var STEPS = [
    sort:{text:"Le candidat sait combien d'étapes l'attendent, qui il va rencontrer, combien de temps ça prend, et ce qu'il recevra à chaque arrêt."}, tools:["onepager"]},
   {id:"ec1", n:5, yeita:["Comment la personne fonctionne : où elle se situe dans nos quatre valeurs.", "Si on peut l'imaginer chez un client : l'employabilité, lue tout au long de l'heure.", "Décider s'il y a un EC2."], vit:["Être écoutée avant d'être évaluée : l'heure lui appartient.", "Jouer, pas passer un test : il n'y a pas de bonne réponse.", "Repartir en ayant appris quelque chose sur elle et sur Yeita."], train:true,
    short:"EC1", name:"EC1 — Yeita Match & Valeurs", dur:"1 h", who:"Un recruteur et un observateur", type:"entretien",
-   key:"On lit comment la personne fonctionne, on ne l'évalue pas. Le profil sort du jeu et se discute avec elle.",
-   avant:["On est toujours deux : le recruteur mène, l'observateur observe. Se mettre d'accord sur les rôles avant l'arrivée de la personne.","Présentiel : le kit Yeita Match (plateau, cartes, profils) et une feuille de décompte imprimée, pour l'observateur.","Visio : le jeu en ligne, partagé à l'écran. La personne choisit, tu cliques.","Relire les notes de l'appel de découverte."],
+   key:"On lit comment la personne fonctionne, on ne l'évalue pas. La dominante et la seconde sortent du jeu et se discutent avec elle.",
+   avant:["On est toujours deux : le recruteur mène, l'observateur observe. Se mettre d'accord sur les rôles avant l'arrivée de la personne.","Présentiel : le kit Yeita Match (plateau, cartes de jeu, cartes valeur) et une feuille de décompte imprimée, pour l'observateur.","Visio : le jeu en ligne, partagé à l'écran. La personne choisit, tu cliques.","Relire les notes de l'appel de découverte."],
    pendant:{parts:[
      {t:"À deux, deux rôles", d:"toute l'heure", p:"Le recruteur mène la conversation et le jeu. L'observateur ne mène pas : il remplit la feuille de décompte, note ce que la personne dit et fait, mot pour mot quand il peut, et prépare le débrief. Il présente son rôle en une phrase au début."},
      {t:"Le pitch Yeita", d:"5 min max", p:"Les quatre valeurs, reliées à ce qui va suivre. La transparence et le collectif (cagnotte collective, formation, grille de salaire ouverte) sont mentionnés, pas déroulés : le fondateur les reprendra en EC3."},
      {t:"Le candidat se raconte", d:"10 à 15 min", p:"Son parcours, ce qu'il y a fait exactement, ce qui n'a pas marché. On écoute la cohérence avec le CV."},
      {t:"Positionnement grille de salaire", d:"≈ 5 min", p:"On pose la fourchette pendant que la conversation porte encore sur le parcours. La grille est publique, on en parle simplement."},
-     {t:"Yeita Match et échange", d:"≈ 30 min", steps:["Pour chaque manche, lire la situation et poser les quatre cartes devant la personne. Elle en choisit deux.","L'observateur coche les deux cartes sur la feuille de décompte, avec un mot de ce qu'elle en dit.","Après la huitième manche, compter les couleurs : la plus fréquente donne la dominante, la suivante la seconde.","En cas d'égalité, une manche de départage avec les seules cartes des valeurs à égalité. Une carte à choisir.","Étaler les douze profils sur la table, trouver celui de la combinaison dominante › seconde, et en parler ensemble.","Noter le profil dans la fiche d'entretien candidat #1."]},
+     {t:"Yeita Match et échange", d:"≈ 30 min", steps:["Pour chaque manche, lire la situation et poser les quatre cartes devant la personne. Elle en choisit deux.","L'observateur coche les deux cartes sur la feuille de décompte, avec un mot de ce qu'elle en dit.","Après la huitième manche, compter les couleurs : la plus fréquente donne la dominante, la suivante la seconde.","En cas d'égalité, une manche de départage avec les seules cartes des valeurs à égalité. Une carte à choisir.","Poser les deux cartes valeur, la dominante puis la seconde, et en parler ensemble : où elle se reconnaît, où elle ne se reconnaît pas.","Noter la dominante et la seconde dans la fiche d'entretien candidat #1."]},
      {t:"Ce que le jeu dit, et ce qu'il ne dit pas", d:"à garder en tête", p:"Yeita Match V1 est un MVP centré sur nos valeurs : toutes les cartes proposées sont des valeurs Yeita. Le jeu situe la personne dans nos valeurs, il ne peut pas montrer qu'elle ne les partage pas. Un non-match se lit ailleurs : dans sa réaction au pitch, dans son parcours, dans l'employabilité."},
      {t:"L'employabilité", d:"tout du long", p:"Une lecture induite sur l'heure entière, en huit critères : salaire, localisation et présentiel, Product Owner ou Product Manager, discovery ou delivery, adéquation avec nos projets, parcours, posture, anglais. Elle reste interne, sauf les critères qu'on coche « Sur la carte », avec une phrase pour la personne."}]},
    sort:{text:"La fiche d'entretien candidat #1, commencée à chaud : le résultat du jeu, ce qu'on a perçu, ce qu'on a vu sous chacune des quatre valeurs. Elle se termine au débrief.",
-         go:"EC2, annoncé sur Discord #recru.", stop:"Débrief téléphonique de 30 min au plus, puis la carte d'identité Yeita, moitié EC1 seule."}, tools:["kit","decompte","jeu","fiche1","employabilite"]},
+         go:"EC2, annoncé sur Discord #recru.", stop:"Débrief téléphonique de 30 min au plus : « pas aujourd'hui, parce que… ». Puis la carte d'identité par mail, avec ce qu'on a perçu et nos raisons."}, tools:["kit","decompte","jeu","fiche1","employabilite"]},
   {id:"debrief-ec1", n:6, yeita:["Ce qu'on a vu, ce qu'on n'a pas vu, et ce que l'EC2 doit aller chercher."], vit:["Rien de visible pour elle : elle attend une réponse. Qu'elle arrive vite."], train:false,
    short:"Débrief EC1", name:"Débrief EC1", dur:"15 min, à chaud", who:"Le recruteur et l'observateur de l'EC1", type:"int",
    key:"Ce qui circule, ce sont des zones à explorer, pas une liste de questions.",
@@ -601,7 +600,7 @@ var STEPS = [
 var STAGES = [
   {n:2, name:"Tri", dur:"48 h", exit:["stop","Non","Mail de refus, à réécrire."]},
   {n:3, name:"Appel de découverte", dur:"30 min", exit:["stop","Non","Dit au téléphone, confirmé par un mail court."]},
-  {n:5, name:"EC1", dur:"1 h", exit:["stop","Non","Téléphone 30 min, puis la carte d'identité, moitié EC1."]},
+  {n:5, name:"EC1", dur:"1 h", exit:["stop","Non","Téléphone 30 min, puis la carte d'identité par mail, avec nos raisons."]},
   {n:7, name:"EC2", dur:"1 h 30", exit:["stop","Non","Téléphone 30 min, puis la carte d'identité complète."]},
   {n:9, name:"EC3", dur:"1 h", exit:["none","Pas de sortie ici","On ne reçoit que ceux qu'on pense retenir."]},
   {n:10, name:"Décision", dur:"5 jours ouvrés", exit:["stop","Non","Téléphone et mail, carte d'identité complète."]},

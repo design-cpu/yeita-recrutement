@@ -11,8 +11,9 @@
 <link rel="stylesheet" href="assets/yeita.css">
 <style>
 /* Carte d'identité : un document remis au candidat, toujours en clair, au format A4 paysage.
-   Le bandeau encre de yeita.fr porte le nom ; la moitié gauche est la lecture EC1, la droite l'EC2.
-   Arrêt après l'EC1 : la moitié droite reste vide, sans un mot. */
+   Le cœur, c'est l'argumentaire : ce qu'on a perçu, puis les critères qu'on a choisi de lui dire.
+   Yeita Match tient dans un petit bloc. Arrêt après l'EC1 : l'argumentaire prend toute la carte.
+   Sous la carte, la partie interne (EC1 à gauche, EC2 à droite) ne s'imprime jamais. */
 :root{ padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
   --card-w:1123px; }
 .panel-in{display:grid; gap:14px; margin-top:20px}
@@ -28,6 +29,8 @@
 .imp-msg.good{color:var(--go)} .imp-msg.bad{color:var(--stop)}
 .state-row{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center}
 .state-row .gl{font-size:14px; font-weight:650; color:var(--ink-2)}
+.process{display:flex; gap:10px; align-items:flex-start; font-size:15px; background:var(--yellow-soft); border-radius:12px; padding:10px 14px; max-width:78ch}
+.process .icon{flex:none; margin-top:2px}
 
 /* ---- La carte ---- */
 .stage{margin-block:26px 10px; overflow-x:auto}
@@ -41,20 +44,37 @@
 .band .meta{font-family:var(--f-mono); font-size:13px; color:#d9d3e3; text-align:right; display:grid; gap:2px}
 .start{grid-column:1 / -1; margin-top:10px; background:#ebf893; color:#160f20; border-radius:12px; padding:10px 14px; font-weight:600; font-size:15.5px; display:flex; gap:10px; align-items:center}
 .halves{display:grid; grid-template-columns:1fr 1fr}
-.half{padding:26px 30px 24px; display:grid; gap:16px; align-content:start; min-width:0}
+.halves.one{grid-template-columns:1fr}
+.halves.one .half.right{display:none}
+.half{padding:26px 30px 24px; display:grid; gap:18px; align-content:start; min-width:0}
 .half.left{border-right:1px solid #e4dfe8}
+.halves.one .half.left{border-right:0}
+/* Arrêt après l'EC1 : plus de place, donc des corps plus grands */
+.halves.stop .percu{font-size:clamp(21px,2.5vw,28px); max-width:30ch}
+.halves.stop .crits{gap:16px}
+.halves.stop .crits .cl{font-size:16.5px}
+.halves.stop .crits p{font-size:17px}
 .h-lab{font-size:14px; font-weight:650; color:#4d25f7}
-.prof-name{font-size:clamp(30px,3.6vw,40px); font-weight:700; line-height:1; letter-spacing:-.02em}
-.combo{display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:14px}
-.combo .vchip{font-size:13.5px}
-.prof-form{font-size:16px; color:#3d3549}
-.def{font-size:17px; font-weight:500; border-left:4px solid #ebf893; padding-left:12px}
-.vals{display:grid; grid-template-columns:1fr 1fr; gap:12px 18px}
-.vrow{display:grid; gap:4px; border-top:3px solid var(--vf); padding-top:8px}
-.vrow b{display:flex; align-items:center; gap:7px; color:var(--vc); font-size:15.5px}
-.vrow q{font-size:12.5px; color:#625b6f; quotes:"« " " »"; line-height:1.4}
-.vrow p{font-size:14.5px; color:#160f20}
-.vrow p.none{color:#625b6f; font-style:italic}
+.blk{display:grid; gap:8px}
+/* L'élément fort de la carte : la phrase de ce qu'on a perçu */
+.percu{font-size:clamp(19px,2.1vw,23px); font-weight:500; line-height:1.32; letter-spacing:-.006em; text-wrap:pretty; max-width:46ch}
+.percu.none{font-size:16px; font-weight:400; color:#625b6f; font-style:italic}
+/* Les critères qu'on a choisi de dire : un repère de forme et un mot pour l'état, jamais la couleur seule */
+.crits{list-style:none; margin:0; padding:0; display:grid; gap:12px}
+.crits li{display:grid; gap:3px}
+.crits .cl{display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-size:15px}
+.crits .cl b{font-weight:700}
+.crits .cs{display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:650}
+.crits .mk{width:10px; height:10px; border-radius:50%; flex:none; box-sizing:border-box}
+.crits .aligne .cs{color:#0e5c3d} .crits .aligne .mk{background:#12764f}
+.crits .a-discuter .cs{color:#4a4256} .crits .a-discuter .mk{border:2px solid #4a4256; background:linear-gradient(90deg,#4a4256 50%,transparent 50%)}
+.crits .pas-aujourdhui .cs{color:#9a1c3e} .crits .pas-aujourdhui .mk{border:2.5px solid #b8234a; background:transparent}
+.crits p{font-size:15px; line-height:1.45; color:#2a2235; max-width:60ch}
+/* Yeita Match, en petit */
+.card .ym{background:#f5f2f9}
+.card .ymh{color:#625b6f}
+.card .ymv p{color:#3d3549}
+.card .ymv b small{color:#625b6f}
 .radar svg{display:block; width:100%; max-width:500px; margin-inline:auto; height:auto}
 .dgroups{display:grid; grid-template-columns:1fr 1fr; gap:10px 18px}
 .dg{display:grid; gap:4px}
@@ -76,10 +96,53 @@
   .half.left{border-right:0; border-bottom:1px solid #e4dfe8}
   .band{grid-template-columns:1fr}
   .band .meta{text-align:left}
-  .vals, .dgroups{grid-template-columns:1fr}
+  .dgroups{grid-template-columns:1fr}
 }
-.notes{margin-top:30px; display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:14px}
-.notes > div{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; display:grid; gap:6px}
+
+/* ---- La partie interne : sous la carte, jamais imprimée ---- */
+details.interne{max-width:var(--card-w); margin:22px auto 0; border:1.5px dashed var(--line-strong); border-radius:18px; background:var(--surface)}
+details.interne > summary{list-style:none; cursor:pointer; display:grid; grid-template-columns:20px minmax(0,1fr) auto; gap:4px 12px; align-items:center; padding:16px 20px; min-height:56px; border-radius:18px}
+details.interne > summary::-webkit-details-marker{display:none}
+details.interne > summary:hover{background:var(--surface-2)}
+details.interne > summary .chev{display:grid; place-items:center; color:var(--muted); transition:transform .15s ease}
+details.interne[open] > summary .chev{transform:rotate(90deg)}
+details.interne > summary .it{font-weight:700; font-size:18px}
+details.interne > summary .ic{font-size:14px; font-weight:600; color:var(--muted); text-align:right}
+@media (max-width:640px){ details.interne > summary{grid-template-columns:20px minmax(0,1fr)} details.interne > summary .ic{grid-column:2; text-align:left} }
+.int-in{padding:0 20px 22px; display:grid; gap:14px}
+.int-cols{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+@media (max-width:860px){ .int-cols{grid-template-columns:1fr} }
+.int-col{display:grid; gap:12px; align-content:start; min-width:0}
+.int-col > h3{font-size:17px; display:grid; gap:2px}
+.int-col > h3 small{font-size:13.5px; font-weight:500; color:var(--muted)}
+.ib{border-radius:12px; background:var(--surface-2); padding:12px 14px; display:grid; gap:6px}
+.ib.key{background:var(--yellow-soft)}
+.ib h4{font-size:15px}
+.ib p, .ib li{font-size:14.5px; color:var(--ink-2)}
+.ib ul{margin:0; padding-left:18px; display:grid; gap:4px}
+.ib dl{margin:0; display:grid; grid-template-columns:minmax(0,12.5em) minmax(0,1fr); gap:5px 14px; font-size:14.5px}
+@media (max-width:520px){ .ib dl{grid-template-columns:1fr; gap:2px} .ib dd{margin-bottom:6px} }
+.ib dt{font-weight:650; color:var(--ink)}
+.ib dd{margin:0; color:var(--ink-2)}
+.ib .tagline{display:flex; flex-wrap:wrap; gap:6px}
+.int-empty{font-size:14.5px; color:var(--muted); font-style:italic}
+
+/* ---- Dire non ---- */
+.say-no{max-width:var(--card-w); margin:30px auto 0; display:grid; gap:14px}
+.say-no h2{font-size:22px}
+.proc{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:12px}
+@media (max-width:700px){ .proc{grid-template-columns:1fr} }
+.proc li{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px 16px; display:grid; gap:4px}
+.proc li b{display:flex; gap:8px; align-items:center; font-size:16px}
+.proc li b span{font-family:var(--f-mono); font-weight:500; color:var(--muted)}
+.proc li p{font-size:14.5px; color:var(--ink-2)}
+.ex3{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px}
+@media (max-width:860px){ .ex3{grid-template-columns:1fr} }
+.ex3 figure{margin:0; border-left:4px solid var(--stop); background:var(--surface); border-radius:0 14px 14px 0; padding:12px 16px; display:grid; gap:6px; align-content:start}
+.ex3 figcaption{font-size:13.5px; font-weight:650; color:var(--muted)}
+.ex3 blockquote{margin:0; font-size:15.5px; line-height:1.45}
+.notes{margin-top:30px; display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:14px; max-width:var(--card-w); margin-inline:auto}
+.notes > div{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; display:grid; gap:6px; align-content:start}
 .notes p{font-size:15px; color:var(--ink-2)}
 
 @page{size:A4 landscape; margin:0}
@@ -89,35 +152,45 @@
   .topbar, .page-head, .panel-in, .notes, .foot, .noprint{display:none !important}
   .stage{margin:0; overflow:visible}
   .card{width:297mm; height:210mm; max-width:none; border-radius:0; border:0; box-shadow:none; -webkit-print-color-adjust:exact; print-color-adjust:exact}
-  .band{padding:8mm 11mm 6mm}
-  .half{padding:7mm 11mm 5mm; gap:3.6mm}
-  .foot-card{padding:3mm 11mm 4mm}
-  .radar svg{max-width:96mm}
-  .vrow p{font-size:9.5pt} .vrow q{font-size:7.5pt}
   /* le navigateur peut mettre en page l'impression plus étroit que l'A4 paysage : on garde les deux moitiés côte à côte */
   .halves{grid-template-columns:1fr 1fr}
+  .halves.one{grid-template-columns:1fr}
   .half.left{border-right:1px solid #e4dfe8; border-bottom:0}
+  .halves.one .half.left{border-right:0}
   .band{grid-template-columns:minmax(0,1fr) auto}
   .band .meta{text-align:right}
-  .vals, .dgroups{grid-template-columns:1fr 1fr}
+  .dgroups{grid-template-columns:1fr 1fr}
+  .ymr{grid-template-columns:1fr 1fr}
   /* tout tient sur une page A4 paysage, bandeau d'embauche compris */
   .band{padding:7mm 11mm 5mm}
   .band .top{margin-bottom:2mm}
   .band .who{font-size:28pt}
   .band .meta{font-size:9pt}
   .start{margin-top:2.5mm; padding:2mm 3.5mm; font-size:10pt; border-radius:2.5mm}
-  .half{padding:5.5mm 11mm 4mm; gap:3mm}
-  .prof-name{font-size:24pt}
-  .prof-form{font-size:10.5pt}
-  .def{font-size:11pt}
-  .vals{gap:2.6mm 4.5mm}
+  .half{padding:6mm 11mm 4mm; gap:4mm}
+  .h-lab{font-size:9.5pt}
+  .percu{font-size:14.5pt}
+  .crits{gap:2.6mm}
+  .crits .cl{font-size:10pt}
+  .crits .cs{font-size:8.5pt}
+  .crits p{font-size:10pt}
+  .halves.stop .percu{font-size:18pt}
+  .halves.stop .crits{gap:4mm}
+  .halves.stop .crits .cl{font-size:11.5pt}
+  .halves.stop .crits .cs{font-size:9.5pt}
+  .halves.stop .crits p{font-size:12pt}
+  .ym{padding:2.6mm 3.4mm; gap:1.6mm; border-radius:2.6mm}
+  .ymh{font-size:8.5pt}
+  .ymv b{font-size:10pt}
+  .ymv b small{font-size:8pt}
+  .ymv p{font-size:9pt}
   .radar svg{max-width:92mm}
   .dgroups{gap:2mm 4.5mm}
   .dg .dh{font-size:9.5pt}
   .palier{padding:2.5mm 3.5mm}
   .palier b{font-size:12pt}
   .palier p{font-size:8.5pt}
-  .foot-card{font-size:9pt}
+  .foot-card{padding:3mm 11mm 4mm; font-size:9pt}
 }
 </style>
 </head>
@@ -135,7 +208,7 @@
   </header>
   <div class="page-head">
     <h1>Carte d'identité Yeita</h1>
-    <p class="lede">La fiche que la personne reçoit, qu'on continue ou qu'on s'arrête. Elle se compose toute seule à partir du report des fiches #1 et #2. Elle part toujours après le débrief téléphonique, jamais avant.</p>
+    <p class="lede">La fiche que la personne reçoit, qu'on continue ou qu'on s'arrête. Elle se compose toute seule à partir du report des fiches #1 et #2. Sous la carte, la partie interne réunit ce que Yeita garde pour elle.</p>
   </div>
 
   <div class="panel panel-in noprint">
@@ -151,6 +224,7 @@
         <button type="button" role="radio" data-s="hire" aria-checked="false">Embauche</button>
       </div>
     </div>
+    <p class="process" id="process"></p>
     <div class="actions">
       <button type="button" class="btn small primary" data-print>Imprimer ou enregistrer en PDF</button>
       <span class="note" data-print-note hidden>Pour imprimer ou exporter en PDF, ouvre cette page depuis le site GitHub du recrutement.</span>
@@ -181,17 +255,38 @@
         <div class="meta" id="meta"></div>
         <div class="start" id="start" hidden></div>
       </header>
-      <div class="halves">
-        <section class="half left" id="left" aria-label="Lecture de l'EC1"></section>
-        <section class="half right" id="right" aria-label="Lecture de l'EC2"></section>
+      <div class="halves" id="halves">
+        <section class="half left" id="left" aria-label="Ce qu'on a perçu de toi"></section>
+        <section class="half right" id="right" aria-label="La suite de ta carte"></section>
       </div>
-      <footer class="foot-card"><span id="fline">Ni note, ni verdict. Une lecture à un instant T, qu'on corrige ensemble.</span><span id="flogo"></span></footer>
+      <footer class="foot-card"><span id="fline">Ni note, ni verdict sur toi : une lecture à un instant T, dont on a parlé ensemble au téléphone.</span><span id="flogo"></span></footer>
     </article>
   </div>
 
+  <details class="interne noprint" id="interne">
+    <summary><span class="chev" aria-hidden="true"></span><span class="it">Partie interne, pour Yeita</span><span class="ic" id="int-count"></span></summary>
+    <div class="int-in">
+      <p class="note">Ne s'imprime pas et ne part jamais avec la carte. Elle se remplit avec le report des fiches #1 et #2 : c'est ce que le fondateur lit avant l'EC3.</p>
+      <div class="int-cols">
+        <section class="int-col" id="int1" aria-label="Interne, EC1"></section>
+        <section class="int-col" id="int2" aria-label="Interne, EC2"></section>
+      </div>
+    </div>
+  </details>
+
+  <section class="say-no noprint" aria-labelledby="sn-t">
+    <h2 id="sn-t">Dire non : « pas aujourd'hui, parce que… »</h2>
+    <ol class="proc">
+      <li><b><span>1</span>Au téléphone, d'abord</b><p>Le non se dit toujours de vive voix, trente minutes au plus. On donne la raison, on écoute la réaction.</p></li>
+      <li><b><span>2</span>Puis la carte, par mail</b><p>Elle part après l'appel, jamais avant. Elle reprend par écrit ce qui a été dit, rien de plus.</p></li>
+    </ol>
+    <p class="note">Une raison, factuelle, rapportée à Yeita et jamais à une norme. Ce qui pourrait changer, seulement si c'est vrai. Trois exemples, ceux que propose la fiche #1 quand un critère passe à «&nbsp;Pas aujourd'hui&nbsp;» :</p>
+    <div class="ex3" id="ex3"></div>
+  </section>
+
   <div class="notes noprint">
-    <div><h2 style="font-size:17px">Ce qui ne figure jamais ici</h2><p>La décision, les notes internes d'employabilité, les hypothèses sur les diamants, le signal de vigilance, les questions pour l'étape suivante et les exemples cités. Ils restent côté Yeita. Seuls les critères cochés « Sur la carte » y figurent, avec leur phrase.</p></div>
-    <div><h2 style="font-size:17px">Arrêt après l'EC1</h2><p>Seule la moitié gauche est remplie. La droite reste vide, sans mention : on ne promet pas une étape qui n'aura pas lieu.</p></div>
+    <div><h2 style="font-size:17px">Ce qui ne figure jamais sur la carte</h2><p>Les notes internes, les hypothèses sur les diamants, le signal de vigilance, les questions pour l'étape suivante et les exemples cités. Seuls les critères cochés « Sur la carte » dans la fiche #1 y figurent, avec leur phrase.</p></div>
+    <div><h2 style="font-size:17px">Arrêt après l'EC1</h2><p>L'argumentaire prend toute la carte : ce qu'on a perçu à gauche, les critères à droite. On ne promet pas une étape qui n'aura pas lieu.</p></div>
     <div><h2 style="font-size:17px">Embauche</h2><p>La carte, corrigée en EC3, devient le point de départ de la personne chez Yeita. C'est elle qui la tient ensuite.</p></div>
   </div>
   <footer class="foot noprint"><span>Les cartes et leurs éléments internes restent dans ce navigateur et ne partent nulle part.</span></footer>
@@ -200,39 +295,60 @@
 <script src="assets/yeita.js"></script>
 <script src="assets/data-yeita-match.js"></script>
 <script src="assets/data-diamants.js"></script>
+<script src="assets/data-employabilite.js"></script>
 <script src="assets/dossier.js"></script>
 <script>
 (function(){
 "use strict";
-var Y = YEITA_MATCH, Dm = DIAMANTS, E = YEITA.esc, P = YEITA.picto, KEY = "yeita-carte-identite";
+var Y = YEITA_MATCH, Dm = DIAMANTS, EMP = EMPLOYABILITE, E = YEITA.esc, P = YEITA.picto, KEY = "yeita-carte-identite";
 document.getElementById("logo").innerHTML = YEITA.logo(26);
 document.getElementById("blogo").innerHTML = YEITA.logo(30);
 document.getElementById("flogo").innerHTML = YEITA.logo(18);
+document.querySelector("#interne .chev").innerHTML = YEITA.icon("ChevronRight", 18, 2.2);
 YEITA.wirePrint();
 var st = YEITA.store.get(KEY, null) || {};
 var all = [], cur = null;
 
-/* L'exemple : affiché tant qu'aucun dossier n'existe dans ce navigateur. Jamais enregistré. */
+/* L'exemple : affiché tant qu'aucune carte n'existe dans ce navigateur. Jamais enregistré. */
+function phr(id, s){ return EMP.critere(id).phrases[s]; }
 var DEMO = {schema: DOSSIER.SCHEMA, version: DOSSIER.VERSION, id: "__demo", demo: true,
   candidat: {nom: "Camille Rousseau", role: "PM"},
-  ec1: Object.assign(DOSSIER.emptyEC1(), {date: "2026-10-14", recruteur: "Pauline", observateur: "Peter",
+  ec1: Object.assign(DOSSIER.emptyEC1(), {date: "2026-10-14", recruteur: "Pauline", observateur: "Peter", format: "presentiel",
     match: {dominante: "explorateur", seconde: "collectif", partielle: false, pourquoi: "", source: "decompte"},
-    percu: "Part du terrain avant de parler méthode, et raconte ses échecs aussi vite que ses réussites. Cite l'équipe avant elle-même, y compris sur ce qu'elle a porté seule.",
+    percu: "Tu pars du terrain avant de parler méthode, et tu racontes tes échecs aussi vite que tes réussites. Tu cites l'équipe avant toi, y compris sur ce que tu as porté seule.",
     valeurs: {"collectif": "A cité trois fois l'équipe avant de se citer elle-même, y compris sur une réussite qu'elle portait seule.",
       "sans-chichi": "A dit « je ne sais pas » deux fois sans chercher à rattraper, et a proposé d'aller vérifier.",
       "explorateur": "Raconte un changement de méthode décidé après un test raté, avec ce que ça a coûté.",
       "meilleure-version": "Sait nommer ce qu'elle ne maîtrise pas encore, le cadrage amont, et ce qu'elle fait pour y aller."},
-    employabilite: {demarrage: "binome", note: "Pitch clair et chiffré. A tenu le fil quand on l'a relancée sur un échec.", criteres: {}},
+    employabilite: {demarrage: "binome", note: "Pitch clair et chiffré. A tenu le fil quand on l'a relancée sur un échec.", criteres: {
+      "salaire": {statut: "aligne", note: "Vise 58 k€, dans la fourchette du palier 2.", phrase: phr("salaire","aligne"), afficher: false},
+      "localisation": {statut: "aligne", note: "Habite Paris 11e. Trois jours sur place : aucun souci.", phrase: phr("localisation","aligne"), afficher: false},
+      "poste": {statut: "aligne", note: "", phrase: phr("poste","aligne"), afficher: true},
+      "discovery": {statut: "a-discuter", note: "Trois exemples sur quatre côté livraison. Une seule interview utilisateur citée.", phrase: phr("discovery","a-discuter"), afficher: true},
+      "projets": {statut: "aligne", note: "Ouverte à la banque et à l'énergie. Pas de no-go.", phrase: phr("projets","aligne"), afficher: true}}},
     diamants: ["À creuser", "Fort", "Fort", "Non vu"],
     vigilance: "Deux relances sans exemple concret dès qu'on monte au niveau du cadrage amont.",
     questionsEC2: "Ce qu'elle a réellement porté seule sur le dernier produit.\nSa façon d'arbitrer quand un sponsor pousse une solution."}),
   ec2: Object.assign(DOSSIER.emptyEC2(), {date: "2026-10-21", pair: "Thélo", role: "PM", palier: 2,
-    notes: [2,3,2, 4,3,2, 3,3,2, 3,2,null]}),
+    notes: [2,3,2, 4,3,2, 3,3,2, 3,2,null],
+    exemples: ["", "Roadmap trimestrielle tenue face à deux sponsors.", "", "Douze interviews avant de toucher au parcours d'inscription.", "", "", "", "", "", "", "", ""],
+    lecture: "Très solide sur le problème, à l'aise sur la solution. La stratégie reste à travailler : plus par manque d'occasion que d'envie.",
+    aspirations: "Veut se former au cadrage stratégique. Préfère un binôme les premières semaines. Aucun frein sur le présentiel.",
+    suspens: {palier: "J'apporte de la valeur, Product Manager.", solides: "Problème et Solution : des exemples précis, chiffrés.",
+      creux: "Stratégie : manque d'expérience plus que d'intérêt.", questions: "Son appétence réelle pour le cadrage : y aller, ou rester près de l'équipe ?",
+      contestation: "Se voit plus avancée sur la stratégie que ce que la fiche #2 montre.", conditions: "Disponible sous un mois. Prétentions dans la fourchette du palier."}}),
   restitution: {etat: st.demoEtat || "ec2"}, meta: {}};
 
+/* Dans l'exemple, l'arrêt après l'EC1 montre une vraie raison de dire non. */
+var DEMO_STOP = JSON.parse(JSON.stringify(DEMO.ec1));
+DEMO_STOP.employabilite.criteres = {
+  "poste": {statut: "aligne", note: "", phrase: phr("poste","aligne"), afficher: true},
+  "discovery": {statut: "a-discuter", note: "", phrase: phr("discovery","a-discuter"), afficher: true},
+  "projets": {statut: "pas-aujourdhui", note: "Ne veut que du e-commerce. Aucune mission e-commerce avant l'été.", phrase: phr("projets","pas-aujourdhui"), afficher: true}};
 function fmtDate(s){ if(/^\d{4}-\d{2}-\d{2}$/.test(s||"")){ return new Date(s+"T12:00:00").toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}); } return s || ""; }
 function fmtWhen(iso){ try{ return new Date(iso).toLocaleString("fr-FR", {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"}); }catch(e){ return ""; } }
 function etat(){ return (cur && cur.restitution && cur.restitution.etat) || "ec2"; }
+function lines(t){ return String(t||"").split(/\n+/).map(function(x){ return x.trim(); }).filter(Boolean); }
 
 /* ---------- La carte ---------- */
 function renderHead(){
@@ -246,32 +362,42 @@ function renderHead(){
   var b = document.getElementById("start");
   b.hidden = s !== "hire";
   b.innerHTML = YEITA.icon("ArrowRight", 20, 2.2) + 'Ton point de départ chez Yeita, corrigé ensemble en EC3. C\'est toi qui la fais vivre, bilan après bilan.';
-  document.getElementById("fline").textContent = s === "hire" ? "Ton état initial : la même carte servira à chaque bilan, sur les mêmes repères." : "Ni note, ni verdict. Une lecture à un instant T, qu'on corrige ensemble.";
+  document.getElementById("fline").textContent = s === "hire" ? "Ton état initial : la même carte servira à chaque bilan, sur les mêmes repères." : "Ni note, ni verdict sur toi : une lecture à un instant T, dont on a parlé ensemble au téléphone.";
 }
-function renderLeft(){
-  var el = document.getElementById("left"), e1 = cur.ec1;
-  if(!e1){ el.innerHTML = ""; return; }
-  var m = e1.match || {}, name = "", form = "", combo = "";
-  if(m.partielle){ name = "Lecture partielle"; form = m.pourquoi || "On n'a pas assez vu pour lire une dominante. Ce qui suit est ce qu'on a pu lire, et rien de plus."; }
-  else if(m.dominante && m.seconde){
-    var d = Y.value(m.dominante), s = Y.value(m.seconde), p = Y.profileFor(m.dominante, m.seconde);
-    if(p){ name = p.label; form = "Un profil « " + d.label.toLowerCase() + " » qui " + s.verb + ". " + p.description;
-      combo = '<div class="combo"><span class="vchip" data-v="'+d.id+'">'+P(d.id,15)+E(d.label)+'</span><span aria-hidden="true">›</span><span class="vchip" data-v="'+s.id+'">'+P(s.id,15)+E(s.label)+'</span></div>'; }
+function percuBlock(e1){
+  return '<div class="blk"><span class="h-lab">Ce qu\'on a perçu de toi</span>'
+    + (e1.percu ? '<p class="percu">'+E(e1.percu)+'</p>' : '<p class="percu none">Rien d\'écrit pour l\'instant.</p>') + '</div>';
+}
+function critsBlock(e1, title){
+  var list = EMP.surLaCarte(e1.employabilite && e1.employabilite.criteres);
+  if(!list.length) return "";
+  return '<div class="blk"><span class="h-lab">'+E(title)+'</span><ul class="crits">' + list.map(function(x){
+    return '<li class="'+x.statut.id+'"><span class="cl"><b>'+E(x.critere.label)+'</b><span class="cs"><i class="mk" aria-hidden="true"></i>'+E(x.statut.label)+'</span></span><p>'+E(x.phrase)+'</p></li>';
+  }).join("") + '</ul></div>';
+}
+function matchHTML(e1){
+  var m = e1.match || {};
+  if(m.partielle) return '<div class="ym"><span class="ymh">Yeita Match : lecture partielle</span><p style="font-size:14px; color:#3d3549">'+E(m.pourquoi || "On n'a pas assez vu pour lire une dominante. Ce qui précède est ce qu'on a pu lire, et rien de plus.")+'</p></div>';
+  return YEITA.matchBlock(m.dominante, m.seconde);
+}
+function renderBody(){
+  var L = document.getElementById("left"), R = document.getElementById("right"), H = document.getElementById("halves"), e1 = cur.ec1, e2 = cur.ec2, s = etat();
+  H.classList.remove("one"); H.classList.toggle("stop", s === "ec1");
+  if(!e1){ L.innerHTML = ""; }
+  if(s === "ec1"){
+    // Arrêt après l'EC1 : l'argumentaire prend toute la carte. Les critères passent à droite.
+    if(!e1){ R.innerHTML = ""; return; }
+    if(cur.demo) e1 = DEMO_STOP;
+    var crits = critsBlock(e1, "Ce qu'on a regardé ensemble");
+    L.innerHTML = percuBlock(e1) + matchHTML(e1);
+    R.innerHTML = crits;
+    R.setAttribute("aria-label", "Ce qu'on a regardé ensemble");
+    if(!crits) H.classList.add("one");
+    return;
   }
-  var h = '<span class="h-lab">Ce qu\'on a perçu de toi</span>';
-  if(name) h += '<div style="display:grid; gap:8px"><span class="prof-name">'+E(name)+'</span>'+combo+'<p class="prof-form">'+E(form)+'</p></div>';
-  if(e1.percu) h += '<p class="def">'+E(e1.percu)+'</p>';
-  h += '<div class="vals">' + Y.VALUES.map(function(v){
-    var txt = (e1.valeurs && e1.valeurs[v.id]) || "";
-    return '<div class="vrow" data-v="'+v.id+'"><b>'+P(v.id,16)+E(v.label)+'</b><q>'+E(v.expectation)+'</q>'
-      + (txt ? '<p>'+E(txt)+'</p>' : '<p class="none">Rien d\'écrit sur cette valeur.</p>') + '</div>';
-  }).join("") + '</div>';
-  el.innerHTML = h;
-}
-function renderRight(){
-  var el = document.getElementById("right"), e2 = cur.ec2;
-  // Arrêt après l'EC1 : on n'écrit rien, la moitié reste vide.
-  if(etat() === "ec1" || !e2){ el.innerHTML = ""; return; }
+  if(e1) L.innerHTML = percuBlock(e1) + critsBlock(e1, "Ce qu'on a regardé ensemble") + matchHTML(e1);
+  R.setAttribute("aria-label", "Ton métier, sur les quatre diamants");
+  if(!e2){ R.innerHTML = ""; return; }
   var T = e2.palier || 2, notes = e2.notes, h = '<span class="h-lab">Ton métier, sur les quatre diamants</span>';
   h += '<div class="radar">'+YEITA.radar(notes, T, {w:540, h:390, r:132, label:"Tes douze étapes et l'attendu au palier "+Dm.TIERS[T-1]})+'</div>';
   h += '<div class="dgroups">' + Dm.D.map(function(d, di){
@@ -280,14 +406,59 @@ function renderRight(){
       + '<div class="bar" aria-hidden="true"><u style="width:'+(Math.max(0,Math.min(4,avg))/4*100)+'%"></u><s style="left:calc('+(att/4*100)+'% - 1px)"></s></div></div>';
   }).join("") + '</div>';
   h += '<div class="palier"><span class="pl">Palier discuté ensemble</span><b>'+E(Dm.TIERS[T-1])+'</b><p>'+E(Dm.TIER_XP[T-1])+'. À ce palier, '+E(Dm.TIER_WHY_YOU[T-1])+'. Le pointillé est l\'attendu, pas un seuil d\'admission : c\'est le point de départ de la conversation.</p></div>';
-  el.innerHTML = h;
+  R.innerHTML = h;
 }
 
-/* ---------- Le dossier affiché ---------- */
-function partLine(label, part){
-  if(!part) return label + " : pas encore reporté";
-  return label + " : reporté le " + fmtWhen(part.reporteLe || "");
+/* ---------- La partie interne : EC1 à gauche, EC2 à droite ---------- */
+var START = {auto:"En autonomie face au client dès le premier jour", binome:"Avec un binôme Yeita les premières semaines", cadre:"Sur un périmètre cadré, avec un référent présent", non:"Pas sur de la mission client aujourd'hui"};
+function ib(title, body, key){ return body ? '<div class="ib'+(key ? " key" : "")+'"><h4>'+E(title)+'</h4>'+body+'</div>' : ""; }
+function para(t){ return t ? '<p>'+E(t)+'</p>' : ""; }
+function list(t){ var l = lines(t); return l.length ? '<ul>'+l.map(function(x){ return '<li>'+E(x)+'</li>'; }).join("")+'</ul>' : ""; }
+function renderInt1(){
+  var el = document.getElementById("int1"), e1 = cur.ec1;
+  if(!e1){ el.innerHTML = '<h3>EC1</h3><p class="int-empty">Pas encore reporté depuis la fiche #1.</p>'; return; }
+  var who = [e1.date ? fmtDate(e1.date) : "", e1.recruteur ? "mené par " + e1.recruteur : "", e1.observateur ? "observé par " + e1.observateur : ""].filter(Boolean).join(", ");
+  var h = '<h3>EC1, la personne<small>'+E(who || "Date et participants non renseignés")+'</small></h3>';
+  h += ib("Questions à creuser en EC2", list(e1.questionsEC2), true);
+  h += ib("Signal de vigilance", para(e1.vigilance));
+  if((e1.diamants||[]).some(Boolean)) h += ib("Où la personne a vraiment travaillé", '<dl>'+Dm.D.map(function(d, i){ return '<dt>'+d.n+' '+E(d.name)+'</dt><dd>'+E(e1.diamants[i] || "Non renseigné")+'</dd>'; }).join("")+'</dl>');
+  var emp = e1.employabilite || {}, cr = emp.criteres || {};
+  var eb = (emp.demarrage ? '<p><b>Démarrage :</b> '+E(START[emp.demarrage] || emp.demarrage)+'</p>' : "") + para(emp.note);
+  var rows = EMP.CRITERES.filter(function(c){ return cr[c.id] && (cr[c.id].statut || cr[c.id].note); }).map(function(c){
+    var v = cr[c.id], s = v.statut ? EMP.statut(v.statut).label : "Sans état";
+    return '<dt>'+E(c.label)+'</dt><dd>'+E(s)+(v.afficher ? ", sur la carte" : "")+(v.note ? '. '+E(v.note) : "")+'</dd>';
+  }).join("");
+  if(rows) eb += '<dl>'+rows+'</dl>';
+  h += ib("Employabilité", eb);
+  var vals = Y.VALUES.filter(function(v){ return e1.valeurs && e1.valeurs[v.id]; }).map(function(v){ return '<dt data-v="'+v.id+'" style="color:var(--vc)">'+E(v.label)+'</dt><dd>'+E(e1.valeurs[v.id])+'</dd>'; }).join("");
+  h += ib("Les quatre valeurs, ce qu'on a vu", vals ? '<dl>'+vals+'</dl>' : "");
+  el.innerHTML = h;
 }
+function renderInt2(){
+  var el = document.getElementById("int2"), e2 = cur.ec2;
+  if(!e2){ el.innerHTML = '<h3>EC2</h3><p class="int-empty">Pas encore reporté depuis la fiche #2.</p>'; return; }
+  var who = [e2.date ? fmtDate(e2.date) : "", e2.pair ? "mené par " + e2.pair : ""].filter(Boolean).join(", ");
+  var h = '<h3>EC2, le métier<small>'+E(who || "Date et pair non renseignés")+'</small></h3>';
+  var s = e2.suspens || {}, SUS = [["palier","Palier proposé et rôle"],["solides","Diamants solides"],["creux","Diamants creux"],["questions","À creuser en EC3"],["contestation","Ce qui risque d'être contesté"],["conditions","À confirmer avant la proposition"]];
+  var sb = SUS.filter(function(x){ return (s[x[0]]||"").trim(); }).map(function(x){ return '<dt>'+E(x[1])+'</dt><dd>'+E(s[x[0]])+'</dd>'; }).join("");
+  h += '<div class="ib key"><h4>Points en suspens pour l\'EC3</h4>'+(sb ? '<dl>'+sb+'</dl>' : '<p class="int-empty">Rien de noté pour l\'instant.</p>')+'</div>';
+  h += ib("Aspirations", para(e2.aspirations));
+  h += ib("La lecture du pair", para(e2.lecture));
+  var ex = [];
+  Dm.D.forEach(function(d, di){ d.steps.forEach(function(stp, si){ var i = di*3+si, t = (e2.exemples||[])[i]; if(t) ex.push('<dt>'+E(stp)+' ('+(e2.notes[i]==null ? "pas vu" : e2.notes[i])+')</dt><dd>'+E(t)+'</dd>'); }); });
+  h += ib("Les exemples cités", ex.length ? '<dl>'+ex.join("")+'</dl>' : "");
+  el.innerHTML = h;
+}
+function renderInternal(){
+  renderInt1(); renderInt2();
+  var e1 = cur.ec1, e2 = cur.ec2, bits = [];
+  if(e1){ var q = lines(e1.questionsEC2).length; if(q) bits.push(q + " question" + (q > 1 ? "s" : "") + " pour l'EC2"); if(e1.vigilance) bits.push("1 signal de vigilance"); }
+  if(e2){ var n = ["palier","solides","creux","questions","contestation","conditions"].filter(function(k){ return e2.suspens && (e2.suspens[k]||"").trim(); }).length; if(n) bits.push(n + " point" + (n > 1 ? "s" : "") + " en suspens pour l'EC3"); }
+  document.getElementById("int-count").textContent = bits.length ? bits.join(", ") : (e1 || e2 ? "Rien de noté" : "Vide");
+}
+
+/* ---------- Le candidat affiché ---------- */
+function partLine(label, part){ return part ? label + " : reporté le " + fmtWhen(part.reporteLe || "") : label + " : pas encore reporté"; }
 function renderPanel(){
   var sel = document.getElementById("sel");
   sel.innerHTML = all.map(function(d){
@@ -306,10 +477,14 @@ function renderPanel(){
   document.getElementById("del").hidden = !!cur.demo;
   document.getElementById("del-confirm").hidden = true;
   document.querySelectorAll("#state [role=radio]").forEach(function(x){ x.setAttribute("aria-checked", String(x.dataset.s === etat())); });
+  var pr = document.getElementById("process");
+  pr.innerHTML = YEITA.icon(etat() === "hire" ? "ArrowRight" : "Phone", 18, 2.2) + '<span>' + (etat() === "hire"
+    ? "La carte se corrige en EC3, avec la personne, puis se remet avec la proposition."
+    : "Un non se dit toujours au téléphone d'abord. La carte part ensuite par mail, jamais avant l'appel.") + '</span>';
 }
-function render(){ renderPanel(); renderHead(); renderLeft(); renderRight(); }
+function render(){ renderPanel(); renderHead(); renderBody(); renderInternal(); }
 
-/* Charge la liste, puis affiche le dossier demandé, sinon le dossier courant, sinon l'exemple. */
+/* Charge la liste, puis affiche le candidat demandé, sinon le dernier ouvert, sinon l'exemple. */
 function refresh(wantId){
   return DOSSIER.list().then(function(list){
     all = list;
@@ -331,6 +506,9 @@ document.getElementById("state").addEventListener("click", function(e){
   if(cur.demo){ DEMO.restitution.etat = b.dataset.s; st.demoEtat = b.dataset.s; YEITA.store.set(KEY, st); render(); return; }
   DOSSIER.setRestitution(cur.id, {etat: b.dataset.s}).then(function(d){ if(d) cur = d; render(); });
 });
+var intEl = document.getElementById("interne");
+intEl.open = !!st.intOpen;
+intEl.addEventListener("toggle", function(){ st.intOpen = intEl.open; YEITA.store.set(KEY, st); });
 function doImport(){
   var inp = document.getElementById("code-in"), msg = document.getElementById("imp-msg");
   if(!inp.value.trim()){ msg.textContent = "Colle d'abord un code EC1 ou EC2."; msg.className = "imp-msg bad"; inp.focus(); return; }
@@ -344,7 +522,7 @@ document.getElementById("code-in").addEventListener("keydown", function(e){ if(e
 document.addEventListener("click", function(e){
   if(e.target.id === "import"){ doImport(); return; }
   if(e.target.id === "del"){
-    document.getElementById("del-t").innerHTML = "<b>Effacer la carte de " + E(cur.candidat.nom || "ce candidat") + " ?</b> La carte et les éléments internes disparaissent de ce navigateur. Les brouillons des fiches #1 et #2 ne bougent pas.";
+    document.getElementById("del-t").innerHTML = "<b>Effacer la carte de " + E(cur.candidat.nom || "ce candidat") + " ?</b> La carte et sa partie interne disparaissent de ce navigateur. Les brouillons des fiches #1 et #2 ne bougent pas.";
     document.getElementById("del-confirm").hidden = false; document.getElementById("del-yes").focus(); return;
   }
   if(e.target.id === "del-no"){ document.getElementById("del-confirm").hidden = true; document.getElementById("del").focus(); return; }
@@ -357,7 +535,12 @@ document.addEventListener("click", function(e){
 /* Une fiche reportée dans un autre onglet met la carte à jour aussitôt. */
 window.addEventListener("storage", function(e){ if(e.key === "yeita-dossiers" || e.key === null) refresh(cur && !cur.demo ? cur.id : undefined); });
 
-/* Les codes collés dans l'ancienne version de la carte rejoignent les dossiers, une fois. L'exemple est ignoré. */
+/* Trois refus types, tirés des phrases de la fiche #1 */
+document.getElementById("ex3").innerHTML = EMP.REFUS_TYPES.map(function(r){
+  return '<figure><figcaption>'+E(r[1])+'</figcaption><blockquote>'+E(phr(r[0], "pas-aujourdhui"))+'</blockquote></figure>';
+}).join("");
+
+/* Les codes collés dans l'ancienne version de la carte rejoignent les cartes, une fois. L'exemple est ignoré. */
 function migrateCodes(){
   if(st.codesDone) return Promise.resolve();
   st.codesDone = true; YEITA.store.set(KEY, st);
@@ -368,11 +551,14 @@ function migrateCodes(){
   return todo.reduce(function(p, c){ return p.then(function(){ return DOSSIER.importCode(c).catch(function(){}); }); }, Promise.resolve());
 }
 
-/* Lien direct vers un état de l'exemple : #ec1, #ec2 ou #embauche */
+/* Lien direct vers un état de l'exemple : #ec1, #ec2 ou #embauche. #interne ouvre la partie interne. */
 var hs = (location.hash||"").replace("#","");
 var hashState = hs === "ec1" || hs === "ec2" ? hs : (hs === "embauche" ? "hire" : null);
 if(hashState) DEMO.restitution.etat = hashState;
-migrateCodes().then(function(){ return refresh(hashState ? "__demo" : undefined); });
+if(hs === "interne") intEl.open = true;
+migrateCodes().then(function(){ return refresh(hashState ? "__demo" : undefined); }).then(function(){
+  if(hs === "interne") intEl.scrollIntoView({block:"start"});
+});
 })();
 </script>
 </body>

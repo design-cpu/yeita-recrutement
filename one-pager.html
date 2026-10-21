@@ -75,6 +75,13 @@ body{background:#efecf3}
 .mini .ln{height:5px; border-radius:3px; background:#e4dfe8}
 .mini .ln.v{background:var(--vf)}
 .mini svg{width:100%; height:auto}
+.mini .ln.big{height:6px; background:#cfc8d9}
+.mini .lc{display:flex; gap:4px; align-items:center}
+.mini .lc .ln{flex:none}
+.mini .dot{width:6px; height:6px; border-radius:50%; background:#12764f; flex:none; box-sizing:border-box}
+.mini .dot.half{background:linear-gradient(90deg,#4a4256 50%,transparent 50%); border:1px solid #4a4256}
+.mini .vv{display:flex; gap:5px; background:#f5f2f9; border-radius:4px; padding:4px 5px; margin-top:2px}
+.mini .vv .ln{flex:1}
 
 .vals{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; margin-top:12px}
 @media (max-width:720px){ .vals{grid-template-columns:repeat(2, minmax(0,1fr))} }
@@ -202,15 +209,16 @@ body{background:#efecf3}
       <h2 id="t-r">Ce que tu reçois</h2>
       <div class="receive">
         <ul>
-          <li><b>Après l'entretien 1</b>, si on s'arrête : la moitié gauche de ta carte, ce qu'on a perçu de toi sous nos quatre valeurs.</li>
+          <li><b>Après l'entretien 1</b>, si on s'arrête : un appel pour t'expliquer pourquoi, puis ta carte, avec ce qu'on a perçu de toi.</li>
           <li><b>Après l'entretien 2</b>, si on s'arrête : la carte complète, avec ton métier lu sur nos quatre diamants.</li>
           <li><b>Si tu nous rejoins</b> : la carte corrigée ensemble devient ton point de départ. C'est toi qui la fais vivre, bilan après bilan.</li>
         </ul>
         <div class="mini" aria-hidden="true">
           <div class="mb"><i>Carte d'identité</i><b>Ton prénom et ton nom</b></div>
           <div class="mh">
-            <div><small>Ce qu'on a perçu de toi</small><span class="ln" style="width:80%"></span><span class="ln" style="width:60%"></span>
-              <span class="ln v" data-v="collectif" style="width:70%"></span><span class="ln v" data-v="sans-chichi" style="width:55%"></span><span class="ln v" data-v="explorateur" style="width:65%"></span><span class="ln v" data-v="meilleure-version" style="width:50%"></span></div>
+            <div><small>Ce qu'on a perçu de toi</small><span class="ln big" style="width:90%"></span><span class="ln big" style="width:72%"></span>
+              <span class="lc"><i class="dot"></i><span class="ln" style="width:70%"></span></span><span class="lc"><i class="dot half"></i><span class="ln" style="width:58%"></span></span>
+              <span class="vv"><span class="ln v" data-v="explorateur"></span><span class="ln v" data-v="collectif"></span></span></div>
             <div><small>Ton métier</small><svg viewBox="0 0 100 80"><polygon points="50,8 86,30 76,70 24,70 14,30" fill="none" stroke="#dcd6e2"/><polygon points="50,20 74,33 66,60 36,62 24,36" fill="#4d25f7" fill-opacity=".18" stroke="#4d25f7" stroke-width="2"/></svg></div>
           </div>
         </div>
