@@ -41,6 +41,11 @@ body{background:#efecf3}
 .st-t .who{font-size:14.5px; color:#625b6f}
 .st-d{font-size:15px; color:#3d3549}
 .st-d .doneflag{display:inline-flex; align-items:center; gap:6px; font-weight:650; color:#12764f; margin-bottom:4px}
+.st-d .next{display:block; margin-top:6px; font-size:14px; color:#625b6f}
+.st-d .next b{color:#160f20; font-weight:650}
+.st-d .next svg{vertical-align:-2px; margin-right:6px; color:#4d25f7}
+.stopnote{margin-top:8px; font-size:15.5px; color:#3d3549; border-left:3px solid #4d25f7; padding-left:12px; max-width:62ch}
+.stopnote b{color:#160f20}
 @media (max-width:640px){
   .steps li{grid-template-columns:48px minmax(0,1fr)}
   .num{grid-row:span 1; width:40px; height:40px}
@@ -102,6 +107,15 @@ body{background:#efecf3}
   .st-d{font-size:8.6pt}
   .st-d .doneflag{margin-bottom:0}
   .total{font-size:8.6pt; margin-top:1.5mm}
+  .stopnote{font-size:8.6pt; margin-top:1.5mm; padding-left:2.6mm; border-left-width:2px}
+  .st-d .next{display:inline; font-size:8pt; margin:0 0 0 1mm; white-space:nowrap}
+  .st-d .next svg{width:2.8mm; height:2.8mm; vertical-align:-.4mm; margin-right:.6mm}
+  .head{padding:6mm 12mm 5mm; gap:1.5mm}
+  .head h1{font-size:17.5pt; max-width:none}
+  .foot-s{padding:2.5mm 12mm 3.5mm !important}
+  .head p{max-width:none; font-size:9.6pt}
+  .steps li{padding:1.05mm 0}
+  .col{gap:3mm}
   .promise{grid-template-columns:1fr; gap:1.5mm; margin-top:2mm} .promise div{padding:1.6mm 2.6mm; gap:.3mm} .promise b{font-size:9.6pt} .promise span{font-size:8.3pt}
   .receive{grid-template-columns:1fr; gap:3mm; margin-top:2mm} .receive ul{font-size:8.5pt; gap:1.2mm; padding-left:4mm}
   .mini{width:46mm}
@@ -123,7 +137,7 @@ body{background:#efecf3}
 <article class="sheet" aria-labelledby="t-h">
   <header class="head">
     <div class="row"><span id="logo"></span><span>Ton parcours chez Yeita</span></div>
-    <h1 id="t-h">Quatre rendez-vous, et une carte d'identité à la fin</h1>
+    <h1 id="t-h">Quatre rendez-vous au plus, et toujours une carte d'identité</h1>
     <p>On recrute peu, et on prend le temps de se connaître pour de vrai. Voici ce qui t'attend, avec qui, combien de temps, et ce que tu emportes à chaque étape.</p>
   </header>
 
@@ -131,6 +145,7 @@ body{background:#efecf3}
     <div class="col col-a">
     <section class="sec-p" aria-labelledby="t-p">
       <h2 id="t-p">Le parcours</h2>
+      <p class="stopnote">Le parcours peut s'arrêter après chaque étape, de ton côté comme du nôtre. <b>Si c'est le cas, on t'appelle pour t'expliquer pourquoi.</b></p>
       <ol class="steps">
         <li class="done">
           <span class="num" aria-hidden="true">1</span>
@@ -140,17 +155,17 @@ body{background:#efecf3}
         <li>
           <span class="num" aria-hidden="true">2</span>
           <div class="st-t"><b>Entretien 1, qui tu es</b><span class="when">1 h, chez Yeita ou en visio</span><span class="who">Avec un recruteur Yeita</span></div>
-          <p class="st-d">Tu nous racontes ton parcours, puis on joue à Yeita Match : un jeu de cartes, huit situations, aucune bonne réponse. Il fait ressortir ta façon de travailler, et on en parle ensemble.</p>
+          <p class="st-d">Tu nous racontes ton parcours, puis on joue à Yeita Match : un jeu de cartes, huit situations, aucune bonne réponse. Il fait ressortir ta façon de travailler, et on en parle ensemble.<span class="next"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>Si tout va bien, ensuite : <b>l'entretien 2, sur ton métier</b>.</span></p>
         </li>
         <li>
           <span class="num" aria-hidden="true">3</span>
           <div class="st-t"><b>Entretien 2, ton métier</b><span class="when">1 h 30, chez Yeita ou en visio</span><span class="who">Avec un consultant Yeita de ton métier</span></div>
-          <p class="st-d">Quatre mises en situation tirées de vraies missions. On regarde comment tu t'y prends, ce que tu regardes en premier et ce que tu acceptes de ne pas faire.</p>
+          <p class="st-d">Quatre mises en situation tirées de vraies missions. On regarde comment tu t'y prends, ce que tu regardes en premier et ce que tu acceptes de ne pas faire.<span class="next"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>Si tout va bien, ensuite : <b>l'entretien 3, avec un fondateur</b>.</span></p>
         </li>
         <li>
           <span class="num" aria-hidden="true">4</span>
           <div class="st-t"><b>Entretien 3, la mise au point</b><span class="when">1 h, chez Yeita</span><span class="who">Avec un fondateur</span></div>
-          <p class="st-d">L'histoire de Yeita racontée par un fondateur, les questions restées ouvertes, puis ta carte d'identité posée sur la table. Tu la corriges avec nous.</p>
+          <p class="st-d">L'histoire de Yeita racontée par un fondateur, les questions restées ouvertes, puis ta carte d'identité posée sur la table. Tu la corriges avec nous.<span class="next"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>Si tout va bien, ensuite : <b>notre proposition</b>.</span></p>
         </li>
         <li class="end">
           <span class="num" aria-hidden="true">
@@ -160,7 +175,7 @@ body{background:#efecf3}
           <p class="st-d">Si on avance ensemble, la proposition se place dans la grille de salaire publique, au palier discuté avec toi en entretien 2.</p>
         </li>
       </ol>
-      <p class="total"><b>4 h</b> d'échanges au total. <b>5 jours ouvrés</b> au plus pour te répondre, après chaque étape.</p>
+      <p class="total"><b>4 h</b> d'échanges au plus. <b>5 jours ouvrés</b> pour te répondre, après chaque étape.</p>
     </section>
 
     <section class="sec-s" aria-labelledby="t-s">
