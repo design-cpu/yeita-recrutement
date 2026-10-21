@@ -169,6 +169,8 @@ function radar(steps, tier, o){
 function inFrame(){ try{ return window.self !== window.top; }catch(e){ return true; } }
 /* L'adresse du site GitHub Pages du recrutement. À changer si le dépôt passe chez Yeichati. */
 var SITE = "https://leofuster-story.github.io/yeita-recrutement/";
+/* L'adresse du hub dans Claude. Un lien direct vers une page passe par lui : HUB_URL + "#fiche-ec1", par exemple. */
+var HUB_URL = "https://claude.ai/artifact/XHFqCUicW1LboUFN9qSx1d";
 function wirePrint(){
   var btns = document.querySelectorAll("[data-print]");
   btns.forEach(function(b){
@@ -182,7 +184,7 @@ function wirePrint(){
         n.insertAdjacentHTML("beforeend", ' <a href="'+SITE+page+'" target="_blank" rel="noopener">Ouvrir sur le site</a>');
       }
     }
-    else b.addEventListener("click", function(){ window.print(); });
+    else if(!b.hasAttribute("data-print-own")) b.addEventListener("click", function(){ window.print(); });
   });
 }
 
@@ -210,5 +212,5 @@ function tabs(list, onSelect){
 
 window.YEITA = {logo:logo, picto:picto, icon:icon, CARD_ICONS:CARD_ICONS, VALUE_ICON:VALUE_ICON, VALUE_DEF:VALUE_DEF, matchBlock:matchBlock, esc:esc, store:store, copy:copy, flash:flash, b64e:b64e, b64d:b64d,
   readEC1:readEC1, readEC2:readEC2, radar:radar, inFrame:inFrame, wirePrint:wirePrint, autogrow:autogrow, fr:fr, tabs:tabs,
-  HUB:"index.html", SITE:SITE};
+  HUB:"index.html", SITE:SITE, HUB_URL:HUB_URL};
 })();

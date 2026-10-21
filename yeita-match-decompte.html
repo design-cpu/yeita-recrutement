@@ -163,7 +163,7 @@
     <div class="head-actions">
       <button type="button" class="btn quiet small" id="demo">Charger un exemple</button>
       <button type="button" class="btn quiet small" id="reset">Vider la feuille</button>
-      <button type="button" class="btn small" data-print>Imprimer la feuille vierge</button>
+      <button type="button" class="btn small" id="print-blank" data-print data-print-own>Imprimer la feuille vierge</button>
       <span class="print-note" data-print-note hidden>Pour imprimer, ouvre cette page depuis le site GitHub du recrutement, ou utilise le PDF du kit.</span>
     </div>
     <div class="callout" id="confirm" hidden role="alertdialog" aria-labelledby="cf-t">
@@ -231,7 +231,7 @@ var POS = ["A","B","C","D"];
 document.getElementById("legend").innerHTML = Y.VALUES.map(function(v){ return '<span data-v="'+v.id+'">'+P(v.id,13)+E(v.label)+'</span>'; }).join("");
 var st = YEITA.store.get(KEY, null) || {answers:{}, notes:{}, tb:[], f:{}, fmt:"presentiel"};
 
-function save(){ YEITA.store.set(KEY, st); }
+function save(){ if(kept) return; YEITA.store.set(KEY, st); }
 
 function renderRounds(){
   document.getElementById("rounds").innerHTML = Y.SITUATIONS.map(function(s, i){
@@ -395,7 +395,32 @@ document.addEventListener("click", function(e){
   }
 });
 
+/* « Imprimer la feuille vierge » imprime toujours une feuille vide, même quand l'écran est rempli.
+   La feuille remplie est mise de côté le temps de l'impression, sans être enregistrée, puis remise. */
+var kept = null;
+function restore(){
+  if(!kept) return;
+  st = kept; kept = null; fillIdent(); renderAll();
+  document.documentElement.classList.remove("printing-blank");
+}
+function printBlank(){
+  if(kept) return;
+  kept = st; st = {answers:{}, notes:{}, tb:[], f:{}, fmt: kept.fmt || "presentiel"};
+  document.documentElement.classList.add("printing-blank");
+  fillIdent(); renderAll();
+  window.print();
+}
+window.addEventListener("afterprint", restore);
+/* Filet : si le navigateur n'envoie pas « afterprint », la feuille revient au premier geste, avant toute saisie. */
+["pointerdown","keydown","focusin"].forEach(function(t){ document.addEventListener(t, function(e){ if(kept && e.target.id !== "print-blank") restore(); }, true); });
+document.getElementById("print-blank").addEventListener("click", function(){ if(!YEITA.inFrame()) printBlank(); });
+
 fillIdent(); renderAll();
+/* Lien direct #vierge : on arrive sur le bouton d'impression. */
+if(location.hash === "#vierge"){
+  var pb = document.getElementById("print-blank");
+  if(!pb.hidden){ pb.classList.add("primary"); pb.focus({preventScroll:true}); pb.scrollIntoView({block:"center"}); }
+}
 })();
 </script>
 </body>
