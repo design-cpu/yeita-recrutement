@@ -71,7 +71,9 @@
 }
 
 /* Vues */
-.views{margin-top:34px; display:flex; flex-wrap:wrap; gap:6px; border-bottom:1.5px solid var(--line); padding-bottom:0}
+.views-row{margin-top:34px; display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; border-bottom:1.5px solid var(--line)}
+.views{display:flex; flex-wrap:wrap; gap:6px; padding-bottom:0}
+.views-cta{margin-block:4px 8px}
 .views [role="tab"]{appearance:none; border:0; background:transparent; cursor:pointer; font-weight:650; font-size:16px; color:var(--muted);
   padding:11px 14px 12px; border-bottom:3px solid transparent; margin-bottom:-1.5px; min-height:44px; border-radius:8px 8px 0 0}
 .views [role="tab"]:hover{color:var(--ink)}
@@ -202,6 +204,7 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
     <span id="logo"></span>
     <span class="where">Expérience collaborateur</span>
     <nav aria-label="Raccourcis">
+      <a href="candidatures.html">Candidatures</a>
       <a href="#guide">Guide du recruteur</a>
       <a href="#supports">Supports</a>
       <a href="one-pager.html">Vue candidat</a>
@@ -239,11 +242,14 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
       <ol class="track" id="track"></ol>
     </figure>
 
-    <div class="views" role="tablist" aria-label="Vues du recrutement" id="views">
-      <button role="tab" id="tab-demarche" aria-controls="demarche" aria-selected="true" tabindex="0">La démarche</button>
-      <button role="tab" id="tab-guide" aria-controls="guide" aria-selected="false" tabindex="-1">Guide du recruteur</button>
-      <button role="tab" id="tab-supports" aria-controls="supports" aria-selected="false" tabindex="-1">Supports</button>
-      <button role="tab" id="tab-glossaire" aria-controls="glossaire" aria-selected="false" tabindex="-1">Glossaire</button>
+    <div class="views-row">
+      <div class="views" role="tablist" aria-label="Vues du recrutement" id="views">
+        <button role="tab" id="tab-demarche" aria-controls="demarche" aria-selected="true" tabindex="0">La démarche</button>
+        <button role="tab" id="tab-guide" aria-controls="guide" aria-selected="false" tabindex="-1">Guide du recruteur</button>
+        <button role="tab" id="tab-supports" aria-controls="supports" aria-selected="false" tabindex="-1">Supports</button>
+        <button role="tab" id="tab-glossaire" aria-controls="glossaire" aria-selected="false" tabindex="-1">Glossaire</button>
+      </div>
+      <a class="btn small primary views-cta" href="candidatures.html">Candidatures</a>
     </div>
 
     <!-- Vue 1 : la démarche -->
@@ -405,6 +411,7 @@ document.getElementById("logo").innerHTML = YEITA.logo(26);
 var NOTION_EMP = "https://app.notion.com/p/Employabilit-3e64bfab7816801592f4cfdf068968b6";
 var NOTION_REF = "https://app.notion.com/p/3f94bfab781681289c7ccea584e7e7e1";
 var S = {
+  candidatures:{name:"Candidatures", sub:"Module de suivi", role:"Le tableau des candidats, puis le parcours guidé étape par étape, qui ouvre les fiches au bon moment.", when:"3 à 11", fmt:"En ligne", href:"candidatures.html"},
   onepager:   {name:"Ton parcours chez Yeita", sub:"One-pager candidat", role:"Expliquer le parcours, les durées, les délais et ce que la personne reçoit.", when:"4", fmt:"Imprimable A4", href:"one-pager.html"},
   jeu:        {name:"Yeita Match en ligne", sub:"Jeu yeita-match", role:"Le jeu de l'EC1 en visio, ou en secours du kit.", when:"5", fmt:"En ligne", href:YEITA_MATCH.GAME_URL, ext:true},
   kit:        {name:"Kit Yeita Match", sub:"Cartes et plateau", role:"Le jeu de l'EC1 en présentiel.", when:"5", fmt:"À imprimer", href:"yeita-match-kit.html"},
@@ -416,7 +423,7 @@ var S = {
   referentiel:{name:"Référentiel des compétences", sub:"Notion", role:"Les critères des diamants, en relecture collective.", when:"7", fmt:"Notion", href:NOTION_REF, ext:true},
   site:       {name:"Site du recrutement", sub:"GitHub Pages", role:"Les mêmes pages hors de Claude, pour imprimer et exporter en PDF.", when:"Tout le parcours", fmt:"En ligne", href:YEITA.SITE, ext:true}
 };
-var ORDER = ["onepager","jeu","kit","decompte","fiche1","fiche2","carte","employabilite","referentiel","site"];
+var ORDER = ["candidatures","onepager","jeu","kit","decompte","fiche1","fiche2","carte","employabilite","referentiel","site"];
 function link(k){ var s = S[k]; return '<a href="'+s.href+'"'+(s.ext?' target="_blank" rel="noopener"':'')+'>'+E(s.name)+(s.ext?' <span class="ext">'+E(s.sub)+', nouvel onglet</span>':'')+'</a>'; }
 document.getElementById("inv").innerHTML = ORDER.map(function(k){ var s = S[k];
   return '<tr><td>'+link(k).replace('<a ','<a class="nm" ')+'<span class="sb">'+E(s.sub)+'</span></td><td>'+E(s.role)+'</td><td class="mono">'+E(s.when)+'</td><td class="fmt">'+E(s.fmt)+'</td></tr>';
