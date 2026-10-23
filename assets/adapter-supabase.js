@@ -1,3 +1,5 @@
+/* OBSOLÈTE (23 octobre 2026) : piste Supabase abandonnée. Authentification (oauth2-proxy, SSO Google @yeita.fr) et stockage (SQLite, serveur OVH)
+   sont pris en charge par Sacha. Fichier gardé pour mémoire, à ne pas brancher. Modèle qui fait foi : docs/backend/MODELE.md. */
 /* Adaptateur Supabase pour assets/dossier.js : list, get, put, remove, en promesses, comme l'adaptateur du navigateur.
    PRÉPARÉ, NON BRANCHÉ : aucune page ne charge ce fichier. Mise en place : docs/backend/README.md.
 

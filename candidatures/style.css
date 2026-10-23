@@ -298,3 +298,8 @@ button.etat::after{content:""; width:7px; height:7px; border-right:1.5px solid c
 details.liens-fiche{border-top:0; padding-top:0}
 .carte-h{display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; justify-content:space-between}
 .carte-h h1{margin:0}
+
+/* Récap de la carte (Bilans, EC3, Décision) */
+.carteprev.recap{display:grid; grid-template-columns:minmax(0,13em) minmax(0,1fr); gap:6px 14px}
+.carteprev.recap dd.vide{color:var(--muted)}
+@media (max-width:560px){ .carteprev.recap{grid-template-columns:1fr; gap:2px} .carteprev.recap dd{margin-bottom:8px} }

@@ -246,37 +246,42 @@ function onePagerHTML(c, ro){
 /* Bilans EC1 et EC2 : récap de la carte, forme du débrief, trois issues */
 function lines(x){ return String(x || "").split(/\n+/).map(function(s){ return s.trim(); }).filter(Boolean); }
 function recap(c, k){
-  var e1 = c.ec1 || {}, m = e1.match || {}, s = (c.ec2 && c.ec2.suspens) || {};
+  var e1 = c.ec1 || {}, m = e1.match || {}, s = (c.ec2 && c.ec2.suspens) || {}, L = function(x){ return t("bilan.lignes." + x); };
   var crit = EMP.surLaCarte(e1.employabilite && e1.employabilite.criteres);
-  var rows = [["Ce qu'on a perçu", e1.percu], ["Yeita Match", m.partielle ? "Lecture partielle" : (m.dominante && m.seconde ? Y.value(m.dominante).label + " › " + Y.value(m.seconde).label : "")],
-    ["Employabilité", crit.map(function(x){ return x.critere.label + " : " + x.statut.label; }).join(" · ")], ["Signaux de vigilance", e1.vigilance]];
-  rows.push(k === "ec1" ? ["À creuser en EC2", lines(e1.questionsEC2).join(" · ")] : ["À creuser en EC3", lines(s.questions).join(" · ")]);
-  if(k === "ec2") rows.splice(3, 0, ["Palier", s.palier], ["Diamants creux", s.creux]);
-  return '<dl class="carteprev" style="display:grid; grid-template-columns:minmax(0,13em) minmax(0,1fr); gap:6px 14px">' + rows.map(function(r){ return '<dt>' + E(r[0]) + '</dt><dd>' + E(r[1] || "Non renseigné") + '</dd>'; }).join("") + '</dl>';
+  var rows = [[L("percu"), e1.percu], [L("match"), m.partielle ? L("partielle") : (m.dominante && m.seconde ? Y.value(m.dominante).label + " › " + Y.value(m.seconde).label : "")],
+    [L("employabilite"), crit.map(function(x){ return x.critere.label + " : " + x.statut.label; }).join(" · ")], [L("vigilance"), e1.vigilance]];
+  rows.push(k === "ec1" ? [L("creuserEC2"), lines(e1.questionsEC2).join(" · ")] : [L("creuserEC3"), lines(s.questions).join(" · ")]);
+  if(k === "ec2") rows.splice(3, 0, [L("palier"), s.palier], [L("creux"), s.creux]);
+  return dlHTML(rows);
+}
+function dlHTML(rows){ return '<dl class="carteprev recap">' + rows.map(function(r){ return '<dt>' + E(r[0]) + '</dt><dd' + (r[1] ? '' : ' class="vide"') + '>' + E(r[1] || t("bilan.nonRenseigne")) + '</dd>'; }).join("") + '</dl>'; }
+function carteLiens(c, opts){
+  var id = encodeURIComponent(c.id), o = opts || {};
+  return '<div class="actions">' + (o.exporter ? '<a class="btn' + (o.exporter === "primary" ? ' primary' : ' quiet') + '" href="carte.html?id=' + id + '&amp;imprimer=1">' + E(t(o.exporterLabel || "bilan.exporterCarte")) + '</a>' : '')
+    + '<a class="btn quiet" href="carte.html?id=' + id + '">' + E(t("bilan.ouvrirCarte")) + '</a></div>';
 }
 function bilanHTML(c, k){
   var b = c.bilans[k] || {};
-  return '<div class="onepager"><h3>Call de 15 min de débrief avec la personne suivante, ou en asynchrone</h3>'
-    + '<fieldset class="plain"><legend class="sr-only">Forme du débrief</legend><div class="radios-inline"><label><input type="radio" name="bl-mode" value="appel"' + (b.mode !== "asynchrone" ? ' checked' : '') + '>En appel, 15 min</label><label><input type="radio" name="bl-mode" value="asynchrone"' + (b.mode === "asynchrone" ? ' checked' : '') + '>En asynchrone</label></div></fieldset></div>'
-    + '<div class="box"><h3>La carte d\'identité, en bref</h3>' + recap(c, k) + '<div class="actions"><a class="btn quiet" href="carte.html?id=' + encodeURIComponent(c.id) + '">Ouvrir la carte d\'identité</a>'
-    + (k === "ec2" ? '<a class="btn quiet" href="carte.html?id=' + encodeURIComponent(c.id) + '&amp;imprimer=1">Imprimer pour l\'EC3</a>' : '') + '</div></div>';
+  return '<div class="onepager"><h3>' + E(t("bilan.rappel")) + '</h3>'
+    + '<fieldset class="plain"><legend class="sr-only">' + E(t("bilan.forme")) + '</legend><div class="radios-inline"><label><input type="radio" name="bl-mode" value="appel"' + (b.mode !== "asynchrone" ? ' checked' : '') + '>' + E(t("bilan.enAppel")) + '</label><label><input type="radio" name="bl-mode" value="asynchrone"' + (b.mode === "asynchrone" ? ' checked' : '') + '>' + E(t("bilan.enAsync")) + '</label></div></fieldset></div>'
+    + '<div class="box"><h3>' + E(t("bilan.carteBref")) + '</h3>' + recap(c, k) + carteLiens(c, k === "ec2" ? {exporter: "quiet", exporterLabel: "bilan.imprimerEC3"} : null) + '</div>';
 }
 RENDER["bilan-ec1"] = function(c){ return bilanHTML(c, "ec1"); };
 RENDER["bilan-ec2"] = function(c){ return bilanHTML(c, "ec2"); };
 /* EC3 : la carte complète, un bloc-notes, une seule action */
 RENDER.ec3 = function(c){
   var x = c.ec3 || {}, q = lines(c.ec2 && c.ec2.suspens && c.ec2.suspens.questions); if(!q.length) q = lines(c.ec1 && c.ec1.questionsEC2);
-  return linksHTML(PC.etape("ec3")) + '<div class="ask3"><h3>À creuser en EC3</h3>' + (q.length ? '<ol>' + q.map(function(s){ return '<li>' + E(s) + '</li>'; }).join("") + '</ol>' : '<p>Aucune question ouverte : l\'EC3 confirme la carte avec la personne.</p>') + '</div>'
-    + '<div class="box"><h3>La carte complète</h3>' + recap(c, "ec2") + '<div class="actions"><a class="btn quiet" href="carte.html?id=' + encodeURIComponent(c.id) + '">Ouvrir la carte d\'identité</a><a class="btn quiet" href="carte.html?id=' + encodeURIComponent(c.id) + '&amp;imprimer=1">Exporter la carte (PDF)</a></div></div>'
-    + '<div class="box"><h3>Bloc-notes de l\'EC3</h3><div class="grid-fields"><div class="field"><label for="e3-le">Date de l\'EC3</label><input type="date" id="e3-le" data-f="ec3.le" value="' + E(x.le || "") + '"></div>'
-    + '<div class="field"><label for="e3-par">Mené par</label><input type="text" id="e3-par" data-f="ec3.par" value="' + E(x.par || "") + '" autocomplete="off"></div></div>'
-    + '<div class="field"><label for="e3-notes">Notes</label><textarea id="e3-notes" data-f="ec3.notes" rows="6">' + E(x.notes || "") + '</textarea></div><span class="saved" id="saved" aria-live="polite"></span></div>';
+  return linksHTML(PC.etape("ec3")) + '<div class="ask3"><h3>' + E(t("ec3.aCreuser")) + '</h3>' + (q.length ? '<ol>' + q.map(function(s){ return '<li>' + E(s) + '</li>'; }).join("") + '</ol>' : '<p>' + E(t("ec3.aucuneQuestion")) + '</p>') + '</div>'
+    + '<div class="box"><h3>' + E(t("ec3.carteComplete")) + '</h3>' + recap(c, "ec2") + carteLiens(c, {exporter: "quiet"}) + '</div>'
+    + '<div class="box"><h3>' + E(t("ec3.blocNotes")) + '</h3><div class="grid-fields"><div class="field"><label for="e3-le">' + E(t("ec3.date")) + '</label><input type="date" id="e3-le" data-f="ec3.le" value="' + E(x.le || "") + '"></div>'
+    + '<div class="field"><label for="e3-par">' + E(t("ec3.par")) + '</label><input type="text" id="e3-par" data-f="ec3.par" value="' + E(x.par || "") + '" autocomplete="off"></div></div>'
+    + '<div class="field"><label for="e3-notes">' + E(t("ec3.notes")) + '</label><textarea id="e3-notes" data-f="ec3.notes" rows="6" placeholder="' + E(t("ec3.notesPlaceholder")) + '">' + E(x.notes || "") + '</textarea></div><span class="saved" id="saved" aria-live="polite"></span></div>';
 };
 /* Décision : quatre issues explicites, un commentaire court */
 RENDER.decision = function(c, ro){
   var d = c.decision || {}, s = (c.ec2 && c.ec2.suspens) || {};
   var h = linksHTML(PC.etape("decision")) + '<div class="onepager"><h3>' + E(t("decision.appel")) + '</h3><p>' + E(t("decision.appelTexte")) + '</p><label class="check"><input type="checkbox" id="dec-call"' + (d.appelFaitLe ? ' checked' : '') + '>' + E(t("decision.appelFait")) + '</label></div>'
-    + '<div class="box"><h3>' + E(t("decision.pourDecider")) + '</h3><dl class="carteprev" style="display:grid; grid-template-columns:minmax(0,13em) minmax(0,1fr); gap:6px 14px"><dt>' + E(t("decision.palier")) + '</dt><dd>' + E(s.palier || "Non renseigné") + '</dd><dt>' + E(t("decision.conditions")) + '</dt><dd>' + E(s.conditions || "Non renseigné") + '</dd><dt>' + E(t("decision.notesEC3")) + '</dt><dd style="white-space:pre-line">' + E((c.ec3 && c.ec3.notes) || "Aucune note") + '</dd></dl></div>';
+    + '<div class="box"><h3>' + E(t("decision.pourDecider")) + '</h3><dl class="carteprev recap"><dt>' + E(t("decision.palier")) + '</dt><dd>' + E(s.palier || t("bilan.nonRenseigne")) + '</dd><dt>' + E(t("decision.conditions")) + '</dt><dd>' + E(s.conditions || t("bilan.nonRenseigne")) + '</dd><dt>' + E(t("decision.notesEC3")) + '</dt><dd style="white-space:pre-line">' + E((c.ec3 && c.ec3.notes) || "Aucune note") + '</dd></dl></div>';
   if(ro){ return h + (d.choix ? '<p class="readonly">' + E(t("decision.prise", {choix: t("decision.choix." + d.choix + ".label"), quand: UI.fmtWhen(d.le), par: d.par || "?"})) + (d.commentaire ? ' « ' + E(d.commentaire) + ' »' : '') + '</p>' : ''); }
   return h + '<section class="box" aria-labelledby="dec-t"><h3 id="dec-t">' + E(t("decision.titre")) + '</h3><fieldset class="plain"><legend class="sr-only">' + E(t("decision.titre")) + '</legend><div class="chips-check" style="display:grid; gap:8px">'
     + S.DECISIONS.map(function(k){ return '<label style="border-radius:12px; align-items:flex-start; padding:10px 14px"><input type="radio" name="dec" value="' + k + '" style="margin-top:3px"><span><b>' + E(t("decision.choix." + k + ".label")) + '</b><br><span class="hint">' + E(t("decision.choix." + k + ".aide")) + '</span></span></label>'; }).join("")
@@ -287,7 +292,7 @@ function decisionRecap(c){ var d = c.decision || {}; return d.choix ? '<p class=
 RENDER.proposition = function(c){ return decisionRecap(c) + linksHTML(PC.etape("proposition")); };
 RENDER["go-mission"] = function(c){ return decisionRecap(c); };
 RENDER.onboarding = function(c){
-  return '<div class="onepager"><h3>La carte d\'identité, point de départ avec sa Nanny</h3><div class="actions"><a class="btn primary" href="carte.html?id=' + encodeURIComponent(c.id) + '&amp;imprimer=1">Exporter la carte (PDF)</a><a class="btn" href="carte.html?id=' + encodeURIComponent(c.id) + '">Ouvrir la carte d\'identité</a></div></div>';
+  return '<div class="onepager"><h3>' + E(t("onboarding.carte")) + '</h3>' + carteLiens(c, {exporter: "primary"}) + '</div>';
 };
 
 /* ---------- Sorties ---------- */

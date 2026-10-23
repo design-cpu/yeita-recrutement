@@ -1,5 +1,7 @@
 # Base partagée Supabase · mise en place le jour du GO
 
+> **Obsolète (23 octobre 2026).** La piste Supabase est abandonnée : l'authentification (oauth2-proxy, SSO Google réservé aux @yeita.fr) et le stockage (SQLite, sur le serveur OVH de Yeita) sont pris en charge par Sacha, sur sa branche. Ce fichier est gardé pour mémoire ; ne pas le brancher. Le modèle de données qui fait foi : `docs/backend/MODELE.md`.
+
 **État : préparé, non branché.** Aucune page ne charge ces fichiers. Rien ne part d'un navigateur tant que les étapes ci-dessous n'ont pas été faites. Le choix de la base et les durées de conservation se décident avec Mattéo : voir `STORAGE.md`, à la racine du dépôt.
 
 ## Ce qui est prêt

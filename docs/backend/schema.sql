@@ -1,3 +1,4 @@
+-- OBSOLÈTE (23 octobre 2026) : piste Supabase abandonnée au profit de SQLite (Sacha). Gardé pour mémoire. Modèle qui fait foi : docs/backend/MODELE.md.
 -- Module Candidatures Yeita · schéma Supabase (Postgres)
 -- PRÉPARÉ, NON DÉPLOYÉ. À exécuter une fois, dans l'éditeur SQL du projet, le jour du GO.
 -- Voir docs/backend/README.md et STORAGE.md.

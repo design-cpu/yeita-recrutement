@@ -1,3 +1,5 @@
+/* OBSOLÈTE (23 octobre 2026) : piste Supabase abandonnée. Authentification (oauth2-proxy, SSO Google @yeita.fr) et stockage (SQLite, serveur OVH)
+   sont pris en charge par Sacha. Fichier gardé pour mémoire, à ne pas brancher. Modèle qui fait foi : docs/backend/MODELE.md. */
 /* Branchement de la base partagée (Supabase). PRÉPARÉ, NON CHARGÉ : aucune page n'inclut ce fichier.
    Le jour du GO, chaque page qui lit des candidatures charge, dans cet ordre, après assets/dossier.js (et store.js) :
      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>

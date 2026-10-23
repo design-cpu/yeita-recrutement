@@ -1,3 +1,4 @@
+// OBSOLÈTE (23 octobre 2026) : piste Supabase abandonnée au profit de SQLite (Sacha). Gardé pour mémoire. Modèle qui fait foi : docs/backend/MODELE.md.
 // Vérifie docs/backend/schema.sql sur un Postgres embarqué, sans compte Supabase.
 // Lancer : npm i @electric-sql/pglite@0.2.17 (dans un dossier de travail), puis node docs/backend/test-schema.mjs docs/backend/schema.sql
 import { PGlite } from "@electric-sql/pglite";

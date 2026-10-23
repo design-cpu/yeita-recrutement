@@ -1,5 +1,7 @@
 # Où ranger les candidatures
 
+> **Obsolète (23 octobre 2026).** La piste Supabase est abandonnée : l'authentification (oauth2-proxy, SSO Google réservé aux @yeita.fr) et le stockage (SQLite, sur le serveur OVH de Yeita) sont pris en charge par Sacha, sur sa branche. Ce fichier est gardé pour mémoire ; ne pas le brancher. Le modèle de données qui fait foi : `docs/backend/MODELE.md`.
+
 Ce document compare quatre façons de partager les candidatures entre Peter, Thélo, Andrea et le reste de l'équipe. Il sert de base à la réunion de jeudi avec Mattéo. **Aucune option n'est branchée.** Jusqu'à la décision, le module Candidatures ne contient que des données fictives.
 
 ## Aujourd'hui

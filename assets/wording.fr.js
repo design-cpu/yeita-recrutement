@@ -239,6 +239,40 @@ window.WORDING = {
     seDecideAuBilan: "Le non se décide au bilan."
   },
 
+  /* ---------- Bilans EC1 et EC2 (candidat.html?etape=bilan-ec1, bilan-ec2) ---------- */
+  bilan: {
+    rappel: "Call de 15 min de débrief avec la personne suivante, ou en asynchrone",
+    forme: "Forme du débrief",
+    enAppel: "En appel, 15 min",
+    enAsync: "En asynchrone",
+    carteBref: "La carte d'identité, en bref",
+    lignes: {
+      percu: "Ce qu'on a perçu", match: "Yeita Match", partielle: "Lecture partielle", employabilite: "Employabilité",
+      vigilance: "Signaux de vigilance", creuserEC2: "À creuser en EC2", creuserEC3: "À creuser en EC3", palier: "Palier", creux: "Diamants creux"
+    },
+    nonRenseigne: "Non renseigné",
+    ouvrirCarte: "Ouvrir la carte d'identité",
+    imprimerEC3: "Imprimer pour l'EC3",
+    exporterCarte: "Exporter la carte (PDF)"
+  },
+
+  /* ---------- EC3 (candidat.html?etape=ec3) ---------- */
+  ec3: {
+    aCreuser: "À creuser en EC3",
+    aucuneQuestion: "Aucune question ouverte : l'EC3 confirme la carte avec la personne.",
+    carteComplete: "La carte complète",
+    blocNotes: "Bloc-notes de l'EC3",
+    date: "Date de l'EC3",
+    par: "Mené par",
+    notes: "Notes",
+    notesPlaceholder: "Ce qui se dit, ce qui se corrige sur la carte, ce qui reste à confirmer."
+  },
+
+  /* ---------- Onboarding (candidat.html?etape=onboarding) ---------- */
+  onboarding: {
+    carte: "La carte d'identité, point de départ avec sa Nanny"
+  },
+
   /* ---------- Le one-pager, à la fin de l'appel ---------- */
   onePager: {
     titre: "Le one-pager",
