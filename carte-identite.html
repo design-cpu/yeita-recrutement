@@ -565,7 +565,7 @@ function showFrom(fc){
   var fp = document.getElementById("frompar");
   if(!fc || !cur || cur.id !== fc.id){ fp.hidden = true; return; }
   fp.hidden = false;
-  fp.innerHTML = '<span>Carte de la candidature de <b>'+E(cur.candidat.nom)+'</b>.</span><a href="candidatures.html#c-'+E(cur.id)+'">Retour au parcours</a>'
+  fp.innerHTML = '<span>Carte de la candidature de <b>'+E(cur.candidat.nom)+'</b>.</span><a href="candidatures/candidat.html?id='+encodeURIComponent(cur.id)+'">Retour au parcours</a>'
     + (fc.print ? (YEITA.inFrame() ? '<span>L\'export PDF passe par l\'impression, bloquée dans cet aperçu : ouvre la page depuis le site du recrutement.</span>' : '<span>Dans la fenêtre d\'impression, choisis « Enregistrer au format PDF ».</span>') : '');
   if(fc.print && !YEITA.inFrame()) setTimeout(function(){ window.print(); }, 400);
 }

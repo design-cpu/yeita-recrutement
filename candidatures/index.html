@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Candidatures Yeita</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../assets/yeita.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- Espace Candidatures : le tableau. Les textes viennent de assets/wording.fr.js (attributs data-t). -->
+<div id="live" aria-live="polite"></div>
+<div class="wrap wide">
+  <header class="topbar">
+    <a href="../index.html#guide" aria-label="Retour au hub Expérience collaborateur" style="padding:0" id="logo"></a>
+    <span class="where" data-t="commun.espace">Candidatures</span>
+    <nav aria-label="Raccourcis"><a href="../index.html#guide" data-t="commun.guide">Guide du recruteur</a></nav>
+  </header>
+  <div class="fict" role="note"><span data-t="commun.fictif"></span><span class="who" id="qui"></span></div>
+  <p class="warn-line" id="volatile" hidden data-t="commun.volatile"></p>
+  <p class="sr-only" id="aide-lien" data-t="tableau.lienAide"></p>
+
+  <main>
+    <section id="board" aria-labelledby="b-t">
+      <div class="bhead">
+        <div><h1 id="b-t" data-t="tableau.titre">Candidatures</h1><p class="bsum" id="bsum"></p></div>
+        <button type="button" class="btn primary" id="add-open" data-t="tableau.ajouter">Ajouter un candidat</button>
+      </div>
+
+      <section class="panel addp" id="add" hidden aria-labelledby="add-t">
+        <h2 id="add-t" data-t="ajout.titre">Ajouter un candidat</h2>
+        <form id="add-form" novalidate>
+          <div class="grid-fields">
+            <div class="field"><label for="a-personne" data-t="ajout.personne">Nom Prénom</label><input type="text" id="a-personne" autocomplete="off" required aria-describedby="a-personne-h"><span class="hint" id="a-personne-h" data-t="ajout.personneAide"></span></div>
+            <div class="field"><label for="a-job" data-t="ajout.job">Job</label><select id="a-job"></select></div>
+            <div class="field"><label for="a-email" data-t="ajout.email">E-mail</label><input type="text" id="a-email" inputmode="email" autocomplete="off"></div>
+            <div class="field"><label for="a-tel" data-t="ajout.telephone">Téléphone</label><input type="text" id="a-tel" inputmode="tel" autocomplete="off"></div>
+          </div>
+          <fieldset class="plain" style="margin-top:12px; display:grid; gap:8px">
+            <legend style="font-weight:650; font-size:14px; color:var(--ink-2); margin-bottom:6px" data-t="ajout.provenance">Provenance</legend>
+            <div class="chips-check" id="a-prov"></div>
+          </fieldset>
+          <details class="other" id="a-plus" style="margin-top:12px">
+            <summary data-t="ajout.plus">Plus d'infos (facultatif)</summary>
+            <div class="in">
+              <div class="grid-fields">
+                <div class="field"><label for="a-xp" data-t="ajout.xp">Expérience (années)</label><input type="number" id="a-xp" min="0" max="59" step="0.5" inputmode="decimal"></div>
+                <div class="field"><label for="a-dispo" data-t="ajout.dispo">Disponibilité</label><span id="a-dispo-w"></span></div>
+                <div class="field"><label for="a-ddispo" data-t="ajout.dateDispo">Date de disponibilité</label><input type="date" id="a-ddispo"></div>
+                <div class="field"><label for="a-ville" data-t="ajout.ville">Ville</label><input type="text" id="a-ville" autocomplete="off"></div>
+                <div class="field"><label for="a-linkedin" data-t="ajout.linkedin">LinkedIn</label><input type="url" id="a-linkedin" autocomplete="off" placeholder="https://"></div>
+                <div class="field"><label for="a-portfolio" data-t="ajout.portfolio">Portfolio</label><input type="url" id="a-portfolio" autocomplete="off" placeholder="https://"></div>
+                <div class="field"><label for="a-cv" data-t="ajout.cv">CV (lien)</label><input type="url" id="a-cv" autocomplete="off" placeholder="https://" aria-describedby="a-cv-h"><span class="hint" id="a-cv-h" data-t="ajout.cvAide"></span></div>
+              </div>
+              <div class="field" style="margin-top:10px"><label for="a-rec" data-t="ajout.recruteurs">Recruteurs</label><span id="a-rec-w"></span><span class="hint" data-t="recruteurs.aide"></span></div>
+            </div>
+          </details>
+          <p class="form-err" id="a-err" role="alert" hidden></p>
+          <div class="add-actions">
+            <button type="submit" class="btn primary" value="ouvrir" data-t="ajout.ouvrirAppel">Ouvrir l'appel de découverte</button>
+            <button type="submit" class="btn" value="liste" data-t="ajout.enregistrer">Enregistrer et revenir à la liste</button>
+            <button type="button" class="btn quiet" id="add-cancel" data-t="commun.annuler">Annuler</button>
+          </div>
+        </form>
+      </section>
+
+      <div class="btools">
+        <div class="seg" role="radiogroup" aria-label="Affichage" id="mode">
+          <button type="button" role="radio" data-m="kanban" aria-checked="true" data-t="tableau.kanban">Kanban</button>
+          <button type="button" role="radio" data-m="liste" aria-checked="false" data-t="tableau.liste">Liste</button>
+        </div>
+        <div class="field search"><label for="q" class="sr-only" data-t="tableau.chercher"></label><input type="search" id="q" autocomplete="off" data-t-placeholder="tableau.chercher"></div>
+        <button type="button" class="btn small quiet" id="more" aria-pressed="false"></button>
+        <details class="other save-zone" id="save">
+          <summary data-t="tableau.sauvegarde.titre">Sauvegarde et exemples</summary>
+          <div class="in">
+            <p class="note" id="lastexp"></p>
+            <div class="save-row">
+              <button type="button" class="btn small" id="exp" data-t="tableau.sauvegarde.exporter"></button>
+              <label class="btn small quiet" for="imp-file" style="cursor:pointer" data-t="tableau.sauvegarde.importerFichier"></label><input type="file" id="imp-file" accept="application/json,.json" class="sr-only">
+              <span class="radios-inline"><label><input type="radio" name="imp-mode" value="fusion" checked><span data-t="tableau.sauvegarde.fusionner"></span></label><label><input type="radio" name="imp-mode" value="remplacement"><span data-t="tableau.sauvegarde.remplacer"></span></label></span>
+            </div>
+            <div class="field" id="exp-w" hidden><label for="exp-text" data-t="tableau.sauvegarde.copieExport"></label><textarea id="exp-text" readonly spellcheck="false"></textarea><div class="actions"><button type="button" class="btn small" id="exp-copy" data-t="tableau.sauvegarde.copier"></button></div></div>
+            <div class="field"><label for="imp-text" data-t="tableau.sauvegarde.coller"></label><textarea id="imp-text" spellcheck="false" placeholder='{"schema":"yeita-candidatures", …}'></textarea><div class="actions"><button type="button" class="btn small" id="imp-go" data-t="tableau.sauvegarde.importerTexte"></button></div></div>
+            <p class="imp-msg" id="imp-msg" aria-live="polite"></p>
+            <div class="save-row"><button type="button" class="btn small quiet" id="demo-load" data-t="tableau.sauvegarde.exemples"></button><button type="button" class="btn small quiet" id="demo-clear" data-t="tableau.sauvegarde.retirerExemples"></button></div>
+          </div>
+        </details>
+      </div>
+
+      <div class="empty" id="empty" hidden>
+        <h2 data-t="tableau.vide.titre"></h2>
+        <p data-t="tableau.vide.texte"></p>
+        <div class="actions"><button type="button" class="btn primary" id="empty-add" data-t="tableau.ajouter"></button><button type="button" class="btn" id="empty-demo" data-t="tableau.vide.exemples"></button></div>
+      </div>
+      <div class="kanban" id="kanban" aria-label="Candidats par étape"></div>
+      <div class="list" id="list" hidden>
+        <div class="tablewrap"><table>
+          <caption class="sr-only" id="list-cap"></caption>
+          <thead><tr id="list-head"></tr></thead>
+          <tbody id="rows"></tbody>
+        </table></div>
+      </div>
+    </section>
+  </main>
+  <footer class="foot"><span>Espace Candidatures, amorce d'ATS. Modèle de données : docs/backend/MODELE.md. Textes : assets/wording.fr.js.</span></footer>
+</div>
+
+<script src="../assets/yeita.js"></script>
+<script src="../assets/config.js"></script>
+<script src="../assets/wording.fr.js"></script>
+<script src="../assets/data-yeita-match.js"></script>
+<script src="../assets/dossier.js"></script>
+<script src="../assets/qui.js"></script>
+<script src="../assets/store.js"></script>
+<script src="../assets/data-parcours.js"></script>
+<script src="ui.js"></script>
+<script>
+(function(){
+"use strict";
+var S = STORE, D = DOSSIER, E = YEITA.esc, t = UI.t;
+var KEY = "yeita-candidatures-ui";
+var ui = Object.assign({mode: (window.innerWidth < 760 ? "liste" : "kanban"), plus: false, tri: {col: "debut", dir: "desc"}}, YEITA.store.get(KEY, {}));
+var all = [], q = "";
+function saveUI(){ YEITA.store.set(KEY, ui); }
+function say(m){ YEITA.flash(null, m); }
+
+/* Textes de la page, depuis assets/wording.fr.js */
+document.querySelectorAll("[data-t]").forEach(function(el){ el.textContent = t(el.dataset.t); });
+document.querySelectorAll("[data-t-placeholder]").forEach(function(el){ el.placeholder = t(el.dataset.tPlaceholder); });
+document.getElementById("logo").innerHTML = YEITA.logo(26);
+document.getElementById("mode").setAttribute("aria-label", t("tableau.affichage"));
+var qui = QUI.monter(document.getElementById("qui"));
+function needMe(){ if(S.me()) return false; say(t("qui.requis")); qui.focus(); return true; }
+
+/* ---------- Changer l'État depuis la carte ---------- */
+UI.init({onEtat: function(id, etat){
+  if(needMe()) return;
+  S.setEtat(id, etat, S.me()).then(function(c){ say(c.candidat.nom + " · " + UI.etatLabel(etat)); return load(); }).then(function(){
+    var b = document.querySelector('[data-etat-for="' + id + '"]'); if(b) b.focus();
+  });
+}});
+
+/* ---------- Tableau ---------- */
+function visible(c){ return ui.plus || S.COLONNES_MASQUEES.indexOf(c.parcours.etape) < 0; }
+function match(c){ return !q || D.norm(c.candidat.nom + " " + c.identite.email).indexOf(D.norm(q)) >= 0; }
+function cardHTML(c){
+  var i = c.identite;
+  return '<article class="kc" data-id="' + E(c.id) + '" draggable="true">'
+    + '<div class="khead"><h3><a href="' + E(UI.urlCandidat(c.id)) + '">' + E(c.candidat.nom) + '</a></h3>'
+    + '<button type="button" class="iconbtn" data-copy="' + E(UI.urlCandidat(c.id)) + '" aria-label="' + E(t("tableau.copierLien") + " : " + c.candidat.nom) + '" aria-describedby="aide-lien" title="' + E(t("tableau.copierLien")) + '">' + YEITA.icon("Link", 16, 2.2) + '</button></div>'
+    + '<p class="kline"><b>' + E(UI.jobXp(c)) + '</b>' + (c.meta.demo ? '<span class="chip demo">' + E(t("commun.exemple")) + '</span>' : '') + '</p>'
+    + '<p class="kline">' + E(i.disponibilite || t("tableau.dispoVide")) + '</p>'
+    + '<div class="kfoot">' + UI.etatHTML(c, true) + UI.recruteursHTML(i.recruteurs) + '</div>'
+    + '</article>';
+}
+var COLS = [
+  {k: "candidat", v: function(c){ return D.norm(c.candidat.nom); }},
+  {k: "job", v: function(c){ return c.identite.job || ""; }},
+  {k: "xp", v: function(c){ return c.identite.xp === null ? -1 : Number(c.identite.xp); }},
+  {k: "dispo", v: function(c){ return c.identite.disponibilite || ""; }},
+  {k: "etat", v: function(c){ return D.ETATS.indexOf(c.etat); }},
+  {k: "recruteurs", v: function(c){ return (c.identite.recruteurs || []).join(", "); }},
+  {k: "etape", v: function(c){ var all2 = S.ETAPES.concat([S.VIVIER, S.NON_RETENU]); return all2.indexOf(c.parcours.etape); }},
+  {k: "debut", v: function(c){ return c.identite.dateDebutProcess || ""; }}
+];
+function sortList(list){
+  var col = COLS.filter(function(x){ return x.k === ui.tri.col; })[0] || COLS[7], dir = ui.tri.dir === "asc" ? 1 : -1;
+  return list.slice().sort(function(a, b){ var x = col.v(a), y = col.v(b); return (x > y ? 1 : x < y ? -1 : 0) * dir; });
+}
+function renderBoard(){
+  var shown = all.filter(visible).filter(match);
+  var actifs = all.filter(function(c){ return [S.NON_RETENU, S.VIVIER, "onboarding"].indexOf(c.parcours.etape) < 0; });
+  var retours = actifs.filter(function(c){ return c.etat === "retour-a-faire"; }).length;
+  document.getElementById("bsum").textContent = all.length ? t("tableau.resume", {enCours: actifs.length}) + (retours ? ", " + t(retours > 1 ? "tableau.resumeRetours" : "tableau.resumeRetour", {n: retours}) : "") + "." : "";
+  var empty = !all.length;
+  document.getElementById("empty").hidden = !empty;
+  document.getElementById("kanban").hidden = empty || ui.mode !== "kanban";
+  document.getElementById("list").hidden = empty || ui.mode !== "liste";
+  var more = document.getElementById("more"), nHidden = all.filter(function(c){ return S.COLONNES_MASQUEES.indexOf(c.parcours.etape) >= 0; }).length;
+  more.hidden = empty; more.setAttribute("aria-pressed", String(!!ui.plus));
+  more.textContent = ui.plus ? t("tableau.masquer") : t("tableau.afficherPlus") + " · " + t("tableau.afficherPlusDetail") + " (" + nHidden + ")";
+  document.querySelectorAll("#mode [role=radio]").forEach(function(b){ var on = b.dataset.m === ui.mode; b.setAttribute("aria-checked", String(on)); b.tabIndex = on ? 0 : -1; });
+  if(empty) return;
+  var cols = S.COLONNES.concat(ui.plus ? S.COLONNES_MASQUEES : []);
+  document.getElementById("kanban").innerHTML = cols.map(function(id){
+    var items = shown.filter(function(c){ return c.parcours.etape === id; }), hid = S.COLONNES_MASQUEES.indexOf(id) >= 0;
+    return '<section class="kcol' + (hid ? ' hidden-col' : '') + '" aria-labelledby="col-' + id + '"><h2 id="col-' + id + '">' + E(UI.etapeLabel(id, true)) + '<span class="n">' + items.length + '</span></h2>'
+      + (items.length ? items.map(cardHTML).join("") : '<p class="kempty">' + E(t("tableau.colonneVide")) + '</p>') + '</section>';
+  }).join("");
+  var C = t("tableau.colonnes.candidat");
+  document.getElementById("list-head").innerHTML = COLS.map(function(col){
+    var on = ui.tri.col === col.k, lab = t("tableau.colonnes." + col.k);
+    return '<th scope="col"' + (on ? ' aria-sort="' + (ui.tri.dir === "asc" ? "ascending" : "descending") + '"' : '') + '><button type="button" data-sort="' + col.k + '" aria-label="' + E(t("tableau.trierPar", {col: lab})) + '">' + E(lab) + '</button></th>';
+  }).join("") + '<th scope="col"><span class="sr-only">' + E(t("tableau.colonnes.lien")) + '</span></th>';
+  document.getElementById("list-cap").textContent = t("tableau.titre");
+  document.getElementById("rows").innerHTML = shown.length ? sortList(shown).map(function(c){
+    var i = c.identite;
+    return '<tr><td><a class="nm" href="' + E(UI.urlCandidat(c.id)) + '">' + E(c.candidat.nom) + '</a>' + (i.email ? '<span class="em">' + E(i.email) + '</span>' : '') + '</td>'
+      + '<td data-l="' + E(t("tableau.colonnes.job")) + '">' + E(i.job || "") + '</td>'
+      + '<td data-l="' + E(t("tableau.colonnes.xp")) + '">' + E(i.xp === null ? "" : String(i.xp).replace(".", ",")) + '</td>'
+      + '<td data-l="' + E(t("tableau.colonnes.dispo")) + '">' + E(i.disponibilite || "") + '</td>'
+      + '<td data-l="' + E(t("tableau.colonnes.etat")) + '">' + UI.etatHTML(c, true) + '</td>'
+      + '<td data-l="' + E(t("tableau.colonnes.recruteurs")) + '">' + UI.recruteursHTML(i.recruteurs) + '</td>'
+      + '<td data-l="' + E(t("tableau.colonnes.etape")) + '"><span class="chip step">' + E(UI.etapeLabel(c.parcours.etape, true)) + '</span></td>'
+      + '<td class="when" data-l="' + E(t("tableau.colonnes.debut")) + '">' + E(UI.fmtDay(i.dateDebutProcess)) + '</td>'
+      + '<td><button type="button" class="iconbtn" data-copy="' + E(UI.urlCandidat(c.id)) + '" aria-label="' + E(t("tableau.copierLien") + " : " + c.candidat.nom) + '" aria-describedby="aide-lien">' + YEITA.icon("Link", 16, 2.2) + '</button></td></tr>';
+  }).join("") : '<tr><td colspan="9">«&nbsp;' + E(q) + '&nbsp;» : aucun candidat.</td></tr>';
+  var le = S.lastExport();
+  document.getElementById("lastexp").textContent = le ? t("tableau.sauvegarde.dernierExport", {quand: UI.fmtWhen(le)}) : t("tableau.sauvegarde.jamais");
+}
+function load(){
+  document.getElementById("volatile").hidden = !S.volatile();
+  return S.listCandidates().then(function(list){ all = list; renderBoard(); });
+}
+
+/* Une carte ne se glisse pas : elle avance par les actions de son étape. On l'explique au premier essai. */
+document.getElementById("kanban").addEventListener("dragstart", function(e){
+  if(!e.target.closest || !e.target.closest(".kc")) return;
+  e.preventDefault(); UI.floatTip(t("tableau.glisser"), e.clientX, e.clientY);
+});
+
+/* ---------- Ajouter un candidat ---------- */
+document.getElementById("a-job").innerHTML = D.JOBS.map(function(j){ return '<option' + (j === "PM / PO" ? ' selected' : '') + '>' + E(j) + '</option>'; }).join("");
+document.getElementById("a-prov").innerHTML = D.PROVENANCES.map(function(p){ return '<label><input type="checkbox" name="a-prov" value="' + E(p) + '">' + E(p) + '</label>'; }).join("");
+function resetAdd(){
+  document.getElementById("add-form").reset();
+  document.getElementById("a-dispo-w").innerHTML = UI.dispoHTML("a-dispo", "");
+  document.getElementById("a-rec-w").innerHTML = UI.tagsHTML("a-rec", S.me() ? [S.me()] : []);
+  document.getElementById("a-err").hidden = true;
+  document.getElementById("a-plus").open = false;
+}
+function openAdd(){ resetAdd(); document.getElementById("add").hidden = false; document.getElementById("a-personne").focus(); }
+function closeAdd(){ document.getElementById("add").hidden = true; document.getElementById("add-open").focus(); }
+document.getElementById("add-form").addEventListener("input", function(e){ if(e.target.getAttribute("aria-invalid")){ e.target.removeAttribute("aria-invalid"); e.target.setAttribute("aria-describedby", e.target.id === "a-personne" ? "a-personne-h" : ""); } });
+document.getElementById("add-form").addEventListener("submit", function(e){
+  e.preventDefault();
+  if(needMe()) return;
+  var then = (e.submitter && e.submitter.value) || "ouvrir";
+  var g = function(id){ return document.getElementById(id).value.trim(); };
+  var box = document.querySelector('[data-tags="a-rec"]'), pending = box.querySelector("input").value;
+  if(pending.trim()) UI.tagsAdd(box, pending);
+  var fiche = {personne: g("a-personne"), job: g("a-job"), email: g("a-email"), telephone: g("a-tel"),
+    provenances: Array.prototype.map.call(document.querySelectorAll('input[name=a-prov]:checked'), function(x){ return x.value; }),
+    xp: g("a-xp"), disponibilite: g("a-dispo"), dateDisponibilite: g("a-ddispo"), adresse: g("a-ville"),
+    linkedin: g("a-linkedin"), portfolio: g("a-portfolio"), cv: g("a-cv"), recruteurs: UI.tagsValues(box)};
+  var err = document.getElementById("a-err");
+  S.createCandidate(fiche, S.me()).then(function(c){
+    if(then === "ouvrir") return S.startStep(c.id, S.me()).then(function(){ location.href = UI.urlCandidat(c.id, "appel"); });
+    document.getElementById("add").hidden = true; say(t("ajout.ajoute", {nom: c.candidat.nom}));
+    return load().then(function(){ var card = document.querySelector('.kc[data-id="' + c.id + '"]'); if(card){ card.classList.add("flash"); card.querySelector("a").focus(); setTimeout(function(){ card.classList.remove("flash"); }, 2500); } });
+  }).catch(function(x){
+    err.textContent = x.message; err.hidden = false;
+    var bad = document.getElementById(!g("a-personne") ? "a-personne" : (/e-mail/.test(x.message) ? "a-email" : (/années/.test(x.message) ? "a-xp" : "a-personne")));
+    if(bad.id === "a-xp") document.getElementById("a-plus").open = true;
+    bad.setAttribute("aria-invalid", "true"); bad.setAttribute("aria-describedby", "a-err"); bad.focus();
+  });
+});
+
+/* ---------- Sauvegarde : export, import, exemples ---------- */
+function download(text){
+  var name = "candidatures-yeita-" + new Date().toISOString().slice(0, 10) + ".json";
+  if(!YEITA.inFrame()){
+    try{ var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], {type: "application/json"})); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500); }catch(e){}
+  }
+  document.getElementById("exp-w").hidden = false; document.getElementById("exp-text").value = text;
+}
+function importText(text){
+  var mode = (document.querySelector('input[name=imp-mode]:checked') || {}).value || "fusion", msg = document.getElementById("imp-msg");
+  return S.importAll(text, mode).then(function(r){
+    msg.className = "imp-msg good"; msg.textContent = t("tableau.sauvegarde.importOk", {a: r.ajoutes, m: r.misAJour, i: r.ignores});
+    return load();
+  }).catch(function(e){ msg.className = "imp-msg bad"; msg.textContent = e.message; });
+}
+document.getElementById("imp-file").addEventListener("change", function(e){
+  var f = e.target.files && e.target.files[0]; if(!f) return;
+  var rd = new FileReader(); rd.onload = function(){ importText(String(rd.result)); e.target.value = ""; }; rd.readAsText(f);
+});
+
+/* ---------- Clics ---------- */
+document.addEventListener("click", function(e){
+  var tgt = e.target;
+  if(tgt.closest("#mode [role=radio]")){ ui.mode = tgt.closest("[role=radio]").dataset.m; saveUI(); renderBoard(); return; }
+  var so = tgt.closest("[data-sort]"); if(so){ var k = so.dataset.sort; ui.tri = {col: k, dir: ui.tri.col === k && ui.tri.dir === "asc" ? "desc" : "asc"}; saveUI(); renderBoard(); document.querySelector('[data-sort="' + k + '"]').focus(); return; }
+  if(tgt.id === "more"){ ui.plus = !ui.plus; saveUI(); renderBoard(); document.getElementById("more").focus(); return; }
+  if(tgt.id === "add-open" || tgt.id === "empty-add"){ openAdd(); return; }
+  if(tgt.id === "add-cancel"){ closeAdd(); return; }
+  if(tgt.id === "exp"){ S.exportAll().then(function(txt){ download(txt); renderBoard(); say(t("tableau.sauvegarde.exportPret")); }); return; }
+  if(tgt.id === "exp-copy"){ YEITA.copy(document.getElementById("exp-text").value, function(ok){ YEITA.flash(tgt, ok ? t("tableau.sauvegarde.exportCopie") : ""); }); return; }
+  if(tgt.id === "imp-go"){ var txt = document.getElementById("imp-text").value; if(!txt.trim()){ var m = document.getElementById("imp-msg"); m.className = "imp-msg bad"; m.textContent = t("tableau.sauvegarde.importVide"); return; } importText(txt).then(function(){ document.getElementById("imp-text").value = ""; }); return; }
+  if(tgt.id === "demo-load" || tgt.id === "empty-demo"){ S.clearDemo().then(S.loadDemo).then(load).then(function(){ say(t("tableau.sauvegarde.exemplesCharges")); }); return; }
+  if(tgt.id === "demo-clear"){ S.clearDemo().then(load).then(function(){ say(t("tableau.sauvegarde.exemplesRetires")); }); return; }
+});
+document.getElementById("mode").addEventListener("keydown", function(e){
+  if(["ArrowRight","ArrowLeft","ArrowDown","ArrowUp","Home","End"].indexOf(e.key) < 0) return;
+  e.preventDefault();
+  ui.mode = (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === "End") ? "liste" : "kanban";
+  saveUI(); renderBoard(); document.querySelector('#mode [data-m="' + ui.mode + '"]').focus();
+});
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape" && !document.getElementById("add").hidden && document.getElementById("add").contains(document.activeElement)) closeAdd();
+});
+document.getElementById("q").addEventListener("input", function(e){ q = e.target.value; renderBoard(); });
+window.addEventListener("storage", function(e){ if(e.key === D.KEY) load(); });
+QUI.onChange(function(){});
+load();
+})();
+</script>
+</body>
+</html>

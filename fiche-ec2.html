@@ -594,7 +594,7 @@ function renderCandBar(savedAt){
   var b = document.getElementById("candbar"); b.className = "candbar"; b.hidden = false;
   b.innerHTML = '<p>Fiche #2 de <b>'+E(cand.candidat.nom)+'</b>. Chaque modification s\'enregistre sur sa candidature et remplit sa carte d\'identité.'
     + (savedAt ? ' <span class="sv">Enregistré à '+savedAt.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"})+'.</span>' : '')+'</p>'
-    + '<a href="candidatures.html#c-'+E(cand.id)+'">Retour au parcours de '+E(cand.identite.prenom || cand.candidat.nom)+'</a>';
+    + '<a href="candidatures/candidat.html?id='+encodeURIComponent(cand.id)+'">Retour au parcours de '+E(cand.identite.prenom || cand.candidat.nom)+'</a>';
 }
 function load(){
   if(!cand){
@@ -812,7 +812,7 @@ if(candId){
   DOSSIER.get(candId).then(function(c){
     if(!c){
       var b = document.getElementById("candbar"); b.hidden = false; b.className = "candbar err";
-      b.innerHTML = '<p>Cette candidature n\'existe pas dans ce navigateur. La fiche s\'ouvre seule, sans être reliée.</p><a href="candidatures.html">Voir les candidatures</a>';
+      b.innerHTML = '<p>Cette candidature n\'existe pas dans ce navigateur. La fiche s\'ouvre seule, sans être reliée.</p><a href="candidatures/">Voir les candidatures</a>';
       boot(); return;
     }
     cand = c; applyCand(c);

@@ -1,16 +1,27 @@
-/* Le module Candidatures : la couche de stockage et la machine à états du parcours.
-   S'appuie sur assets/dossier.js (un candidat = un dossier v2) et ne parle jamais au stockage directement :
-   le jour où une base partagée est validée, on remplace l'adaptateur du dossier, pas ce fichier.
+/* Le module Candidatures : les règles du parcours, au-dessus du dossier candidat (assets/dossier.js, v3).
+   Ce fichier ne parle jamais au stockage directement : il passe par l'adaptateur du dossier (list, get, put, remove).
+   Le jour où SQLite est branché, on change l'adaptateur, pas ce fichier.
 
-   Données fictives uniquement tant que le stockage n'est pas validé (voir STORAGE.md). */
+   Règles :
+   - une carte avance seulement par les actions de son étape (jamais par glisser-déposer) ;
+   - l'État (À planifier, Planifié, Fait…) se change à la main ; en entrant dans une étape, il repart à « À planifier » ;
+   - « Non retenu » passe par l'appel de refus : motif obligatoire.
+
+   Données fictives uniquement tant que le déploiement sécurisé n'est pas en place. */
 (function(){
 "use strict";
 var D = window.DOSSIER;
-var ETAPES = D.ETAPES;                    /* appel → ec1 → passation-ec1 → ec2 → passation-ec2 → ec3 → decision → onboarding */
-var CLOS = "clos";
-/* Les seuls passages possibles. Tout le reste est refusé : on ne saute pas un débrief. */
-var SUIVANTE = {"appel":"ec1", "ec1":"passation-ec1", "passation-ec1":"ec2", "ec2":"passation-ec2", "passation-ec2":"ec3", "ec3":"decision", "decision":"onboarding"};
-var REFUS_DEPUIS = ["appel", "ec1", "ec2", "decision"];
+var ETAPES = D.ETAPES;           /* appel → ec1 → bilan-ec1 → ec2 → bilan-ec2 → ec3 → decision → proposition | go-mission → onboarding */
+var NON_RETENU = "non-retenu", VIVIER = "vivier";
+/* Les colonnes du tableau. Les trois dernières sont masquées par défaut (« Afficher plus »).
+   Emplacement prévu, non construit : une colonne « sourcing » avant l'appel (candidatures LinkedIn, WTTJ, cooptations). */
+var COLONNES = ["appel", "ec1", "bilan-ec1", "ec2", "bilan-ec2", "ec3", "decision", "proposition", "onboarding"];
+var COLONNES_MASQUEES = ["go-mission", VIVIER, NON_RETENU];
+/* Les seuls passages par l'action principale de l'étape. La décision et l'arrivée ont leurs propres actions. */
+var SUIVANTE = {"appel": "ec1", "ec1": "bilan-ec1", "bilan-ec1": "ec2", "ec2": "bilan-ec2", "bilan-ec2": "ec3", "ec3": "decision",
+  "proposition": "onboarding", "go-mission": "onboarding"};
+var REFUS_DEPUIS = ["appel", "bilan-ec1", "bilan-ec2", "decision", "proposition", "go-mission"];
+var DECISIONS = ["proposition", "go-mission", VIVIER, NON_RETENU];
 var MOTIFS = [
   ["salaire", "Salaire hors grille"],
   ["localisation", "Localisation ou présentiel"],
@@ -22,19 +33,18 @@ var MOTIFS = [
   ["desistement", "La personne se retire"],
   ["autre", "Autre raison"]
 ];
-var PROVENANCES = [["linkedin", "LinkedIn"], ["wttj", "Welcome to the Jungle"], ["autre", "Autre"]];
 var EXPORT_SCHEMA = "yeita-candidatures";
-var ME_KEY = "yeita-recruteur", EXPORT_KEY = "yeita-dernier-export";
+var EXPORT_KEY = "yeita-dernier-export", DISPO_KEY = "yeita-options-disponibilite";
 
 function err(msg){ return Promise.reject(new Error(msg)); }
-function idx(e){ return ETAPES.indexOf(e); }
 function motifLabel(id){ var m = MOTIFS.filter(function(x){ return x[0] === id; })[0]; return m ? m[1] : (id || ""); }
-function provLabel(id){ var p = PROVENANCES.filter(function(x){ return x[0] === id; })[0]; return p ? p[1] : (id || "Autre"); }
-function validEmail(s){ return !s || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
+function validEmail(s){ return !s || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s).trim()); }
+function today(){ return D.now().slice(0, 10); }
+function uniq(a){ var o = []; (a || []).forEach(function(x){ x = String(x || "").trim(); if(x && o.indexOf(x) < 0) o.push(x); }); return o; }
 
-/* Qui fait l'action : un simple prénom, mémorisé dans ce navigateur (pas de comptes dans le MVP). */
-function me(){ return (window.YEITA && YEITA.store.get(ME_KEY, "")) || ""; }
-function setMe(n){ if(window.YEITA) YEITA.store.set(ME_KEY, String(n || "").trim()); }
+/* Qui fait l'action : délégué à assets/qui.js (remplacé plus tard par l'identité Google). */
+function me(){ return window.QUI ? QUI.moi() : ""; }
+function setMe(n){ if(window.QUI) QUI.choisir(n); }
 
 /* ---------- Lecture ---------- */
 function listCandidates(filtre){
@@ -50,64 +60,157 @@ function listCandidates(filtre){
 }
 function getCandidate(id){ return D.get(id); }
 
-/* ---------- Écriture ---------- */
-function createCandidate(identite, par){
-  identite = identite || {};
-  var prenom = String(identite.prenom || "").trim(), nom = String(identite.nom || "").trim();
-  if(!prenom || !nom) return err("Indique le prénom et le nom.");
-  if(!validEmail(identite.email)) return err("L'adresse e-mail doit contenir un @ et un domaine.");
-  var c = D.blank(prenom + " " + nom);
-  c.identite = Object.assign(D.emptyIdentite(), identite, {prenom: prenom, nom: nom, email: String(identite.email || "").trim(), telephone: String(identite.telephone || "").trim()});
+/* ---------- La fiche ---------- */
+/* Contrôle commun à l'ajout et à la modification. Rend un message, ou null si tout va bien. */
+function checkFiche(f){
+  if(!String(f.personne || "").trim()) return "Indique le nom et le prénom.";
+  if(!validEmail(f.email)) return "L'adresse e-mail doit contenir un @ et un domaine.";
+  if(f.xp !== null && f.xp !== undefined && f.xp !== "" && !(Number(f.xp) >= 0 && Number(f.xp) < 60)) return "L'expérience se compte en années : un nombre entre 0 et 59.";
+  return null;
+}
+function normFiche(f){
+  var o = Object.assign({}, f);
+  o.personne = String(o.personne || "").trim();
+  o.email = String(o.email || "").trim();
+  o.telephone = String(o.telephone || "").trim();
+  o.xp = (o.xp === "" || o.xp === null || o.xp === undefined) ? null : Math.round(Number(o.xp) * 10) / 10;
+  o.provenances = uniq(o.provenances);
+  o.recruteurs = uniq(o.recruteurs);
+  if(o.job && D.JOBS.indexOf(o.job) < 0) o.job = "PM / PO";
+  return o;
+}
+function createCandidate(fiche, par){
+  fiche = fiche || {};
+  var e = checkFiche(fiche); if(e) return err(e);
+  var f = normFiche(fiche);
+  var c = D.blank(f.personne);
+  c.identite = Object.assign(D.emptyIdentite(), f);
+  if(!c.identite.dateDebutProcess) c.identite.dateDebutProcess = today();
+  if(!c.identite.recruteurs.length && (par || me())) c.identite.recruteurs = [par || me()];
   c.meta.origine = "module";
   c.historique.push({de: null, vers: "appel", le: D.now(), par: par || me(), motif: "Candidature ajoutée"});
   return D.save(c);
 }
+/* Enregistre une fiche modifiée (bloc « Infos candidat »). */
+function updateFiche(id, patch){
+  return D.get(id).then(function(c){
+    if(!c) return err("Candidat introuvable.");
+    var f = Object.assign({}, c.identite, patch);
+    var e = checkFiche(f); if(e) return err(e);
+    c.identite = Object.assign(c.identite, normFiche(f));
+    return D.save(c);
+  });
+}
 function saveCandidate(c){ return D.save(c); }
 function removeCandidate(id){ return D.remove(id); }
 
-/* « Démarrer » : la première ouverture de l'étape en cours. Ensuite, la carte dit « Reprendre ». */
+/* Les options de disponibilité : la liste Notion, plus celles ajoutées dans ce navigateur. */
+function dispos(){
+  var ajout = (window.YEITA && YEITA.store.get(DISPO_KEY, [])) || [];
+  return uniq(D.DISPOS.concat(ajout));
+}
+function addDispo(label){
+  label = String(label || "").trim(); if(!label) return dispos();
+  var ajout = (window.YEITA && YEITA.store.get(DISPO_KEY, [])) || [];
+  if(dispos().indexOf(label) < 0 && window.YEITA){ ajout.push(label); YEITA.store.set(DISPO_KEY, ajout); }
+  return dispos();
+}
+
+/* ---------- L'État, changé à la main ---------- */
+function setEtat(id, etat, par){
+  if(D.ETATS.indexOf(etat) < 0) return err("État inconnu.");
+  return D.get(id).then(function(c){
+    if(!c) return err("Candidat introuvable.");
+    if(c.etat === etat) return c;
+    c.historique.push({type: "etat", de: c.etat, vers: etat, le: D.now(), par: par || me(), motif: ""});
+    c.etat = etat;
+    return D.save(c);
+  });
+}
+
+/* ---------- Le parcours ---------- */
+/* « Démarrer » : la première ouverture de l'étape en cours. */
 function startStep(id, par){
   return D.get(id).then(function(c){
     if(!c) return err("Candidat introuvable.");
-    var e = c.parcours.etape; if(e === CLOS) return c;
+    var e = c.parcours.etape; if(e === NON_RETENU) return c;
     var s = c.parcours.etapes[e] = c.parcours.etapes[e] || {};
     if(!s.debuteLe){ s.debuteLe = D.now(); s.par = par || me(); }
-    if(e === "appel"){ if(!c.appel.date) c.appel.date = D.now().slice(0,10); if(!c.appel.par) c.appel.par = par || me(); }
+    if(e === "appel"){ if(!c.appel.date) c.appel.date = today(); if(!c.appel.par) c.appel.par = par || me(); }
     return D.save(c);
   });
 }
 function started(c){ var s = c.parcours.etapes[c.parcours.etape]; return !!(s && s.debuteLe); }
 
-/* Ce qui manque pour passer à l'étape suivante, ou null si c'est possible. */
+/* Ce qui manque pour l'action principale de l'étape, ou null. */
 function blocker(c){
   var e = c.parcours.etape;
-  if(e === CLOS || e === "onboarding") return "Le parcours est terminé.";
-  if(e === "appel" && !(c.appel.onePager && c.appel.onePager.envoyeLe)) return "Coche « One-pager envoyé » avant de passer à l'EC1.";
+  if(e === NON_RETENU || e === "onboarding") return "Le parcours est terminé.";
+  if(e === VIVIER) return "La personne est au vivier.";
+  if(e === "decision") return "Choisis une décision.";
+  if(e === "appel" && !(c.appel.onePager && c.appel.onePager.envoyeLe)) return "Envoie le one-pager avant de passer à l'EC1.";
   return null;
 }
+function entre(c, de, vers, par, motif, type){
+  var s = c.parcours.etapes[de] = c.parcours.etapes[de] || {};
+  s.termineLe = D.now(); if(!s.debuteLe) s.debuteLe = s.termineLe;
+  c.parcours.etape = vers;
+  c.parcours.etapes[vers] = c.parcours.etapes[vers] || {};
+  var avant = c.etat;
+  c.etat = vers === "onboarding" ? "valide" : (vers === NON_RETENU ? "non-retenu" : "a-planifier");
+  if(vers === "bilan-ec2" || vers === "ec3" || vers === "decision") c.restitution.etat = c.restitution.etat === "hire" ? "hire" : "ec2";
+  if(vers === "onboarding"){ c.restitution.etat = "hire"; c.arrivee = {confirmeeLe: D.now(), par: par || me()}; }
+  c.historique.push({type: type || "passage", de: de, vers: vers, le: D.now(), par: par || me(), motif: motif || "", etatAvant: avant});
+}
+/* L'action principale de l'étape : EC1 → Bilan EC1, « Continuer », « Envoyer en décision », « Arrivée confirmée »… */
 function moveStep(id, opts){
   opts = opts || {};
   return D.get(id).then(function(c){
     if(!c) return err("Candidat introuvable.");
     var de = c.parcours.etape, vers = opts.vers || SUIVANTE[de];
-    if(SUIVANTE[de] !== vers) return err("Ce passage n'est pas possible : on avance d'une étape à la fois.");
     var b = blocker(c); if(b) return err(b);
-    var s = c.parcours.etapes[de] = c.parcours.etapes[de] || {};
-    s.termineLe = D.now(); if(!s.debuteLe) s.debuteLe = s.termineLe;
-    c.parcours.etape = vers;
-    c.parcours.etapes[vers] = c.parcours.etapes[vers] || {};
-    if(de === "passation-ec1" || de === "passation-ec2"){
-      var k = de === "passation-ec1" ? "ec1" : "ec2";
-      var p = c.passations[k] = Object.assign({}, c.passations[k] || {}, {faiteLe: D.now(), par: opts.par || me()});
-      if(opts.mode) p.mode = opts.mode; if(!p.mode) p.mode = "appel";
+    if(!vers || SUIVANTE[de] !== vers) return err("Ce passage n'est pas possible : on avance d'une étape à la fois.");
+    if(de === "bilan-ec1" || de === "bilan-ec2"){
+      var k = de === "bilan-ec1" ? "ec1" : "ec2";
+      var bl = c.bilans[k] = Object.assign({}, c.bilans[k] || {}, {faitLe: D.now(), par: opts.par || me(), issue: "continuer"});
+      if(opts.mode) bl.mode = opts.mode; if(!bl.mode) bl.mode = "appel";
     }
-    if(vers === "passation-ec2" || vers === "ec3" || vers === "decision") c.restitution.etat = c.restitution.etat === "hire" ? "hire" : "ec2";
-    if(vers === "onboarding") c.restitution.etat = "hire";
-    c.historique.push({de: de, vers: vers, le: D.now(), par: opts.par || me(), motif: opts.motif || ""});
+    entre(c, de, vers, opts.par, opts.motif);
     return D.save(c);
   });
 }
-/* « Non retenu » se confirme dans l'écran Appel de refus : motif obligatoire, la carte passe dans « Pas aujourd'hui ». */
+/* Bilan : « En réflexion, retour à faire ». La carte reste dans sa colonne, l'État passe à « Retour à faire ». */
+function bilanRetour(id, opts){
+  opts = opts || {};
+  return D.get(id).then(function(c){
+    if(!c) return err("Candidat introuvable.");
+    var e = c.parcours.etape;
+    if(e !== "bilan-ec1" && e !== "bilan-ec2") return err("« Retour à faire » se décide au bilan.");
+    var k = e === "bilan-ec1" ? "ec1" : "ec2";
+    c.bilans[k] = Object.assign({}, c.bilans[k] || {}, {issue: "retour-a-faire", par: opts.par || me(), le: D.now()});
+    if(opts.mode) c.bilans[k].mode = opts.mode;
+    c.historique.push({type: "etat", de: c.etat, vers: "retour-a-faire", le: D.now(), par: opts.par || me(), motif: "En réflexion au bilan"});
+    c.etat = "retour-a-faire";
+    return D.save(c);
+  });
+}
+/* La décision : proposition d'embauche, go sur mission, vivier ou non retenu, avec un commentaire court (le « CR final » de Notion).
+   « Non retenu » passe par closeCandidate : c'est l'appel de refus qui confirme, avec son motif. */
+function decide(id, opts){
+  opts = opts || {};
+  var choix = opts.choix, com = String(opts.commentaire || "").trim();
+  if(DECISIONS.indexOf(choix) < 0) return err("Choisis une décision.");
+  if(!com) return err("Ajoute un commentaire court : il reste dans le dossier.");
+  if(choix === NON_RETENU) return closeCandidate(id, Object.assign({}, opts, {decision: com}));
+  return D.get(id).then(function(c){
+    if(!c) return err("Candidat introuvable.");
+    if(c.parcours.etape !== "decision") return err("La décision se prend à l'étape Décision.");
+    c.decision = Object.assign({}, c.decision, {choix: choix, commentaire: com, le: D.now(), par: opts.par || me()});
+    entre(c, "decision", choix, opts.par, com, "decision");
+    return D.save(c);
+  });
+}
+/* « Non retenu » se confirme dans l'appel de refus : motif obligatoire, la carte passe dans la colonne Non retenu. */
 function closeCandidate(id, opts){
   opts = opts || {};
   if(!opts.motif) return err("Choisis le motif de clôture.");
@@ -115,49 +218,38 @@ function closeCandidate(id, opts){
   return D.get(id).then(function(c){
     if(!c) return err("Candidat introuvable.");
     var de = c.parcours.etape;
-    if(REFUS_DEPUIS.indexOf(de) < 0) return err(de === "ec3" ? "Pas de refus en EC3 : on envoie en décision, et c'est la décision qui tranche." : "On ne peut pas clore le parcours à cette étape.");
-    var s = c.parcours.etapes[de] = c.parcours.etapes[de] || {};
-    s.termineLe = D.now(); if(!s.debuteLe) s.debuteLe = s.termineLe;
-    c.parcours.cloture = {depuis: de, motif: opts.motif, detail: String(opts.detail || "").trim(), carteEnvoyee: !!opts.carteEnvoyee, le: D.now(), par: opts.par || me()};
-    c.parcours.etape = CLOS;
-    c.restitution.etat = (de === "appel" || de === "ec1") ? "ec1" : "ec2";
-    c.historique.push({de: de, vers: CLOS, le: D.now(), par: opts.par || me(), motif: motifLabel(opts.motif) + (opts.detail ? " : " + String(opts.detail).trim() : "")});
+    if(REFUS_DEPUIS.indexOf(de) < 0) return err(de === "ec3" ? "Pas de refus en EC3 : on envoie en décision, et c'est la décision qui tranche."
+      : (de === "ec1" || de === "ec2" ? "Le non se décide au bilan : passe d'abord au bilan." : "On ne peut pas clore le parcours à cette étape."));
+    var detail = String(opts.detail || "").trim();
+    if(de === "decision") c.decision = Object.assign({}, c.decision, {choix: NON_RETENU, commentaire: opts.decision || detail, le: D.now(), par: opts.par || me()});
+    if(de === "bilan-ec1" || de === "bilan-ec2"){ var k = de === "bilan-ec1" ? "ec1" : "ec2"; c.bilans[k] = Object.assign({}, c.bilans[k] || {}, {issue: "non-retenu", faitLe: D.now(), par: opts.par || me()}); }
+    c.parcours.cloture = {depuis: de, motif: opts.motif, detail: detail, carteEnvoyee: !!opts.carteEnvoyee, le: D.now(), par: opts.par || me()};
+    c.restitution.etat = (de === "appel" || de === "bilan-ec1") ? "ec1" : "ec2";
+    entre(c, de, NON_RETENU, opts.par, motifLabel(opts.motif) + (detail ? " : " + detail : ""), "refus");
     return D.save(c);
   });
 }
-/* Annuler le dernier passage (un clic de trop). La correction reste dans l'historique. */
+/* Annuler le dernier passage (un clic de trop). La correction reste dans l'historique. Les changements d'État ne s'annulent pas ici. */
 function undoLast(id, par){
   return D.get(id).then(function(c){
     if(!c) return err("Candidat introuvable.");
-    var h = c.historique, last = h[h.length - 1];
+    var h = c.historique, last = null;
+    for(var i = h.length - 1; i >= 0; i--){ if(h[i].type !== "etat"){ last = h[i]; break; } }
     if(!last || last.de === null || last.annulation) return err("Il n'y a pas de passage à annuler.");
     var cur = c.parcours.etape;
     if(cur !== last.vers) return err("Le dernier passage ne correspond plus à l'étape en cours.");
     c.parcours.etape = last.de;
-    if(cur === CLOS) c.parcours.cloture = null;
-    if(cur === "onboarding" && c.restitution.etat === "hire") c.restitution.etat = "ec2";
+    if(cur === NON_RETENU) c.parcours.cloture = null;
+    if(cur === "onboarding"){ c.arrivee = {confirmeeLe: null, par: ""}; if(c.restitution.etat === "hire") c.restitution.etat = "ec2"; }
+    if(last.type === "decision" || (cur === NON_RETENU && last.de === "decision")) c.decision = Object.assign({}, c.decision, {choix: null, commentaire: "", le: null});
     var s = c.parcours.etapes[last.de]; if(s) delete s.termineLe;
+    c.etat = last.etatAvant || "a-planifier";
     h.push({de: cur, vers: last.de, le: D.now(), par: par || me(), motif: "Annulation du dernier passage", annulation: true});
     return D.save(c);
   });
 }
 
-/* ---------- Ce que le tableau affiche ---------- */
-var PROCHAINE = {
-  "appel": function(c){ return started(c) ? (c.appel.onePager.envoyeLe ? "Passer à l'EC1" : "Envoyer le one-pager") : "Mener l'appel de découverte"; },
-  "ec1": function(c){ return c.ec1 ? "Passer à la passation EC1" : "Mener l'EC1 et remplir la fiche #1"; },
-  "passation-ec1": function(){ return "Caler le débrief de 15 min"; },
-  "ec2": function(c){ return c.ec2 ? "Passer à la passation EC2" : "Mener l'EC2 et remplir la fiche #2"; },
-  "passation-ec2": function(){ return "Caler le débrief, imprimer la carte"; },
-  "ec3": function(){ return "Mener l'EC3, puis envoyer en décision"; },
-  "decision": function(c){ return c.decision && c.decision.appelFaitLe ? "Passer à l'onboarding" : "Appeler la personne"; },
-  "onboarding": function(){ return "Remettre la carte à la Nanny"; },
-  "clos": function(c){ return c.parcours.cloture && c.parcours.cloture.carteEnvoyee ? "Carte envoyée" : "Envoyer la carte si besoin"; }
-};
-function nextAction(c){ return (PROCHAINE[c.parcours.etape] || function(){ return ""; })(c); }
-/* Dernière action : le dernier passage ou la dernière modification. */
-function lastAction(c){ return (c.meta && c.meta.modifieLe) || ""; }
-/* Jours ouvrés écoulés depuis l'entrée dans l'étape : au-delà de 5, on a dépassé notre promesse au candidat. */
+/* Jours ouvrés écoulés depuis l'entrée dans l'étape. */
 function joursOuvres(fromIso, toDate){
   if(!fromIso) return 0;
   var d = new Date(fromIso), end = toDate || new Date(), n = 0;
@@ -166,10 +258,10 @@ function joursOuvres(fromIso, toDate){
   return n;
 }
 function enteredStepAt(c){
-  for(var i = c.historique.length - 1; i >= 0; i--){ if(c.historique[i].vers === c.parcours.etape) return c.historique[i].le; }
+  for(var i = c.historique.length - 1; i >= 0; i--){ if(c.historique[i].type !== "etat" && c.historique[i].vers === c.parcours.etape) return c.historique[i].le; }
   return c.meta.creeLe;
 }
-function waiting(c){ return (c.parcours.etape === CLOS || c.parcours.etape === "onboarding") ? 0 : joursOuvres(enteredStepAt(c)); }
+function waiting(c){ var e = c.parcours.etape; return (e === NON_RETENU || e === "onboarding" || e === VIVIER) ? 0 : joursOuvres(enteredStepAt(c)); }
 
 /* ---------- Export, import ---------- */
 function exportAll(){
@@ -180,7 +272,7 @@ function exportAll(){
   });
 }
 function lastExport(){ return (window.YEITA && YEITA.store.get(EXPORT_KEY, null)) || null; }
-/* mode « fusion » : on garde, pour chaque candidat, la version la plus récente. « remplacement » : la base importée remplace tout. */
+/* « fusion » : on garde, pour chaque candidat, la version la plus récente. « remplacement » : la base importée remplace tout. */
 function importAll(text, mode){
   var o;
   try{ o = typeof text === "string" ? JSON.parse(text) : text; }catch(e){ return err("Ce fichier n'est pas un export JSON lisible."); }
@@ -203,54 +295,66 @@ function importAll(text, mode){
   }).then(function(){ return res; });
 }
 
-/* ---------- Exemples fictifs, pour les démos ---------- */
+/* ---------- Exemples fictifs, pour les démos ----------
+   Noms inventés, adresses en @example.com, numéros de la plage fictive 01 99 00. */
 function daysAgo(n){ var d = new Date(); d.setDate(d.getDate() - n); return d.toISOString(); }
 function loadDemo(){
   var P = me() || "Thélo";
   var specs = [
-    {p:"Inès", n:"Bernard", prov:"linkedin", poste:"PM", etape:"appel", started:false, age:1},
-    {p:"Hugo", n:"Petit", prov:"wttj", poste:"PM", etape:"ec3", started:true, age:1, onePager:true, ec1:true, ec2:true,
-     blocs:{parcours:"Deux ans PM dans une néobanque, une équipe de six. A porté seul la refonte de l'onboarding.", recherche:"Veut sortir du produit unique. Ouvert à la banque et à l'énergie.", cadre:"Jamais travaillé en ESN, curieux du modèle. Habite Paris 11e.", conditions:"Vise 55 k€. Disponible dans deux mois."}},
-    {p:"Maëlle", n:"Durand", prov:"autre", provD:"Cooptation", poste:"PrD", etape:"ec1", started:true, age:2, onePager:true},
-    {p:"Yanis", n:"Morel", prov:"linkedin", poste:"PM", etape:"passation-ec1", started:false, age:9, onePager:true, ec1:true},
-    {p:"Chloé", n:"Lemaire", prov:"wttj", poste:"PM", etape:"clos", from:"appel", motif:"localisation", detail:"Ne peut pas venir à Paris trois jours par semaine.", age:4}
+    {n:"BERNARD Inès", job:"PM / PO", xp:6, dispo:"Immédiatement", prov:["LinkedIn"], rec:["Peter"], etape:"appel", etat:"planifie", age:1},
+    {n:"Hugo Petit", job:"PM / PO", xp:8, dispo:"2 mois", prov:["WTTJ"], rec:["Thélo", "Pauline"], etape:"ec3", etat:"planifie", age:1, onePager:true, ec1:true, ec2:true, ville:"Paris 11e",
+     rep:{recherche:"Un rôle de PM avec de la stratégie, en B2C.", pourquoi:"Fin de mission dans une néobanque, veut changer de secteur.", role:"PM d'une équipe de six : discovery, priorisation, suivi des indicateurs.", ia:"Tous les jours depuis un an : synthèses d'entretiens, rédaction de user stories.", remuneration:"Vise 55 k€."}},
+    {n:"Maëlle DURAND", job:"PrD", xp:4, dispo:"1 mois", prov:["Cooptation"], rec:["Andrea"], etape:"ec1", etat:"planifie", age:2, onePager:true},
+    {n:"Yanis Morel", job:"PM / PO", xp:3, dispo:"Intercontrat", prov:["LinkedIn"], rec:["Peter"], etape:"bilan-ec1", etat:"retour-a-faire", age:9, onePager:true, ec1:true},
+    {n:"Chloé Lemaire", job:"Ops", xp:5, dispo:"3 mois", prov:["WTTJ"], rec:["Thélo"], etape:NON_RETENU, from:"appel", motif:"localisation", detail:"Ne peut pas venir à Paris trois jours par semaine.", age:4},
+    {n:"Nora Haddad", job:"PrD", xp:7, dispo:"Septembre", prov:["Chasse"], rec:["Andrea", "Pauline"], etape:VIVIER, age:12, onePager:true, ec1:true, ec2:true, decision:"On s'entend bien, pas tout de suite : à recontacter en septembre."}
   ];
   return Promise.all(specs.map(function(s, i){
-    var c = D.blank(s.p + " " + s.n);
-    c.identite = Object.assign(D.emptyIdentite(), {prenom: s.p, nom: s.n, email: (s.p + "." + s.n).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "") + "@example.com",
-      telephone: "01 99 00 0" + (i+1) + " " + (10 + i*7), provenance: s.prov, provenanceDetail: s.provD || "", poste: s.poste});
+    var c = D.blank(s.n);
+    var em = D.decoupe(s.n);
+    c.identite = Object.assign(D.emptyIdentite(), {personne: s.n, job: s.job, xp: s.xp, disponibilite: s.dispo, provenances: s.prov, recruteurs: s.rec,
+      email: (em.prenom + "." + em.nom).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "-") + "@example.com",
+      telephone: "01 99 00 0" + (i + 1) + " " + (10 + i * 7), adresse: s.ville || "", dateDebutProcess: daysAgo(s.age + 2).slice(0, 10)});
+    D.setNom(c, s.n);
     c.meta.demo = true; c.meta.creeLe = daysAgo(s.age + 2);
     c.historique.push({de: null, vers: "appel", le: daysAgo(s.age + 2), par: P, motif: "Candidature ajoutée (exemple)"});
-    if(s.blocs){ c.appel.blocs = s.blocs; c.appel.date = daysAgo(s.age).slice(0,10); c.appel.par = P; }
-    if(s.onePager) c.appel.onePager = {envoyeLe: daysAgo(s.age), par: P};
-    var path = ETAPES.slice(0, Math.max(0, idx(s.etape === "clos" ? s.from : s.etape)) + 1);
+    if(s.rep){ Object.assign(c.appel.reponses, s.rep); c.appel.date = daysAgo(s.age + 2).slice(0, 10); c.appel.par = P; }
+    if(s.onePager) c.appel.onePager = {envoyeLe: daysAgo(s.age + 1), par: P};
+    var fin = s.etape === NON_RETENU ? s.from : (s.etape === VIVIER ? "decision" : s.etape);
+    var path = ETAPES.slice(0, ETAPES.indexOf(fin) + 1);
     path.forEach(function(e, k){
-      c.parcours.etapes[e] = {debuteLe: daysAgo(s.age + 2 - k)};
-      if(k < path.length - 1){ c.parcours.etapes[e].termineLe = daysAgo(s.age + 1 - k); c.historique.push({de: e, vers: path[k+1], le: daysAgo(s.age), par: P, motif: ""}); }
+      c.parcours.etapes[e] = {debuteLe: daysAgo(s.age + 2 - k * 0.2), par: P};
+      if(k < path.length - 1){ c.parcours.etapes[e].termineLe = daysAgo(s.age + 1); c.historique.push({type: "passage", de: e, vers: path[k + 1], le: daysAgo(s.age + 1), par: P, motif: ""}); }
     });
-    var cur = s.etape === "clos" ? s.from : s.etape;
-    if(!s.started && s.etape !== "clos") delete c.parcours.etapes[cur].debuteLe;
-    c.parcours.etape = s.etape;
+    c.parcours.etape = fin;
+    if(s.ec1){
+      c.ec1 = Object.assign(D.emptyEC1(), {date: daysAgo(s.age + 1).slice(0, 10), recruteur: P, observateur: "Peter",
+        match: {dominante: "collectif", seconde: "sans-chichi", partielle: false, pourquoi: "", source: "decompte"},
+        percu: "Tu poses les questions avant de proposer, et tu cites l'équipe avant toi.",
+        questionsEC2: "Ce qu'il a mesuré après la mise en production.\nSa façon de dire non à un sponsor.", reporteLe: daysAgo(s.age + 1)});
+      c.bilans.ec1 = c.parcours.etape === "bilan-ec1" ? {faitLe: null, par: P, mode: "appel", issue: "retour-a-faire", le: daysAgo(s.age)} : {faitLe: daysAgo(s.age + 1), par: P, mode: "appel", issue: "continuer"};
+    }
     if(s.ec2){
-      c.ec2 = Object.assign(D.emptyEC2(), {date: daysAgo(s.age + 1).slice(0,10), pair: "Andrea", role: s.poste, palier: 2,
+      c.ec2 = Object.assign(D.emptyEC2(), {date: daysAgo(s.age + 1).slice(0, 10), pair: "Andrea", role: D.roleDe(s.job), palier: 2,
         notes: [3,3,2, 3,2,2, 2,3,2, 2,1,null],
         exemples: ["A chiffré le coût de l'abandon à l'onboarding avant de proposer quoi que ce soit.", "", "", "A recruté des testeurs via le support quand l'accès direct était bloqué.", "", "", "", "A tenu une revue de lancement avec la conformité.", "", "", "", ""],
         lecture: "", aspirations: "Veut apprendre à cadrer une stratégie produit. Préfère un binôme les premières semaines.",
-        suspens: {palier: "J'apporte de la valeur, Product Manager.", solides: "Problème et Solution : des exemples précis, chiffrés.", creux: "Stratégie : peu d'occasions de la pratiquer jusqu'ici.",
+        suspens: {palier: "J'apporte de la valeur, " + (s.job === "PrD" ? "Product Designer." : "Product Manager."), solides: "Problème et Solution : des exemples précis, chiffrés.", creux: "Stratégie : peu d'occasions de la pratiquer jusqu'ici.",
           questions: "Son envie réelle de cadrer la stratégie, ou de rester près de l'équipe\nCe qu'il attend du binôme les premières semaines", contestation: "Se voit plus avancé sur la stratégie que ce que la fiche #2 montre.", conditions: "Prétentions à placer dans la grille. Disponible dans deux mois."},
         reporteLe: daysAgo(s.age + 1)});
-      c.passations = {ec1: {faiteLe: daysAgo(s.age + 1), par: P, mode: "appel"}, ec2: {faiteLe: daysAgo(s.age), par: "Andrea", mode: "asynchrone"}};
+      c.bilans.ec2 = {faitLe: daysAgo(s.age), par: "Andrea", mode: "asynchrone", issue: "continuer"};
       c.restitution.etat = "ec2";
     }
-    if(s.ec1){
-      c.ec1 = Object.assign(D.emptyEC1(), {date: daysAgo(s.age).slice(0,10), recruteur: P, observateur: "Peter",
-        match: {dominante: "collectif", seconde: "sans-chichi", partielle: false, pourquoi: "", source: "decompte"},
-        percu: "Tu poses les questions avant de proposer, et tu cites l'équipe avant toi.",
-        questionsEC2: "Ce qu'il a mesuré après la mise en production.\nSa façon de dire non à un sponsor.", reporteLe: daysAgo(s.age)});
-    }
-    if(s.etape === "clos"){
+    c.etat = s.etat || "a-planifier";
+    if(s.etape === NON_RETENU){
       c.parcours.cloture = {depuis: s.from, motif: s.motif, detail: s.detail, carteEnvoyee: false, le: daysAgo(s.age), par: P};
-      c.historique.push({de: s.from, vers: CLOS, le: daysAgo(s.age), par: P, motif: motifLabel(s.motif) + " : " + s.detail});
+      c.historique.push({type: "refus", de: s.from, vers: NON_RETENU, le: daysAgo(s.age), par: P, motif: motifLabel(s.motif) + " : " + s.detail});
+      c.parcours.etape = NON_RETENU; c.etat = "non-retenu";
+    }
+    if(s.etape === VIVIER){
+      c.decision = {choix: VIVIER, commentaire: s.decision, le: daysAgo(s.age), par: "Pauline", appelFaitLe: daysAgo(s.age)};
+      c.historique.push({type: "decision", de: "decision", vers: VIVIER, le: daysAgo(s.age), par: "Pauline", motif: s.decision});
+      c.parcours.etape = VIVIER; c.etat = "fait";
     }
     c.meta.modifieLe = daysAgo(s.age);
     return D.adapter().put(c);
@@ -261,11 +365,13 @@ function clearDemo(){
 }
 
 window.STORE = {
-  ETAPES: ETAPES, CLOS: CLOS, SUIVANTE: SUIVANTE, REFUS_DEPUIS: REFUS_DEPUIS, MOTIFS: MOTIFS, PROVENANCES: PROVENANCES,
-  motifLabel: motifLabel, provLabel: provLabel, validEmail: validEmail, me: me, setMe: setMe,
-  listCandidates: listCandidates, getCandidate: getCandidate, createCandidate: createCandidate, saveCandidate: saveCandidate, removeCandidate: removeCandidate,
-  startStep: startStep, started: started, blocker: blocker, moveStep: moveStep, closeCandidate: closeCandidate, undoLast: undoLast,
-  nextAction: nextAction, lastAction: lastAction, waiting: waiting, joursOuvres: joursOuvres,
+  ETAPES: ETAPES, NON_RETENU: NON_RETENU, VIVIER: VIVIER, COLONNES: COLONNES, COLONNES_MASQUEES: COLONNES_MASQUEES,
+  SUIVANTE: SUIVANTE, REFUS_DEPUIS: REFUS_DEPUIS, DECISIONS: DECISIONS, MOTIFS: MOTIFS,
+  motifLabel: motifLabel, validEmail: validEmail, checkFiche: checkFiche, normFiche: normFiche, me: me, setMe: setMe,
+  listCandidates: listCandidates, getCandidate: getCandidate, createCandidate: createCandidate, updateFiche: updateFiche,
+  saveCandidate: saveCandidate, removeCandidate: removeCandidate, dispos: dispos, addDispo: addDispo, setEtat: setEtat,
+  startStep: startStep, started: started, blocker: blocker, moveStep: moveStep, bilanRetour: bilanRetour, decide: decide,
+  closeCandidate: closeCandidate, undoLast: undoLast, waiting: waiting, joursOuvres: joursOuvres,
   exportAll: exportAll, importAll: importAll, lastExport: lastExport, loadDemo: loadDemo, clearDemo: clearDemo,
   volatile: function(){ return !!D.adapter().volatile; }
 };

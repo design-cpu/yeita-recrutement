@@ -30,7 +30,7 @@ async def main():
         check("nouvel onglet du navigateur : la démarche", await pg2.locator("#tab-demarche").get_attribute("aria-selected") == "true")
         await pg2.close()
         # Bug 3 : liens directs
-        for tok, page in [("fiche-ec1","fiche-ec1.html"),("fiche-ec2","fiche-ec2.html"),("carte","carte-identite.html"),("decompte","yeita-match-decompte.html"),("feuille-vierge","yeita-match-decompte.html#vierge"),("candidatures","candidatures.html")]:
+        for tok, page in [("fiche-ec1","fiche-ec1.html"),("fiche-ec2","fiche-ec2.html"),("carte","carte-identite.html"),("decompte","yeita-match-decompte.html"),("feuille-vierge","yeita-match-decompte.html#vierge"),("candidatures","candidatures/")]:
             await pg.goto(B+"index.html#"+tok, wait_until="networkidle"); await pg.wait_for_timeout(200)
             check("lien direct #"+tok, pg.url.endswith(page), pg.url)
         await pg.goto(B+"index.html#supports", wait_until="networkidle")

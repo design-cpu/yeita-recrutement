@@ -1,0 +1,166 @@
+# Modèle de données · dossier candidat v3
+
+Pour Sacha : ce que l'espace Candidatures enregistre, et comment le passer en SQLite. Ce fichier fait foi pour les tables. Le code de référence est `assets/dossier.js` (modèle et migration) et `assets/store.js` (règles du parcours).
+
+## Le contrat avec le stockage
+
+- **Interface inchangée.** Les pages passent toutes par un adaptateur à quatre méthodes, en promesses :
+
+  | Méthode | Rôle |
+  |---|---|
+  | `list()` | Tous les dossiers, du plus récent au plus ancien (`meta.modifieLe`) |
+  | `get(id)` | Un dossier, ou `null` |
+  | `put(dossier)` | Crée ou remplace le dossier entier, le rend tel qu'enregistré |
+  | `remove(id)` | Supprime le dossier (demande d'effacement comprise) |
+
+- **Le branchement** se fait en un point : `DOSSIER.use(adaptateurSQLite)`, chargé avant les pages.
+- **La migration à la lecture** est faite par `DOSSIER.upgrade()`. L'adaptateur rend les dossiers tels quels ; la page les met à niveau.
+- **Les conflits.** Deux recruteurs peuvent écrire le même dossier. Je recommande une colonne `version` et un refus quand la version lue n'est plus la bonne, avec le message « La candidature a été modifiée par quelqu'un d'autre. Recharge la page. ». `tools/test-adapter.js` montre ce comportement contre une fausse base.
+- **L'identité.** Elle passe par `assets/qui.js` :
+  - `QUI.moi()` rend le prénom de la personne qui agit ;
+  - avec l'authentification Google, `QUI.moi()` rend le prénom du compte connecté, et `QUI.monter()` l'affiche sans liste ;
+  - aucun autre fichier n'est à changer.
+
+## Les adresses de l'espace
+
+- **Tout est dans `candidatures/` :**
+  - `index.html` : le tableau ;
+  - `candidat.html?id=<id>&etape=<étape>` : le parcours.
+  - Au lot 2, les pages d'étape EC1 et EC2, la carte et la feuille de décompte suivent, avec le même schéma d'adresse.
+- **Des paramètres d'adresse (`?id=…`), pas des ancres (`#…`).** Une ancre n'est jamais envoyée au serveur, donc elle se perd pendant l'aller-retour de connexion d'oauth2-proxy. Les paramètres, eux, sont conservés.
+- **L'identifiant est opaque** (`cand-…`) : jamais le nom dans une adresse. Une page de l'espace sans identifiant n'affiche aucun candidat.
+- **Les pages publiques** restent hors de l'espace : le guide, `one-pager.html` et le kit. Leurs adresses sont dans `assets/config.js`.
+
+## Le dossier v3
+
+### En-tête
+| Champ | Type | Règle |
+|---|---|---|
+| `schema` | texte | `"yeita-dossier-candidat"` |
+| `version` | entier | `3` |
+| `id` | texte | `cand-<horodatage base 36>-<5 caractères>`, opaque |
+| `candidat.nom` | texte | calculé : égal à `identite.personne` |
+| `candidat.role` | `PM` \| `PrD` | calculé depuis le Job (PrD → PrD, le reste → PM), lu par les fiches EC2 et la carte |
+
+### La fiche (`identite`), alignée sur la base Notion « Candidats »
+| Champ | Type | Valeurs, règle | Notion |
+|---|---|---|---|
+| `personne` | texte, **obligatoire** | « Nom Prénom » libre, sans contrainte de format (« NOM Prénom » accepté) | Personne |
+| `job` | liste | `PrD`, `PM / PO`, `Ops`, `SM`, `PMM`, `UXR`, `Bizdev`, `RH`, `Recruteur·se` | Job (« Recruteur.se ») |
+| `xp` | nombre ou `null` | années d'expérience, 0 à 59, au demi près | XP (texte dans Notion) |
+| `disponibilite` | texte | `Intercontrat`, `Immédiatement`, `1 mois`, `2 mois`, `3 mois`, `Septembre`, plus les options ajoutées | Disponibilité (« 1mois ») |
+| `dateDisponibilite` | date `AAAA-MM-JJ` ou `""` | facultative | Date de disponibilité |
+| `dateDebutProcess` | date `AAAA-MM-JJ` | pré-remplie à la création, modifiable | Date début process |
+| `provenances` | liste de textes | `Cooptation`, `WTTJ`, `LinkedIn`, `Chasse`, `Candidature spontanée` (plusieurs possibles) | Provenance (« Linkedin ») |
+| `provenanceDetail` | texte | précision reprise de la v2 quand elle ne correspond à aucune provenance | — |
+| `recruteurs` | liste de textes | prénoms, liste libre « à la Notion » : un nom tapé est créé et réutilisable | Recruteurs (personnes Notion) |
+| `email` | texte | vide, ou `x@y.z` | Email Address |
+| `telephone` | texte | aucun format imposé | Phone Number |
+| `adresse` | texte | en pratique la ville | Adresse |
+| `linkedin`, `portfolio`, `cv` | URL ou `""` | facultatives ; `cv` est un lien en attendant le dépôt de fichier | Linkedin, Portfolio, CV |
+| `references` | texte | facultatif | Références |
+| `syntheseEC` | texte | facultatif | Synthese EC |
+| `prenom`, `nom`, `poste` | texte | **calculés** (ne pas stocker en colonnes) : prénom pour saluer, nom, rôle | — |
+
+Les options de disponibilité ajoutées sont gardées aujourd'hui dans le navigateur (`yeita-options-disponibilite`). En SQLite, une table `options_disponibilite` suffit.
+
+### Le parcours
+| Champ | Type | Valeurs, règle |
+|---|---|---|
+| `parcours.etape` | texte | `appel`, `ec1`, `bilan-ec1`, `ec2`, `bilan-ec2`, `ec3`, `decision`, `proposition`, `go-mission`, `onboarding`, `vivier`, `non-retenu` |
+| `parcours.etapes.<étape>` | objet | `debuteLe`, `termineLe` (ISO 8601), `par` (prénom) |
+| `parcours.cloture` | objet ou `null` | quand `non-retenu` : `depuis` (étape), `motif` (`salaire`, `localisation`, `poste`, `projets`, `niveau`, `posture`, `anglais`, `desistement`, `autre`), `detail`, `carteEnvoyee`, `le`, `par` |
+| `etat` | texte, **changé à la main** | `a-planifier`, `planifie`, `fait`, `retour-a-faire`, `non-retenu`, `valide`, `plus-dispo` |
+
+Les règles de passage sont dans `assets/store.js` :
+
+- **Les étapes s'enchaînent dans l'ordre :** `appel` → `ec1` → `bilan-ec1` → `ec2` → `bilan-ec2` → `ec3` → `decision`.
+- **La décision** mène à `proposition`, `go-mission`, `vivier` ou `non-retenu`.
+- **Depuis `proposition` ou `go-mission`**, « Arrivée confirmée » mène à `onboarding`.
+- **Le refus** (`non-retenu`) est possible depuis `appel`, `bilan-ec1`, `bilan-ec2`, `decision`, `proposition` et `go-mission`. Jamais en EC1, EC2 ou EC3 : le non se décide au bilan.
+- **Passer à l'EC1** demande le one-pager envoyé (`appel.onePager.envoyeLe`).
+- **En entrant dans une étape**, `etat` repart à `a-planifier`. Exceptions : `onboarding` met `valide`, `non-retenu` met `non-retenu`.
+- **Le tableau masque par défaut** les colonnes `go-mission`, `vivier` et `non-retenu`. Une colonne `sourcing`, avant l'appel, est prévue mais pas construite.
+
+### Les étapes
+| Champ | Type | Contenu |
+|---|---|---|
+| `appel` | objet | `date`, `par`, `reponses` (`recherche`, `pourquoi`, `role`, `ia`, `yeita`, `motivations`, `disponibilite`, `pistes`, `remuneration` : textes), `onePager` (`envoyeLe`, `par`), `ancien` (les 4 blocs v2, en lecture, ou `null`). La disponibilité (liste) et le lieu d'habitation s'écrivent dans la fiche |
+| `ec1`, `ec2` | objet ou `null` | la lecture des fiches EC1 et EC2 (inchangée depuis la v2 : voir `docs/dossier-candidat.schema.json`) |
+| `fiches` | objet | brouillons d'écran des fiches EC1 et EC2, pour les rouvrir telles qu'on les a laissées |
+| `bilans.ec1`, `bilans.ec2` | objet ou `null` | `faitLe`, `par`, `mode` (`appel` \| `asynchrone`), `issue` (`continuer`, `retour-a-faire`, `non-retenu`) |
+| `ec3` | objet | `notes`, `par`, `le` |
+| `decision` | objet | `choix` (`proposition`, `go-mission`, `vivier`, `non-retenu` ou `null`), `commentaire` (obligatoire pour décider), `le`, `par`, `appelFaitLe` |
+| `arrivee` | objet | `confirmeeLe`, `par` |
+| `restitution.etat` | texte | état de la carte d'identité : `ec1`, `ec2`, `hire` |
+| `historique` | liste | `{type, de, vers, le, par, motif, etatAvant, annulation}`. `type` vaut `passage`, `etat`, `decision` ou `refus`. `de` est `null` à l'entrée. Une annulation ajoute une ligne, elle n'efface rien |
+| `notesLibres` | objet | hors MVP, désactivé |
+| `meta` | objet | `creeLe`, `modifieLe`, `demo` (exemple fictif), `origine` (`module` \| `fiche`), `migreV3Le` |
+
+## Migration v2 → v3 (faite à la lecture, rien n'est supprimé)
+| v2 | v3 |
+|---|---|
+| `identite.prenom` + `identite.nom` | `identite.personne` (« Prénom Nom ») |
+| `identite.poste` `PM` / `PrD` | `identite.job` `PM / PO` / `PrD` |
+| `identite.provenance` `linkedin` / `wttj` / `autre` + `provenanceDetail` | `provenances` : `["LinkedIn"]`, `["WTTJ"]`, ou d'après le détail (`coopt…` → Cooptation, `chasse` → Chasse, `spontan…` → Candidature spontanée). Sinon `[]`, et le détail est gardé |
+| — | `dateDebutProcess` = date de `meta.creeLe` ; `recruteurs` = auteurs de l'appel et de l'historique |
+| `parcours.etape` `passation-ec1` / `passation-ec2` / `clos` | `bilan-ec1` / `bilan-ec2` / `non-retenu` (clés de `parcours.etapes` et historique renommés) |
+| `passations.ec1` / `ec2` (`faiteLe`, `par`, `mode`) | `bilans.ec1` / `ec2` (`faitLe`, `par`, `mode`, `issue: "continuer"`) |
+| `appel.blocs` (parcours, recherche, cadre, conditions) | `appel.ancien` (lecture seule) ; `appel.reponses` vides |
+| `decision` (`appelFaitLe`, `par`) | `decision` (`choix`, `commentaire`, `le`, `par`, `appelFaitLe`). Un dossier en onboarding reçoit `choix: "proposition"` |
+| — | `arrivee`, `etat` : `non-retenu` si clos, `valide` en onboarding, `planifie` si l'étape en cours est démarrée, sinon `a-planifier` |
+
+Un dossier v1 (fiches seules, avant le module) passe d'abord en v2, puis en v3. Tests : `node tools/test-store.js`.
+
+## Correspondance avec Notion
+| Espace Candidatures (`parcours.etape`) | Notion « Etapes » |
+|---|---|
+| `appel` | 1er call |
+| `ec1`, `bilan-ec1` | EC1 |
+| `ec2`, `bilan-ec2` | EC2 |
+| `ec3`, `decision` | EC3 |
+| `proposition` | Propal |
+| `go-mission` | Go sur mission |
+| `onboarding` | Arrivée |
+| `vivier` | Vivier (et, à l'import : A garder, Recontacter en septembre) |
+| `non-retenu` | NoGo |
+| — | « Retour à faire » : dans l'espace, c'est un **État**, pas une étape |
+
+| Espace (`etat`) | Notion « État » |
+|---|---|
+| `a-planifier` | A planifier |
+| `planifie` | Planifé (orthographe Notion) |
+| `fait` | Fait |
+| `retour-a-faire` | Retour à faire |
+| `non-retenu` | No go |
+| `valide` | Validé |
+| `plus-dispo` | Plus dispo |
+
+## Tables SQLite proposées
+L'adaptateur lit et écrit le dossier entier : le plus simple est de le garder en JSON, avec des colonnes tirées du JSON pour lister, filtrer et faire des bilans.
+
+```sql
+CREATE TABLE candidats (
+  id                 TEXT PRIMARY KEY,
+  data               TEXT NOT NULL,                 -- le dossier v3 complet, en JSON
+  version            INTEGER NOT NULL DEFAULT 1,    -- conflit si la version lue n'est plus la bonne
+  personne           TEXT NOT NULL,
+  job                TEXT CHECK (job IN ('PrD','PM / PO','Ops','SM','PMM','UXR','Bizdev','RH','Recruteur·se')),
+  xp                 REAL,
+  disponibilite      TEXT,
+  date_debut_process TEXT,
+  etape              TEXT NOT NULL CHECK (etape IN ('appel','ec1','bilan-ec1','ec2','bilan-ec2','ec3','decision','proposition','go-mission','onboarding','vivier','non-retenu')),
+  etat               TEXT NOT NULL CHECK (etat IN ('a-planifier','planifie','fait','retour-a-faire','non-retenu','valide','plus-dispo')),
+  demo               INTEGER NOT NULL DEFAULT 0,
+  cree_le            TEXT NOT NULL,
+  modifie_le         TEXT NOT NULL,
+  modifie_par        TEXT
+);
+CREATE TABLE candidat_provenances (candidat_id TEXT REFERENCES candidats(id) ON DELETE CASCADE, provenance TEXT NOT NULL);
+CREATE TABLE candidat_recruteurs  (candidat_id TEXT REFERENCES candidats(id) ON DELETE CASCADE, recruteur TEXT NOT NULL);
+CREATE TABLE journal (id INTEGER PRIMARY KEY, candidat_id TEXT, action TEXT, etape TEXT, par TEXT, le TEXT);  -- qui a fait quoi, sans le contenu
+CREATE TABLE equipe (prenom TEXT PRIMARY KEY, email TEXT UNIQUE);   -- remplace YEITA_CONFIG.equipe une fois l'identité Google en place
+CREATE TABLE options_disponibilite (libelle TEXT PRIMARY KEY);
+```
+
+La piste Supabase (`docs/backend/schema.sql`) est abandonnée au profit de SQLite sur OVH. Elle reste comme référence : RLS, journal, purge.

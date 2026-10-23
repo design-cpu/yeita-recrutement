@@ -205,7 +205,7 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
     <span id="logo"></span>
     <span class="where">Expérience collaborateur</span>
     <nav aria-label="Raccourcis">
-      <a href="candidatures.html">Candidatures</a>
+      <a href="candidatures/">Candidatures</a>
       <a href="#guide">Guide du recruteur</a>
       <a href="#supports">Supports</a>
       <a href="one-pager.html">Vue candidat</a>
@@ -250,7 +250,7 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
         <button role="tab" id="tab-supports" aria-controls="supports" aria-selected="false" tabindex="-1">Supports</button>
         <button role="tab" id="tab-glossaire" aria-controls="glossaire" aria-selected="false" tabindex="-1">Glossaire</button>
       </div>
-      <a class="btn small primary views-cta" href="candidatures.html">Candidatures</a>
+      <a class="btn small primary views-cta" href="candidatures/">Candidatures</a>
     </div>
 
     <!-- Vue 1 : la démarche -->
@@ -407,7 +407,7 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
 "use strict";
 /* Liens directs vers une page : index.html#fiche-ec1, #fiche-ec2, #carte, #decompte… Dans Claude, seul le hub a une adresse : il redirige. */
 var DIRECT = {"fiche-ec1":"fiche-ec1.html", "fiche-ec2":"fiche-ec2.html", "carte":"carte-identite.html", "decompte":"yeita-match-decompte.html", "feuille-vierge":"yeita-match-decompte.html#vierge",
-  "kit":"yeita-match-kit.html", "one-pager":"one-pager.html", "candidatures":"candidatures.html"};
+  "kit":"yeita-match-kit.html", "one-pager":"one-pager.html", "candidatures":"candidatures/"};
 function direct(){ var h = (location.hash || "").slice(1); if(DIRECT[h]){ location.replace(DIRECT[h]); return true; } return false; }
 if(direct()) return;
 var E = YEITA.esc, P = YEITA.picto;
@@ -417,7 +417,7 @@ document.getElementById("logo").innerHTML = YEITA.logo(26);
 var NOTION_EMP = "https://app.notion.com/p/Employabilit-3e64bfab7816801592f4cfdf068968b6";
 var NOTION_REF = "https://app.notion.com/p/3f94bfab781681289c7ccea584e7e7e1";
 var S = {
-  candidatures:{name:"Candidatures", sub:"Module de suivi", role:"Le tableau des candidats, puis le parcours guidé étape par étape, qui ouvre les fiches au bon moment.", when:"3 à 11", fmt:"En ligne", tok:"candidatures", href:"candidatures.html"},
+  candidatures:{name:"Candidatures", sub:"Module de suivi", role:"Le tableau des candidats, puis le parcours guidé étape par étape, qui ouvre les fiches au bon moment.", when:"3 à 11", fmt:"En ligne", tok:"candidatures", href:"candidatures/"},
   onepager:   {name:"Ton parcours chez Yeita", sub:"One-pager candidat", role:"Expliquer le parcours, les durées, les délais et ce que la personne reçoit.", when:"4", fmt:"Imprimable A4", tok:"one-pager", href:"one-pager.html"},
   jeu:        {name:"Yeita Match en ligne", sub:"Jeu yeita-match", role:"Le jeu de l'EC1 en visio, ou en secours du kit.", when:"5", fmt:"En ligne", href:YEITA_MATCH.GAME_URL, ext:true},
   kit:        {name:"Kit Yeita Match", sub:"Cartes et plateau", role:"Le jeu de l'EC1 en présentiel.", when:"5", fmt:"À imprimer", tok:"kit", href:"yeita-match-kit.html"},

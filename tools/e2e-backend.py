@@ -27,7 +27,7 @@ async def main():
             init = FAKE + ({"hors-equipe": "window.__session = {user: {email: 'intrus@yeita.fr'}};", "equipe": "window.__session = {user: {email: 'thelo@yeita.fr'}}; window.__moi = {email: 'thelo@yeita.fr', prenom: 'Thélo', role: 'recruteur'};"}.get(case, ""))
             await ctx.add_init_script(init)
             pg = await ctx.new_page(); errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
-            await pg.goto(B+"candidatures.html", wait_until="networkidle")
+            await pg.goto(B+"candidatures/", wait_until="networkidle")
             await pg.add_script_tag(url=B+"assets/adapter-supabase.js"); await pg.add_script_tag(url=B+"assets/backend.js"); await pg.wait_for_timeout(300)
             if case == "anonyme":
                 check("sans session : écran de connexion", await pg.locator("#yb-gate").is_visible() and await pg.evaluate("document.activeElement.id") == "yb-mail")

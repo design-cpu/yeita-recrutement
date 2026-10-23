@@ -1,0 +1,285 @@
+/* Espace Candidatures : styles communes aux pages du dossier candidatures/ (tableau, parcours, fiches). S'appuie sur assets/yeita.css. */
+.wrap.wide{max-width:1400px}
+.fict{margin-top:12px; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; justify-content:space-between; background:var(--yellow-soft); border-radius:12px; padding:9px 14px; font-size:14.5px}
+.fict b{font-weight:650}
+.who{display:inline-flex; align-items:center; gap:8px}
+.who label{font-weight:650; font-size:14px}
+.who select{min-height:36px; padding:4px 10px; width:auto; font-size:14.5px}
+.warn-line{margin-top:10px; background:var(--stop-tint); color:var(--ink); border-radius:12px; padding:9px 14px; font-size:14.5px}
+
+/* ---------- Tableau ---------- */
+.bhead{display:flex; flex-wrap:wrap; gap:12px 24px; align-items:end; justify-content:space-between; padding-block:26px 14px}
+.bhead h1{font-size:clamp(30px,4vw,40px)}
+.bsum{font-size:15px; color:var(--ink-2); margin-top:4px}
+.bsum b{color:var(--ink)}
+.btools{display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; margin-bottom:14px}
+.btools .search{flex:1 1 220px; max-width:320px}
+.btools .search input{min-height:40px; padding:7px 12px}
+.save-zone{flex-basis:100%}
+.save-zone .in{display:grid; gap:12px; margin-top:8px}
+.save-row{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+.save-zone textarea{font-family:var(--f-mono); font-size:12.5px; min-height:120px}
+.imp-msg{font-size:14px; font-weight:600}
+.imp-msg.good{color:var(--go)} .imp-msg.bad{color:var(--stop)}
+
+.addp{display:grid; gap:14px; margin-bottom:18px; border:1.5px solid var(--ink)}
+.addp h2{font-size:21px}
+.prov{display:flex; flex-wrap:wrap; gap:8px}
+.prov label{display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--line-strong); border-radius:999px; padding:6px 14px; cursor:pointer; min-height:40px; font-weight:600; font-size:14.5px}
+.prov input{accent-color:var(--violet); width:16px; height:16px; margin:0}
+.prov label:has(input:checked){border-color:var(--ink); background:var(--surface-2)}
+.form-err{color:var(--stop); font-weight:600; font-size:14.5px}
+
+.kanban{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(232px, 1fr); gap:12px; overflow-x:auto; padding-bottom:12px; scroll-snap-type:x proximity}
+.kcol{background:var(--surface-2); border-radius:14px; padding:10px; display:grid; gap:8px; align-content:start; min-height:180px; scroll-snap-align:start}
+.kcol.clos{background:transparent; border:1.5px dashed var(--line-strong)}
+.kcol > h2{font-size:15px; display:flex; justify-content:space-between; gap:8px; align-items:baseline; padding:4px 4px 6px}
+.kcol > h2 .n{font-family:var(--f-mono); font-size:13px; font-weight:500; color:var(--muted)}
+.kempty{font-size:13.5px; color:var(--muted); padding:6px 4px}
+.kc{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px; display:grid; gap:6px}
+.kc.flash{box-shadow:0 0 0 3px var(--violet)}
+.kc h3{font-size:16px; line-height:1.25}
+.kc h3 a{color:var(--ink); text-decoration:none}
+.kc h3 a:hover{text-decoration:underline}
+.kmeta{display:flex; flex-wrap:wrap; gap:5px}
+.chip{display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; border-radius:999px; padding:2px 9px; background:var(--surface-2); color:var(--ink-2); white-space:nowrap}
+.chip.step{background:var(--violet-soft); color:var(--violet-ink)}
+.chip.demo{border:1px dashed var(--line-strong); background:transparent}
+.knext{font-size:13.5px; color:var(--ink-2)}
+.late{font-size:13px; font-weight:650; color:var(--stop)}
+.kc .btn{justify-self:start}
+
+.tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface)}
+.list table{border-collapse:collapse; width:100%; font-size:15px}
+.list th, .list td{padding:11px 14px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line)}
+.list thead th{font-size:13.5px; font-weight:650; color:var(--ink-2); background:var(--surface-2)}
+.list tbody tr:last-child td{border-bottom:0}
+/* Sur téléphone, chaque candidat devient un bloc lisible plutôt qu'une ligne de six colonnes */
+@media (max-width:640px){
+  .list thead{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+  .list table, .list tbody, .list tr, .list td{display:block}
+  .list tr{border-bottom:1px solid var(--line); padding:10px 0}
+  .list td{border:0; padding:3px 14px}
+  .list td[data-l]::before{content:attr(data-l) " : "; font-weight:650; color:var(--muted); font-size:13px}
+}
+.list td .nm{font-weight:650}
+.list td .em{display:block; font-size:13.5px; color:var(--muted)}
+.list td.when{font-size:14px; color:var(--ink-2); white-space:nowrap; font-variant-numeric:tabular-nums}
+
+.empty{border:1.5px dashed var(--line-strong); border-radius:18px; padding:clamp(22px,4vw,40px); display:grid; gap:12px; justify-items:start; max-width:640px}
+.empty h2{font-size:22px}
+.empty p{color:var(--ink-2)}
+
+/* ---------- Fiche candidat ---------- */
+.back{display:inline-flex; align-items:center; gap:6px; margin-top:20px; font-weight:600; min-height:40px}
+.chead{display:flex; flex-wrap:wrap; gap:10px 24px; justify-content:space-between; align-items:end; padding-block:8px 18px}
+.chead h1{font-size:clamp(30px,4vw,40px)}
+.chead h1:focus, .sp-head h2:focus{outline:none}
+.refus h3:focus{outline:none}
+.cmeta{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+.contact{font-size:15px; color:var(--ink-2); display:grid; gap:2px; text-align:right}
+.contact span{user-select:all}
+@media (max-width:700px){ .contact{text-align:left} }
+
+/* Le stepper : une étape à la fois, les suivantes restent fermées */
+.stepper{display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; justify-content:space-between; border-block:1px solid var(--line); padding-block:12px}
+.steps{position:relative; list-style:none; margin:0; padding:0; display:flex; gap:4px; overflow-x:auto; flex:1 1 640px; min-width:0; max-width:100%; padding-bottom:2px}
+.steps button{position:relative}
+.steps li{flex:1 0 auto; display:flex; align-items:center}
+.steps li + li::before{content:""; width:14px; height:2px; background:var(--line-strong); margin-right:4px; flex:none}
+.steps li.done + li::before{background:var(--ink)}
+.steps button{appearance:none; display:inline-flex; align-items:center; gap:7px; border:1.5px solid transparent; background:transparent; color:var(--ink-2); border-radius:999px; padding:5px 11px 5px 5px; font-weight:600; font-size:14px; cursor:pointer; min-height:40px; white-space:nowrap}
+.steps .num{width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-family:var(--f-mono); font-size:12.5px; border:1.5px solid currentColor; flex:none}
+.steps li.done button{color:var(--ink)}
+.steps li.done .num{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.steps li.cur button{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.steps li.cur .num{background:var(--paper); color:var(--ink); border-color:var(--paper)}
+.steps li.viewing button{border-color:var(--violet); box-shadow:inset 0 0 0 1px var(--violet)}
+.steps li.future button{color:var(--muted); cursor:not-allowed; opacity:.7}
+.steps li.future .num{border-style:dashed}
+.steps li.stop button{color:var(--stop)}
+.steps li.stop .num{border-color:var(--stop); color:var(--stop)}
+.steps li.endchip span{display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:650; border-radius:999px; padding:6px 12px; border:1.5px dashed var(--stop); color:var(--stop); white-space:nowrap}
+.guide-link{font-weight:600; font-size:14.5px; white-space:nowrap}
+
+.steppanel{display:grid; gap:20px; padding-block:22px 10px}
+.sp-head{display:grid; gap:8px; max-width:78ch}
+.sp-head .eyebrow{font-size:14px; font-weight:650; color:var(--muted)}
+.sp-head h2{font-size:clamp(24px,3vw,30px)}
+.sp-head .obj{font-size:16.5px; border-left:3px solid var(--yellow); padding-left:12px}
+.readonly{background:var(--surface-2); border-radius:12px; padding:10px 14px; font-size:15px; color:var(--ink-2)}
+.notice{display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; background:var(--go-tint); border-radius:12px; padding:10px 14px; font-size:15px}
+.notice.err{background:var(--stop-tint)}
+.notice button{appearance:none; border:0; background:none; color:var(--violet); font-weight:650; cursor:pointer; text-decoration:underline; text-underline-offset:3px; padding:6px 0; min-height:36px}
+.links{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.links .lab{font-size:14px; font-weight:650; color:var(--ink-2); margin-right:2px}
+.links a{display:inline-flex; align-items:center; gap:6px; font-size:14.5px; font-weight:600; border:1.5px solid var(--violet); color:var(--violet-ink); background:var(--violet-soft); border-radius:10px; padding:6px 12px; text-decoration:none; min-height:40px}
+.links a:hover{background:var(--surface)}
+.links a .ext{font-size:12.5px; font-weight:500; color:var(--muted)}
+.box{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; display:grid; gap:14px; align-content:start; min-width:0}
+.box > h3{font-size:18px}
+.box .hint{font-size:14px; color:var(--muted)}
+.grid2{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px}
+@media (max-width:860px){ .grid2{grid-template-columns:1fr} }
+.bloc{display:grid; gap:8px}
+.bloc h4{font-size:16px}
+.bloc ul{margin:0; padding-left:18px; font-size:14px; color:var(--muted); display:grid; gap:2px}
+.onepager{background:var(--yellow-soft); border-radius:var(--radius); padding:16px 18px; display:grid; gap:10px}
+.onepager h3{font-size:18px}
+.check{display:inline-flex; align-items:center; gap:10px; font-weight:650; cursor:pointer; min-height:44px}
+.check input{width:20px; height:20px; margin:0; accent-color:var(--violet)}
+.radios-inline{display:flex; flex-wrap:wrap; gap:8px}
+.radios-inline label{display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--line-strong); border-radius:10px; padding:6px 12px; cursor:pointer; min-height:40px; font-weight:600; font-size:14.5px}
+.radios-inline input{accent-color:var(--violet); width:16px; height:16px; margin:0}
+.radios-inline label:has(input:checked){border-color:var(--ink); background:var(--surface-2)}
+.status{display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; font-size:15px}
+.status .ok{color:var(--go); font-weight:650}
+.status .todo{color:var(--muted); font-weight:600}
+.carteprev dl{margin:0; display:grid; grid-template-columns:minmax(0,11em) minmax(0,1fr); gap:6px 14px; font-size:15px}
+.carteprev dt{font-weight:650}
+.carteprev dd{margin:0; color:var(--ink-2)}
+@media (max-width:560px){ .carteprev dl{grid-template-columns:1fr; gap:2px} .carteprev dd{margin-bottom:6px} }
+.carteprev ul{margin:0; padding-left:18px}
+.carteprev h4.sub{font-size:15px; margin-bottom:8px}
+.carteprev dd.pre{white-space:pre-line}
+fieldset.plain{border:0; padding:0; margin:0; min-width:0}
+.onepager ul.asks{margin:0; padding-left:20px; display:grid; gap:4px}
+/* EC3 : les questions ouvertes passent devant tout le reste */
+.ask3{border:2px solid var(--violet); background:var(--violet-soft); border-radius:var(--radius); padding:16px 18px; display:grid; gap:10px}
+.ask3 h3{font-size:18px; color:var(--violet-ink)}
+.ask3 ol{margin:0; padding-left:22px; display:grid; gap:6px; font-size:16.5px; font-weight:600}
+.recap{list-style:none; margin:0; padding:0; display:grid; gap:0}
+.recap li{display:grid; grid-template-columns:minmax(0,9em) minmax(0,1fr); gap:2px 14px; font-size:15px; border-top:1px solid var(--line); padding-block:8px}
+.recap li:first-child{border-top:0}
+.recap .d{font-size:14px; color:var(--muted); font-variant-numeric:tabular-nums}
+@media (max-width:560px){ .recap li{grid-template-columns:1fr} }
+
+/* Les sorties de l'étape : collées en bas de l'écran pendant qu'on remplit */
+.exits{position:sticky; bottom:0; z-index:5; background:var(--paper); border-top:1.5px solid var(--ink); padding-block:12px calc(12px + env(safe-area-inset-bottom, 0px)); display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; justify-content:space-between}
+.exits .l, .exits .r{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+.exits .why{font-size:14px; color:var(--muted); max-width:44ch}
+.btn.stop{border-color:var(--stop); color:var(--stop)}
+.btn.stop:hover{background:var(--stop-tint)}
+.btn.stop.fill{background:var(--stop); color:var(--paper)}
+.saved{font-size:13.5px; color:var(--muted)}
+
+.refus{border:1.5px solid var(--stop); border-radius:var(--radius); padding:18px 20px; display:grid; gap:14px; background:var(--surface)}
+.refus h3{font-size:20px; color:var(--stop)}
+.refus .rappel{display:flex; gap:10px; align-items:flex-start; font-size:15.5px; background:var(--stop-tint); border-radius:10px; padding:10px 12px}
+.refus .rappel svg{flex:none; margin-top:2px}
+
+.hist{margin-top:26px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface)}
+.hist > summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:650; display:flex; justify-content:space-between; gap:12px; min-height:48px; align-items:center}
+.hist > summary::-webkit-details-marker{display:none}
+.hist > summary::after{content:"Afficher"; font-weight:600; font-size:14px; color:var(--violet)}
+.hist[open] > summary::after{content:"Masquer"}
+.hist ol{list-style:none; margin:0; padding:0 18px 18px; display:grid; gap:8px}
+.hist li{display:grid; grid-template-columns:minmax(0,12em) minmax(0,1fr); gap:2px 14px; font-size:14.5px; border-top:1px solid var(--line); padding-top:8px}
+.hist li .d{font-family:var(--f-mono); font-size:13px; color:var(--muted)}
+.hist li .m{color:var(--ink-2)}
+@media (max-width:560px){ .hist li{grid-template-columns:1fr} }
+.danger{margin-top:18px; display:grid; gap:10px}
+
+/* ===================== v3 ===================== */
+/* L'État : une pastille de couleur et toujours son libellé. La couleur aide, le texte porte le sens. */
+:root{
+  --e-a-planifier:#b8234a; --e-a-planifier-t:#ffe6ec;
+  --e-planifie:#4d25f7; --e-planifie-t:#efebff;
+  --e-fait:#1f5fbf; --e-fait-t:#e3edfb;
+  --e-retour-a-faire:#b45309; --e-retour-a-faire-t:#fdecd8;
+  --e-non-retenu:#625b6f; --e-non-retenu-t:#eeebf1;
+  --e-valide:#12764f; --e-valide-t:#ddf4e8;
+  --e-plus-dispo:#8a6d00; --e-plus-dispo-t:#fbf3c4;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --e-a-planifier:#ff8fa8; --e-a-planifier-t:#3a1a24;
+  --e-planifie:#a998ff; --e-planifie-t:#262046;
+  --e-fait:#7fb2ff; --e-fait-t:#17263d;
+  --e-retour-a-faire:#ffb36b; --e-retour-a-faire-t:#3a2614;
+  --e-non-retenu:#b4adc0; --e-non-retenu-t:#2a2531;
+  --e-valide:#6fd6a6; --e-valide-t:#14301f;
+  --e-plus-dispo:#e8cf5a; --e-plus-dispo-t:#332c0f;
+} }
+:root[data-theme="dark"]{
+  --e-a-planifier:#ff8fa8; --e-a-planifier-t:#3a1a24; --e-planifie:#a998ff; --e-planifie-t:#262046; --e-fait:#7fb2ff; --e-fait-t:#17263d;
+  --e-retour-a-faire:#ffb36b; --e-retour-a-faire-t:#3a2614; --e-non-retenu:#b4adc0; --e-non-retenu-t:#2a2531; --e-valide:#6fd6a6; --e-valide-t:#14301f;
+  --e-plus-dispo:#e8cf5a; --e-plus-dispo-t:#332c0f;
+}
+.etat{--e:var(--e-a-planifier); --et:var(--e-a-planifier-t); appearance:none; display:inline-flex; align-items:center; gap:7px; border-radius:999px; padding:3px 11px 3px 9px; font:inherit; font-size:13px; font-weight:650; line-height:1.3; border:1.5px solid var(--e); background:var(--et); color:var(--ink); white-space:nowrap}
+.etat::before{content:""; width:9px; height:9px; border-radius:50%; background:var(--e); flex:none}
+button.etat{cursor:pointer; min-height:32px}
+button.etat::after{content:""; width:7px; height:7px; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; transform:rotate(45deg) translateY(-2px); margin-left:2px; opacity:.7}
+.etat[data-e="planifie"]{--e:var(--e-planifie); --et:var(--e-planifie-t)}
+.etat[data-e="fait"]{--e:var(--e-fait); --et:var(--e-fait-t)}
+.etat[data-e="retour-a-faire"]{--e:var(--e-retour-a-faire); --et:var(--e-retour-a-faire-t)}
+.etat[data-e="non-retenu"]{--e:var(--e-non-retenu); --et:var(--e-non-retenu-t)}
+.etat[data-e="valide"]{--e:var(--e-valide); --et:var(--e-valide-t)}
+.etat[data-e="plus-dispo"]{--e:var(--e-plus-dispo); --et:var(--e-plus-dispo-t)}
+.menu{position:absolute; z-index:30; background:var(--surface); border:1.5px solid var(--ink); border-radius:12px; padding:6px; display:grid; gap:2px; min-width:190px; box-shadow:0 10px 30px rgba(22,15,32,.16)}
+.menu [role="menuitemradio"]{appearance:none; display:flex; align-items:center; gap:8px; border:0; background:none; font:inherit; font-size:14.5px; text-align:left; padding:7px 10px; border-radius:8px; color:var(--ink); cursor:pointer; min-height:36px}
+.menu [role="menuitemradio"]:hover, .menu [role="menuitemradio"]:focus-visible{background:var(--surface-2); outline:none}
+.menu [aria-checked="true"]{font-weight:700}
+.menu [aria-checked="true"]::after{content:"✓"; margin-left:auto}
+
+/* Aides : une icône « ? », la bulle au survol ou au focus, Échap la ferme */
+.tipw{position:relative; display:inline-flex; vertical-align:middle}
+.tip{appearance:none; width:22px; height:22px; border-radius:50%; border:1.5px solid var(--line-strong); background:var(--surface); color:var(--ink-2); font:inherit; font-size:12.5px; font-weight:700; cursor:help; display:inline-grid; place-items:center; padding:0; line-height:1}
+.tip:hover, .tip[aria-expanded="true"]{border-color:var(--violet); color:var(--violet-ink)}
+.bubble{position:absolute; z-index:40; left:50%; top:calc(100% + 8px); transform:translateX(-50%); width:max-content; max-width:min(320px, 80vw); background:var(--ink); color:var(--paper); font-size:13.5px; font-weight:500; line-height:1.4; padding:8px 11px; border-radius:10px; box-shadow:0 8px 24px rgba(22,15,32,.2)}
+.bubble[hidden]{display:none}
+.floattip{position:fixed; z-index:50; max-width:280px; background:var(--ink); color:var(--paper); font-size:13.5px; line-height:1.4; padding:8px 11px; border-radius:10px; pointer-events:none}
+
+/* Carte du kanban : Nom, Job · XP, Disponibilité, État, Recruteurs */
+.kc{gap:8px}
+.kc .kline{display:flex; flex-wrap:wrap; gap:4px 8px; align-items:center; font-size:14px; color:var(--ink-2)}
+.kc .kline b{font-weight:650; color:var(--ink)}
+.kc .khead{display:flex; justify-content:space-between; align-items:flex-start; gap:6px}
+.kc .khead .iconbtn{margin:-4px -4px 0 0; padding:4px}
+.kc .kfoot{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap}
+.kc[draggable="true"]{cursor:grab}
+.ini{display:inline-flex; gap:3px}
+.ini span{width:26px; height:26px; border-radius:50%; display:inline-grid; place-items:center; font-size:11.5px; font-weight:700; background:var(--surface-2); color:var(--ink-2); border:1px solid var(--line)}
+.ini.none{font-size:13px; color:var(--muted)}
+.iconbtn{appearance:none; display:inline-flex; align-items:center; gap:6px; border:0; background:none; color:var(--violet); font:inherit; font-size:13.5px; font-weight:650; cursor:pointer; padding:4px 2px; min-height:32px}
+.iconbtn:hover{text-decoration:underline; text-underline-offset:3px}
+.colhead{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
+.more-cols{margin:0 0 12px}
+.kcol.hidden-col{background:transparent; border:1.5px dashed var(--line-strong)}
+
+/* Liste : tri par colonne */
+.list th button{appearance:none; border:0; background:none; font:inherit; font-weight:inherit; color:inherit; cursor:pointer; padding:0; display:inline-flex; gap:5px; align-items:center}
+.list th button::after{content:"↕"; opacity:.45; font-size:12px}
+.list th[aria-sort="ascending"] button::after{content:"↑"; opacity:1}
+.list th[aria-sort="descending"] button::after{content:"↓"; opacity:1}
+
+/* Formulaire d'ajout et bloc Infos candidat */
+.chips-check{display:flex; flex-wrap:wrap; gap:8px}
+.chips-check label{display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--line-strong); border-radius:999px; padding:6px 13px; cursor:pointer; min-height:38px; font-weight:600; font-size:14.5px}
+.chips-check input{accent-color:var(--violet); width:16px; height:16px; margin:0}
+.chips-check label:has(input:checked){border-color:var(--ink); background:var(--surface-2)}
+.add-actions{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:16px}
+.field .hint{font-size:13px; color:var(--muted)}
+.tags{display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1.5px solid var(--line-strong); border-radius:var(--radius-s); padding:5px 8px; background:var(--surface); min-height:44px}
+.tags:focus-within{outline:3px solid var(--violet); outline-offset:1px; border-color:var(--violet)}
+.tags .tg{display:inline-flex; align-items:center; gap:4px; background:var(--surface-2); border-radius:999px; padding:2px 4px 2px 10px; font-size:14px; font-weight:600}
+.tags .tg button{appearance:none; border:0; background:none; cursor:pointer; width:24px; height:24px; border-radius:50%; font-size:15px; line-height:1; color:var(--ink-2)}
+.tags .tg button:hover{background:var(--line)}
+.tags input{border:0; outline:none; flex:1 1 120px; min-width:120px; min-height:32px; padding:2px 4px; background:transparent; font:inherit}
+.infos{border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:14px 16px; display:grid; gap:10px}
+.infos .ihead{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap}
+.infos h3{font-size:16px}
+.infos .igrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:8px 12px}
+.infos .field label{font-size:13px}
+.infos input, .infos select{min-height:38px; padding:6px 10px; font-size:15px}
+.infos .wide{grid-column:1 / -1}
+
+/* En-tête du candidat */
+.cmeta .jx{font-weight:650}
+.chead .side{display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; justify-content:flex-end}
+@media (max-width:700px){ .chead .side{justify-content:flex-start} }
+.qlist{display:grid; gap:12px}
+.q{display:grid; gap:6px}
+.q > label, .q > .ql{font-weight:650; font-size:15.5px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.q .qn{font-family:var(--f-mono); font-size:13px; color:var(--muted); min-width:1.6em}
+.q textarea{min-height:52px}
+.q .inline{display:flex; flex-wrap:wrap; gap:8px 12px; align-items:end}

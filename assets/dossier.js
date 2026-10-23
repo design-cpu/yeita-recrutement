@@ -1,23 +1,28 @@
 /* Le dossier candidat : une seule structure pour tout ce que le recrutement produit.
-   Le module Candidatures y range l'identité et le parcours ; les fiches #1 et #2 y reportent leur lecture ;
-   la carte d'identité la lit.
+   Le module Candidatures y range la fiche du candidat (champs alignés sur la base Notion « Candidats ») et le parcours ;
+   les fiches EC1 et EC2 y écrivent leur lecture ; la carte d'identité la lit.
 
-   Version 2 (octobre 2026) : le dossier v1 (lecture EC1, EC2, restitution) devient un candidat complet
-   (identité, parcours, appel, passations, EC3, décision, historique). Un dossier v1 est migré à la lecture.
+   Version 3 (octobre 2026) : champs Notion (Personne, Job, XP, Disponibilité, Provenance multiple, Recruteurs…),
+   État changé à la main, Bilans (ex-passations), Décision à quatre issues, Proposition, Go sur mission, Vivier.
+   Un dossier v1 ou v2 est migré à la lecture : rien n'est supprimé. Détail des champs et de la migration : docs/backend/MODELE.md.
 
-   Aujourd'hui, le dossier vit dans le navigateur (stockage local, avec repli en mémoire si le navigateur refuse).
-   Demain, une base partagée prendra le relais : il suffira de remplacer l'adaptateur de stockage
-   (DOSSIER.use(adaptateur)) par un adaptateur qui parle à la base, avec la même interface en promesses :
-   list(), get(id), put(dossier), remove(id). Voir STORAGE.md, docs/modele-de-donnees.md et docs/backend/.
-
-   En attendant, les codes YEITA-EC1 / YEITA-EC2 et l'export JSON du module Candidatures
-   restent les moyens de passer d'un ordinateur à l'autre. */
+   Le stockage passe par un adaptateur à quatre méthodes en promesses : list(), get(id), put(dossier), remove(id).
+   Aujourd'hui, le navigateur (avec repli en mémoire). Demain, SQLite côté serveur : DOSSIER.use(adaptateur), sans toucher aux pages. */
 (function(){
 "use strict";
-var SCHEMA = "yeita-dossier-candidat", VERSION = 2;
+var SCHEMA = "yeita-dossier-candidat", VERSION = 3;
 var KEY = "yeita-dossiers", CUR = "yeita-dossier-courant";
 var DIAM_LEVELS = ["Fort", "À creuser", "Absent", "Non vu"];
-var ETAPES = ["appel", "ec1", "passation-ec1", "ec2", "passation-ec2", "ec3", "decision", "onboarding"];
+/* Les étapes du parcours, dans l'ordre. Vivier et Non retenu sont des sorties, hors du fil. */
+var ETAPES = ["appel", "ec1", "bilan-ec1", "ec2", "bilan-ec2", "ec3", "decision", "proposition", "go-mission", "onboarding"];
+var SORTIES = ["vivier", "non-retenu"];
+/* Valeurs des listes, alignées sur la base Notion « Candidats » (libellés affichés : assets/wording.fr.js). */
+var JOBS = ["PrD", "PM / PO", "Ops", "SM", "PMM", "UXR", "Bizdev", "RH", "Recruteur·se"];
+var DISPOS = ["Intercontrat", "Immédiatement", "1 mois", "2 mois", "3 mois", "Septembre"];
+var PROVENANCES = ["Cooptation", "WTTJ", "LinkedIn", "Chasse", "Candidature spontanée"];
+var ETATS = ["a-planifier", "planifie", "fait", "retour-a-faire", "non-retenu", "valide", "plus-dispo"];
+/* Les noms d'étapes de la v2, et leur équivalent v3. */
+var RENOMMAGE = {"passation-ec1": "bilan-ec1", "passation-ec2": "bilan-ec2", "clos": "non-retenu"};
 
 function now(){ return new Date().toISOString(); }
 function uid(){ return "cand-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7); }
@@ -49,20 +54,34 @@ function emptyEC2(){
     reporteLe: null
   };
 }
-function emptyIdentite(){ return {prenom: "", nom: "", email: "", telephone: "", provenance: "autre", provenanceDetail: "", poste: "PM"}; }
-function emptyAppel(){ return {date: "", par: "", blocs: {parcours: "", recherche: "", cadre: "", conditions: ""}, onePager: {envoyeLe: null, par: ""}}; }
-/* Le modèle v2 complet. ec1 et ec2 restent à null tant que les fiches n'ont rien reporté. */
+/* La fiche du candidat, champ pour champ comme dans Notion. prenom, nom et poste sont calculés (syncNom) : ne pas les saisir. */
+function emptyIdentite(){
+  return {personne: "", job: "PM / PO", xp: null, disponibilite: "", dateDisponibilite: "", dateDebutProcess: "",
+    provenances: [], provenanceDetail: "", recruteurs: [],
+    email: "", telephone: "", adresse: "", linkedin: "", portfolio: "", cv: "", references: "", syntheseEC: "",
+    prenom: "", nom: "", poste: "PM"};
+}
+/* Les questions de l'appel de découverte (base Notion, section « Appel de Découverte »).
+   La disponibilité et le lieu d'habitation s'écrivent directement dans la fiche (identite.disponibilite, identite.adresse). */
+var QUESTIONS_APPEL = ["recherche", "pourquoi", "role", "ia", "yeita", "motivations", "disponibilite", "pistes", "remuneration"];
+function emptyAppel(){
+  var r = {}; QUESTIONS_APPEL.forEach(function(k){ r[k] = ""; });
+  return {date: "", par: "", reponses: r, ancien: null, onePager: {envoyeLe: null, par: ""}};
+}
+/* Le modèle v3 complet. ec1 et ec2 restent à null tant que les fiches n'ont rien écrit. */
 function model(){
   return {schema: SCHEMA, version: VERSION, id: "",
     candidat: {nom: "", role: "PM"},
     identite: emptyIdentite(),
+    etat: "a-planifier",
     parcours: {etape: "appel", etapes: {}, cloture: null},
     appel: emptyAppel(),
     ec1: null, ec2: null,
     fiches: {},
-    passations: {ec1: null, ec2: null},
+    bilans: {ec1: null, ec2: null},
     ec3: {notes: "", par: "", le: null},
-    decision: {appelFaitLe: null, par: ""},
+    decision: {choix: null, commentaire: "", le: null, par: "", appelFaitLe: null},
+    arrivee: {confirmeeLe: null, par: ""},
     restitution: {etat: "ec1"},
     historique: [],
     notesLibres: {},
@@ -83,38 +102,91 @@ function fill(obj, mdl){
   });
   return obj;
 }
-/* Le nom affiché (candidat.nom) suit toujours le prénom et le nom de l'identité. */
-function setNom(d, full){
-  var parts = String(full || "").trim().split(/\s+/).filter(Boolean);
-  d.identite.prenom = parts.shift() || "";
-  d.identite.nom = parts.join(" ");
-  d.candidat.nom = String(full || "").trim();
+/* « Nom Prénom » est un seul champ libre : on colle souvent « NOM Prénom ».
+   Le prénom sert seulement à saluer (mail du one-pager) : les mots tout en capitales sont pris pour le nom,
+   sinon le premier mot est le prénom. « GARNIER Léna » → Léna ; « Léna Garnier » → Léna. */
+function decoupe(personne){
+  var mots = String(personne || "").trim().split(/\s+/).filter(Boolean);
+  var caps = function(m){ return m.length > 1 && /\p{L}/u.test(m) && m === m.toUpperCase() && m !== m.toLowerCase(); };
+  var nomMots = mots.filter(caps), autres = mots.filter(function(m){ return !caps(m); });
+  if(nomMots.length && autres.length) return {prenom: autres.join(" "), nom: nomMots.join(" ")};
+  return {prenom: mots[0] || "", nom: mots.slice(1).join(" ")};
 }
+/* Le rôle des fiches EC2 et de la carte : Product Designer pour PrD, Product Manager pour le reste. */
+function roleDe(job){ return job === "PrD" ? "PrD" : "PM"; }
+function setNom(d, full){ d.identite.personne = String(full || "").trim(); syncNom(d); }
+/* Les champs calculés suivent toujours la fiche : nom affiché, prénom, rôle. */
 function syncNom(d){
-  var full = [d.identite.prenom, d.identite.nom].map(function(x){ return String(x || "").trim(); }).filter(Boolean).join(" ");
-  if(full) d.candidat.nom = full;
-  d.candidat.role = d.identite.poste || d.candidat.role || "PM";
+  var i = d.identite, p = String(i.personne || "").trim();
+  if(!p) p = [i.prenom, i.nom].map(function(x){ return String(x || "").trim(); }).filter(Boolean).join(" ");
+  i.personne = p;
+  var dn = decoupe(p); i.prenom = dn.prenom; i.nom = dn.nom;
+  i.poste = roleDe(i.job);
+  d.candidat.nom = p || d.candidat.nom || "";
+  d.candidat.role = i.poste;
 }
-/* Migration v1 → v2 : on garde tout, on déduit l'étape de ce qui a été reporté. */
+/* Migration à la lecture : v1 → v2 (identité, parcours), puis v2 → v3 (champs Notion, bilans, décision). Rien n'est supprimé. */
 function upgrade(d){
   if(!d || typeof d !== "object") return d;
-  if(d.version === VERSION && d.identite && d.parcours) return fill(d, model());
-  var v1 = !d.identite;
+  if(d.version === VERSION && d.identite && d.parcours){ fill(d, model()); syncNom(d); return d; }
+  var v1 = !d.identite, v2 = d.version === 2 && !v1;
+  if(v1 || v2) versV3(d, v1);
   fill(d, model());
   d.schema = SCHEMA; d.version = VERSION;
-  if(v1){
-    var nom = d.candidat && d.candidat.nom || "";
-    var parts = nom.trim().split(/\s+/).filter(Boolean);
-    d.identite.prenom = parts.shift() || ""; d.identite.nom = parts.join(" ");
-    d.identite.poste = (d.candidat && d.candidat.role) || "PM";
-    var etape = d.ec2 ? "passation-ec2" : (d.ec1 ? "passation-ec1" : "appel");
-    d.parcours.etape = etape;
-    d.meta.origine = "fiche";
-    d.historique.push({de: null, vers: etape, le: (d.meta && d.meta.creeLe) || now(), par: "", motif: "Repris d'une fiche, avant le module Candidatures"});
-  }
+  syncNom(d);
   return d;
 }
-
+function renomme(e){ return RENOMMAGE[e] || e; }
+function versV3(d, v1){
+  if(v1){
+    var nomV1 = d.candidat && d.candidat.nom || "";
+    d.identite = {personne: nomV1, job: d.candidat && d.candidat.role === "PrD" ? "PrD" : "PM / PO"};
+    var etape = d.ec2 ? "bilan-ec2" : (d.ec1 ? "bilan-ec1" : "appel");
+    d.parcours = {etape: etape, etapes: {}, cloture: null};
+    d.meta = d.meta || {}; d.meta.origine = "fiche";
+    d.historique = [{de: null, vers: etape, le: d.meta.creeLe || now(), par: "", motif: "Repris d'une fiche, avant le module Candidatures"}];
+    return;
+  }
+  /* v2 → v3 */
+  var i = d.identite || {};
+  var personne = [i.prenom, i.nom].map(function(x){ return String(x || "").trim(); }).filter(Boolean).join(" ") || (d.candidat && d.candidat.nom) || "";
+  var prov = [], det = String(i.provenanceDetail || "").trim(), nd = norm(det);
+  if(i.provenance === "linkedin") prov = ["LinkedIn"];
+  else if(i.provenance === "wttj") prov = ["WTTJ"];
+  else if(/coopt/.test(nd)) prov = ["Cooptation"];
+  else if(/chasse/.test(nd)) prov = ["Chasse"];
+  else if(/spontan/.test(nd)) prov = ["Candidature spontanée"];
+  var recruteurs = [];
+  function ajoute(n){ n = String(n || "").trim(); if(n && recruteurs.indexOf(n) < 0) recruteurs.push(n); }
+  ajoute(d.appel && d.appel.par); (d.historique || []).forEach(function(h){ ajoute(h.par); });
+  d.identite = {personne: personne, job: i.poste === "PrD" ? "PrD" : "PM / PO", provenances: prov,
+    provenanceDetail: prov.length ? "" : det, recruteurs: recruteurs,
+    email: i.email || "", telephone: i.telephone || "",
+    dateDebutProcess: String((d.meta && d.meta.creeLe) || now()).slice(0, 10)};
+  var p = d.parcours || {etape: "appel", etapes: {}, cloture: null};
+  p.etape = renomme(p.etape);
+  var et = {}; Object.keys(p.etapes || {}).forEach(function(k){ et[renomme(k)] = p.etapes[k]; }); p.etapes = et;
+  d.parcours = p;
+  (d.historique || []).forEach(function(h){ if(h.de) h.de = renomme(h.de); if(h.vers) h.vers = renomme(h.vers); });
+  var pa = d.passations || {};
+  d.bilans = {ec1: pa.ec1 ? {faitLe: pa.ec1.faiteLe || null, par: pa.ec1.par || "", mode: pa.ec1.mode || "appel", issue: "continuer"} : null,
+              ec2: pa.ec2 ? {faitLe: pa.ec2.faiteLe || null, par: pa.ec2.par || "", mode: pa.ec2.mode || "appel", issue: "continuer"} : null};
+  delete d.passations;
+  var a = d.appel || {}, blocs = a.blocs || {};
+  var anc = Object.keys(blocs).some(function(k){ return String(blocs[k] || "").trim(); }) ? blocs : null;
+  d.appel = {date: a.date || "", par: a.par || "", reponses: emptyAppel().reponses, ancien: anc, onePager: a.onePager || {envoyeLe: null, par: ""}};
+  var dc = d.decision || {};
+  d.decision = {choix: null, commentaire: "", le: null, par: dc.par || "", appelFaitLe: dc.appelFaitLe || null};
+  d.arrivee = {confirmeeLe: null, par: ""};
+  if(p.etape === "onboarding"){
+    var dec = p.etapes.decision || {};
+    d.decision.choix = "proposition"; d.decision.le = dec.termineLe || null;
+    d.arrivee.confirmeeLe = dec.termineLe || null;
+  }
+  var s = p.etapes[p.etape] || {};
+  d.etat = p.etape === "non-retenu" ? "non-retenu" : (p.etape === "onboarding" ? "valide" : (s.debuteLe ? "planifie" : "a-planifier"));
+  d.meta = d.meta || {}; d.meta.migreV3Le = now();
+}
 /* ---------- Adaptateur de stockage : le navigateur, avec repli en mémoire ---------- */
 var memory = null;   /* copie de secours quand le navigateur refuse d'enregistrer */
 var LocalAdapter = {
@@ -167,11 +239,11 @@ function report(part, nom, data, id){
     .then(function(d){
       if(!d){
         d = blank(nom); d.meta.origine = "fiche";
-        d.parcours.etape = part === "ec2" ? "passation-ec2" : "passation-ec1";
+        d.parcours.etape = part === "ec2" ? "bilan-ec2" : "bilan-ec1";
         d.historique.push({de: null, vers: d.parcours.etape, le: now(), par: "", motif: "Créé par le report de la fiche " + (part === "ec1" ? "#1" : "#2")});
       }
-      if(!d.identite.prenom && !d.identite.nom) setNom(d, nom);
-      if(part === "ec2" && data.role) d.identite.poste = data.role;
+      if(!d.identite.personne) setNom(d, nom);
+      if(part === "ec2" && data.role && roleDe(d.identite.job) !== data.role) d.identite.job = data.role === "PrD" ? "PrD" : "PM / PO";
       d[part] = fill(clone(data), part === "ec1" ? emptyEC1() : emptyEC2());
       d[part].reporteLe = now();
       if(part === "ec2" && d.restitution && d.restitution.etat === "ec1") d.restitution.etat = "ec2";
@@ -228,18 +300,20 @@ function importCode(raw){
     .then(function(d){
       if(!d){
         d = blank(nom); if(c.id) d.id = c.id; d.meta.origine = "fiche";
-        d.parcours.etape = c.part === "ec2" ? "passation-ec2" : "passation-ec1";
+        d.parcours.etape = c.part === "ec2" ? "bilan-ec2" : "bilan-ec1";
         d.historique.push({de: null, vers: d.parcours.etape, le: now(), par: "", motif: "Créé depuis un code " + c.part.toUpperCase()});
       }
       d[c.part] = c.data;
-      if(c.part === "ec2"){ d.identite.poste = c.role; if(d.restitution.etat === "ec1") d.restitution.etat = "ec2"; }
+      if(c.part === "ec2"){ if(roleDe(d.identite.job) !== c.role) d.identite.job = c.role === "PrD" ? "PrD" : "PM / PO"; if(d.restitution.etat === "ec1") d.restitution.etat = "ec2"; }
       return adapter.put(touch(d));
     })
     .then(function(d){ setCurrent(d.id); return {dossier: d, part: c.part}; });
 }
 
 window.DOSSIER = {
-  SCHEMA: SCHEMA, VERSION: VERSION, DIAM_LEVELS: DIAM_LEVELS, ETAPES: ETAPES, KEY: KEY,
+  SCHEMA: SCHEMA, VERSION: VERSION, DIAM_LEVELS: DIAM_LEVELS, ETAPES: ETAPES, SORTIES: SORTIES, KEY: KEY,
+  JOBS: JOBS, DISPOS: DISPOS, PROVENANCES: PROVENANCES, ETATS: ETATS, QUESTIONS_APPEL: QUESTIONS_APPEL,
+  decoupe: decoupe, roleDe: roleDe, setNom: setNom,
   use: function(a){ adapter = a; },
   adapter: function(){ return adapter; },
   emptyEC1: emptyEC1, emptyEC2: emptyEC2, emptyIdentite: emptyIdentite, emptyAppel: emptyAppel, model: model, blank: blank, upgrade: upgrade,

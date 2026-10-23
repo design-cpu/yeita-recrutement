@@ -18,7 +18,7 @@ async def main():
         await ctx.route("https://fonts.googleapis.com/**", lambda r: r.fulfill(body="", content_type="text/css"))
         await ctx.add_init_script("window.print = function(){ window.__printed = (window.__printed||0) + 1; }")
         pg = await ctx.new_page(); errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto(B+"candidatures.html", wait_until="networkidle")
+        await pg.goto(B+"candidatures/", wait_until="networkidle")
         await pg.evaluate("localStorage.setItem('yeita-recruteur', JSON.stringify('Thélo'))"); await pg.reload(wait_until="networkidle")
         await pg.click("#empty-demo"); await pg.wait_for_timeout(400)
         ids = await pg.evaluate("Object.fromEntries(Object.values(JSON.parse(localStorage.getItem('yeita-dossiers'))).map(c=>[c.identite.prenom, c.id]))")

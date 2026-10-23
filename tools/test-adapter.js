@@ -3,10 +3,10 @@
 const fs = require("fs"), vm = require("vm"), path = require("path");
 const root = path.join(__dirname, "..");
 const mem = {};
-const ctx = {console, Date, JSON, Math, Promise, Object, Array, String, Error, RegExp, setTimeout,
+const ctx = {console, Date, JSON, Math, Promise, Object, Array, String, Error, RegExp, Number, setTimeout,
   localStorage: {getItem: k => mem[k] ?? null, setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; }}};
 ctx.window = ctx; vm.createContext(ctx);
-for (const f of ["assets/yeita.js", "assets/data-yeita-match.js", "assets/dossier.js", "assets/store.js", "assets/adapter-supabase.js"]) vm.runInContext(fs.readFileSync(path.join(root, f), "utf8"), ctx, {filename: f});
+for (const f of ["assets/yeita.js", "assets/config.js", "assets/data-yeita-match.js", "assets/dossier.js", "assets/qui.js", "assets/store.js", "assets/adapter-supabase.js"]) vm.runInContext(fs.readFileSync(path.join(root, f), "utf8"), ctx, {filename: f});
 const {STORE: S, DOSSIER: D, SupabaseAdapter} = ctx;
 
 /* Fausse base partagée entre deux « navigateurs » */
@@ -35,7 +35,7 @@ const ok = (c, m, x) => { console.log((c ? "OK  " : "FAIL") + " " + m + (x !== u
   const A = SupabaseAdapter(fakeClient()), B = SupabaseAdapter(fakeClient());
   D.use(A); S.setMe("Thélo");
   ok(D.adapter().name === "supabase" && !S.volatile(), "adaptateur branché, pas de repli en mémoire");
-  let c = await S.createCandidate({prenom: "Léna", nom: "Garnier", email: "lena@example.com", provenance: "wttj"});
+  let c = await S.createCandidate({personne: "Léna Garnier", email: "lena@example.com", provenances: ["WTTJ"]});
   ok(rows.size === 1 && rows.get(c.id).version === 1, "ajout : une ligne, version 1");
   c = await S.startStep(c.id);
   c.appel.onePager = {envoyeLe: D.now(), par: "Thélo"}; c = await S.saveCandidate(c);
