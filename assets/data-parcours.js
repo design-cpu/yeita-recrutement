@@ -10,7 +10,7 @@ var GAME = (window.YEITA_MATCH && YEITA_MATCH.GAME_URL) || "";
 /* n : numéro de l'étape dans le guide du recruteur. liens : [libellé, adresse, nouvel onglet ?] */
 var ETAPES = [
   {id: "appel", guide: "appel", n: 3, liens: [["Critères d'employabilité", C.employabilite, true]]},
-  {id: "ec1", guide: "ec1", n: 5, liens: [["Feuille de décompte", "../yeita-match-decompte.html"], ["Yeita Match en ligne", GAME, true], ["Critères d'employabilité", C.employabilite, true]]},
+  {id: "ec1", guide: "ec1", n: 5, liens: [["Feuille de décompte", "decompte.html"], ["Yeita Match en ligne", GAME, true], ["Critères d'employabilité", C.employabilite, true]]},
   {id: "bilan-ec1", guide: "bilan-ec1", n: 6, liens: []},
   {id: "ec2", guide: "ec2", n: 7, liens: [["Grille de salaire", C.grilleSalaire, true], ["Référentiel des compétences", C.referentiel, true]]},
   {id: "bilan-ec2", guide: "bilan-ec2", n: 8, liens: []},
@@ -24,8 +24,8 @@ var SORTIES = [{id: "vivier", guide: "decision", n: 10, liens: []}, {id: "non-re
 
 /* Yeita Match à l'EC1 : deux formats, deux trousses. */
 var YM = {
-  presentiel: [["Kit Yeita Match à imprimer", "../yeita-match-kit.html"], ["Feuille de décompte vierge", "../yeita-match-decompte.html#vierge"]],
-  visio: [["Yeita Match en ligne", GAME, true], ["Feuille de décompte vierge", "../yeita-match-decompte.html#vierge"]]
+  presentiel: [["Kit Yeita Match à imprimer", "../yeita-match-kit.html"], ["Feuille de décompte vierge", "decompte.html?vierge=1"]],
+  visio: [["Yeita Match en ligne", GAME, true], ["Feuille de décompte vierge", "decompte.html?vierge=1"]]
 };
 
 /* Hors MVP : emplacements prêts, désactivés. */

@@ -46,7 +46,7 @@ function emptyEC1(){
 }
 function emptyEC2(){
   return {
-    date: "", pair: "", role: "PM", palier: 2,
+    date: "", pair: "", role: "PM", palier: 2, notesLibres: "",
     notes: [null,null,null, null,null,null, null,null,null, null,null,null],
     exemples: ["","","", "","","", "","","", "","",""],
     lecture: "", aspirations: "",

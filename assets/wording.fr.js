@@ -184,6 +184,40 @@ window.WORDING = {
     sorties: "Sorties de l'étape"
   },
 
+  /* ---------- Les fiches EC1 et EC2 (candidatures/ec1.html, ec2.html), la carte et la feuille de décompte ---------- */
+  ec: {
+    titre1: "Fiche de l'EC1 · Yeita Match et valeurs",
+    titre2: "Fiche de l'EC2 · Scorecard",
+    aide1: "À remplir juste après l'EC1, avec les notes de l'observateur. Elle s'enregistre seule et nourrit la carte d'identité.",
+    aide2: "À remplir pendant ou juste après l'EC2. Les repères Junior, Intermédiaire et Senior restent neutres : on note ce qu'on a vu.",
+    liens: "Liens et outils",
+    methode: "Rappel de méthode",
+    copierNotion: "Copier pour Notion",
+    vider: "Vider la fiche",
+    viderQuestion: "Vider la fiche de {nom} ?",
+    viderTexte: "Ce qui est écrit ici disparaît de sa candidature et de sa carte d'identité.",
+    ymPasse: "Yeita Match passé",
+    presentiel: "En présentiel",
+    visio: "En visio",
+    ymRepris: "Résultat repris : {dom}, puis {sec}",
+    autoSave: "Enregistrement automatique",
+    retourParcours: "Retour au parcours : {etape}",
+    decompte: "Feuille de décompte",
+    jeuEnLigne: "Yeita Match en ligne",
+    kit: "Kit Yeita Match",
+    carte: "Carte d'identité",
+    scorecard: "Scorecard (référentiel)",
+    grille: "Grille de salaire",
+    notesLibres: "Notes libres",
+    notesLibresAide: "Tout ce qui ne rentre pas dans la scorecard : une anecdote, une question restée ouverte, une piste de mission.",
+    notesLibresPlaceholder: "Ce que tu veux garder de l'entretien",
+    carteRetour: "Retour au parcours",
+    imprimer: "Imprimer pour l'EC3",
+    decompteSans: "Ouverte seule, la feuille compte les jetons mais ne reporte rien : ouvre-la depuis la fiche EC1 d'un candidat pour reporter son résultat.",
+    decompteReporter: "Reporter sur la fiche EC1 de {nom}",
+    retourFiche: "Retour à la fiche EC1 de {nom}"
+  },
+
   /* ---------- Les actions en bas de chaque étape ---------- */
   sorties: {
     suivant: {

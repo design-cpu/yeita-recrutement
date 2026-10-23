@@ -25,18 +25,9 @@
   <p class="sr-only" id="aide-lien" data-t="tableau.lienAide"></p>
 
   <main id="cand" aria-labelledby="c-name">
-    <a href="index.html" class="back" id="back">← <span data-t="commun.retourTableau">Toutes les candidatures</span></a>
     <div id="missing" class="empty" hidden><p id="missing-t"></p><div class="actions"><a class="btn" href="index.html" data-t="commun.retourTableau"></a></div></div>
     <div id="body" hidden>
-      <div class="chead">
-        <div><h1 id="c-name" tabindex="-1"></h1><div class="cmeta" id="c-meta"></div></div>
-        <div class="side" id="c-side"></div>
-      </div>
-      <nav class="stepper" aria-label="Étapes du parcours">
-        <ol class="steps" id="steps"></ol>
-        <a class="guide-link" id="c-guide" href="../index.html#guide"></a>
-      </nav>
-      <div id="notice"></div>
+      <div id="pu"></div>
       <div class="steppanel" id="panel"></div>
       <details class="other" id="fiche-b" style="margin-top:18px"><summary id="fiche-b-t"></summary><div class="in" id="fiche-b-in"></div></details>
       <details class="hist" id="hist"><summary id="hist-t"></summary><ol id="hist-list"></ol></details>
@@ -64,6 +55,7 @@
 <script src="../assets/store.js"></script>
 <script src="../assets/data-parcours.js"></script>
 <script src="ui.js"></script>
+<script src="parcours-ui.js"></script>
 <script>
 (function(){
 "use strict";
@@ -78,24 +70,10 @@ var qui = QUI.monter(document.getElementById("qui"));
 function say(m){ YEITA.flash(null, m); }
 function needMe(){ if(S.me()) return false; showNotice(t("qui.requis"), true); qui.focus(); return true; }
 
-/* ---------- Le chemin du candidat ---------- */
-function chemin(c){
-  var x = c.decision && (c.decision.choix === "go-mission" || c.decision.choix === "proposition") ? c.decision.choix : (c.parcours.etape === "go-mission" ? "go-mission" : "proposition");
-  return ["appel", "ec1", "bilan-ec1", "ec2", "bilan-ec2", "ec3", "decision", x, "onboarding"];
-}
-/* L'étape où le parcours s'est arrêté (Vivier, Non retenu), ou null. */
-function arret(c){
-  var e = c.parcours.etape;
-  if(e === S.NON_RETENU){ var d = c.parcours.cloture && c.parcours.cloture.depuis; return d === "ec1" ? "ec1" : (d === "ec2" ? "ec2" : d || "appel"); }
-  if(e === S.VIVIER) return "decision";
-  return null;
-}
-function stepState(c, sid){
-  var p = chemin(c), stop = arret(c), ci = p.indexOf(stop || c.parcours.etape), i = p.indexOf(sid);
-  if(stop) return i < ci ? "done" : (i === ci ? "stop" : "future");
-  return i < ci ? "done" : (i === ci ? "cur" : "future");
-}
-function current(c){ return arret(c) || c.parcours.etape; }
+/* ---------- Le chemin du candidat : voir parcours-ui.js ---------- */
+var chemin = PU.chemin, arret = PU.arret, stepState = PU.stepState, current = PU.current;
+document.getElementById("pu").innerHTML = PU.headHTML();
+document.querySelectorAll("#pu [data-t]").forEach(function(el){ el.textContent = t(el.dataset.t); });
 
 /* ---------- Enregistrement : tout passe par le candidat en mémoire, enregistré après une courte pause ---------- */
 function schedule(){ clearTimeout(saveT); saveT = setTimeout(saveNow, 400); }
@@ -115,42 +93,22 @@ function load(){
     var want = UI.param("etape");
     viewing = want && chemin(c).concat([S.VIVIER, S.NON_RETENU]).indexOf(want) >= 0 && (want === current(c) || stepState(c, want) !== "future") ? want : current(c);
     if(want === S.VIVIER || want === S.NON_RETENU) viewing = current(c);
+    if(PU.PAGES[viewing]){ location.replace(UI.urlCandidat(c.id, viewing)); return; }
     document.getElementById("body").hidden = false;
     render();
     document.getElementById("c-name").focus({preventScroll: true});
   });
 }
 function missing(text){ document.getElementById("missing").hidden = false; document.getElementById("missing-t").textContent = text; document.title = t("commun.espace") + " · Yeita"; }
-function renderHead(){
-  var c = cur, i = c.identite;
-  document.title = c.candidat.nom + " · " + t("commun.espace") + " Yeita";
-  document.getElementById("c-name").textContent = c.candidat.nom;
-  document.getElementById("c-meta").innerHTML = '<span class="chip jx">' + E(UI.jobXp(c)) + '</span>'
-    + (i.disponibilite ? '<span class="chip">' + E(i.disponibilite) + '</span>' : '')
-    + (i.provenances || []).map(function(p){ return '<span class="chip">' + E(p) + '</span>'; }).join("")
-    + (c.meta.demo ? '<span class="chip demo">' + E(t("commun.exemple")) + '</span>' : '');
-}
+function renderHead(){ PU.renderHead(cur); }
 function render(){
-  var c = cur, i = c.identite;
   document.getElementById("volatile").hidden = !S.volatile();
-  renderHead();
-  document.getElementById("c-side").innerHTML = UI.etatHTML(c, true) + UI.recruteursHTML(i.recruteurs) + '<span id="c-link"></span>';
-  renderSteps(); renderPanel(); renderHist(); renderFicheBas();
+  PU.render(cur, viewing);
+  renderPanel(); renderHist(); renderFicheBas();
 }
 function renderSteps(){
-  var c = cur, p = chemin(c);
-  document.getElementById("steps").innerHTML = p.map(function(id, n){
-    var s = stepState(c, id), v = viewing === id;
-    var tip = s === "future" ? t("fiche.futur") : (s === "done" ? t("fiche.passee") : (s === "stop" ? t("fiche.arrete") : t("fiche.enCours")));
-    return '<li class="' + s + (v ? ' viewing' : '') + '"><button type="button" data-step="' + id + '" aria-controls="panel"' + (s === "cur" ? ' aria-current="step"' : '') + ' aria-pressed="' + v + '"' + (s === "future" ? ' disabled aria-disabled="true"' : '') + ' title="' + E(tip) + '">'
-      + '<span class="num" aria-hidden="true">' + (s === "done" ? "✓" : (n + 1)) + '</span>' + E(UI.etapeLabel(id, true)) + '<span class="sr-only">, ' + E(tip) + '</span></button></li>';
-  }).join("") + (arret(c) ? '<li class="endchip"><span>' + E(UI.etapeLabel(c.parcours.etape)) + '</span></li>' : '');
-  var ol = document.getElementById("steps"), vb = ol.querySelector("li.viewing");
-  if(vb && ol.scrollWidth > ol.clientWidth) ol.scrollLeft = Math.max(0, vb.offsetLeft - (ol.clientWidth - vb.offsetWidth) / 2);
-  var g = document.getElementById("c-guide"), e = PC.etape(viewing);
-  g.href = PC.guideHref(viewing); g.textContent = t("commun.guideEtape") + (e ? ", " + e.n : "");
-  document.getElementById("c-link").innerHTML = UI.lienHTML(c.id, viewing);
-  try{ history.replaceState(null, "", UI.urlCandidat(c.id, viewing)); }catch(x){}
+  PU.renderSteps(cur, viewing); PU.renderSide(cur, viewing);
+  try{ history.replaceState(null, "", UI.urlCandidat(cur.id, viewing)); }catch(x){}
 }
 function renderHist(){
   var h = cur.historique.slice().reverse();
@@ -285,23 +243,6 @@ function onePagerHTML(c, ro){
     + (sent ? '<span class="saved">' + E(t("onePager.envoyeLe", {quand: UI.fmtWhen(a.onePager.envoyeLe), qui: a.onePager.par || "?"})) + '</span>' : '') + '</div></div>';
 }
 
-/* EC1 et EC2 : en attendant le lot 2 (la fiche devient la page de l'étape), un accès direct à la fiche du candidat */
-function ficheStatus(part, c){
-  var d = c[part];
-  if(!d) return '<p class="status"><span class="todo">' + E(t("sorties.ficheVide")) + '</span></p>';
-  var bits = [];
-  if(part === "ec1"){ var m = d.match || {}; if(m.partielle) bits.push("Lecture partielle"); else if(m.dominante && m.seconde) bits.push(Y.value(m.dominante).label + " › " + Y.value(m.seconde).label); }
-  else { bits.push((d.notes || []).filter(function(x){ return x != null; }).length + " étapes notées sur 12"); }
-  return '<p class="status"><span class="ok">' + E(t("commun.enregistre")) + ' · ' + E(UI.fmtWhen(d.reporteLe)) + '</span><span>' + E(bits.join(", ")) + '</span></p>';
-}
-RENDER.ec1 = function(c){
-  return linksHTML(PC.etape("ec1")) + '<div class="box"><h3>La fiche d\'entretien candidat #1</h3>' + ficheStatus("ec1", c)
-    + '<div class="actions"><a class="btn primary" href="../fiche-ec1.html#c-' + E(c.id) + '">' + (c.ec1 ? "Reprendre la fiche #1" : "Ouvrir la fiche #1") + '</a><a class="btn" href="../carte-identite.html#c-' + E(c.id) + '">Voir la carte d\'identité</a></div></div>';
-};
-RENDER.ec2 = function(c){
-  return linksHTML(PC.etape("ec2")) + '<div class="box"><h3>La fiche d\'entretien candidat #2 · Scorecard 4 diamants</h3>' + ficheStatus("ec2", c)
-    + '<div class="actions"><a class="btn primary" href="../fiche-ec2.html#c-' + E(c.id) + '">' + (c.ec2 ? "Reprendre la fiche #2" : "Ouvrir la fiche #2") + '</a><a class="btn" href="../carte-identite.html#c-' + E(c.id) + '">Voir la carte d\'identité</a></div></div>';
-};
 /* Bilans EC1 et EC2 : récap de la carte, forme du débrief, trois issues */
 function lines(x){ return String(x || "").split(/\n+/).map(function(s){ return s.trim(); }).filter(Boolean); }
 function recap(c, k){
@@ -317,8 +258,8 @@ function bilanHTML(c, k){
   var b = c.bilans[k] || {};
   return '<div class="onepager"><h3>Call de 15 min de débrief avec la personne suivante, ou en asynchrone</h3>'
     + '<fieldset class="plain"><legend class="sr-only">Forme du débrief</legend><div class="radios-inline"><label><input type="radio" name="bl-mode" value="appel"' + (b.mode !== "asynchrone" ? ' checked' : '') + '>En appel, 15 min</label><label><input type="radio" name="bl-mode" value="asynchrone"' + (b.mode === "asynchrone" ? ' checked' : '') + '>En asynchrone</label></div></fieldset></div>'
-    + '<div class="box"><h3>La carte d\'identité, en bref</h3>' + recap(c, k) + '<div class="actions"><a class="btn quiet" href="../carte-identite.html#c-' + E(c.id) + '">Ouvrir la carte d\'identité</a>'
-    + (k === "ec2" ? '<a class="btn quiet" href="../carte-identite.html#p-' + E(c.id) + '">Imprimer pour l\'EC3</a>' : '') + '</div></div>';
+    + '<div class="box"><h3>La carte d\'identité, en bref</h3>' + recap(c, k) + '<div class="actions"><a class="btn quiet" href="carte.html?id=' + encodeURIComponent(c.id) + '">Ouvrir la carte d\'identité</a>'
+    + (k === "ec2" ? '<a class="btn quiet" href="carte.html?id=' + encodeURIComponent(c.id) + '&amp;imprimer=1">Imprimer pour l\'EC3</a>' : '') + '</div></div>';
 }
 RENDER["bilan-ec1"] = function(c){ return bilanHTML(c, "ec1"); };
 RENDER["bilan-ec2"] = function(c){ return bilanHTML(c, "ec2"); };
@@ -326,7 +267,7 @@ RENDER["bilan-ec2"] = function(c){ return bilanHTML(c, "ec2"); };
 RENDER.ec3 = function(c){
   var x = c.ec3 || {}, q = lines(c.ec2 && c.ec2.suspens && c.ec2.suspens.questions); if(!q.length) q = lines(c.ec1 && c.ec1.questionsEC2);
   return linksHTML(PC.etape("ec3")) + '<div class="ask3"><h3>À creuser en EC3</h3>' + (q.length ? '<ol>' + q.map(function(s){ return '<li>' + E(s) + '</li>'; }).join("") + '</ol>' : '<p>Aucune question ouverte : l\'EC3 confirme la carte avec la personne.</p>') + '</div>'
-    + '<div class="box"><h3>La carte complète</h3>' + recap(c, "ec2") + '<div class="actions"><a class="btn quiet" href="../carte-identite.html#c-' + E(c.id) + '">Ouvrir la carte d\'identité</a><a class="btn quiet" href="../carte-identite.html#p-' + E(c.id) + '">Exporter la carte (PDF)</a></div></div>'
+    + '<div class="box"><h3>La carte complète</h3>' + recap(c, "ec2") + '<div class="actions"><a class="btn quiet" href="carte.html?id=' + encodeURIComponent(c.id) + '">Ouvrir la carte d\'identité</a><a class="btn quiet" href="carte.html?id=' + encodeURIComponent(c.id) + '&amp;imprimer=1">Exporter la carte (PDF)</a></div></div>'
     + '<div class="box"><h3>Bloc-notes de l\'EC3</h3><div class="grid-fields"><div class="field"><label for="e3-le">Date de l\'EC3</label><input type="date" id="e3-le" data-f="ec3.le" value="' + E(x.le || "") + '"></div>'
     + '<div class="field"><label for="e3-par">Mené par</label><input type="text" id="e3-par" data-f="ec3.par" value="' + E(x.par || "") + '" autocomplete="off"></div></div>'
     + '<div class="field"><label for="e3-notes">Notes</label><textarea id="e3-notes" data-f="ec3.notes" rows="6">' + E(x.notes || "") + '</textarea></div><span class="saved" id="saved" aria-live="polite"></span></div>';
@@ -346,7 +287,7 @@ function decisionRecap(c){ var d = c.decision || {}; return d.choix ? '<p class=
 RENDER.proposition = function(c){ return decisionRecap(c) + linksHTML(PC.etape("proposition")); };
 RENDER["go-mission"] = function(c){ return decisionRecap(c); };
 RENDER.onboarding = function(c){
-  return '<div class="onepager"><h3>La carte d\'identité, point de départ avec sa Nanny</h3><div class="actions"><a class="btn primary" href="../carte-identite.html#p-' + E(c.id) + '">Exporter la carte (PDF)</a><a class="btn" href="../carte-identite.html#c-' + E(c.id) + '">Ouvrir la carte d\'identité</a></div></div>';
+  return '<div class="onepager"><h3>La carte d\'identité, point de départ avec sa Nanny</h3><div class="actions"><a class="btn primary" href="carte.html?id=' + encodeURIComponent(c.id) + '&amp;imprimer=1">Exporter la carte (PDF)</a><a class="btn" href="carte.html?id=' + encodeURIComponent(c.id) + '">Ouvrir la carte d\'identité</a></div></div>';
 };
 
 /* ---------- Sorties ---------- */
@@ -372,7 +313,7 @@ function refusHTML(c){
     + '<p class="rappel">' + YEITA.icon("Phone", 18, 2.2) + '<span>' + E(t("refus.rappel")) + ' ' + E(hasCarte ? t("refus.carteSuit") : t("refus.sansCarte")) + '</span></p>'
     + '<div class="grid-fields"><div class="field"><label for="rf-motif">' + E(t("refus.motif")) + '</label><select id="rf-motif"><option value="">' + E(t("refus.choisirMotif")) + '</option>' + S.MOTIFS.map(function(m){ return '<option value="' + m[0] + '">' + E(m[1]) + '</option>'; }).join("") + '</select></div>'
     + '<div class="field"><label for="rf-detail">' + E(t("refus.detail")) + '</label><input type="text" id="rf-detail" autocomplete="off" placeholder="' + E(t("refus.detailPlaceholder")) + '"></div></div>'
-    + (hasCarte ? '<div class="actions"><a class="btn" href="../carte-identite.html#p-' + E(c.id) + '">' + E(t("refus.exporter")) + '</a><label class="check"><input type="checkbox" id="rf-sent">' + E(t("refus.carteEnvoyee")) + '</label></div>' : '')
+    + (hasCarte ? '<div class="actions"><a class="btn" href="carte.html?id=' + encodeURIComponent(c.id) + '&amp;imprimer=1">' + E(t("refus.exporter")) + '</a><label class="check"><input type="checkbox" id="rf-sent">' + E(t("refus.carteEnvoyee")) + '</label></div>' : '')
     + '<p class="form-err" id="rf-err" role="alert" hidden></p>'
     + '<div class="actions"><button type="button" class="btn stop fill" id="rf-go">' + E(t("refus.clore")) + '</button><button type="button" class="btn quiet" id="rf-cancel">' + E(t("refus.revenir")) + '</button></div>'
     + '<p class="note">' + E(t("refus.note")) + '</p></section>';
@@ -406,15 +347,19 @@ document.addEventListener("tagschange", function(e){
 });
 
 /* ---------- Actions ---------- */
-function after(c, msg, undo){ cur = c; refusOpen = false; viewing = current(c); clearNotice(); render(); showNotice(msg, false, undo); focusStep(); }
+function after(c, msg, undo){
+  cur = c; refusOpen = false; viewing = current(c);
+  if(PU.PAGES[viewing]){ try{ sessionStorage.setItem("yeita-notice", JSON.stringify({id: c.id, msg: msg})); }catch(x){} location.href = UI.urlCandidat(c.id, viewing); return; }
+  clearNotice(); render(); showNotice(msg, false, undo); focusStep();
+}
+PU.wire(function(){ return cur; }, function(id){ flush(); viewing = id; refusOpen = false; renderSteps(); renderPanel(); });
 UI.init({onEtat: function(id, etat){
   if(needMe()) return;
   flush().then(function(){ return S.setEtat(id, etat, S.me()); }).then(function(c){ cur = c; render(); say(UI.etatLabel(etat)); var b = document.querySelector('[data-etat-for="' + id + '"]'); if(b) b.focus(); });
 }});
 document.addEventListener("click", function(e){
   var tg = e.target;
-  var st = tg.closest("[data-step]");
-  if(st && cur){ e.preventDefault(); if(st.disabled) return; flush(); viewing = st.dataset.step; refusOpen = false; renderSteps(); renderPanel(); return; }
+  if(tg.closest("[data-step]")) return;
   if(!cur) return;
   if(tg.id === "refuse"){ if(needMe()) return; refusOpen = true; renderPanel(); document.getElementById("rf-t").focus(); return; }
   if(tg.id === "rf-cancel"){ refusOpen = false; renderPanel(); var r = document.getElementById("refuse"); if(r) r.focus(); return; }
@@ -450,7 +395,7 @@ document.addEventListener("click", function(e){
     return;
   }
   if(tg.id === "undo"){
-    S.undoLast(cur.id, S.me()).then(function(c){ cur = c; viewing = current(c); render(); showNotice(t("fiche.passageAnnule", {etape: UI.etapeLabel(c.parcours.etape)})); focusStep(); }).catch(function(x){ showNotice(x.message, true); });
+    S.undoLast(cur.id, S.me()).then(function(c){ cur = c; viewing = current(c); if(PU.PAGES[viewing]){ location.href = UI.urlCandidat(c.id, viewing); return; } render(); showNotice(t("fiche.passageAnnule", {etape: UI.etapeLabel(c.parcours.etape)})); focusStep(); }).catch(function(x){ showNotice(x.message, true); });
     return;
   }
   if(tg.id === "del"){ document.getElementById("del-t").textContent = t("infos.supprimerConfirme", {nom: cur.candidat.nom}); document.getElementById("del-confirm").hidden = false; document.getElementById("del-yes").focus(); return; }

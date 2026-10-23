@@ -9,25 +9,20 @@ La version de travail reste l'artefact **Expérience Collaborateur** sur Claude.
 | Page | Rôle | Pour qui |
 |---|---|---|
 | `index.html` | Le hub : la démarche, le guide du recruteur étape par étape, l'inventaire des supports, le glossaire. Liens directs : `#guide`, `#supports`, une étape (`#ec1`…), ou une page (`#fiche-ec1`, `#fiche-ec2`, `#carte`, `#decompte`, `#feuille-vierge`, `#kit`, `#one-pager`, `#candidatures`) | Interne |
-| `candidatures.html` | Le module Candidatures : tableau des candidats (liste ou kanban), puis le parcours guidé de chaque candidature, de l'appel de découverte à l'onboarding, avec l'appel de refus. `#c-<id>` ouvre une candidature | Recruteurs |
+| `candidatures/` | L'espace Candidatures (réservé à l'équipe une fois déployé) : le tableau (`index.html`), le parcours d'un candidat (`candidat.html?id=…`), les étapes EC1 et EC2 en pleine page (`ec1.html?id=…`, `ec2.html?id=…`), la carte d'identité (`carte.html?id=…`) et la feuille de décompte (`decompte.html?id=…`, ou `?vierge=1`). Modèle : `docs/backend/MODELE.md` ; textes : `assets/wording.fr.js` | Recruteurs |
 | `one-pager.html` | Ton parcours chez Yeita : les étapes, les durées, les délais (A4) | Candidat |
 | `yeita-match-kit.html` | Kit physique Yeita Match : 54 cartes sur 6 planches recto-verso (dont 4 cartes valeur) et plateau A3, sur le modèle du jeu en ligne | EC1 |
-| `yeita-match-decompte.html` | Feuille de décompte : se coche pendant le jeu, compte toute seule à l'écran (2 pages A4) | Recruteur, EC1 |
-| `fiche-ec1.html` | Fiche d'entretien candidat #1 · Yeita Match & Valeurs Yeita, en sections dépliantes, jusqu'aux questions à creuser en EC2 | Recruteur et observateur, EC1 |
-| `fiche-ec2.html` | Fiche d'entretien candidat #2 · Scorecard 4 diamants | Pair du métier, EC2 |
-| `carte-identite.html` | Carte d'identité Yeita, 3 états : arrêt après EC1, arrêt après EC2, embauche (A4 paysage). Lit le dossier du candidat | Candidat, EC3 |
 
 Les pages partagent `assets/` : la charte (`yeita.css`), les utilitaires et les icônes du jeu (`yeita.js`), les données de Yeita Match (`data-yeita-match.js`, reprises du dépôt `yeita-match`) la grille des 4 diamants (`data-diamants.js`), les critères d'employabilité et leurs phrases (`data-employabilite.js`) le dossier candidat (`dossier.js`), les règles du parcours (`store.js`) et ses textes (`data-parcours.js`).
 
-La fiche de passation n'existe plus : son volet EC1 → EC2 est dans la fiche #1, son volet EC2 → EC3 rejoint la fiche #2.
+Les anciennes pages `fiche-ec1.html`, `fiche-ec2.html`, `carte-identite.html`, `yeita-match-decompte.html` et `candidatures.html` sont des relais : elles redirigent vers l'espace Candidatures. La « passation » et le « débrief » s'appellent maintenant **Bilan EC1** et **Bilan EC2**.
 
 ## Comment les fiches se parlent
 
-- Le jeu en ligne exporte un fichier JSON de session, que la fiche #1 sait importer. En physique, la feuille de décompte reporte le résultat dans la fiche #1.
-- Les fiches #1 et #2 ont un bouton **Reporter vers la carte d'identité** : il range leur lecture dans le **dossier du candidat** (`assets/dossier.js`). La carte d'identité lit ce dossier et s'affiche aussitôt. La fiche #2 affiche en tête ce que l'EC1 a laissé ouvert (questions à creuser, hypothèses sur les diamants, vigilance), et la carte réunit sous elle, dans une partie interne jamais imprimée, l'EC1 à gauche et l'EC2 à droite, points en suspens pour l'EC3 en tête.
-- Le dossier vit dans le navigateur (stockage local). Rien n'est envoyé nulle part. Pour passer d'un ordinateur à l'autre, en attendant l'ATS, chaque fiche donne un code `YEITA-EC1.…` ou `YEITA-EC2.…` à coller dans la page Notion du candidat, puis dans la carte. Ces codes portent aussi les éléments internes : ils ne partent jamais chez le candidat.
-- Ouvertes depuis une candidature (`fiche-ec1.html#c-<id>`, `fiche-ec2.html#c-<id>`), les fiches écrivent directement sur elle, à chaque modification ; la carte s'ouvre avec `carte-identite.html#c-<id>`, ou `#p-<id>` pour l'export PDF.
-- Une base partagée remplacera le stockage local sans réécrire les pages : voir `STORAGE.md`, `docs/modele-de-donnees.md` et `docs/dossier-candidat.schema.json`. L'option Supabase est préparée dans `docs/backend/`, **non branchée**.
+- Chaque page de l'espace porte l'identifiant du candidat (`?id=…`) : la fiche EC1, la fiche EC2, la feuille de décompte et la carte n'affichent que lui.
+- Les fiches EC1 et EC2 enregistrent à chaque saisie sur la candidature ; la carte d'identité se compose toute seule à partir d'elles.
+- Le résultat de Yeita Match arrive dans la fiche EC1 par la saisie à la main, l'import du fichier JSON du jeu en ligne (visio), ou la feuille de décompte du candidat (présentiel). Point d'entrée unique : `FICHE_EC1.setYeitaMatch`, décrit dans `docs/backend/MODELE.md`.
+- Jusqu'au déploiement sécurisé, tout vit dans le navigateur (données fictives uniquement). Le stockage partagé (SQLite) et l'authentification se branchent derrière `assets/dossier.js` sans changer les pages. La piste Supabase de `docs/backend/` est abandonnée.
 
 ## Tests
 
@@ -35,8 +30,8 @@ La fiche de passation n'existe plus : son volet EC1 → EC2 est dans la fiche #1
 |---|---|
 | `node tools/test-store.js` | Règles du parcours : migration, passages, refus, annulation, export et import, exemples |
 | `node tools/test-adapter.js` | L'adaptateur Supabase contre une fausse base, conflits compris |
-| `python3 tools/e2e.py` | Le hub, les fiches, la carte, le décompte |
-| `python3 tools/e2e-candidatures.py` | Le module de bout en bout : ajout, appel, EC1 à l'onboarding, refus en EC1, export et import |
+| `python3 tools/e2e-candidatures.py` | Le tableau et l'appel : ajout, Qui es-tu, questions, one-pager, État, liste, export et import |
+| `python3 tools/e2e-parcours.py` | EC1 et EC2 en pleine page, Bilans, EC3, Décision ; décompte → EC1, import JSON, refus au bilan, Vivier ; un lien par candidat, anciennes adresses, téléphone |
 | `python3 tools/e2e-liens.py` | « Précédent », liens directs, feuille de décompte vierge |
 | `python3 tools/e2e-pdf.py` | Exports PDF : carte d'une candidature, feuille vierge |
 | `python3 tools/e2e-backend.py` | L'écran de connexion, avec un faux client Supabase |

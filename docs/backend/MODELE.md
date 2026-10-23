@@ -25,8 +25,12 @@ Pour Sacha : ce que l'espace Candidatures enregistre, et comment le passer en SQ
 
 - **Tout est dans `candidatures/` :**
   - `index.html` : le tableau ;
-  - `candidat.html?id=<id>&etape=<étape>` : le parcours.
-  - Au lot 2, les pages d'étape EC1 et EC2, la carte et la feuille de décompte suivent, avec le même schéma d'adresse.
+  - `candidat.html?id=<id>&etape=<étape>` : le parcours (appel, bilans, EC3, décision, proposition, onboarding, sorties) ;
+  - `ec1.html?id=<id>` et `ec2.html?id=<id>` : les étapes EC1 et EC2, la fiche en pleine page ;
+  - `carte.html?id=<id>` : la carte d'identité de ce candidat, `&imprimer=1` lance l'impression ou le PDF ; sans identifiant, l'exemple fictif (`?exemple=ec1|ec2|embauche`) ;
+  - `decompte.html?id=<id>` : la feuille de décompte de ce candidat ; `?vierge=1` : la feuille vierge à imprimer, qui ne garde rien.
+- **Les anciennes adresses** à la racine (`fiche-ec1.html#c-…`, `fiche-ec2.html#c-…`, `carte-identite.html#c-…` ou `#p-…`, `yeita-match-decompte.html`, `candidatures.html#c-…`) sont des pages relais qui redirigent vers ces adresses.
+- **Aucune page ne montre « le dernier candidat ouvert »** : sans identifiant, rien (ou l'exemple fictif pour la carte). Un lien partagé ouvre une seule personne.
 - **Des paramètres d'adresse (`?id=…`), pas des ancres (`#…`).** Une ancre n'est jamais envoyée au serveur, donc elle se perd pendant l'aller-retour de connexion d'oauth2-proxy. Les paramètres, eux, sont conservés.
 - **L'identifiant est opaque** (`cand-…`) : jamais le nom dans une adresse. Une page de l'espace sans identifiant n'affiche aucun candidat.
 - **Les pages publiques** restent hors de l'espace : le guide, `one-pager.html` et le kit. Leurs adresses sont dans `assets/config.js`.
@@ -86,8 +90,8 @@ Les règles de passage sont dans `assets/store.js` :
 | Champ | Type | Contenu |
 |---|---|---|
 | `appel` | objet | `date`, `par`, `reponses` (`recherche`, `pourquoi`, `role`, `ia`, `yeita`, `motivations`, `disponibilite`, `pistes`, `remuneration` : textes), `onePager` (`envoyeLe`, `par`), `ancien` (les 4 blocs v2, en lecture, ou `null`). La disponibilité (liste) et le lieu d'habitation s'écrivent dans la fiche |
-| `ec1`, `ec2` | objet ou `null` | la lecture des fiches EC1 et EC2 (inchangée depuis la v2 : voir `docs/dossier-candidat.schema.json`) |
-| `fiches` | objet | brouillons d'écran des fiches EC1 et EC2, pour les rouvrir telles qu'on les a laissées |
+| `ec1`, `ec2` | objet ou `null` | la lecture des fiches EC1 et EC2 (voir `docs/dossier-candidat.schema.json`). `ec1.match.source` vaut `saisie`, `decompte`, `jeu-en-ligne` ou `externe` ; `ec2.notesLibres` (texte) est nouveau en v3 |
+| `fiches` | objet | brouillons d'écran : `ec1`, `ec2` (pour rouvrir les fiches telles qu'on les a laissées) et `decompte` (la feuille de décompte du candidat : `answers`, `notes`, `tb`, `f`, `fmt`) |
 | `bilans.ec1`, `bilans.ec2` | objet ou `null` | `faitLe`, `par`, `mode` (`appel` \| `asynchrone`), `issue` (`continuer`, `retour-a-faire`, `non-retenu`) |
 | `ec3` | objet | `notes`, `par`, `le` |
 | `decision` | objet | `choix` (`proposition`, `go-mission`, `vivier`, `non-retenu` ou `null`), `commentaire` (obligatoire pour décider), `le`, `par`, `appelFaitLe` |
@@ -96,6 +100,17 @@ Les règles de passage sont dans `assets/store.js` :
 | `historique` | liste | `{type, de, vers, le, par, motif, etatAvant, annulation}`. `type` vaut `passage`, `etat`, `decision` ou `refus`. `de` est `null` à l'entrée. Une annulation ajoute une ligne, elle n'efface rien |
 | `notesLibres` | objet | hors MVP, désactivé |
 | `meta` | objet | `creeLe`, `modifieLe`, `demo` (exemple fictif), `origine` (`module` \| `fiche`), `migreV3Le` |
+
+## Le résultat de Yeita Match : le point d'entrée pour la session en ligne
+
+La fiche EC1 reçoit le résultat par une seule fonction, quelle que soit la source :
+
+```js
+FICHE_EC1.setYeitaMatch({dominante: "explorateur", seconde: "collectif", source: "jeu-en-ligne", format: "visio", observateur: "Pauline", date: "2026-10-23"})
+```
+
+- **Aujourd'hui** : la saisie à la main, l'import du fichier JSON exporté par le jeu, et la feuille de décompte du candidat. La feuille dépose `{candId, dominant, second, fmt, obs, date}` sous la clé `yeita-match-resultat`, puis ouvre `ec1.html?id=<candId>` ; la fiche ne reprend que le résultat de son propre candidat.
+- **Demain** (session Yeita Match liée au candidat) : le serveur écrit `ec1.match` et `fiches.ec1` (`dom`, `sec`, `source`), ou la page appelle `FICHE_EC1.setYeitaMatch` quand la session se termine. Rien d'autre à changer dans la fiche.
 
 ## Migration v2 → v3 (faite à la lecture, rien n'est supprimé)
 | v2 | v3 |

@@ -83,14 +83,14 @@ async def main():
         check("EC1 bloquée tant que le one-pager n'est pas envoyé", await pg.locator("#next").is_disabled())
         await pg.check("#op-sent"); await pg.wait_for_timeout(300)
         check("« One-pager envoyé le … par … »", "par Thélo" in await pg.locator(".onepager").inner_text())
-        await pg.click("#next"); await pg.wait_for_timeout(400)
-        check("passage à l'EC1, focus sur le titre", "EC1" in await pg.locator("#panel h2").inner_text() and await pg.evaluate("document.activeElement.tagName") == "H2" and "etape=ec1" in pg.url)
+        await pg.click("#next"); await pg.wait_for_url("**/ec1.html?id=*"); await pg.wait_for_timeout(400)
+        check("passage à l'EC1 : la fiche en pleine page, focus sur le nom", await pg.locator("#sheet").is_visible() and await pg.evaluate("document.activeElement.id") == "c-name" and "Appel de découverte" in await pg.locator("#notice").inner_text())
         check("EC1 : pas de Non retenu, une seule action principale", await pg.locator("#refuse").count() == 0 and await pg.locator(".exits .btn.primary").count() == 1)
-        await pg.click('#steps button[data-step="appel"]'); await pg.wait_for_timeout(200)
+        await pg.click('#steps button[data-step="appel"]'); await pg.wait_for_url("**/candidat.html?id=*etape=appel"); await pg.wait_for_timeout(300)
         check("étape passée : en lecture, Infos repliées en bas", await pg.locator("#q-recherche").is_disabled() and await pg.locator("#fiche-b").is_visible())
 
         # Copier le lien d'une étape, et l'ouvrir
-        await pg.click("#c-link [data-copy]"); await pg.wait_for_timeout(200)
+        await pg.click("#c-side [data-copy]"); await pg.wait_for_timeout(200)
         link = await pg.evaluate("navigator.clipboard.readText()")
         check("Copier le lien : adresse unique, sans le nom", "candidat.html?id=cand-" in link and "etape=appel" in link and "GARNIER" not in link and "L%C3%A9na" not in link, link)
         p2 = await ctx.new_page(); await p2.goto(link, wait_until="networkidle"); await p2.wait_for_timeout(300)

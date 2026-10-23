@@ -20,7 +20,11 @@ function fmtWhen(iso){ if(!iso) return ""; try{ return new Date(iso).toLocaleStr
 function heure(){ return new Date().toLocaleTimeString("fr-FR", {hour: "2-digit", minute: "2-digit"}); }
 
 /* ---------- Liens directs : un candidat, une étape. L'identifiant est opaque : jamais le nom dans l'adresse. ---------- */
-function urlCandidat(id, etape){ return "candidat.html?id=" + encodeURIComponent(id) + (etape ? "&etape=" + encodeURIComponent(etape) : ""); }
+/* EC1 et EC2 ont leur page (la fiche en pleine page) ; les autres étapes vivent dans candidat.html. */
+function urlCandidat(id, etape){
+  if(etape === "ec1" || etape === "ec2") return etape + ".html?id=" + encodeURIComponent(id);
+  return "candidat.html?id=" + encodeURIComponent(id) + (etape ? "&etape=" + encodeURIComponent(etape) : "");
+}
 function absolu(rel){ try{ return new URL(rel, location.href).href; }catch(e){ return rel; } }
 function param(k){ try{ return new URLSearchParams(location.search).get(k); }catch(e){ return null; } }
 function copier(btn, rel){
@@ -132,7 +136,7 @@ function init(opts){
   onEtat = opts.onEtat || null;
   document.addEventListener("click", function(e){
     var cp = e.target.closest("[data-copy]"); if(cp){ copier(cp, cp.dataset.copy); return; }
-    var tb = e.target.closest(".tip"); if(tb){ var on = tb.getAttribute("aria-expanded") !== "true"; closeTips(tb); tipShow(tb, on); return; }
+    var tb = e.target.closest(".tip"); if(tb){ e.preventDefault(); var on = tb.getAttribute("aria-expanded") !== "true"; closeTips(tb); tipShow(tb, on); return; }
     closeTips();
     var eb = e.target.closest("[data-etat-for]"); if(eb){ e.preventDefault(); if(menuBtn === eb) closeMenu(true); else openMenu(eb); return; }
     var it = e.target.closest("[data-set-etat]");
