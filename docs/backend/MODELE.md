@@ -151,6 +151,17 @@ Un dossier v1 (fiches seules, avant le module) passe d'abord en v2, puis en v3. 
 | `valide` | Validé |
 | `plus-dispo` | Plus dispo |
 
+## Ce qui vit encore dans le navigateur
+
+| Clé | Contenu | Demain |
+|---|---|---|
+| `localStorage` `yeita-dossiers` | les dossiers, via l'adaptateur du navigateur | la base SQLite, via un adaptateur serveur à la même interface |
+| `yeita-recruteur`, `yeita-equipe-ajouts` | « Qui es-tu ? » et les prénoms ajoutés (`assets/qui.js`) | l'identité Google transmise par oauth2-proxy, la table `equipe` |
+| `yeita-options-disponibilite` | les options de disponibilité ajoutées | la table `options_disponibilite` |
+| `yeita-match-resultat` | le passage de relais feuille de décompte → fiche EC1 (`candId`, résultat, sans nom) | inutile si le serveur écrit le résultat |
+| `sessionStorage` `yeita-notice` | le message « Étape terminée » d'une page à l'autre | inchangé |
+| `yeita-fiche-ec1`, `yeita-fiche-ec2`, `yeita-carte-identite` | brouillons des anciennes fiches autonomes, plus lus par l'espace | à purger |
+
 ## Tables SQLite proposées
 L'adaptateur lit et écrit le dossier entier : le plus simple est de le garder en JSON, avec des colonnes tirées du JSON pour lister, filtrer et faire des bilans.
 
