@@ -17,7 +17,7 @@ info() { echo "· $*"; }
 valeur() { sed -n "s/^$1=//p" "$2" | tail -n 1 | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'$/\1/"; }
 
 # Conteneurs (nom, projet, dossier) qui publient un port de l'hôte donné.
-publient() { docker ps --format '{{.Names}} {{.Label "com.docker.compose.project"}} {{.Label "com.docker.compose.project.working_dir"}} {{.Ports}}' | grep -E "[:\]]$1->" || true; }
+publient() { docker ps --format '{{.Names}} {{.Label "com.docker.compose.project"}} {{.Label "com.docker.compose.project.working_dir"}} {{.Ports}}' | grep -E "[]:]$1->" || true; }
 
 # Tout le script est dans main : bash le lit en entier avant d'agir, même si git pull le modifie.
 main() {
