@@ -261,6 +261,32 @@ function setRestitution(id, patch){
 /* Enregistre un dossier entier (utilisé par le module Candidatures et le mode candidat des fiches). */
 function save(d){ return adapter.put(touch(upgrade(d))); }
 
+/* Les fiches (EC1, EC2, feuille de décompte) n'écrivent que leur partie : sur le dossier relu, pas sur celui chargé à
+   l'ouverture, pour ne pas écraser ce qu'une autre page a écrit entre-temps. o.lire(d) rend la partie, o.poser(d) la pose.
+   d est le dossier que la page a lu ou écrit en dernier : si la partie a changé ailleurs, ou si le dossier a été supprimé,
+   rien n'est écrit (refus « conflit »). Sur un conflit d'enregistrement, une seule nouvelle tentative, avec le même contrôle. */
+function ecrirePartie(d, o){
+  var avant = JSON.stringify(o.lire(d) === undefined ? null : o.lire(d));
+  function refus(){
+    var e = new Error((window.AdaptateurServeur && AdaptateurServeur.texte("conflit")) || "La candidature a été modifiée par quelqu'un d'autre. Recharge la page.");
+    e.code = "conflit"; e.ecriture = true;
+    if(window.DOSSIER && DOSSIER.onRefus) DOSSIER.onRefus(e);
+    return Promise.reject(e);
+  }
+  function essai(reste){
+    return adapter.get(d.id).then(function(frais){
+      if(!frais) return refus();
+      var lu = o.lire(frais);
+      if(JSON.stringify(lu === undefined ? null : lu) !== avant) return refus();
+      o.poser(frais);
+      return save(frais).catch(function(e){ return (e && e.code === "conflit" && reste) ? essai(0) : Promise.reject(e); });
+    });
+  }
+  return essai(1);
+}
+/* Départ de la page (pagehide) : sans relecture, part aussitôt (adaptateur serveur : keepalive, hors file). */
+function partir(d){ d = touch(upgrade(d)); return adapter.partir ? adapter.partir(d) : adapter.put(d); }
+
 /* ---------- Codes : le passage d'un ordinateur à l'autre, en attendant une base partagée ---------- */
 function toCode(d, part){
   if(!d || !d[part]) return "";
@@ -320,7 +346,7 @@ window.DOSSIER = {
   norm: norm, now: now, touch: touch,
   list: function(){ return adapter.list(); },
   get: function(id){ return adapter.get(id); },
-  save: save,
+  save: save, ecrirePartie: ecrirePartie, partir: partir,
   remove: function(id){ if(currentId() === id && window.YEITA) YEITA.store.del(CUR); return adapter.remove(id); },
   current: current, setCurrent: setCurrent, findByName: findByName,
   report: report, setRestitution: setRestitution,
