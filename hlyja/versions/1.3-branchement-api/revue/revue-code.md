@@ -4,7 +4,7 @@ version: 1.3
 bloquants: 0
 majeurs: 1
 mineurs: 12
-corriges: 7
+corriges: 9
 dependances: 1
 audit: ok
 date: 2026-10-26
@@ -36,11 +36,11 @@ Vérifié sans constat : secrets ; contrôle d'accès (aucun droit déduit par l
 | # | Sévérité | Fichier | Constat | Existant à réutiliser | Statut |
 |---|---|---|---|---|---|
 | Q1 | majeur | `assets/adapter-serveur.js` (`partir`), `assets/dossier.js`, `ec1.html`, `ec2.html`, `decompte.html` | L'envoi de départ portait la version « que le PUT en cours produira », sinon la plus haute connue, alors que la fiche posait sa partie sur `cand`, parfois plus ancien : reproduit en Node, (1) départ pendant un PUT en cours → partie du décompte perdue ; (2) départ après une relecture non adoptée (EC2 au retour sur l'onglet) → EC1 de Bob perdue | `DOSSIER.partirPartie(base, poser)` : la partie se pose sur l'objet du PUT en cours (`adapter.enVol(id)`), sinon sur `cand` ; `partir(d, base)` porte la version de cet objet (+1 s'il est en vol), jamais la plus haute connue. R6g de la spec finale révisé en conséquence. Deux scénarios ajoutés à `tools/test-serveur.js`, mutations MQ1a et MQ1b détectées | corrige |
-| Q2 | mineur | `assets/dossier.js`, `assets/adapter-serveur.js` | Après un 409 suivi d'une nouvelle tentative réussie, le bandeau de conflit reste affiché | Option silencieuse ou effacement du bandeau à la réussite | noté |
+| Q2 | mineur | `assets/dossier.js`, `assets/adapter-serveur.js` | Après un 409 suivi d'une nouvelle tentative réussie, le bandeau de conflit reste affiché | Option silencieuse ou effacement du bandeau à la réussite | corrige (`3b314a9`, renvoyé par le curateur : `DOSSIER.onRetabli`, test et mutation) |
 | Q3 | mineur | `assets/demarrage.js`, `decompte.html` | En mode navigateur, un refus de `ecrirePartie` ne montrait aucun bandeau (R6i : « dans les deux modes ») | `D.onRefus` posé aussi en mode navigateur ; test, mutation MQ3 détectée | corrige |
 | Q4 | mineur | `deploy/deploy.sh` | `config --services \| grep -qx` sous `pipefail` : SIGPIPE possible, l'attente de l'api sautait ; erreur de `config` muette | Services lus dans une variable, échec explicite ; `shellcheck` sans remarque | corrige |
 | Q5 | mineur | `assets/demarrage.js`, `assets/adapter-serveur.js`, `assets/dossier.js` | Options de `fetch` et texte de conflit dupliqués | Exposer la requête de l'adaptateur ; `wording.fr.js` seule source des textes | noté |
-| Q6 | mineur | `candidatures/candidat.html` | Gardes du retour sur l'onglet évaluées avant la lecture seulement | Réévaluer la garde complète à la réponse | noté |
+| Q6 | mineur | `candidatures/candidat.html` | Gardes du retour sur l'onglet évaluées avant la lecture seulement | Réévaluer la garde complète à la réponse | corrige (`3b314a9`, renvoyé par le curateur : `peutRelire()` avant et après la lecture ; sans test automatique propre) |
 | Q7 | mineur | fiches 02, 05, 06, 09 | Sections Mutations incomplètes (6e contrôle de `check-site.sh`, options, plusieurs CA de l'e2e) | Une mutation par vérification ajoutée | noté (à la QA : critères comptés sur leurs mutations existantes) |
 | Q8 | mineur | `tools/e2e-serveur.py` | Port fixe sans contrôle d'occupation ; `lancer_api` hors du `try` ; journal non fermé ; envoi de départ de Bob ou Léa non exercé (écart à R38 documenté) | `p.poll()`, `try` englobant, CA8 avec le seul contexte d'Alice | noté |
 | Q9 | mineur | `assets/demarrage.js`, `assets/qui.js`, `assets/adapter-serveur.js` | Style du bandeau en ligne (classe sans règle) ; `.qui-compte` sans règle ; commentaire de `version()` | Règles dans `candidatures/style.css` ; commentaire corrigé | partiel (commentaire corrigé) |

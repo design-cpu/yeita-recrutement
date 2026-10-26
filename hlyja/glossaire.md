@@ -67,7 +67,6 @@ La façon de travailler quand il n'y a pas de base sur le site (poste local, tes
 
 ## Mode serveur
 La façon de travailler sur le site de production : les candidatures sont enregistrées dans la base partagée de l'équipe, chacun sous son compte Google. En haut de page s'affiche « Connecté·e : » suivi du prénom.
-Aussi : mode serveur.
 Voir : [Mode serveur des pages](technique/mode-serveur.md)
 
 ## Node.js

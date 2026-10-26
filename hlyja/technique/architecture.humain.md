@@ -3,16 +3,15 @@ type: technique
 vue: humaine
 page: architecture
 titre: Architecture et déploiement
-maj: 1.2
-commit: 2497be9
-sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
+maj: 1.3
+commit: 6cd5776
+sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, docker/api.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
 date: 2026-10-26
 ---
 
 # Architecture et déploiement
 
-> Depuis la v1.1, le site tourne dans Docker sur le serveur OVH de Yeita. Quelques pages restent publiques ; tout le reste demande un compte Google @yeita.fr. Les données restent dans le navigateur.
-> En v1.2, l'API de stockage est arrivée : elle se lance seule, mais n'est pas encore dans Docker ni utilisée par les pages.
+> Le site tourne dans Docker sur le serveur OVH de Yeita, derrière une connexion Google @yeita.fr. Depuis la v1.3, l'API de stockage tourne à côté, dans son propre conteneur, et seul oauth2-proxy peut lui parler.
 
 ## En un coup d'œil
 
@@ -21,74 +20,75 @@ flowchart LR
   N[Navigateur] -->|HTTPS| P[Proxy du serveur ou Caddy du projet]
   P --> F[oauth2-proxy]
   F -->|page publique ou compte @yeita.fr| S[Fichiers du site]
+  F -->|/api/ avec session| A[API]
+  A --> V[(Volume : la base)]
   F -->|sinon| G[Connexion Google]
 ```
 
-Le visiteur arrive en HTTPS sur `recrutement.yeita.fr`. Un proxy transmet la visite à oauth2-proxy, qui joue le rôle de gardien. Il sert la page si elle est publique ou si le visiteur est connecté ; sinon, il l'envoie se connecter chez Google.
+Le visiteur arrive en HTTPS sur `recrutement.yeita.fr`. oauth2-proxy joue le gardien : il sert les pages, ou envoie se connecter chez Google. Pour une adresse en `/api/`, il transmet la demande à l'API avec l'email du compte. Sans session, il répond un refus au lieu d'une redirection.
 
 ## Les éléments principaux
 
-### L'image du site
-Une seule image Docker, construite en deux temps. D'abord, Python construit le site à partir du dépôt. Ensuite, le site est rangé dans oauth2-proxy (v7.15.5), qui le sert lui-même : pas de serveur web séparé.
+### Deux images
+| Image | Ce qu'elle contient | Depuis |
+|---|---|---|
+| Site (`front`) | le site construit par Python, servi par oauth2-proxy lui-même | v1.1 |
+| API (`api`) | l'API en Node.js 22, sur une image figée à une version précise | v1.3 |
 
-### oauth2-proxy, le gardien
-Il n'écoute que sur la machine elle-même (port 4180), jamais directement sur Internet. Il n'accepte que les comptes Google @yeita.fr. Les secrets (identifiants Google, secret des cookies) sont dans un fichier `.env` qui ne quitte jamais le serveur.
+L'image de l'API ne tourne pas en administrateur. Elle se dit saine seulement si la base répond et si son dossier de données accepte l'écriture. Sinon, Docker la signale malade et le déploiement s'arrête.
 
-### Les pages publiques
-Une liste fermée : la page d'accueil, le one-pager, le kit Yeita Match, leurs feuilles de style et scripts, et les téléchargements. Une page qui n'y figure pas est protégée.
+### Trois conteneurs, deux réseaux
+| Conteneur | Réseaux | Ports sur le serveur |
+|---|---|---|
+| oauth2-proxy | public et interne | 4180, sur la machine elle-même |
+| API | interne seul | aucun |
+| Caddy (cas B) | public seul | 80 et 443 |
 
-> Le one-pager est la page envoyée aux candidats dans les mails (`https://recrutement.yeita.fr/one-pager.html`). Il doit rester dans la liste publique.
+Le réseau interne n'a ni sortie vers Internet, ni adresse sur le serveur lui-même. Même un programme du serveur ne peut pas joindre l'API directement. C'est essentiel : l'API croit l'email que lui transmet oauth2-proxy.
+
+### La base dans un volume
+La base SQLite vit dans le volume `recrutement_data`. Il survit aux arrêts, aux mises à jour et aux retours en arrière. C'est la seule copie des candidatures.
+
+> Jamais `docker compose down -v` ni `docker volume prune` sur le serveur : la base partirait avec.
 
 ### Cas A ou cas B
-Le serveur est partagé : on ne sait pas d'avance ce qui y tourne.
-
 | Situation sur le serveur | Cas | Qui gère le HTTPS |
 |---|---|---|
-| Un proxy (nginx, Caddy) occupe déjà les ports web | A | Le proxy existant, à qui on ajoute le site |
-| Rien sur les ports web | B | Le Caddy du projet, allumé par le profil Compose `caddy` |
-| Proxy dans Docker ou inconnu | — | Rien n'est touché : le responsable du serveur décide |
+| Un proxy occupe déjà les ports web | A | le proxy existant |
+| Rien sur les ports web | B | le Caddy du projet |
+| Proxy dans Docker ou inconnu | — | rien n'est touché : le responsable du serveur décide |
 
 ### Les trois scripts
 | Script | Qui le lance | À quoi il sert |
 |---|---|---|
 | Préparation du serveur | l'administrateur, une fois | crée l'utilisateur `deploy`, clone le dépôt, sans rien installer |
-| Déploiement | `deploy`, à chaque mise à jour | met le serveur sur la dernière version de `main`, ou revient à une version antérieure |
-| Contrôle du site | tout le monde | vérifie 5 adresses : pages publiques ouvertes, pages protégées renvoyées vers Google |
+| Déploiement | `deploy`, à chaque mise à jour | met le serveur à jour, attend que le site puis l'API soient prêts, ou revient en arrière |
+| Contrôle du site | tout le monde | vérifie 6 adresses, dont l'API refusée sans connexion |
 
-Les deux premiers vérifient tout avant d'agir et s'arrêtent au moindre doute. En cas d'échec, le déploiement affiche la commande pour revenir à la version précédente : il faut la lancer tout de suite.
-
-### L'API de stockage (v1.2)
-Un serveur Node.js, dans le dossier `api/`, qui garde les dossiers candidat dans une base SQLite. Il est fait pour se placer derrière oauth2-proxy, qui lui dira qui est connecté. Pour l'instant, il se lance à part, sans Docker, et le site ne l'appelle pas.
-
-| Pièce | Rôle |
-|---|---|
-| Node.js 22 ou plus | fait tourner l'API |
-| Fastify | reçoit les demandes et y répond |
-| better-sqlite3 | lit et écrit la base SQLite |
-| @fastify/static | sert le site construit, en mode local seulement |
-
-Le fonctionnement de l'API est décrit dans sa propre page.
+Le déploiement n'attend l'API que si la version déployée en a une : un retour vers une version plus ancienne réussit sans elle, et le volume reste.
 
 ### Où ça tourne
-| Endroit | Adresse | Connexion |
+| Endroit | Adresse | Pour quoi |
 |---|---|---|
-| Poste, comme le serveur (cas B) | `https://localhost` | redirection vers Google visible, connexion impossible (faux identifiants) |
-| Poste, sans Docker | `http://localhost:8765` | aucune : sert aux tests de navigateur |
-| Poste, API seule (v1.2) | `http://127.0.0.1:8000` | mode local : on indique son email au lancement |
-| Serveur OVH | `https://recrutement.yeita.fr` | compte Google @yeita.fr |
+| Serveur OVH | `https://recrutement.yeita.fr` | la production, en mode serveur |
+| Poste, avec Docker | `https://localhost` | la pile complète, API comprise |
+| Poste, API et site sans Docker | `http://127.0.0.1:8000/candidatures/` | essayer le mode serveur, identité choisie au lancement |
+| Poste, site seul | `http://localhost:8765` | les tests de navigateur, en mode navigateur |
 
 ## À savoir avant de modifier
 
-- **Ne toucher qu'au projet.** Le serveur partagé fait tourner d'autres services : le nettoyage ne vise que les images du projet, le port n'est publié que sur la machine elle-même.
-- **Ajouter une page publique, c'est modifier la liste** dans la configuration d'oauth2-proxy. Sans cela, la nouvelle page demande une connexion.
-- **Ne pas faire confiance aux en-têtes du proxy.** Cela ouvrirait une page protégée sans connexion. Conséquence : les journaux ne montrent pas l'adresse des visiteurs (voir les décisions).
-- **Le dépôt du serveur doit rester propre.** Un fichier en trop, comme une copie de `.env`, entrerait dans l'image : le déploiement refuse de partir.
-- **L'API ne doit être joignable que par oauth2-proxy.** Elle croit l'email qu'il lui transmet : le jour où elle entrera dans Docker, son port ne devra pas être publié.
+- **Ne jamais publier de port pour l'API.** Elle ne doit rester joignable que par oauth2-proxy.
+- **Ne pas toucher au réseau interne sans refaire les essais.** Ses réglages empêchent le serveur de joindre l'API ; ils ont été vérifiés sur la version de Docker du serveur.
+- **Ne toucher qu'au projet.** Le serveur est partagé : le nettoyage ne vise que les images du projet.
+- **Ajouter une page publique, c'est modifier la liste** dans la configuration d'oauth2-proxy.
+- **Le dépôt du serveur doit rester propre.** Un fichier en trop entrerait dans l'image : le déploiement refuse de partir.
+- **La première mise en service de l'API** suit une procédure à part : contrôle du réseau, puis premier admin (`deploy/README.md`).
 
 ## Voir aussi
+- [Comment les pages choisissent où ranger les dossiers](mode-serveur.md)
 - [L'API de stockage](api.md)
 - [Décisions techniques](decisions.md)
 - [Conventions et tests](conventions.md)
 - [Lancer le site avec Docker sur ton poste](docker-local.md)
 - Le mode d'emploi pas à pas du serveur : `deploy/README.md`
-- Le détail (réglages, ports, garde-fous de chaque script, versions exactes) est dans la version complète.
+- Le détail (réglages, versions exactes, garde-fous de chaque script) est dans la version complète.

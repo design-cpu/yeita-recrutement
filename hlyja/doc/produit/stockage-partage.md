@@ -3,6 +3,8 @@ type: doc
 domaine: stockage-partage
 titre: Candidatures partagées et identité
 maj: 1.3
+commit: 3b314a9
+sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, assets/qui.js, assets/store.js, assets/wording.fr.js, assets/yeita.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/decompte.html, candidatures/carte.html, deploy/README.md
 date: 2026-10-26
 ---
 
@@ -32,11 +34,15 @@ La page attend la réponse (10 s au plus) avant d'afficher ou d'enregistrer quoi
 | Lecture seule | Un compte en lecture voit tout ; toute écriture est refusée avec « Lecture seule : tu ne peux pas modifier. » | 1.3 |
 | Hors équipe | Un compte Google @yeita.fr qui n'est pas dans l'équipe ne voit aucune candidature : « Tu ne fais pas partie de l'équipe. » | 1.3 |
 | Conflit | Si quelqu'un a enregistré le même dossier entre-temps, l'enregistrement est refusé : bandeau « La candidature a été modifiée par quelqu'un d'autre. Recharge la page. » et « Ce que tu as saisi depuis n'est pas enregistré : copie-le avant de recharger. » ; l'indicateur passe à « Non enregistré » ; la saisie reste affichée | 1.3 |
+| Bandeau d'erreur | En mode serveur, tout refus de la base s'affiche dans un bandeau rouge collé en haut de la page, même en bas d'une longue fiche, sans déplacer le curseur ; il propose « Recharger », sauf pour un compte en lecture seule (recharger n'y changerait rien) ; il disparaît quand une nouvelle tentative réussit ou qu'une relecture réussit | 1.3 |
 | Pas de conflit avec soi-même | Les enregistrements d'un même dossier partent l'un après l'autre, même sur une connexion lente | 1.3 |
 | Chaque fiche écrit sa partie | La fiche EC1, la fiche EC2 et la feuille de décompte n'écrivent que leur partie, sur le dossier relu : la fiche EC1 et la feuille de décompte d'un même candidat peuvent être ouvertes ensemble. Si un collègue a changé la même partie, ou supprimé le dossier, rien n'est écrit et le bandeau le dit (dans les deux modes) | 1.3 |
 | Retour sur l'onglet | En mode serveur, la page relit les dossiers quand on revient sur son onglet, et ne se redessine que s'ils ont changé ; rien n'est relu pendant une saisie | 1.3 |
 | Départ de la page | La dernière saisie part aussitôt quand on quitte la page ; si quelqu'un a enregistré le même dossier juste avant, ces dernières frappes (300 à 400 ms) peuvent être perdues sans message (risque accepté) | 1.3 |
-| Options de disponibilité | Une option ajoutée par un recruteur est proposée à toute l'équipe | 1.3 |
+| Options de disponibilité | Une option ajoutée par un recruteur est proposée à toute l'équipe ; si l'ajout est refusé (lecture seule, panne), le bandeau le dit et l'option reste proposée dans la page | 1.3 |
+| Dossier supprimé | Un dossier supprimé par un collègue n'est jamais recréé par une page restée ouverte : son enregistrement est refusé avec le bandeau ; au tableau, il disparaît au retour sur l'onglet | 1.3 |
+| Import d'un dossier hors format | Un dossier importé dont l'identifiant a été modifié à la main est refusé : « Identifiant invalide pour « {nom} » : ce dossier ne peut pas être enregistré dans la base. » | 1.3 |
+| Entrer dans l'équipe | L'accès se donne et se retire par l'exploitant (`docker compose exec api node api/equipe.js add|disable|role`, `deploy/README.md` § 13) ; un compte retiré ne voit plus aucun dossier dès la requête suivante | 1.3 |
 | Recruteurs hors équipe | Un nom tapé dans le champ Recruteurs reste dans le dossier, mais n'est plus proposé ailleurs (avant : gardé dans le navigateur) | 1.3 |
 | Import en mode serveur | Seule la fusion est proposée (« Remplacer tout » supprimerait les dossiers de toute l'équipe) ; un export est une copie : « Les candidatures sont enregistrées sur le serveur de l'équipe. Un export est une copie : supprime-la après usage. » | 1.3 |
 | Impression | La note d'impression renvoie vers un onglet du site du recrutement, et « Ouvrir sur le site » mène à `recrutement.yeita.fr` | 1.3 |

@@ -3,7 +3,7 @@ type: technique
 page: docker-local
 titre: Lancer le site avec Docker sur un poste
 maj: 1.3
-commit: 6cd5776
+commit: 3b314a9
 sources: compose.yaml, docker/api.Dockerfile, .env.example, deploy/Caddyfile, deploy/oauth2-proxy.cfg, tools/check-site.sh, deploy/README.md
 date: 2026-10-26
 ---
@@ -34,7 +34,7 @@ date: 2026-10-26
 |---|---|
 | Arrêter Caddy | `docker compose --profile caddy down` (un `down` sans profil laisse `caddy` en marche, V16) |
 | Réglage | `COMPOSE_PROFILES=` (vide) dans `.env` |
-| Lancer | `docker compose up -d` (seul `front` démarre) |
+| Lancer | `docker compose up -d` (`front` et `api` démarrent, pas `caddy`) |
 | Contrôler | `tools/check-site.sh http://127.0.0.1:4180` |
 En HTTP simple, le cookie de session (`cookie_secure = true`) n'est pas renvoyé par le navigateur : une vraie connexion Google n'aboutit qu'en cas B.
 
@@ -49,7 +49,7 @@ En HTTP simple, le cookie de session (`cookie_secure = true`) n'est pas renvoyé
 ## Tout arrêter
 | Niveau | Commande | Effet |
 |---|---|---|
-| Site | `docker compose --profile caddy down` | conteneurs `front` et `caddy` arrêtés et supprimés, réseau `recrutement_edge` supprimé ; volumes gardés |
+| Site | `docker compose --profile caddy down` | conteneurs `front`, `api` et `caddy` arrêtés et supprimés, réseaux `recrutement_edge` et `recrutement_back` supprimés ; volumes gardés (dont `recrutement_data`) |
 | Contrôle | `docker compose ps -a` | liste vide |
 | Volumes | `docker compose --profile caddy down --volumes` | supprime aussi `recrutement_caddy_data` (autorité locale et certificats), `recrutement_caddy_config` et **`recrutement_data` (la base des candidatures)** : en local seulement, jamais sur le serveur |
 | Images | `docker image rm recrutement-front recrutement-api` | images construites supprimées (refaites par `up --build`) |

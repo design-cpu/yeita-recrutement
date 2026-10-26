@@ -3,7 +3,7 @@ type: technique
 page: architecture
 titre: Architecture et déploiement
 maj: 1.3
-commit: 6cd5776
+commit: 3b314a9
 sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, docker/api.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
 date: 2026-10-26
 ---
@@ -40,7 +40,7 @@ flowchart LR
 ## Image `front` (`docker/front.Dockerfile`)
 | Étape | Base | Contenu |
 |---|---|---|
-| `build` | `python:3.12-slim` | `COPY . .` (contexte filtré par `.dockerignore` : `.git`, `hlyja`, `_site`, `.env*`, `*.swp`, `*~`), `python3 tools/build.py /site` |
+| `build` | `python:3.12-slim` | `COPY . .` (contexte filtré par `.dockerignore` : `.git`, `hlyja`, `_site`, `.env*`, `*.swp`, `*~` ; v1.3 : `api/node_modules`, `api/data`, `**/*.sqlite`, `**/*.sqlite-wal`, `**/*.sqlite-shm`), `python3 tools/build.py /site` |
 | finale | `quay.io/oauth2-proxy/oauth2-proxy:v7.15.5` | `LABEL fr.yeita.projet=recrutement`, `COPY --from=build /site /srv/site` ; image sans shell (distroless) |
 Construite depuis la racine (`build.context: .`), nommée `recrutement-front`.
 

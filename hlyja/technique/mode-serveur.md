@@ -3,7 +3,7 @@ type: technique
 page: mode-serveur
 titre: Mode serveur des pages (démarrage, adaptateur, identité)
 maj: 1.3
-commit: 6cd5776
+commit: 3b314a9
 sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, assets/qui.js, assets/store.js, assets/wording.fr.js, assets/yeita.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/decompte.html, candidatures/carte.html, tools/test-serveur.js, tools/e2e-serveur.py
 date: 2026-10-26
 ---
@@ -21,7 +21,7 @@ flowchart LR
   DM -->|401| R[rechargement, une fois]
   DM -->|reste| B[mode bloqué : bandeau, rien n'est lu ni écrit]
 ```
-Ordre des scripts dans chaque page : … `dossier.js`, `config.js`, `wording.fr.js`, `qui.js`, `store.js`, `adapter-serveur.js`, `demarrage.js`, … `ui.js`, script de la page.
+Ordre des scripts : `adapter-serveur.js` puis `demarrage.js` juste après `store.js`, avant `data-parcours.js`, `ui.js` et le script de la page ; `dossier.js`, `qui.js` et `store.js` sont toujours chargés avant (selon la page, `config.js` et `wording.fr.js` avant ou après `dossier.js`).
 
 ## `assets/demarrage.js` — `window.DEMARRAGE`
 | Membre | Rôle |
@@ -83,6 +83,7 @@ Tout rejet (hors 401) appelle `surErreur(e)` puis rejette ; `e.ecriture` vaut `t
 | `DOSSIER.partir(d)` | `touch(upgrade(d))`, `adapter.partir(d, d)` ou `put` |
 | `DOSSIER.partirPartie(base, poser)` | socle = `adapter.enVol(base.id)` ou `base` ; copie, `poser`, `adapter.partir(copie, socle)` |
 | `DOSSIER.onRefus` | posé par le démarrage (bandeau), dans les deux modes |
+| `DOSSIER.onRetabli` | posé par le démarrage en mode serveur (`effacer`) : appelé quand la nouvelle tentative après un 409 réussit (revue v1.3, Q2) |
 
 ## `assets/qui.js` (étendu)
 | État | `moi()` | `equipe()` | `ajouter(nom)` | `monter(el)` |
@@ -99,20 +100,20 @@ Tout rejet (hors 401) appelle `surErreur(e)` puis rejette ; `e.ecriture` vaut `t
 | Page | Première lecture | Retour sur l'onglet | Écriture |
 |---|---|---|---|
 | `index.html` | `DEMARRAGE.pret.then(load)` ; en mode serveur, `label` de « Remplacer tout » retiré | relit la liste, redessine si `id@modifieLe` change | `store.js` (inchangé) |
-| `candidat.html` | `DEMARRAGE.pret.then(load)` | relit si ni enregistrement en attente, en cours ou refusé, ni formulaire de refus ouvert, ni champ actif dans `#body` ; redessine si `meta.modifieLe` change ; retire le bandeau | dossier entier ; « Non enregistré » dans `#saved` sur refus ; `pagehide` → `D.partir(cur)` |
-| `ec1.html`, `ec2.html` | `DEMARRAGE.pret.then(get)` | `ec2` : `renderFrom1()` | `ecrirePartie` : `{fiches.ec1, ec1}` / `{fiches.ec2, ec2}` ; « Non enregistré » dans `renderExits` ; `pagehide` → `partirPartie(cand, …)` |
+| `candidat.html` | `DEMARRAGE.pret.then(load)` | relit si `peutRelire()` (ni enregistrement en attente, en cours ou refusé, ni formulaire de refus ouvert, ni champ actif dans `#body`), revérifié à la réponse ; redessine si `meta.modifieLe` change ; retire le bandeau | dossier entier ; « Non enregistré » dans `#saved` sur refus ; `pagehide` → `D.partir(cur)` |
+| `ec1.html`, `ec2.html` | `DEMARRAGE.pret.then(get)` | `ec2` : `renderFrom1()` | `ecrirePartie` : `{fiches.ec1, ec1}` / `{fiches.ec2, ec2}` ; « Non enregistré » dans `renderExits` des deux pages (EC2 corrigée à la relecture de la doc) ; `pagehide` → `partirPartie(cand, …)` |
 | `decompte.html` | `DEMARRAGE.pret.then(get)` (avec `?id=`) | — | `ecrirePartie` : `fiches.decompte` ; `pagehide` → `partirPartie` |
 | `carte.html` | `pret`, puis `migrateCodes()` seulement hors mode serveur, puis `refresh` | relit, redessine si `meta.modifieLe` change | `store.js`, `setRestitution` |
 Les écoutes `storage` existantes restent (mode navigateur).
 
 ## Textes (`assets/wording.fr.js`)
-`qui.connecte` « Connecté·e : », `qui.lectureSeule` « · lecture seule » ; `serveur` : `conflit`, `horsEquipe`, `lectureSeule`, `reseau`, `session`, `identifiant`, `saisie`, `nonEnregistre`, `recharger`, `exportTexte`. `YEITA.SITE` = `https://recrutement.yeita.fr/` (`assets/yeita.js`).
+`qui.connecte` « Connecté·e : », `qui.lectureSeule` « · lecture seule » ; `serveur` : `conflit`, `horsEquipe`, `lectureSeule`, `reseau`, `session`, `identifiant`, `saisie`, `nonEnregistre`, `recharger`, `exportTexte`. `YEITA.SITE` = `https://recrutement.yeita.fr/` (`assets/yeita.js`) ; `wirePrint` y ajoute le nom de la page, précédé de `candidatures/` pour une page de ce dossier (lien « Ouvrir sur le site »).
 
 ## Stockage du navigateur en mode serveur
-Rien n'est écrit dans `yeita-dossiers`, `yeita-equipe-ajouts`, `yeita-recruteur`, `yeita-options-disponibilite`. Restent : `yeita-dossier-courant` (un identifiant), `yeita-candidatures-ui`, `yeita-carte-identite`, `yeita-match-resultat` (relais hors périmètre), `sessionStorage` `yeita-notice`, `yeita-rechargement-401`.
+Rien n'est écrit dans `yeita-dossiers`, `yeita-equipe-ajouts`, `yeita-recruteur`, `yeita-options-disponibilite`. Restent : `yeita-dossier-courant` (un identifiant), `yeita-dernier-export` (date du dernier export, `store.js`), `yeita-candidatures-ui`, `yeita-carte-identite`, `yeita-match-resultat` (relais hors périmètre), `sessionStorage` `yeita-notice`, `yeita-rechargement-401`.
 
 ## Tests
-`node tools/test-serveur.js` (81 vérifications, fausse API, contexte `vm` comme `tools/test-store.js`) ; `tools/e2e-serveur.py` (37 vérifications, API réelle) : voir [Conventions](conventions.md#tests).
+`node tools/test-serveur.js` (83 vérifications, fausse API, contexte `vm` comme `tools/test-store.js`) ; `tools/e2e-serveur.py` (38 vérifications, API réelle) : voir [Conventions](conventions.md#tests).
 
 ## Voir aussi
 - [API de stockage](api.md)
