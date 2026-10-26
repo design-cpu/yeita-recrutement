@@ -3,7 +3,7 @@ type: technique
 page: conventions
 titre: Conventions et tests
 maj: 1.1
-commit: 3909b8d
+commit: f2091b9
 sources: README.md, CONTRIBUER.md, tools/build.py, tools/check-site.sh, compose.yaml, .dockerignore, .gitignore, tools/test-store.js, tools/e2e-candidatures.py, tools/e2e-parcours.py, tools/e2e-liens.py, tools/e2e-pdf.py
 date: 2026-10-26
 ---
