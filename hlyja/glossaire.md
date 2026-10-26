@@ -1,11 +1,15 @@
 ---
 type: glossaire
-maj: 1.1
+maj: 1.2
 ---
 
 # Glossaire
 
 > Les mots du produit et du projet, expliqués simplement.
+
+## API
+Un programme qui ne montre pas de pages : il répond aux demandes d'autres programmes, comme les pages du site. Celle du projet garde les dossiers candidat dans une base partagée et dit qui a le droit de les lire ou de les modifier.
+Aussi : API de stockage.
 
 ## Caddy
 Un logiciel qui reçoit les visites d'un site web et obtient tout seul le certificat HTTPS. Le projet en lance un dans le cas B, quand le serveur n'a pas déjà de proxy.
@@ -15,6 +19,10 @@ Aussi : Caddy du projet, service caddy.
 Les deux façons d'installer le site sur le serveur. Cas A : un proxy existe déjà sur le serveur, on lui ajoute le site. Cas B : rien n'occupe les ports web, le projet apporte son propre Caddy.
 Aussi : cas A, cas B.
 
+## Conflit d'écriture
+Ce qui arrive quand deux personnes modifient le même dossier en même temps. Chaque dossier porte un numéro de version : un enregistrement fait à partir d'une version dépassée est refusé, et la personne doit recharger la page au lieu d'écraser le travail de l'autre. Cette méthode s'appelle la « version optimiste ».
+Aussi : conflit, conflits, version optimiste.
+
 ## Conteneur
 Un programme qui tourne isolé du reste du serveur, avec tout ce dont il a besoin. On le démarre à partir d'une image Docker, on peut l'arrêter et le recréer sans rien casser autour.
 Aussi : conteneurs.
@@ -23,6 +31,14 @@ Aussi : conteneurs.
 L'outil qui décrit et lance ensemble les conteneurs d'un projet, à partir d'un seul fichier (`compose.yaml`). Une commande démarre tout, une autre arrête tout.
 Aussi : Compose, pile Compose.
 
+## Effacement réel
+Supprimer un dossier de sorte qu'il ne reste plus lisible nulle part dans les fichiers de la base. Une base de données ordinaire marque souvent la place comme libre sans effacer le contenu ; l'API, elle, l'écrase.
+Aussi : effacement.
+
+## En-tête
+Une information jointe à chaque demande envoyée à un serveur, invisible pour le visiteur. oauth2-proxy en ajoute une qui donne l'email du compte connecté ; l'API s'y fie pour savoir qui parle.
+Aussi : en-têtes, X-Forwarded-Email.
+
 ## HTTPS
 La version chiffrée d'une adresse web. Le navigateur affiche un cadenas ; il faut un certificat, que le proxy du serveur ou Caddy se charge d'obtenir.
 Aussi : certificat.
@@ -30,6 +46,18 @@ Aussi : certificat.
 ## Image Docker
 Le paquet prêt à lancer qui contient un programme et ses fichiers. Pour ce projet, l'image `front` contient le site construit et oauth2-proxy.
 Aussi : image, image front.
+
+## Journal
+La liste, tenue par l'API, de qui a créé, modifié ou supprimé quel dossier, quand, et à quelle étape. Il ne contient jamais le contenu des dossiers. À ne pas confondre avec le journal du serveur, qui note les demandes reçues.
+Aussi : journal des actions.
+
+## Mode local
+Une façon de lancer l'API sur son propre poste, sans oauth2-proxy : on lui indique quel membre de l'équipe on est, et elle peut aussi servir le site. Il est refusé sur le serveur.
+Aussi : DEV_EMAIL, DEV_STATIC.
+
+## Node.js
+Le logiciel qui fait tourner du JavaScript en dehors du navigateur. L'API du projet est écrite pour Node.js, version 22 ou plus récente.
+Aussi : Node.
 
 ## oauth2-proxy
 Le gardien placé devant le site. Il sert les pages publiques à tout le monde et demande une connexion avec un compte Google @yeita.fr pour tout le reste.
@@ -50,3 +78,7 @@ Aussi : reverse proxy, proxy de l'hôte, proxy existant.
 ## Serveur partagé
 Le serveur OVH de Yeita, qui fait tourner d'autres services que le projet ne connaît pas. D'où la règle : ne toucher qu'à ce qui appartient au projet.
 Aussi : serveur OVH.
+
+## SQLite
+Une base de données tenue dans un simple fichier, sans serveur de base à installer. L'API y range les dossiers candidat, l'équipe et le journal.
+Aussi : base SQLite.

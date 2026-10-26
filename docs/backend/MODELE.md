@@ -162,29 +162,34 @@ Un dossier v1 (fiches seules, avant le module) passe d'abord en v2, puis en v3. 
 | `sessionStorage` `yeita-notice` | le message « Étape terminée » d'une page à l'autre | inchangé |
 | `yeita-fiche-ec1`, `yeita-fiche-ec2`, `yeita-carte-identite` | brouillons des anciennes fiches autonomes, plus lus par l'espace | à purger |
 
-## Tables SQLite proposées
-L'adaptateur lit et écrit le dossier entier : le plus simple est de le garder en JSON, avec des colonnes tirées du JSON pour lister, filtrer et faire des bilans.
+## Tables SQLite
+L'API (`api/`, v1.2) garde le dossier entier en JSON, sans colonne tirée du JSON ; le schéma est appliqué par l'API et par `api/equipe.js` (`PRAGMA user_version = 1`). Le contrat HTTP (routes, enveloppe `{id, version, data}`, codes d'erreur, correspondance avec `list`/`get`/`put`/`remove`) est décrit dans [`api/README.md`](../../api/README.md).
 
 ```sql
-CREATE TABLE candidats (
-  id                 TEXT PRIMARY KEY,
-  data               TEXT NOT NULL,                 -- le dossier v3 complet, en JSON
-  version            INTEGER NOT NULL DEFAULT 1,    -- conflit si la version lue n'est plus la bonne
-  personne           TEXT NOT NULL,
-  job                TEXT CHECK (job IN ('PrD','PM / PO','Ops','SM','PMM','UXR','Bizdev','RH','Recruteur·se')),
-  xp                 REAL,
-  disponibilite      TEXT,
-  date_debut_process TEXT,
-  etape              TEXT NOT NULL CHECK (etape IN ('appel','ec1','bilan-ec1','ec2','bilan-ec2','ec3','decision','proposition','go-mission','onboarding','vivier','non-retenu')),
-  etat               TEXT NOT NULL CHECK (etat IN ('a-planifier','planifie','fait','retour-a-faire','non-retenu','valide','plus-dispo')),
-  demo               INTEGER NOT NULL DEFAULT 0,
-  cree_le            TEXT NOT NULL,
-  modifie_le         TEXT NOT NULL,
-  modifie_par        TEXT
+CREATE TABLE equipe (
+  email     TEXT PRIMARY KEY CHECK (email = lower(email) AND email LIKE '%@yeita.fr'),
+  prenom    TEXT NOT NULL CHECK (length(trim(prenom)) > 0),
+  role      TEXT NOT NULL CHECK (role IN ('recruteur','admin','lecture')),
+  actif     INTEGER NOT NULL DEFAULT 1 CHECK (actif IN (0,1)),
+  ajoute_le TEXT NOT NULL
 );
-CREATE TABLE candidat_provenances (candidat_id TEXT REFERENCES candidats(id) ON DELETE CASCADE, provenance TEXT NOT NULL);
-CREATE TABLE candidat_recruteurs  (candidat_id TEXT REFERENCES candidats(id) ON DELETE CASCADE, recruteur TEXT NOT NULL);
-CREATE TABLE journal (id INTEGER PRIMARY KEY, candidat_id TEXT, action TEXT, etape TEXT, par TEXT, le TEXT);  -- qui a fait quoi, sans le contenu
-CREATE TABLE equipe (prenom TEXT PRIMARY KEY, email TEXT UNIQUE);   -- remplace YEITA_CONFIG.equipe une fois l'identité Google en place
-CREATE TABLE options_disponibilite (libelle TEXT PRIMARY KEY);
+CREATE TABLE candidats (
+  id          TEXT PRIMARY KEY,
+  data        TEXT NOT NULL,          -- le dossier v3 complet, en JSON
+  version     INTEGER NOT NULL CHECK (version >= 1),   -- conflit si la version lue n'est plus la bonne
+  modifie_le  TEXT NOT NULL,
+  modifie_par TEXT NOT NULL
+);
+CREATE TABLE journal (                -- qui a fait quoi, sans le contenu ; purgé à la suppression du dossier
+  id          INTEGER PRIMARY KEY,
+  candidat_id TEXT NOT NULL,
+  action      TEXT NOT NULL CHECK (action IN ('creation','modification','suppression')),
+  etape       TEXT,
+  par         TEXT NOT NULL,
+  le          TEXT NOT NULL
+);
+CREATE TABLE options_disponibilite (  -- seulement les options ajoutées ; celles de base restent dans assets/dossier.js
+  libelle   TEXT PRIMARY KEY,
+  ajoute_le TEXT NOT NULL
+);
 ```

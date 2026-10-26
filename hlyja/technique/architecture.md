@@ -2,15 +2,16 @@
 type: technique
 page: architecture
 titre: Architecture et déploiement
-maj: 1.1
-commit: c7c60b6
-sources: deploy/README.md, assets/config.js, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
+maj: 1.2
+commit: 2497be9
+sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
 date: 2026-10-26
 ---
 
 # Architecture et déploiement
 
-> Le site statique est construit par `tools/build.py` et servi par oauth2-proxy dans Docker, sur le serveur OVH partagé de Yeita ; une liste fermée de pages est publique, le reste exige un compte Google @yeita.fr. Les données restent dans le navigateur (v1.1).
+> Le site statique est construit par `tools/build.py` et servi par oauth2-proxy dans Docker, sur le serveur OVH partagé de Yeita ; une liste fermée de pages est publique, le reste exige un compte Google @yeita.fr. Les données restent dans le navigateur.
+> v1.2 : l'API de stockage (`api/`, Node.js, SQLite) existe et se lance seule ; elle n'est encore ni dans Docker ni branchée aux pages ([API de stockage](api.md)).
 
 ## Vue d'ensemble
 ```mermaid
@@ -28,6 +29,10 @@ flowchart LR
 | `quay.io/oauth2-proxy/oauth2-proxy` | `v7.15.5` | sert `/srv/site` (upstream `file://`) et impose la connexion Google | 1.1 |
 | `caddy` | `2.11.7` | HTTPS automatique du cas B, en-têtes de sécurité | 1.1 |
 | Docker Compose | plugin `docker compose` | projet `recrutement` | 1.1 |
+| Node.js | `>=22` (`api/package.json`, `engines`) | API de stockage `api/` | 1.2 |
+| `fastify` | `5.12.7` | serveur HTTP de l'API | 1.2 |
+| `better-sqlite3` | `13.0.3` | base SQLite de l'API (binaires fournis, `api/.npmrc` `ignore-scripts=true`) | 1.2 |
+| `@fastify/static` | `10.1.6` | site construit servi par l'API en mode local (`DEV_STATIC`) | 1.2 |
 
 ## Image `front` (`docker/front.Dockerfile`)
 | Étape | Base | Contenu |
@@ -79,8 +84,10 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 | Poste, cas A | `COMPOSE_PROFILES=` vide, `docker compose up -d` | `http://127.0.0.1:4180` |
 | Poste, sans Docker | `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site` | `http://localhost:8765` (pas d'authentification ; tests de navigateur) |
 | Serveur OVH | `deploy/deploy.sh` | `https://recrutement.yeita.fr` |
+| Poste, API seule (v1.2) | `cd api && npm ci && DEV_EMAIL=moi@yeita.fr npm start` (après `node equipe.js add moi@yeita.fr Moi admin`) | `http://127.0.0.1:8000/api/…` ; avec `DEV_STATIC=../_site`, le site à `/` |
 
 ## Voir aussi
+- [API de stockage](api.md)
 - [Décisions](decisions.md)
 - [Conventions et tests](conventions.md)
 - [Lancer le site avec Docker sur un poste](docker-local.md)
@@ -90,3 +97,4 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 | Version | Changement |
 |---|---|
 | 1.1 | Création : image `front`, Compose, cas A et B, scripts de préparation, de déploiement et de contrôle |
+| 1.2 | API de stockage `api/` (Node.js, Fastify, SQLite), hors Docker : pile et environnement local |

@@ -3,3 +3,5 @@ dist/
 renders/
 .DS_Store
 .env
+api/node_modules/
+api/data/
