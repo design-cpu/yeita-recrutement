@@ -117,6 +117,18 @@ $etrangers"
     [ "$i" -lt 30 ] || echec "$avant" "front ne répond pas sur 127.0.0.1:4180/ping après 60 s (docker compose logs front)."
     sleep 2
   done
+  # L'api (depuis la 1.3) : attendue seulement si le commit déployé la déclare (lu après le changement de commit :
+  # un retour vers un commit sans api ne doit pas l'attendre). Le 401 de check-site.sh vient d'oauth2-proxy, pas d'elle.
+  if docker compose config --services | grep -qx api; then
+    local sante=""
+    for i in $(seq 1 30); do
+      sante=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$(docker compose ps -q api)" 2>/dev/null || true)
+      [ "$sante" = healthy ] && break
+      [ "$i" -lt 30 ] || echec "$avant" "l'api n'est pas saine après 60 s (état : ${sante:-inconnu} ; docker compose logs api)."
+      sleep 2
+    done
+    info "API saine."
+  fi
   local essais=1
   [ "$caddy" = oui ] && essais=6   # le temps que Caddy obtienne le certificat
   for i in $(seq 1 "$essais"); do
