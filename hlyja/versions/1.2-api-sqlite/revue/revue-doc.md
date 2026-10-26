@@ -3,12 +3,13 @@ type: revue-doc
 version: 1.2
 pages: 7
 erreurs: 7
-corrigees: 0
+corrigees: 7
 date: 2026-10-26
 ---
 # Revue de la documentation — API Node.js sur SQLite pour les dossiers candidat
 
 > 7 pages vérifiées contre le code au commit `2497be9` (aucun commit depuis sur leurs `sources` ; `cd api && npm test` : 52 tests, 52 réussis, ~21 s). La doc est exacte sur l'essentiel : routes, messages, variables, tables et réglages correspondent au code. 7 erreurs, aucune bloquante : un code 503 oublié pour l'ajout d'option (deux pages), un déploiement derrière oauth2-proxy présenté comme fait, une décision v1.0 devenue périmée, un point de contrôle décrit trop largement, deux listes incomplètes.
+> Revérification (après `d264bab`) : les 7 erreurs sont corrigées et conformes au code, qui n'a pas changé depuis `2497be9`. Les deux remarques non bloquantes (`HEAD`, 415 pour un corps d'un autre type) sont traitées elles aussi. Aucune vue humaine à ajuster.
 
 ## Pages vérifiées
 | Page | Conforme | Dans le cadre | Cohérente | Complète | Remarques |
@@ -33,6 +34,22 @@ date: 2026-10-26
 | 7 | `hlyja/technique/decisions.md`, décision « Stockage et authentification » (1.0) | Conséquences : « l'authentification est en place depuis v1.1, le stockage SQLite reste à faire » — périmé et contradictoire avec la décision « API de stockage » (1.2) de la même page. | « … l'authentification est en place depuis v1.1 ; l'API SQLite existe depuis v1.2 (`api/`), pas encore branchée aux pages ». |
 
 Vues humaines écrites d'après le code là où la source est fausse : `api.humain.md` dit que l'ajout d'une option peut aussi répondre « Base occupée » (erreurs 1-2) et que le schéma montre l'installation visée, l'API n'étant pas encore derrière oauth2-proxy (erreur 3) ; `decisions.humain.md` dit « après chaque écriture d'un dossier » (erreur 4) et que l'API SQLite existe depuis la v1.2 sans être branchée (erreur 7).
+
+## Revérification
+Faite sur `d264bab` contre le code (`git log 2497be9..HEAD` est vide pour `api/server.js`, `api/equipe.js`, `api/src/`, `api/test/`, `api/package.json`, `api/.npmrc`).
+
+| # | Page | Statut | Vérification |
+|---|---|---|---|
+| 1 | `hlyja/technique/api.md` | corrigée | 503 ajouté aux erreurs de `POST /api/options-disponibilite` ; conforme à `api/src/options.js` (transaction immédiate) et au test « base occupée : PUT, DELETE et POST en 503 » |
+| 2 | `api/README.md` | corrigée | même ajout dans le tableau du Contrat HTTP |
+| 3 | `hlyja/technique/api.md` | corrigée | la synthèse dit « Conçue pour être placée derrière oauth2-proxy… en v1.2, … ni derrière oauth2-proxy, ni dans Docker, ni branchée aux pages » ; le schéma est introduit par « Déploiement visé (version suivante) » ; plus aucun « Placé derrière » ; cohérent avec `deploy/oauth2-proxy.cfg` (upstream `file://` seul) et `architecture.md` |
+| 4 | `hlyja/technique/decisions.md` | corrigée | « après chaque écriture sur `candidats` (PUT, DELETE) » ; conforme à `pointDeControle` dans `api/src/candidats.js`, absent de `options.js` et d'`equipe.js` |
+| 5 | `hlyja/technique/conventions.md` | corrigée | la liste contient les 7 exports de `api/test/aide.js` (`dossierTemporaire`, `siteConstruit`, `dossier`, `fichiersContiennent`, `MEMBRES`, `creerApp`, `requete`) |
+| 6 | `hlyja/technique/api.md` | corrigée | « prénom non vide (`length(trim(prenom)) > 0`) » ; identique au `CHECK` de `SCHEMA` dans `api/src/base.js` |
+| 7 | `hlyja/technique/decisions.md` | corrigée | décision 1.0 : « l'API de stockage SQLite existe depuis v1.2, pas encore branchée aux pages » ; ne contredit plus la décision « API de stockage » (1.2) |
+| — | `hlyja/technique/api.md` (remarques) | traitées | ligne « Rôle » : `HEAD` créé par Fastify pour chaque `GET` (vérifié par `inject` : `HEAD /api/candidats` → 200) ; ligne « Type » : toute méthode avec un corps d'un autre type → 415 (vérifié : `DELETE` avec `text/plain` → 415) |
+
+Vues humaines : pas de changement. Elles suivaient déjà le code sur ces points (503 de l'ajout d'option, déploiement visé, point de contrôle limité aux dossiers, API existante mais pas branchée). `HEAD` et le refus en 415 sont du détail, qui reste dans la version complète.
 
 ## Vues humaines écrites
 | Page | Fichier |
