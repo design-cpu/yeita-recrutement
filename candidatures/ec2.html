@@ -847,7 +847,7 @@ function aidesEnInfobulle(){
 function renderExits(){
   var el = document.getElementById("exits"); if(!cand) return;
   var state = PU.stepState(cand, "ec2"), cur = PU.current(cand);
-  var saved = '<span class="saved" aria-live="polite">' + (savedAt ? E(UI.t("commun.enregistreA", {heure: savedAt.toLocaleTimeString("fr-FR", {hour: "2-digit", minute: "2-digit"})})) : E(UI.t("ec.autoSave"))) + '</span>';
+  var saved = '<span class="saved" aria-live="polite">' + (refuse ? E(UI.t("serveur.nonEnregistre")) : (savedAt ? E(UI.t("commun.enregistreA", {heure: savedAt.toLocaleTimeString("fr-FR", {hour: "2-digit", minute: "2-digit"})})) : E(UI.t("ec.autoSave")))) + '</span>';
   var right = state === "cur" ? '<span class="why">' + (hasData() ? "" : E(UI.t("sorties.ficheVide"))) + '</span><button type="button" class="btn primary" id="next">' + E(UI.t("sorties.suivant.ec2")) + '</button>'
     : '<a class="btn" href="' + E(UI.urlCandidat(cand.id, cur)) + '">' + E(UI.t("ec.retourParcours", {etape: UI.etapeLabel(cur)})) + '</a>';
   el.innerHTML = '<div class="exits" role="group" aria-label="' + E(UI.t("fiche.sorties")) + '"><div class="l">' + saved + '</div><div class="r">' + right + '</div></div>';

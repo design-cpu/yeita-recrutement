@@ -189,6 +189,7 @@ async def principal():
             st, d = api("alice@yeita.fr", "GET", "candidats/" + cid)
             check("deux onglets EC2 : refus avec bandeau, aucun PUT du second, notes du premier en base (CA7)",
                   "modifiée par quelqu'un d'autre" in await bandeau(e2) and not puts and "Notes EC2 d'Alice" in json.dumps(d["data"]["fiches"].get("ec2"), ensure_ascii=False))
+            check("deux onglets EC2 : « Non enregistré » dans l'indicateur de la fiche EC2 refusée (R11b)", "Non enregistré" in (await e2.locator("#exits .saved").text_content() or ""))
             await e1.close(); await e2.close()
 
             # --- Rôle lecture (CA9) ---
