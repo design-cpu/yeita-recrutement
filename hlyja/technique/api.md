@@ -1,0 +1,116 @@
+---
+type: technique
+page: api
+titre: API de stockage (api/)
+maj: 1.2
+commit: COMMIT_A_REMPLIR
+sources: api/server.js, api/equipe.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md
+date: 2026-10-26
+---
+
+# API de stockage (`api/`)
+
+> Le serveur Node.js qui garde les dossiers candidat entiers dans SQLite et expose le contrat list/get/put/remove de `docs/backend/MODELE.md`, réservé aux membres actifs de la table `equipe`. Placé derrière oauth2-proxy (`X-Forwarded-Email`) ; pas encore branché aux pages ni dans Docker (v1.2). Mode d'emploi et contrat HTTP pour l'intégrateur : `api/README.md`.
+
+## Vue d'ensemble
+```mermaid
+flowchart LR
+  N[Navigateur] -->|cookie de session| P[oauth2-proxy]
+  P -->|X-Forwarded-Email| A[API Fastify\nHOST:PORT]
+  A --> D[(SQLite\nDB_PATH, WAL)]
+  C[node api/equipe.js] --> D
+```
+Un processus, une connexion better-sqlite3 (synchrone). `equipe.js` ouvre sa propre connexion sur la même base.
+
+## Fichiers
+| Fichier | Rôle | Exporte |
+|---|---|---|
+| `api/server.js` | Point d'entrée (`npm start`) : `lireConfig`, `ouvrirBase`, `construireApp`, écoute, ligne de démarrage, avertissements, arrêt sur `SIGINT`/`SIGTERM` (code 0), erreurs de démarrage (code 1) | — |
+| `api/equipe.js` | Commande `add|list|disable|role` | — |
+| `api/src/config.js` | Lecture et contrôle des variables | `lireConfig(env, dossierApi)`, `cheminBase(env, dossierApi)`, `ErreurConfig`, `DOSSIER_API` |
+| `api/src/base.js` | Ouverture de la base, réglages, schéma | `ouvrirBase(chemin)` → `{db, creee, userVersion}`, `SCHEMA`, `VERSION_SCHEMA` (1), `ATTENTE_MS` (5000), `ErreurBase`, `estOccupee(e)` |
+| `api/src/app.js` | Application Fastify : analyseur JSON, autorisation, erreurs, `/api/sante`, `/api/moi`, `/api/equipe`, site local | `construireApp({config, db, logger, routes})`, `ErreurHttp(statut, message, code)`, `envoyer(rep, statut, erreur, code)` |
+| `api/src/candidats.js` | Routes des dossiers, journal, point de contrôle | `routesCandidats(app, db)` |
+| `api/src/options.js` | Routes des options de disponibilité | `routesOptions(app, db)` |
+| `api/src/routes.js` | Liste des routes de données | `routesApi` |
+| `api/src/valeurs.js` | Valeurs recopiées (source citée) et constantes | `SCHEMA_DOSSIER`, `MOTIF_ID`, `ETAPES` (12), `DISPOS` (6), `MOTIF_EMAIL`, `ROLES`, `HOTES_LOCAUX`, `LIMITE_CORPS` (1 048 576), `MESSAGE_CONFLIT`, `emailValide(brut)` |
+
+Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISPOS` viennent de `assets/dossier.js`, `ETAPES` de `MODELE.md`.
+
+## Routes
+| Méthode et chemin | Auth | Rôles | Entrée | Succès | Erreurs | Depuis |
+|---|---|---|---|---|---|---|
+| `GET /api/sante` | non | — | — | 200 `{ok: true}` | 503 `{ok: false}` | 1.2 |
+| `GET /api/moi` | oui | tous | — | 200 `{email, prenom, role}` | 401, 403 | 1.2 |
+| `GET /api/equipe` | oui | tous | — | 200 `[{prenom, role}]` (actifs, triés par prénom, `localeCompare` fr) | 401, 403 | 1.2 |
+| `GET /api/candidats` | oui | tous | — | 200 `[{id, version, data}]`, tri `json_extract(data,'$.meta.modifieLe') DESC, modifie_le DESC` | 401, 403 | 1.2 |
+| `GET /api/candidats/:id` | oui | tous | `:id` (`MOTIF_ID`) | 200 `{id, version, data}` | 400, 401, 403, 404 `introuvable` | 1.2 |
+| `PUT /api/candidats/:id` | oui | recruteur, admin | `{version: null \| entier ≥ 1, data}` JSON ≤ 1 Mo | 201 (création, `version` 1), 200 (`version + 1`) | 400, 401, 403, 409 `conflit`, 413, 415, 503 | 1.2 |
+| `DELETE /api/candidats/:id` | oui | recruteur, admin | `:id` | 204 | 400, 401, 403, 404 `introuvable`, 503 | 1.2 |
+| `GET /api/options-disponibilite` | oui | tous | — | 200 `["…"]` (ajouts, ordre `rowid`) | 401, 403 | 1.2 |
+| `POST /api/options-disponibilite` | oui | recruteur, admin | `{libelle}` (1 à 60 caractères, espaces normalisés) | 201 ajouté, 200 doublon ou option de `DISPOS` ; corps : la liste | 400, 401, 403, 413, 415 | 1.2 |
+| `* /api/*` (autre) | oui | tous | — | — | 404 « Route inconnue. » (après l'autorisation) | 1.2 |
+
+`version` de l'enveloppe = version de la ligne ; distincte de `data.version` (schéma du dossier, 3). `data` est rendu tel qu'enregistré (pas de mise à niveau). Textes et codes d'erreur : `api/README.md` § Contrat HTTP.
+
+## Autorisation et requête (`api/src/app.js`)
+| Étape | Crochet | Règle |
+|---|---|---|
+| Exemption | `onRequest` | route trouvée `GET /api/sante` (`req.routeOptions.url`), et la route statique `/*` en mode local ; jamais sur le texte de l'adresse |
+| Identité | `onRequest` | `X-Forwarded-Email` seul (`X-Forwarded-User` ignoré), `emailValide` : minuscules, `^[a-z0-9._%+-]+@yeita\.fr$` ; absent ou vide → `config.devEmail` ; invalide → 401 |
+| Équipe | `onRequest` | `SELECT … FROM equipe WHERE email = ?` à chaque requête ; absent ou `actif = 0` → 403 `hors-equipe` |
+| Rôle | `onRequest` | `lecture` : `GET` et `HEAD` seulement, sinon 403 `lecture-seule` |
+| Corps | analyseur | seul `application/json` (`getDefaultJsonParser("error","error")` : `__proto__`, `constructor.prototype` refusés) ; corps vide → `undefined` ; `bodyLimit` 1 048 576 |
+| Type | `preValidation` | PUT et POST sans `Content-Type: application/json` → 415 |
+| Cache | `onSend` | `Cache-Control: no-store` sauf route statique `/*` |
+| Erreurs | `setErrorHandler` | `ErreurHttp` tel quel ; `FST_ERR_CTP_BODY_TOO_LARGE` → 413, `FST_ERR_CTP_INVALID_JSON_BODY` → 400, `FST_ERR_CTP_INVALID_MEDIA_TYPE` → 415, `SQLITE_BUSY*` → 503, autre 4xx → « Requête invalide. », sinon 500 journalisé sans message (type, code, pile sans 1re ligne) |
+| Introuvable | `setNotFoundHandler` | 404 « Route inconnue. » |
+Routeur : `maxParamLength` 200 (un `:id` plus long → 404 de route inconnue).
+
+## Base (`api/src/base.js`)
+| Table | Colonnes | Contraintes | Écrite par |
+|---|---|---|---|
+| `equipe` | `email` (clé), `prenom`, `role`, `actif`, `ajoute_le` | email en minuscules et `@yeita.fr` ; rôle `recruteur`/`admin`/`lecture` ; `actif` 0/1 | `equipe.js` |
+| `candidats` | `id` (clé), `data` (JSON), `version` (≥ 1), `modifie_le`, `modifie_par` | aucune colonne tirée du JSON | PUT, DELETE |
+| `journal` | `id`, `candidat_id`, `action` (`creation`, `modification`, `suppression`), `etape` (une des 12 `ETAPES` ou `null`), `par`, `le` | jamais de contenu du dossier ; purgé à la suppression du dossier, une ligne `suppression` gardée | PUT, DELETE |
+| `options_disponibilite` | `libelle` (clé), `ajoute_le` | seulement les ajouts | POST |
+
+| Réglage | Valeur | Raison |
+|---|---|---|
+| masque | `process.umask(0o077)` avant l'ouverture | dossier 700, `.sqlite`/`-wal`/`-shm` 600 |
+| `journal_mode` | `WAL` (hors transaction) | lectures non bloquées par l'écriture |
+| `busy_timeout` | 5000 ms (100 ms le temps d'un point de contrôle) | attendre un écrivain ; ne pas geler sur un lecteur |
+| `secure_delete` | `ON` | contenu effacé, pas seulement libéré |
+| `user_version` | 1 | 0 → schéma créé (sans `IF NOT EXISTS`) dans une transaction immédiate qui relit `user_version` ; > 1 → refus |
+Écritures : toutes en `transaction(...).immediate()` (API et `equipe.js`). Après chaque écriture sur `candidats` : `wal_checkpoint(TRUNCATE)` ; s'il est gêné par un lecteur, avertissement « Point de contrôle incomplet » au journal du serveur.
+
+## Configuration (`api/src/config.js`)
+| Variable | Défaut | Contrôle |
+|---|---|---|
+| `PORT` | 8000 | `^\d+$`, 1 à 65535 |
+| `HOST` | `127.0.0.1` | sans espace ; `local` = `127.0.0.1`, `::1`, `localhost` |
+| `DB_PATH` | `data/recrutement.sqlite` | relatif → depuis `api/` ; refus de `:memory:`, `#`, guillemets, dossier existant |
+| `NODE_ENV` | — | `production` comparé sans espaces ni casse |
+| `DEV_EMAIL` | — | `emailValide` ; `local` et hors production |
+| `DEV_STATIC` | — | `#`, guillemets refusés ; dossier existant avec `index.html` ; refus si la base ou `api/` sont dedans (chemins réels) ; `local` et hors production ; servi par @fastify/static (`dotfiles: "deny"`) |
+Variable vide = absente. Toute erreur → `ErreurConfig` → code 1 et une ligne (avant l'écoute) ; port pris → code 1 « Impossible d'écouter sur … : port déjà utilisé. ».
+
+## `equipe.js`
+`add <email> <prénom> [rôle]` (réactive un membre désactivé ; prénom égal à un rôle refusé), `list`, `disable <email>`, `role <email> <rôle>` (ne réactive pas). Arguments contrôlés avant l'ouverture de la base ; première ligne `Base : <chemin absolu>` (+ ` (créée)`) ; code 0 ou 1 ; base occupée au-delà de 5 s → code 1, rien d'écrit.
+
+## Journal du serveur
+Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue, hôte, adresse distante, statut, durée. Démarrage : `hote`, `port`, `base`, `user_version`, `node_env`, `dev_email`, `dev_static`. Avertissements : exposition (`HOST` non local), mode local, point de contrôle incomplet.
+
+## Tests
+`cd api && npm test` (`node --test "test/*.test.js"`), 7 fichiers dans `api/test/` : `config`, `base`, `api` (autorisation, erreurs, options), `candidats`, `serveur` et `equipe` (processus fils), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
+
+## Voir aussi
+- [Architecture et déploiement](architecture.md)
+- [Décisions](decisions.md)
+- [Conventions et tests](conventions.md)
+- Contrat de stockage : `docs/backend/MODELE.md` ; mode d'emploi : `api/README.md`
+
+## Historique
+| Version | Changement |
+|---|---|
+| 1.2 | Création : routes, autorisation, base, configuration, `equipe.js` |
