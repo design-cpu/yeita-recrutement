@@ -29,7 +29,7 @@ date: 2026-10-26
 - **04** et **05** s'appuient sur l'adaptateur ; **06** et **07** branchent les pages une fois le démarrage et `QUI` prêts.
 - **08** est indépendante (textes), placée là où elle ne gêne rien.
 - **09** vérifie l'ensemble en mode serveur ; **10** décrit ce qui a été livré. Le référentiel `hlyja/` est mis à jour à chaque tâche qui touche un composant, puis à l'étape Documentation.
-- **Critère de sortie de chaque tâche** (non-régression, R16, R37, CA15) : `node tools/test-store.js`, `cd api && npm test`, et les 4 `tools/e2e-*.py` dès qu'une page est touchée.
+- **Critère de sortie de chaque tâche** (non-régression, R16, R37, CA15) : `node tools/test-store.js`, `node tools/test-serveur.js`, `cd api && npm test`, les 4 `tools/e2e-*.py` et `tools/e2e-serveur.py` dès qu'une page est touchée.
 - L'aide d'écriture de partie des fiches (tâche 07) va dans `assets/dossier.js` (`DOSSIER.ecrirePartie`) : une seule réalisation pour les trois fiches, dans les deux modes.
 
 ## Dépendances

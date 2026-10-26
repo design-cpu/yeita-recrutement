@@ -1,7 +1,7 @@
 ---
 type: pilote
 version: 1.3
-points: 4
+points: 5
 dernier: ajuster
 date: 2026-10-26
 ---
@@ -61,3 +61,19 @@ Actions : spec v3 ≤ 340 lignes et ≤ 27 CA ; étendre les CA existants plutô
 | Règles / CA sans tâche | R24, R39, CA17 ; R16, R37, CA15 | 0 |
 Constats : découpage conforme au plan, aucun ajout, outillage dans le projet, risque d'abord. Deux écarts : le garde-fou de la règle 1 (R24, CA17, R39) n'est rattaché à aucune tâche ; l'emplacement de l'aide d'écriture de partie n'est pas tranché, et la non-régression n'est pas écrite dans les tâches.
 Actions : R24, R39, CA17 ajoutés à la tâche 01 (essais d'attaque, valeurs résolues, formes d'adresse) ; non-régression ajoutée à chaque tâche comme critère de sortie ; aide `DOSSIER.ecrirePartie` dans `assets/dossier.js`. Fait.
+
+## P4 — avant la QA · ajuster
+| Mesure | Valeur | Repère du plan |
+|---|---|---|
+| Tâches | 10, toutes ok | 9 à 11 |
+| Diff hors `hlyja/` | 24 fichiers, ~1 300 lignes ajoutées | — |
+| Fichiers créés / modifiés | 5 / 19 | 4 à 6 / 15 à 20 |
+| Dépendances npm / audit | 0 / 0 vulnérabilité | 0 |
+| Tests hors code de production | 81 Node + 37 navigateur (mode serveur) ; 111 e2e navigateur rejoués | non-régression à chaque tâche |
+| Revue de code | 0 bloquant, 1 majeur corrigé, 12 mineurs (6 corrigés, 6 notés) | — |
+| Mutations | 20 Node (toutes détectées) + 3 e2e (2 détectées, 1 équivalente) | règle 5 |
+| Écarts à la spec | 3 : R38, R6g révisé, lien « Ouvrir sur le site » | 0 |
+| Référentiel | pas encore mis à jour | étape Documentation |
+| Plan QA | à faire | 45 à 60 |
+Constats : plan respecté, aucun ajout de fonctionnalité ; R6g et le lien sont des correctifs justifiés ; l'écart à R38 n'était tracé que dans la fiche 09, et le résumé de la spec gardait l'ancienne formule de R6g ; mineurs corrigés justifiés et petits (règles 2 et 4, R6i, CA20), chacun testé. Couverture déjà automatique à ne pas refaire à la main (CA1 à CA14, CA16 à CA22 en partie, CA24). Restent à la QA : CA17 avec session, V16, règle 4 sur la pile Docker, durée maximale par test, mutations de Q7, départ sous une autre identité qu'Alice, CA22, CA25, relecture des textes. Commande de l'e2e serveur non écrite ; nouvelles suites absentes du critère de sortie.
+Actions : R38 et résumé de R6g alignés dans la spec finale ; `test-serveur.js` et `e2e-serveur.py` ajoutés au critère de non-régression (découpage) ; plan QA au bas du repère (~45), un scénario « rejeu » par suite ; Q2, Q5, Q6, Q8, Q9 restant au backlog ; commande de l'e2e serveur et pages du référentiel à l'étape Documentation. Appliqué (spec, découpage).

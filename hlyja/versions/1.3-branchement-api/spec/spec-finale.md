@@ -24,7 +24,7 @@ date: 2026-10-26
 
 ### v3 (tour 2)
 - **Démarrage** : le 404 de `/api/moi` est classé avant la lecture du corps (A7, V22) : tableau § API et intégrations, CA2.
-- **Fiches** : R6g et R6h réécrites d'un seul tenant (F9, A2, R10, D11) : envoi de départ sans relecture, avec la version que le `PUT` en cours produira ; nouvelle tentative seulement si la partie de la fiche est inchangée ; relecture vide → aucune écriture ; H5 ; CA7, CA8, CA21.
+- **Fiches** : R6g et R6h réécrites d'un seul tenant (F9, A2, R10, D11) : envoi de départ sans relecture, posé sur l'objet du `PUT` en cours (version qu'il produira) ou sur le dernier dossier lu par la page (révisé à la revue de code, Q1) ; nouvelle tentative seulement si la partie de la fiche est inchangée ; relecture vide → aucune écriture ; H5 ; CA7, CA8, CA21.
 - **Réseau** : `enable_ipv6: false` sur `back` (S6, V39) ; sortie de `front` par `edge` dans CA17 (S7, V38) ; moteur du serveur et contrôle avant le premier admin (E10) : R32, § Déploiement.
 
 ### v2 (tour 1)
@@ -185,7 +185,7 @@ Bandeau « Données fictives » ; relais `yeita-match-resultat` ; règles de `st
 | # | Règle | Détail / valeurs |
 |---|---|---|
 | R37 | Non-régression | `node tools/test-store.js`, les 4 `tools/e2e-*.py` en mode navigateur, `cd api && npm test` passent sans modification |
-| R38 | Test du mode serveur | `tools/e2e-serveur.py` (Playwright Python) contre l'API lancée avec une base temporaire et `DEV_STATIC`, sans `DEV_EMAIL` ; identité de chaque navigateur par `X-Forwarded-Email` (V21) ; équipe : Alice et Bob (`recruteur`), Léa (`lecture`) ; les réponses que l'API ne produit pas (proxy, réseau, lenteur) sont simulées par interception réseau ; commande dans `hlyja/technique/conventions.md` |
+| R38 | Test du mode serveur | `tools/e2e-serveur.py` (Playwright Python) contre l'API lancée avec une base temporaire et `DEV_STATIC`, identité de chaque navigateur par `X-Forwarded-Email` (V21) ; **écart** : `DEV_EMAIL` (Alice) pour les seules requêtes sans en-tête, car l'envoi de départ (`keepalive`, après le déchargement) ne reçoit pas les en-têtes ajoutés par Playwright ; en production, le cookie de session part avec lui ; équipe : Alice et Bob (`recruteur`), Léa (`lecture`) ; les réponses que l'API ne produit pas (proxy, réseau, lenteur) sont simulées par interception réseau ; commande dans `hlyja/technique/conventions.md` |
 | R39 | Banc Docker | R22 à R34 vérifiés sur la pile construite, sur les valeurs résolues (`docker compose config`), sur un moteur Linux pour R22b et R24 |
 | R40 | `MODELE.md` | messages ; branchement réel (`demarrage.js`, `adapter-serveur.js`) ; tableau « Ce qui vit encore dans le navigateur » pour le mode serveur ; régression de `QUI.ajouter` ; risque H5 ; un export est une copie, un import « Fusion » peut recréer un dossier supprimé |
 
