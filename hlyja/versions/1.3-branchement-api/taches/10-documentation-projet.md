@@ -22,6 +22,8 @@ date: 2026-10-26
 - [ ] CA22
 - [ ] CA25
 
+- [ ] Non-régression (R16, R37, CA15) : `node tools/test-store.js`, `cd api && npm test`, les 4 `tools/e2e-*.py` si une page est touchée
+
 ## Ce qui a été fait
 À faire :
 - `MODELE.md` : messages, branchement réel, tableau du navigateur, régression de `QUI.ajouter`, H5, copies

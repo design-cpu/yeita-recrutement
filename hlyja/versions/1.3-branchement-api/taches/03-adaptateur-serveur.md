@@ -22,6 +22,8 @@ date: 2026-10-26
 - [ ] CA6
 - [ ] CA13
 
+- [ ] Non-régression (R16, R37, CA15) : `node tools/test-store.js`, `cd api && npm test`, les 4 `tools/e2e-*.py` si une page est touchée
+
 ## Ce qui a été fait
 À faire :
 - Forme `{name, volatile, list, get, put, remove}` + envoi de départ (`partir(d)`) pour R6g

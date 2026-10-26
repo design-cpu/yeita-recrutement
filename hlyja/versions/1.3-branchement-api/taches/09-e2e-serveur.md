@@ -23,6 +23,8 @@ date: 2026-10-26
 - [ ] CA14
 - [ ] CA21 (partie navigateur)
 
+- [ ] Non-régression (R16, R37, CA15) : `node tools/test-store.js`, `cd api && npm test`, les 4 `tools/e2e-*.py` si une page est touchée
+
 ## Ce qui a été fait
 À faire :
 - Lancement de l'API et de l'équipe de test (Alice, Bob, Léa)

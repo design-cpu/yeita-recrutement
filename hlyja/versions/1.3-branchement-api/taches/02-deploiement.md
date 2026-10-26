@@ -22,6 +22,8 @@ date: 2026-10-26
 - [ ] CA19
 - [ ] CA20
 
+- [ ] Non-régression (R16, R37, CA15) : `node tools/test-store.js`, `cd api && npm test`, les 4 `tools/e2e-*.py` si une page est touchée
+
 ## Ce qui a été fait
 À faire :
 - `deploy/deploy.sh` : après `/ping`, attente de `api` `healthy` (60 s) si `config --services` lu après le changement de commit contient `api`, sinon même échec que `front`

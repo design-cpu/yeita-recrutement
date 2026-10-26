@@ -21,6 +21,8 @@ Les notes de `carte.html` et `decompte.html` ne parlent plus du site GitHub ; «
 ## Critères d'acceptation
 - [ ] CA24
 
+- [ ] Non-régression (R16, R37, CA15) : `node tools/test-store.js`, `cd api && npm test`, les 4 `tools/e2e-*.py` si une page est touchée
+
 ## Ce qui a été fait
 À faire :
 - Textes des deux notes (§ Contenu et textes)

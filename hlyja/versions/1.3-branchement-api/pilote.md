@@ -1,7 +1,7 @@
 ---
 type: pilote
 version: 1.3
-points: 3
+points: 4
 dernier: ajuster
 date: 2026-10-26
 ---
@@ -49,3 +49,15 @@ Actions : spec v2 ≤ 380 lignes et ≤ 30 CA, règle ajoutée ≤ 2 lignes ; A5
 | Vérifications ajoutées | 2 (V38, V39) | — |
 Constats : plan respecté ; le 3e tour remplit sa condition (+41 points, un bloquant restant) et c'est le dernier ; recevables divisés par 5. Paquet v3 proportionné (A7 = déplacement d'une ligne ; F9, A2, R10, D11 d'un seul tenant ; S6, S7 en une mention). E10 : l'ordre de mise en service et la conduite à tenir relèvent du README. Risque de dérive vers la réalisation dans R6g et R6h.
 Actions : spec v3 ≤ 340 lignes et ≤ 27 CA ; étendre les CA existants plutôt qu'en créer ; E10 en une phrase avec renvoi au README ; mécanique de `pagehide` et numéros de ligne aux tâches ; renvois inexistants (« H5 », « R30b ») corrigés ; aucun nouvel ajout au tour 3 ; si le tour 3 n'est pas validé, les points restants vont à l'utilisateur, pas à un 4e tour. Appliqué : spec v3 de 303 lignes, 25 CA, E10 réduit à une phrase dans R32.
+
+## P3 — après le découpage · ajuster
+| Mesure | Valeur | Repère du plan |
+|---|---|---|
+| Spec finale | 311 lignes, 25 CA, 97/100 en 3 tours | ≤ 340 et ≤ 27 CA |
+| Tâches | 10 | 9 à 11 |
+| Fichiers créés prévus | 5 | 4 à 6 |
+| Fichiers modifiés prévus | 19 (avec `assets/dossier.js`) | 15 à 20 |
+| Dépendances npm / fichiers de `api/src` | 0 / 0 | 0 |
+| Règles / CA sans tâche | R24, R39, CA17 ; R16, R37, CA15 | 0 |
+Constats : découpage conforme au plan, aucun ajout, outillage dans le projet, risque d'abord. Deux écarts : le garde-fou de la règle 1 (R24, CA17, R39) n'est rattaché à aucune tâche ; l'emplacement de l'aide d'écriture de partie n'est pas tranché, et la non-régression n'est pas écrite dans les tâches.
+Actions : R24, R39, CA17 ajoutés à la tâche 01 (essais d'attaque, valeurs résolues, formes d'adresse) ; non-régression ajoutée à chaque tâche comme critère de sortie ; aide `DOSSIER.ecrirePartie` dans `assets/dossier.js`. Fait.

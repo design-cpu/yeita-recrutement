@@ -22,6 +22,8 @@ date: 2026-10-26
 - [ ] CA10
 - [ ] CA11
 
+- [ ] Non-régression (R16, R37, CA15) : `node tools/test-store.js`, `cd api && npm test`, les 4 `tools/e2e-*.py` si une page est touchée
+
 ## Ce qui a été fait
 À faire :
 - `qui.js` : `QUI.compte(moi, equipe)`, `QUI.local()`, rendu différé de `monter`, `ajouter` en mémoire en mode serveur et en attente

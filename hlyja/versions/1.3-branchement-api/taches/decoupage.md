@@ -12,7 +12,7 @@ date: 2026-10-26
 ## Tâches
 | # | Tâche | Objectif | Dépend de | Spec |
 |---|---|---|---|---|
-| 01 | [Image et service de l'API dans Docker](01-docker-api.md) | L'API tourne dans la pile Docker, sur un réseau interne sans adresse côté hôte que seul `front` partage avec elle ; oauth2-proxy la sert sous `/api/`. | — | R22, R22b, R23, R25 à R29, R34 ; CA16, CA18, CA23 |
+| 01 | [Image et service de l'API dans Docker](01-docker-api.md) | L'API tourne dans la pile Docker, sur un réseau interne sans adresse côté hôte que seul `front` partage avec elle ; oauth2-proxy la sert sous `/api/`. | — | R22, R22b, R23, R24, R25 à R29, R34, R39 ; CA16, CA17, CA18, CA23 |
 | 02 | [Déploiement et contrôle du site](02-deploiement.md) | `deploy.sh` attend une API saine quand la version déployée en a une ; `check-site.sh` vérifie que `/api/moi` sans cookie rend 401. | 01 | R30, R33 ; CA19, CA20 |
 | 03 | [Adaptateur serveur](03-adaptateur-serveur.md) | `assets/adapter-serveur.js` : list/get/put/remove en `fetch` vers `../api/candidats`, version par objet et par identifiant, file par dossier, classement des réponses, identifiants contrôlés, envoi de départ. | — | R5 à R8, R10, tableau § API et intégrations ; CA6, CA13 |
 | 04 | [Démarrage, bandeau et retour sur l'onglet](04-demarrage.md) | `assets/demarrage.js` choisit le mode, pose l'adaptateur d'attente, affiche le bandeau, relaie le retour sur l'onglet ; textes dans `wording.fr.js`. | 03 | R1 à R4e, R8, R11, R11b (bandeau), R15 ; Contenu et textes ; CA2, CA3 |
@@ -29,6 +29,8 @@ date: 2026-10-26
 - **04** et **05** s'appuient sur l'adaptateur ; **06** et **07** branchent les pages une fois le démarrage et `QUI` prêts.
 - **08** est indépendante (textes), placée là où elle ne gêne rien.
 - **09** vérifie l'ensemble en mode serveur ; **10** décrit ce qui a été livré. Le référentiel `hlyja/` est mis à jour à chaque tâche qui touche un composant, puis à l'étape Documentation.
+- **Critère de sortie de chaque tâche** (non-régression, R16, R37, CA15) : `node tools/test-store.js`, `cd api && npm test`, et les 4 `tools/e2e-*.py` dès qu'une page est touchée.
+- L'aide d'écriture de partie des fiches (tâche 07) va dans `assets/dossier.js` (`DOSSIER.ecrirePartie`) : une seule réalisation pour les trois fiches, dans les deux modes.
 
 ## Dépendances
 ```mermaid

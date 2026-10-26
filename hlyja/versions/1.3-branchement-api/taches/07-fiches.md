@@ -23,9 +23,11 @@ date: 2026-10-26
 - [ ] CA7
 - [ ] CA8
 
+- [ ] Non-régression (R16, R37, CA15) : `node tools/test-store.js`, `cd api && npm test`, les 4 `tools/e2e-*.py` si une page est touchée
+
 ## Ce qui a été fait
 À faire :
-- Aide commune (`DOSSIER.ecrirePartie` ou équivalent) : relire, comparer après `upgrade`, poser, écrire, une nouvelle tentative
+- Aide commune `DOSSIER.ecrirePartie` dans `assets/dossier.js` : relire, comparer après `upgrade`, poser, écrire, une nouvelle tentative
 - `pagehide` : sans relecture, envoi de départ de l'adaptateur
 - Indicateur « Non enregistré » (`candidat`, `ec1`, `ec2`)
 - Mode navigateur : même chemin, sans effet visible

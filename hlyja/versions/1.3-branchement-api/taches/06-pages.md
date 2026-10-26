@@ -23,6 +23,8 @@ Les 6 pages chargent les deux nouveaux scripts, attendent le démarrage avant le
 - [ ] CA12
 - [ ] CA14
 
+- [ ] Non-régression (R16, R37, CA15) : `node tools/test-store.js`, `cd api && npm test`, les 4 `tools/e2e-*.py` si une page est touchée
+
 ## Ce qui a été fait
 À faire :
 - Ordre des scripts dans les 6 pages

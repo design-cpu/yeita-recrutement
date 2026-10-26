@@ -21,6 +21,8 @@ date: 2026-10-26
 ## Critères d'acceptation
 - [ ] Contenu et textes
 
+- [ ] Non-régression (R16, R37, CA15) : `node tools/test-store.js`, `cd api && npm test`, les 4 `tools/e2e-*.py` si une page est touchée
+
 ## Ce qui a été fait
 À faire :
 - `file:` → navigateur ; `/api/moi` classé ; hôte de `YEITA.SITE` ; 10 s ; `/api/equipe` et options
