@@ -104,17 +104,22 @@ function updateFiche(id, patch){
 function saveCandidate(c){ return D.save(c); }
 function removeCandidate(id){ return D.remove(id); }
 
-/* Les options de disponibilité : la liste Notion, plus celles ajoutées dans ce navigateur. */
+/* Les options de disponibilité : la liste Notion, plus celles ajoutées. Les ajouts viennent de ce navigateur, ou d'une
+   autre source posée par assets/demarrage.js (l'API en mode serveur, la mémoire de la page pendant le démarrage). */
+var sourceAjouts = null;
+function ajoutsLocaux(){ return (window.YEITA && YEITA.store.get(DISPO_KEY, [])) || []; }
 function dispos(){
-  var ajout = (window.YEITA && YEITA.store.get(DISPO_KEY, [])) || [];
-  return uniq(D.DISPOS.concat(ajout));
+  return uniq(D.DISPOS.concat(sourceAjouts ? sourceAjouts.ajouts() : ajoutsLocaux()));
 }
 function addDispo(label){
   label = String(label || "").trim(); if(!label) return dispos();
-  var ajout = (window.YEITA && YEITA.store.get(DISPO_KEY, [])) || [];
-  if(dispos().indexOf(label) < 0 && window.YEITA){ ajout.push(label); YEITA.store.set(DISPO_KEY, ajout); }
+  if(dispos().indexOf(label) < 0){
+    if(sourceAjouts) sourceAjouts.ajouter(label);
+    else if(window.YEITA){ var ajout = ajoutsLocaux(); ajout.push(label); YEITA.store.set(DISPO_KEY, ajout); }
+  }
   return dispos();
 }
+function sourceDispos(src){ sourceAjouts = src || null; }
 
 /* ---------- L'État, changé à la main ---------- */
 function setEtat(id, etat, par){
@@ -369,7 +374,7 @@ window.STORE = {
   SUIVANTE: SUIVANTE, REFUS_DEPUIS: REFUS_DEPUIS, DECISIONS: DECISIONS, MOTIFS: MOTIFS,
   motifLabel: motifLabel, validEmail: validEmail, checkFiche: checkFiche, normFiche: normFiche, me: me, setMe: setMe,
   listCandidates: listCandidates, getCandidate: getCandidate, createCandidate: createCandidate, updateFiche: updateFiche,
-  saveCandidate: saveCandidate, removeCandidate: removeCandidate, dispos: dispos, addDispo: addDispo, setEtat: setEtat,
+  saveCandidate: saveCandidate, removeCandidate: removeCandidate, dispos: dispos, addDispo: addDispo, sourceDispos: sourceDispos, setEtat: setEtat,
   startStep: startStep, started: started, blocker: blocker, moveStep: moveStep, bilanRetour: bilanRetour, decide: decide,
   closeCandidate: closeCandidate, undoLast: undoLast, waiting: waiting, joursOuvres: joursOuvres,
   exportAll: exportAll, importAll: importAll, lastExport: lastExport, loadDemo: loadDemo, clearDemo: clearDemo,
