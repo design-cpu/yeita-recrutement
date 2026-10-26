@@ -100,7 +100,7 @@ nano .env
 | `OAUTH2_PROXY_COOKIE_SECRET` | la sortie de `openssl` ci-dessus |
 | `COMPOSE_PROFILES` | `caddy` en cas B, **vide** en cas A |
 
-`deploy.sh` refuse de déployer si `DOMAIN` vaut `localhost`, si l'URL de redirection ne correspond pas à `DOMAIN`, ou si le cookie secret ou l'identifiant client ont gardé leur valeur d'exemple. `.env` n'est jamais commité.
+`deploy.sh` refuse de déployer si `DOMAIN` vaut `localhost`, si l'URL de redirection ne correspond pas à `DOMAIN`, ou si le cookie secret, l'identifiant ou le secret du client ont gardé leur valeur d'exemple. `.env` n'est jamais commité.
 
 ## 7. Cas A : ajouter le site au proxy existant
 
