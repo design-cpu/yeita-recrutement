@@ -7,13 +7,13 @@ branche: version/1.3-branchement-api
 base: main
 mode: complexe
 type_version: livrable
-statut: en-cours
+statut: terminee
 date: 2026-10-26
 ---
 
 # Version 1.3 — Pages de candidatures branchées sur l'API, API dans Docker derrière oauth2-proxy
 
-> **Statut** : en cours · **Branche** : `version/1.3-branchement-api`
+> **Statut** : terminée · **Branche** : `version/1.3-branchement-api`
 > Objectif : les pages de `candidatures/` lisent et écrivent les dossiers dans l'API de `api/` quand elle répond (mode serveur), et restent dans le navigateur sinon ; l'API tourne dans Docker, joignable seulement par oauth2-proxy.
 
 ## Objectif
