@@ -35,7 +35,7 @@ Fait :
 - Les 4 e2e existants passent sans modification
 
 Fichiers : `candidatures/index.html`, `candidat.html`, `carte.html` ; `ec1.html`, `ec2.html`, `decompte.html` (avec la tâche 07)
-Commits : `4c2ba03`
+Commits : `4c2ba03`, `2f340c6` (fiches : attente, partie, départ, indicateur)
 
 Existant réutilisé : Fonctions d'écoute `storage` actuelles, `load()`, `refresh()`, `renderFrom1()`
 

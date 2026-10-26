@@ -33,7 +33,7 @@ Fait :
 - Mode navigateur : même chemin, sans effet visible
 
 Fichiers : `assets/dossier.js` (`ecrirePartie`, `partir`), `candidatures/ec1.html`, `ec2.html`, `decompte.html`, `candidat.html` (indicateur, départ)
-Commits : `1d70c5f`
+Commits : `1d70c5f`, `2f340c6` (fiches : attente, partie, départ, indicateur)
 
 Existant réutilisé : `saveCand()` des trois fiches (V37), `schedule`/`saveNow` de `candidat.html`, `renderExits`
 
