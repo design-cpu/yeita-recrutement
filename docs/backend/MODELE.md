@@ -13,13 +13,31 @@ Pour Sacha : ce que l'espace Candidatures enregistre, et comment le passer en SQ
   | `put(dossier)` | Crée ou remplace le dossier entier, le rend tel qu'enregistré |
   | `remove(id)` | Supprime le dossier (demande d'effacement comprise) |
 
-- **Le branchement** se fait en un point : `DOSSIER.use(adaptateurSQLite)`, chargé avant les pages.
-- **La migration à la lecture** est faite par `DOSSIER.upgrade()`. L'adaptateur rend les dossiers tels quels ; la page les met à niveau.
-- **Les conflits.** Deux recruteurs peuvent écrire le même dossier. Je recommande une colonne `version` et un refus quand la version lue n'est plus la bonne, avec le message « La candidature a été modifiée par quelqu'un d'autre. Recharge la page. ».
+- **Le branchement** (v1.3) se fait en un point : `assets/demarrage.js`, chargé par chaque page après `dossier.js`, `qui.js`, `store.js` et `assets/adapter-serveur.js`, appelle `/api/moi` :
+  - 200 : `DOSSIER.use(AdaptateurServeur())` (mode serveur) ;
+  - 404 hors du site de production, ou page ouverte en `file://` : l'adaptateur du navigateur reste (mode navigateur) ;
+  - tout le reste (401 deux fois de suite, 403, 5xx, réponse non JSON, pas de réponse en 10 s, 404 sur `recrutement.yeita.fr`) : rien n'est lu ni écrit, un bandeau dit pourquoi.
+  Chaque page attend `DEMARRAGE.pret` avant sa première lecture ; jusque-là, un adaptateur d'attente retient les appels.
+- **La migration à la lecture** est faite par `DOSSIER.upgrade()`, appliquée par les deux adaptateurs dans `list()` et `get()`.
+- **Les conflits.** Version optimiste (colonne `version` de l'API). L'adaptateur serveur retient la version lue de chaque dossier (par objet, et par identifiant la plus haute reçue) et fait partir l'une après l'autre les requêtes d'un même dossier. Un enregistrement fait sur une version dépassée est refusé (409) ; il n'est jamais retenté seul.
+- **Les fiches** (EC1, EC2, feuille de décompte) n'écrivent que leur partie, sur le dossier relu (`DOSSIER.ecrirePartie`) : la fiche EC1 et la feuille de décompte d'un même candidat peuvent être ouvertes ensemble. Si la même partie a changé ailleurs, ou si le dossier a été supprimé, rien n'est écrit.
+- **Les messages** (`assets/wording.fr.js`, clé `serveur`) :
+
+  | Cas | Message |
+  |---|---|
+  | Conflit (409) | La candidature a été modifiée par quelqu'un d'autre. Recharge la page. |
+  | Hors équipe (403) | Tu ne fais pas partie de l'équipe. |
+  | Lecture seule (403) | Lecture seule : tu ne peux pas modifier. |
+  | Réseau (5xx, réponse non JSON, pas de réponse) | La base ne répond pas. Vérifie ta connexion, puis réessaie. |
+  | Session (401 juste après un rechargement dû à un 401) | Ta session n'a pas pu être vérifiée. Ferme l'onglet, puis rouvre le site. |
+
+  Un 401 recharge la page (oauth2-proxy renvoie vers Google), une fois.
+- **Le départ de la page** (`pagehide`) envoie la dernière saisie aussitôt, sans relire, avec `keepalive`. Risque accepté : si quelqu'un (ou une autre page) a enregistré le même dossier juste avant, ou si cet envoi arrive à l'API avant un enregistrement encore en cours, il est refusé et la page n'est plus là pour le dire : les 300 à 400 dernières millisecondes de saisie sont alors perdues.
 - **L'identité.** Elle passe par `assets/qui.js` :
-  - `QUI.moi()` rend le prénom de la personne qui agit ;
-  - avec l'authentification Google, `QUI.moi()` rend le prénom du compte connecté, et `QUI.monter()` l'affiche sans liste ;
-  - aucun autre fichier n'est à changer.
+  - `QUI.moi()` rend le prénom de la personne qui agit : en mode serveur, celui du compte connecté (table `equipe`) ;
+  - `QUI.monter()` affiche, en mode serveur, « Connecté·e : <prénom> » (« · lecture seule » pour le rôle `lecture`), sans liste ;
+  - `QUI.equipe()` rend, en mode serveur, les prénoms de `/api/equipe`. Un nom ajouté dans le champ Recruteurs ne vaut plus que pour la page (avant : gardé dans le navigateur) ; il reste dans le dossier.
+- **Les copies.** En mode serveur, un export est une copie hors de l'effacement : la supprimer après usage. Un import « Fusion » d'un ancien export peut recréer un dossier supprimé depuis. « Remplacer tout » n'est pas proposé en mode serveur (il supprimerait les dossiers de toute l'équipe absents du fichier).
 
 ## Les adresses de l'espace
 
@@ -155,11 +173,12 @@ Un dossier v1 (fiches seules, avant le module) passe d'abord en v2, puis en v3. 
 
 | Clé | Contenu | Demain |
 |---|---|---|
-| `localStorage` `yeita-dossiers` | les dossiers, via l'adaptateur du navigateur | la base SQLite, via un adaptateur serveur à la même interface |
-| `yeita-recruteur`, `yeita-equipe-ajouts` | « Qui es-tu ? » et les prénoms ajoutés (`assets/qui.js`) | l'identité Google transmise par oauth2-proxy, la table `equipe` |
-| `yeita-options-disponibilite` | les options de disponibilité ajoutées | la table `options_disponibilite` |
+| `localStorage` `yeita-dossiers` | les dossiers, via l'adaptateur du navigateur | mode serveur (v1.3) : la base SQLite (`assets/adapter-serveur.js`) ; plus rien n'est écrit dans le navigateur |
+| `yeita-recruteur`, `yeita-equipe-ajouts` | « Qui es-tu ? » et les prénoms ajoutés (`assets/qui.js`) | mode serveur : l'identité Google transmise par oauth2-proxy, la table `equipe` ; rien n'est écrit |
+| `yeita-options-disponibilite` | les options de disponibilité ajoutées | mode serveur : la table `options_disponibilite` ; rien n'est écrit |
 | `yeita-match-resultat` | le passage de relais feuille de décompte → fiche EC1 (`candId`, résultat, sans nom) | inutile si le serveur écrit le résultat |
-| `sessionStorage` `yeita-notice` | le message « Étape terminée » d'une page à l'autre | inchangé |
+| `sessionStorage` `yeita-notice` | le message « Étape terminée » d'une page à l'autre (nom du candidat), effacé à la lecture | inchangé |
+| `sessionStorage` `yeita-rechargement-401` | (v1.3) l'heure du dernier rechargement dû à un 401, contre une boucle de rechargements | — |
 | `yeita-fiche-ec1`, `yeita-fiche-ec2`, `yeita-carte-identite` | brouillons des anciennes fiches autonomes, plus lus par l'espace | à purger |
 
 ## Tables SQLite
