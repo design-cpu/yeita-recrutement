@@ -3,7 +3,7 @@ type: technique
 page: decisions
 titre: Décisions techniques
 maj: 1.1
-commit: COMMIT
+commit: 78dcc37
 sources: docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh
 date: 2026-10-26
 ---

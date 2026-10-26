@@ -3,7 +3,7 @@ type: technique
 page: architecture
 titre: Architecture et déploiement
 maj: 1.1
-commit: COMMIT
+commit: 78dcc37
 sources: docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
 date: 2026-10-26
 ---
@@ -32,7 +32,7 @@ flowchart LR
 ## Image `front` (`docker/front.Dockerfile`)
 | Étape | Base | Contenu |
 |---|---|---|
-| `build` | `python:3.12-slim` | `COPY . .` (contexte filtré par `.dockerignore` : `.git`, `hlyja`, `_site`, `.env`), `python3 tools/build.py /site` |
+| `build` | `python:3.12-slim` | `COPY . .` (contexte filtré par `.dockerignore` : `.git`, `hlyja`, `_site`, `.env*`, `*.swp`, `*~`), `python3 tools/build.py /site` |
 | finale | `quay.io/oauth2-proxy/oauth2-proxy:v7.15.5` | `LABEL fr.yeita.projet=recrutement`, `COPY --from=build /site /srv/site` ; image sans shell (distroless) |
 Construite depuis la racine (`build.context: .`), nommée `recrutement-front`.
 
@@ -68,8 +68,8 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 ## Scripts
 | Script | Lancé par | Rôle | Garde-fous |
 |---|---|---|---|
-| `deploy/prepare-serveur.sh "<clé>"` | root, une fois | utilisateur `deploy` (groupe `docker`), clé SSH, clone dans `/opt/recrutement` (par `deploy`), `/var/backups/recrutement` (700) | n'installe rien ; vérifie outils, port 4180, sous-réseau 172.30.0.0/24 (réseaux Docker et routes), conteneurs `recrutement` d'un autre dossier, `deploy` existant hors groupe `docker`, origine du dépôt — avant toute modification ; idempotent ; `RECRUTEMENT_REPO` pour les essais |
-| `deploy/deploy.sh [commit]` | `deploy` | `git` (main ou commit de main), `build --pull`, `up -d --remove-orphans --force-recreate`, `image prune --filter label=fr.yeita.projet=recrutement`, attente de `/ping`, `check-site.sh` | verrou `flock` (`~/.recrutement-deploy.lock`), refuse root, `.env` d'exemple ou incohérent, dépôt modifié, conteneurs d'un autre dossier, 80/443 pris en cas B, commit hors `main` ou antérieur à 1.1 ; retire `caddy` sans profil ; corps dans `main` (lu en entier) |
+| `deploy/prepare-serveur.sh "<clé>"` | root, une fois | utilisateur `deploy` (groupe `docker`), clé SSH, clone dans `/opt/recrutement` (par `deploy`), `/var/backups/recrutement` (700) | n'installe rien ; vérifie outils, port 4180, sous-réseau 172.30.0.0/24 (réseaux Docker et routes), conteneurs `recrutement` d'un autre dossier, `deploy` existant hors groupe `docker`, groupe `deploy` orphelin, origine du dépôt — avant toute modification ; idempotent ; reprend un dossier vide laissé par un clone en échec ; `RECRUTEMENT_REPO` pour les essais |
+| `deploy/deploy.sh [commit]` | `deploy` | `git` (main ou commit de main), `build --pull`, `up -d --remove-orphans --force-recreate`, `image prune --filter label=fr.yeita.projet=recrutement`, attente de `/ping`, `check-site.sh` | réglages lus par `docker compose config --environment` (comme Compose les utilise) et cas B par `config --services` ; verrou `flock` (`~/.recrutement-deploy.lock`), refuse root, `.env` d'exemple, incohérent ou avec une valeur vide suivie d'un commentaire, dépôt modifié ou avec un fichier non suivi (une copie de `.env` serait publiée), conteneurs d'un autre dossier, 80/443 pris en cas B, commit hors `main` ou antérieur à 1.1 ; retire `caddy` sans profil ; commande de retour si `build`, `up` ou le contrôle échouent ; corps dans `main` (lu en entier) |
 | `tools/check-site.sh BASE_URL` | tous | 5 contrôles : `/one-pager.html` 200, `/index.html` 200, `/candidatures/` et `/assets/data-diamants.js` 302 vers `https://accounts.google.com/`, `/ping` 200 | codes 0/1/2, `--max-time 10`, certificat non vérifié pour `localhost` et `*.localhost` |
 
 ## Environnements
