@@ -1,14 +1,14 @@
 ---
 type: verifications
 version: 1.1
-total: 14
-ecarts: 1
+total: 19
+ecarts: 2
 date: 2026-10-26
 ---
 
 # Vérifications — Déploiement de l'espace Candidatures sur le serveur OVH
 
-> 14 vérifications, 1 écart avec le pitch : le serveur de fichiers d'oauth2-proxy redirige `/index.html` vers `/` ; corrigé par un second upstream (choix de l'utilisateur).
+> 19 vérifications, 2 écarts avec le pitch : `/index.html` redirigé par oauth2-proxy (second upstream, choix de l'utilisateur) ; **contournement de la connexion par `X-Forwarded-Uri`** avec `reverse_proxy = true` (V15 : `reverse_proxy = false`, choix de l'utilisateur).
 > Les requêtes d'un reverse proxy de l'hôte arrivent depuis 172.30.0.1, dans 172.30.0.0/24, avec ou sans userland-proxy (V8).
 > Essais faits sur le poste (Docker Desktop 29.9.2, Compose 5.6.1) et dans un Docker Linux isolé (docker:29-dind).
 
@@ -28,6 +28,11 @@ date: 2026-10-26
 | V12 | Nettoyage limité aux images étiquetées | docker:29-dind, stockage classique overlay2 : 2 images étiquetées `fr.yeita.projet=recrutement` + 2 non étiquetées, reconstruites (images orphelines) ; `docker image prune -f --filter label=fr.yeita.projet=recrutement` | seule l'image orpheline étiquetée est supprimée ; l'image orpheline non étiquetée reste | R14 |
 | V13 | Validation d'un Caddyfile | `caddy validate --config … --adapter caddyfile` dans `caddy:2.11.7` | `Valid configuration` | Commande citée dans le README (cas A Caddy et cas B) |
 | V14 | Ce que chargent les pages publiques | `grep` des `src`/`href` locaux de `index.html`, `one-pager.html`, `yeita-match-kit.html` | `assets/yeita.css`, `assets/yeita.js`, `assets/data-yeita-match.js` ; liens vers `candidatures/` (protégé) ; aucun `fetch` | Liste publique conforme au pitch (R4) |
+| V15 | `X-Forwarded-Uri` forgé depuis une adresse de confiance (retour S1) | oauth2-proxy v7.15.5, `reverse_proxy = true`, `trusted_proxy_ips = ["172.30.0.0/24"]` ; `curl` depuis un conteneur du réseau 172.30.0.0/24 | **`/candidatures/` avec `X-Forwarded-Uri: /one-pager.html` → 200, page « Candidatures Yeita » servie sans connexion**. Avec `reverse_proxy = false` : 302. Avec une confiance limitée à une autre adresse : 302 | Écart : `reverse_proxy = false` (R7, choix de l'utilisateur) |
+| V16 | Passage du cas B au cas A | projet Compose d'essai, service sous profil `caddy` ; `up -d --remove-orphans` sans profil, puis `down` sans profil, puis `down --profile caddy` | le conteneur du profil **reste en marche** après `up --remove-orphans` et après `down` sans profil ; arrêté seulement par `--profile caddy down` | R15 arrête lui-même `caddy` quand le profil n'est pas actif |
+| V17 | Attributs du cookie | oauth2-proxy avec `cookie_secure`, `cookie_httponly`, `cookie_samesite = "lax"`, `cookie_expire = "12h"` ; journal de démarrage et `Set-Cookie` de `/candidatures/` | journal : `secure(https):true httponly:true expiry:12h0m0s samesite:lax` ; `Set-Cookie: _oauth2_proxy_csrf=…; HttpOnly; Secure; SameSite=Lax` | R5 |
+| V18 | Paquets pour tester les scripts dans Ubuntu 24.04 | `apt-cache policy` dans `ubuntu:24.04` | `docker.io` 29.1.3, `docker-compose-v2` 2.40.3, `util-linux` (`flock`), `iproute2` (`ss`) disponibles | Protocole de test des scripts (CA8, CA9) |
+| V19 | Adresse d'écoute par défaut d'oauth2-proxy | `--help` et essais V4 (lancés avec `http_address = "0.0.0.0:4180"`) | défaut `127.0.0.1:4180`, injoignable depuis l'extérieur du conteneur | R5 : `http_address = "0.0.0.0:4180"` |
 
 ## Détail
 V4 : `/index.html  301  http://127.0.0.1:14180/` ; journal : `mapping path "/" => file system "/srv/site/"`.

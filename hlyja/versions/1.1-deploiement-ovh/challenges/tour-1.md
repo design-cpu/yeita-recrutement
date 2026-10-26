@@ -215,3 +215,38 @@ Sans objet.
 ## Arbitrages de l'orchestrateur (conflits)
 - S5 / L8 : `.env.example` est utilisable tel quel pour le test local (cookie secret d'exemple valide, repérable) ; `deploy.sh` refuse de déployer avec le cookie secret ou l'identifiant client d'exemple. Les deux demandes sont tenues.
 - E3 / L4 : on ne modifie jamais un proxy existant conteneurisé. Le README dit de s'arrêter et de faire valider par le responsable du serveur, en lui proposant la solution réversible de E3 (relier le proxy au réseau du projet, `docker network disconnect` pour revenir).
+
+## Traitement
+| # | Statut | Justification / modification |
+|---|---|---|
+| S1 | integre | Vérifié (V15). R7 : `reverse_proxy = false` (arbitrage utilisateur) ; CA3 étendu à l'en-tête forgé, via Caddy et en direct |
+| E1 | integre | R16 : clone par `deploy`, propriétaire vérifié ; CA8 |
+| D1 | integre | R5 `http_address`, R1 chemin de montage et `--config` |
+| D3 | integre | R22 `restart: unless-stopped` ; CA6 |
+| D4 | integre | R15 `--force-recreate` ; CA9 |
+| D6 | integre | R6 : variable absente → échec de Compose |
+| D9 | integre | R11 : 443/udp |
+| S2 | integre | Parcours étape 3 et R19 : client « Interne » |
+| S3 | integre | R5 : attributs explicites (V17) ; CA4. Durée de session non changée (Améliorations possibles) |
+| S4 | integre | R9 : `add_header … always` |
+| S5 | integre | R15 refuse les valeurs d'exemple ; R6 (arbitrage S5/L8) |
+| S6 | integre | R19 : risque HSTS sur `localhost` documenté |
+| E2 | integre | R16 : `deploy` existant hors `docker` → arrêt ; CA8 |
+| E3 | integre | R19 : jamais de modification d'un proxy conteneurisé (arbitrage E3/L4) ; consigne `network_mode: host` retirée ; V8 sans objet (R7) |
+| E4 | integre | R15 : 80/443 vérifiés en cas B ; CA9 |
+| E7 | integre | R15 : commit validé avant `checkout` ; CA9 |
+| E8 | integre | R15 « relancer est sûr » ; R19 `tmux` |
+| E9 | integre | R16 : toute adresse et ports publiés par Docker |
+| E10 | integre | Vérifié (V16) ; R15 arrête `caddy` sans profil ; CA9 |
+| E12 | integre | Hypothèses : stockage à contrôler (`docker info`) ; surveillance du disque → backlog |
+| L1 | integre | R23 protocole ; CA8, CA9 |
+| L3 | integre | Parcours et R19 : DNS, certificat ; CA12 avec certificat auto-signé |
+| L5 | integre | R19 : relevé avant/après |
+| L6 | integre | R15 : 6 essais en cas B |
+| L7 | integre | R21 variante ; CA13 |
+| L8 | integre | R6, R21 : `.env.example` prêt pour le test local |
+| L9 | integre | R19 : HEAD détachée expliquée |
+| L10 | integre | R13 `--max-time 10` |
+| L11 | integre | R16 : `curl` vérifié |
+| L12 | integre | R19 : tableau de lecture des échecs |
+| L13 | integre | Parcours : étape 3 |
