@@ -64,7 +64,7 @@ test("deux ouvertures concurrentes d'une base neuve : la seconde attend puis ré
   a.exec("BEGIN IMMEDIATE");
   const fils = spawn(process.execPath, ["--input-type=module", "-e",
     `import { ouvrirBase } from ${JSON.stringify(new URL("../src/base.js", import.meta.url).href)};
-     const { db, userVersion } = ouvrirBase(${JSON.stringify(chemin)}); console.log("ok", userVersion); db.close();`]);
+     const { db, userVersion } = ouvrirBase(${JSON.stringify(chemin)}); console.log("ok " + userVersion); db.close();`]);
   let sortie = ""; fils.stdout.on("data", b => sortie += b); fils.stderr.on("data", b => sortie += b);
   await new Promise(r => setTimeout(r, 400));
   /* Pendant que le fils attend : le schéma est créé ici, comme le ferait une autre instance. */

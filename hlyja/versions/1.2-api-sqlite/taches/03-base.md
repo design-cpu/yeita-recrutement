@@ -34,7 +34,7 @@ Commits : `7ed7fad` feat(api-sqlite): tâche 03
 |---|---|
 | `node --test test/base.test.js` | 5/5 |
 | Suite complète | 12/12 à ce stade |
-Corrections : la mutation B2 (transaction différée) bloquait le test concurrent au lieu de le faire échouer ; durée maximale de 20 s ajoutée au test, la mutation est alors détectée (test annulé). Cause exacte du blocage non analysée : le code livré n'utilise jamais de transaction différée.
+Corrections : la mutation B2 (transaction différée) bloquait le test concurrent au lieu de le faire échouer ; durée maximale de 20 s ajoutée au test, la mutation est alors détectée (test annulé). Cause exacte du blocage non analysée : le code livré n'utilise jamais de transaction différée. Après la version (retour de l'utilisateur) : le test concurrent échouait dans un terminal qui force les couleurs, `console.log("ok", 1)` du processus fils colorant le nombre (`ok \x1B[33m1\x1B[39m`) ; le fils écrit désormais une chaîne (`"ok " + userVersion`). Témoin : l'ancien test échoue avec `FORCE_COLOR=1`, le nouveau passe.
 
 ## Mutations
 Copie hors du dépôt (`muter.py` du scratchpad, `node --test --test-timeout=30000`).
