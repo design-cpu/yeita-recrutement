@@ -44,7 +44,17 @@ En HTTP simple, le cookie de session (`cookie_secure = true`) n'est pas renvoyé
 | Journaux | `docker compose logs --tail 100 front` ; `docker compose --profile caddy logs --tail 100 caddy` |
 | Prendre en compte un `.env` ou un `deploy/*.cfg` modifié | `docker compose up -d --force-recreate` |
 | Reconstruire après un changement des pages | `docker compose up -d --build` |
-| Tout arrêter | `docker compose --profile caddy down` |
+
+## Tout arrêter
+| Niveau | Commande | Effet |
+|---|---|---|
+| Site | `docker compose --profile caddy down` | conteneurs `front` et `caddy` arrêtés et supprimés, réseau `recrutement_edge` supprimé ; volumes gardés |
+| Contrôle | `docker compose ps -a` | liste vide |
+| Volumes | `docker compose --profile caddy down --volumes` | supprime aussi `recrutement_caddy_data` (autorité locale et certificats) et `recrutement_caddy_config` |
+| Image | `docker image rm recrutement-front` | image construite supprimée (refaite par `up --build`) |
+| Réglages | `rm .env` | |
+| Docker | menu de Docker Desktop › « Quit Docker Desktop », ou `osascript -e 'quit app "Docker"'` | |
+Sans `--profile caddy`, `down` laisse `caddy` en marche, ports 80 et 443 compris (V16). Après `--volumes`, l'autorité locale est recréée au prochain démarrage : retirer l'ancienne racine du trousseau si elle y avait été ajoutée.
 
 ## Avertissements attendus en local
 | Message | Cause | Que faire |

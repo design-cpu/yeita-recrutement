@@ -26,11 +26,23 @@ tools/check-site.sh https://localhost
 ```
 Le fichier `.env` contient des réglages de test, prêts à l'emploi. Il n'est jamais envoyé sur GitHub.
 
-Pour tout arrêter :
-```bash
-docker compose --profile caddy down
-```
 Après un changement de `.env` : `docker compose up -d --force-recreate`. Après un changement des pages : `docker compose up -d --build`.
+
+## Tout arrêter
+Depuis le dossier du dépôt, du plus léger au plus complet :
+
+| Je veux… | Commande |
+|---|---|
+| Arrêter le site (conteneurs et réseau supprimés, certificat local gardé) | `docker compose --profile caddy down` |
+| Vérifier que plus rien ne tourne | `docker compose ps -a` (liste vide) |
+| Effacer aussi le certificat local de Caddy | `docker compose --profile caddy down --volumes` |
+| Supprimer l'image construite | `docker image rm recrutement-front` |
+| Supprimer les réglages de test | `rm .env` |
+| Arrêter Docker lui-même | menu de la baleine, « Quit Docker Desktop », ou `osascript -e 'quit app "Docker"'` |
+
+> Écris bien `--profile caddy` : un `docker compose down` sans lui laisse Caddy tourner, et il garde les ports 80 et 443.
+
+Si tu as fait confiance au certificat local et que tu effaces le volume, retire aussi l'ancien certificat du Trousseau d'accès : Caddy en créera un nouveau au prochain démarrage.
 
 ## Les avertissements normaux
 | Ce que tu vois | Pourquoi | Que faire |
