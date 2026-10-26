@@ -7,13 +7,13 @@ branche: version/1.2-api-sqlite
 base: main
 mode: complexe
 type_version: livrable
-statut: en-cours
+statut: terminee
 date: 2026-10-26
 ---
 
 # Version 1.2 — API Node.js sur SQLite pour les dossiers candidat
 
-> **Statut** : en cours · **Branche** : `version/1.2-api-sqlite`
+> **Statut** : terminée · **Branche** : `version/1.2-api-sqlite`
 > Objectif : livrer dans `api/` l'API Node.js (Fastify, better-sqlite3) qui remplacera le stockage du navigateur, derrière oauth2-proxy, sans toucher aux pages ni à Docker.
 
 ## Objectif
