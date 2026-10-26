@@ -1,2 +1,4 @@
 /* Les routes de données, enregistrées par construireApp. */
-export const routesApi = [];
+import { routesCandidats } from "./candidats.js";
+
+export const routesApi = [routesCandidats];
