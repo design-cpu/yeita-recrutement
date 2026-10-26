@@ -2,9 +2,9 @@
 type: technique
 page: conventions
 titre: Conventions et tests
-maj: 1.0
-commit: 99657f4
-sources: README.md, CONTRIBUER.md, tools/build.py, tools/test-store.js, tools/e2e-candidatures.py, tools/e2e-parcours.py, tools/e2e-liens.py, tools/e2e-pdf.py
+maj: 1.1
+commit: COMMIT
+sources: README.md, CONTRIBUER.md, tools/build.py, tools/check-site.sh, compose.yaml, .dockerignore, .gitignore, tools/test-store.js, tools/e2e-candidatures.py, tools/e2e-parcours.py, tools/e2e-liens.py, tools/e2e-pdf.py
 date: 2026-10-26
 ---
 
@@ -19,11 +19,16 @@ date: 2026-10-26
 | `candidatures/` | l'espace Candidatures |
 | `assets/` | code et données partagés ; `dossier.js` (modèle, adaptateur), `store.js` (règles du parcours), `wording.fr.js` (textes) |
 | `docs/` | `backend/MODELE.md` (modèle v3, fait foi), `modele-de-donnees.md` (v2, ancien), `dossier-candidat.schema.json` |
-| `tools/` | construction du site et tests |
+| `tools/` | construction du site, tests, `check-site.sh` (contrôle d'un site déployé) |
+| `docker/` | `front.Dockerfile` (v1.1) |
+| `deploy/` | configuration et scripts du serveur, `README.md` (mode d'emploi) (v1.1) |
+| `compose.yaml`, `.env.example`, `.dockerignore` | pile Docker ; `.env` (secrets) n'est jamais commité (`.gitignore`) (v1.1) |
 | `hlyja/` | trace Hlýja, exclue de la publication (`SKIP` de `tools/build.py`) |
 
 ## Publication
-`python3 tools/build.py [dossier]` copie la racine sauf `SKIP` (`.git`, `.github`, `.agents`, `docs`, `tools`, `_site`, `dist`, `renders`, `README.md`, `STORAGE.md`, `.gitignore`, `hlyja`) et enveloppe `index.html`. Tout `assets/` est publié. Chaque push sur `main` publie via `.github/workflows/pages.yml`.
+`python3 tools/build.py [dossier]` copie la racine sauf `SKIP` (`.git`, `.github`, `.agents`, `docs`, `tools`, `_site`, `dist`, `renders`, `README.md`, `STORAGE.md`, `.gitignore`, `hlyja`, `docker`, `deploy`, `compose.yaml`, `.dockerignore`, `.env.example`, `.env`) et enveloppe `index.html`. Tout `assets/` est publié. Depuis v1.1, le site est servi par l'image `front` sur le serveur OVH, déployé à la main par `deploy/deploy.sh` ([Architecture](architecture.md)) ; GitHub Pages n'est plus utilisé.
+
+Règles du déploiement (v1.1) : images figées par tag (`oauth2-proxy:v7.15.5`, `caddy:2.11.7`) ; secrets seulement dans `.env` ; aucune commande Docker globale sur le serveur partagé (nettoyage limité à l'étiquette `fr.yeita.projet=recrutement`, jamais de `system prune`) ; réglages de journaux et de redémarrage dans `compose.yaml`, jamais dans la configuration globale de Docker.
 
 ## Tests
 | Commande | Prérequis | Couvre |
@@ -32,9 +37,22 @@ date: 2026-10-26
 | `python3 tools/e2e-candidatures.py` | site construit servi sur `localhost:8765`, Playwright Python | tableau, appel |
 | `python3 tools/e2e-parcours.py` | idem | EC1, EC2, Bilans, EC3, Décision |
 | `python3 tools/e2e-liens.py` | idem | « Précédent », liens directs, feuille vierge |
-| `python3 tools/e2e-pdf.py` | idem | exports PDF |
+| `python3 tools/e2e-pdf.py` | idem, plus `pdftotext` (poppler) | exports PDF |
+| `tools/check-site.sh BASE_URL` | `curl` ; site déployé ou pile Docker locale | pages publiques en 200, pages protégées en 302 vers Google, `/ping` (v1.1) |
 
-Serveur : `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site`. Chaque test affiche `OK` / `FAIL` par vérification.
+Serveur : `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site`. Chaque test affiche `OK` / `FAIL` par vérification. Sans Playwright sur le poste : conteneur `mcr.microsoft.com/playwright/python:v1.63.0-noble` avec `pip install playwright==1.63.0` et `poppler-utils` (v1.1).
+
+Scripts du serveur (`deploy/*.sh`) : essayés dans un conteneur `ubuntu:24.04` privilégié avec son propre `dockerd` et un dépôt nu local (`RECRUTEMENT_REPO`), jamais sur le serveur ; `shellcheck` 0.10.0 (image `koalaman/shellcheck:v0.10.0`) sans remarque (v1.1).
 
 ## Branches
 Une branche par sujet (`feat/…`, `fix/…`, `version/<x.y>-<slug>` pour Hlýja), pull request vers `main`.
+
+## Voir aussi
+- [Architecture et déploiement](architecture.md)
+- [Décisions](decisions.md)
+
+## Historique
+| Version | Changement |
+|---|---|
+| 1.0 | Création (partielle) |
+| 1.1 | Dossiers `docker/`, `deploy/` ; publication par Docker, fin de GitHub Pages ; `check-site.sh` ; règles du déploiement |
