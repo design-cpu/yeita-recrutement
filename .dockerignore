@@ -4,3 +4,8 @@ _site
 .env*
 *.swp
 *~
+api/node_modules
+api/data
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

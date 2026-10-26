@@ -1,4 +1,4 @@
-# Espace Candidatures : front (oauth2-proxy qui sert le site) et, en option, caddy (cas B).
+# Espace Candidatures : front (oauth2-proxy qui sert le site et l'API), api (stockage) et, en option, caddy (cas B).
 # Secrets et choix du cas dans .env (voir .env.example) ; mode d'emploi : deploy/README.md.
 name: recrutement
 
@@ -24,7 +24,20 @@ services:
       OAUTH2_PROXY_REDIRECT_URL: ${OAUTH2_PROXY_REDIRECT_URL:?absent de .env}
     ports:
       - "127.0.0.1:4180:4180"   # jamais sur une autre adresse : le serveur est partagé
-    networks: [edge]
+    networks: [edge, back]      # back : le seul chemin vers l'api
+    restart: unless-stopped
+    logging: *journaux
+
+  # L'API croit X-Forwarded-Email : seul front doit pouvoir la joindre. Aucun port publié, aucune variable
+  # (l'image fixe NODE_ENV=production ; DEV_EMAIL et DEV_STATIC n'ont rien à faire ici).
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    image: recrutement-api
+    volumes:
+      - data:/data
+    networks: [back]
     restart: unless-stopped
     logging: *journaux
 
@@ -48,11 +61,23 @@ services:
     logging: *journaux
 
 networks:
+  # Interne (aucune sortie) et sans adresse côté hôte : sur Linux, l'hôte et tout conteneur en réseau hôte
+  # joindraient sinon l'api par son adresse (vérifié en v1.3, IPv4 et IPv6).
+  back:
+    internal: true
+    enable_ipv6: false
+    driver_opts:
+      com.docker.network.bridge.inhibit_ipv4: "true"
   edge:
     ipam:
       config:
         - subnet: 172.30.0.0/24
 
 volumes:
+  # La base des candidatures : la seule copie. Jamais « docker compose down -v » ni « docker volume prune ».
+  data:
+    name: recrutement_data
+    labels:
+      fr.yeita.projet: recrutement
   caddy_data:
   caddy_config:
