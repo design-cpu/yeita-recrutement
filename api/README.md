@@ -92,7 +92,7 @@ Les tests (`node:test`) travaillent sur des bases temporaires et lancent l'API e
 
 ## Contrat HTTP
 
-Toutes les routes sauf `/api/sante` exigent un membre actif de l'équipe, identifié par `X-Forwarded-Email`. Toute réponse `/api/*` porte `Cache-Control: no-store`.
+Toutes les routes sauf `/api/sante` exigent un membre actif de l'équipe, identifié par `X-Forwarded-Email`. Le rôle `lecture` peut faire `GET` et `HEAD`. Toute réponse de l'API porte `Cache-Control: no-store`.
 
 | Méthode et route | Rôles | Succès | Erreurs |
 |---|---|---|---|
@@ -114,7 +114,7 @@ Toutes les routes sauf `/api/sante` exigent un membre actif de l'équipe, identi
 
 | Statut | `erreur` | `code` |
 |---|---|---|
-| 400 | `Identifiant invalide.`, `JSON invalide.`, ou le champ en faute (`Champ version : …`, `Champ data.id : …`) | — |
+| 400 | `Identifiant invalide.`, `JSON invalide.` (y compris un corps qui contient `__proto__` ou `constructor.prototype`), ou le champ en faute (`Champ version : …`, `Champ data.id : …`) | — |
 | 401 | `Identité absente ou invalide.` | — |
 | 403 | `Tu ne fais pas partie de l'équipe.` | `hors-equipe` |
 | 403 | `Lecture seule : tu ne peux pas modifier.` | `lecture-seule` |
@@ -137,13 +137,13 @@ Les contrôles se font dans cet ordre : identité (401), équipe (403), rôle (4
 | `put(d)` | `PUT /api/candidats/:id` avec la version gardée pour cet id, ou `null` | `data` ; garder la nouvelle `version` |
 | `remove(id)` | `DELETE /api/candidats/:id` | résolue sur 204 ou 404 `introuvable` |
 
-Toute autre erreur rejette la promesse avec le texte de `erreur` (un 404 sans `code` est une route inconnue, pas un dossier absent).
+Toute autre erreur rejette la promesse avec le texte de `erreur` (un 404 sans `code` est une route inconnue, pas un dossier absent ; c'est aussi le cas d'un identifiant de plus de 200 caractères, que le routeur ne reconnaît pas).
 
 ## Ce que l'API garde
 
 - `candidats` : le dossier entier en JSON, sa version, la date et l'auteur du dernier enregistrement.
 - `journal` : qui a créé, modifié ou supprimé quel identifiant, quand, et à quelle étape ; jamais le contenu du dossier. Quand un dossier est supprimé, son journal est purgé et il ne reste qu'une ligne « suppression ».
 - `equipe`, `options_disponibilite`.
-- Effacement réel : avec `secure_delete` et un point de contrôle `TRUNCATE` après chaque enregistrement, ni un dossier supprimé ni une version remplacée ne restent lisibles dans les fichiers de la base.
+- Effacement réel : avec `secure_delete` et un point de contrôle `TRUNCATE` après chaque enregistrement, ni un dossier supprimé ni une version remplacée ne restent lisibles dans les fichiers de la base. Exception : si un autre programme lit la base au même moment (ligne de commande `sqlite3`, sauvegarde), le point de contrôle n'attend pas plus de 100 ms ; l'ancienne version reste alors dans les fichiers jusqu'à l'enregistrement suivant, et le journal du serveur le signale (« Point de contrôle incomplet »).
 - Fichiers de la base (`.sqlite`, `-wal`, `-shm`) lisibles par leur seul propriétaire (dossier en 700, fichiers en 600).
 - Journal du serveur (sortie standard, JSON) : méthode, adresse demandée (telle que reçue), hôte, adresse distante, statut, durée ; jamais le corps ni l'email.

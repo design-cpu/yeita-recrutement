@@ -16,15 +16,15 @@ export class ErreurHttp extends Error {
 }
 
 export function construireApp({ config, db, logger = false, routes = [] }) {
-  const app = Fastify({ logger, bodyLimit: LIMITE_CORPS });
+  /* maxParamLength : un :id trop long reste un « Identifiant invalide. » (400) jusqu'à 200 caractères. */
+  const app = Fastify({ logger, bodyLimit: LIMITE_CORPS, routerOptions: { maxParamLength: 200 } });
 
-  /* Seul le JSON est accepté (l'analyseur text/plain de Fastify est retiré). Un corps vide, sur GET ou DELETE, vaut absent. */
+  /* Seul le JSON est accepté (l'analyseur text/plain de Fastify est retiré). L'analyseur JSON de Fastify refuse
+     __proto__ et constructor.prototype ; un corps vide, sur GET ou DELETE, vaut absent. */
+  const analyseurJson = app.getDefaultJsonParser("error", "error");
   app.removeAllContentTypeParsers();
-  app.addContentTypeParser("application/json", { parseAs: "string" }, (req, corps, fini) => {
-    if (corps === "") return fini(null, undefined);
-    try { fini(null, JSON.parse(corps)); }
-    catch { fini(new ErreurHttp(400, "JSON invalide.")); }
-  });
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (req, corps, fini) =>
+    corps === "" ? fini(null, undefined) : analyseurJson(req, corps, fini));
 
   const membre = db.prepare("SELECT email, prenom, role, actif FROM equipe WHERE email = ?");
 
@@ -49,13 +49,16 @@ export function construireApp({ config, db, logger = false, routes = [] }) {
     if (type !== "application/json") throw new ErreurHttp(415, "Le corps doit être en JSON (application/json).");
   });
 
+  /* Aucune réponse n'est gardée en cache, sauf les fichiers du site en mode local : décidé sur la route trouvée,
+     pas sur le texte de l'adresse (/%61pi/… est routé vers /api/…). */
   app.addHook("onSend", async (req, rep) => {
-    if (req.url.startsWith("/api")) rep.header("Cache-Control", "no-store");
+    if (req.routeOptions.url !== ROUTE_STATIQUE) rep.header("Cache-Control", "no-store");
   });
 
   app.setErrorHandler((err, req, rep) => {
     if (err instanceof ErreurHttp) return envoyer(rep, err.statut, err.message, err.codeHttp);
     if (err.code === "FST_ERR_CTP_BODY_TOO_LARGE") return envoyer(rep, 413, "Dossier trop volumineux (1 Mo maximum).");
+    if (err.code === "FST_ERR_CTP_INVALID_JSON_BODY") return envoyer(rep, 400, "JSON invalide.");
     if (err.code === "FST_ERR_CTP_INVALID_MEDIA_TYPE") return envoyer(rep, 415, "Le corps doit être en JSON (application/json).");
     if (estOccupee(err)) return envoyer(rep, 503, "Base occupée, réessaie dans un instant.");
     if (err.statusCode >= 400 && err.statusCode < 500) return envoyer(rep, err.statusCode, "Requête invalide.");
@@ -79,7 +82,7 @@ export function construireApp({ config, db, logger = false, routes = [] }) {
   for (const r of routes) r(app, db);
 
   /* Mode local : le site construit, servi à la racine. Seule la route des fichiers échappe à l'autorisation. */
-  if (config.devStatic) app.register(fastifyStatic, { root: config.devStatic, prefix: "/", wildcard: true });
+  if (config.devStatic) app.register(fastifyStatic, { root: config.devStatic, prefix: "/", wildcard: true, dotfiles: "deny" });
 
   /* Toute autre adresse sous /api : 404, après l'autorisation (jamais servie comme fichier en mode local). */
   app.all("/api/*", async () => { throw new ErreurHttp(404, "Route inconnue."); });

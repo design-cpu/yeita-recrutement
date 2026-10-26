@@ -94,6 +94,10 @@ test("erreurs en JSON, no-store, route inconnue sans code", async t => {
   assert.deepEqual(json(r), { erreur: "Route inconnue." });
   assert.equal(r.headers["cache-control"], "no-store");
   assert.equal((await app.inject({ url: "/api/sante" })).headers["cache-control"], "no-store");
+  /* Adresse encodée, routée vers /api/moi : no-store décidé sur la route, pas sur le texte. */
+  const encodee = await requete(app, "rec@yeita.fr", { url: "/%61pi/moi" });
+  assert.equal(encodee.statusCode, 200);
+  assert.equal(encodee.headers["cache-control"], "no-store");
   const sans = await app.inject({ url: "/api/inconnue" });
   assert.equal(sans.statusCode, 401);
 });

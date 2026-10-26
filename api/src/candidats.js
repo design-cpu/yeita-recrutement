@@ -2,6 +2,7 @@
    Chaque écriture est une transaction immédiate avec sa ligne de journal, suivie d'un point de contrôle TRUNCATE :
    avec secure_delete, ni un dossier supprimé ni une version remplacée ne restent lisibles dans les fichiers (spec R21). */
 import { ErreurHttp } from "./app.js";
+import { ATTENTE_MS } from "./base.js";
 import { ETAPES, MESSAGE_CONFLIT, MOTIF_ID, SCHEMA_DOSSIER } from "./valeurs.js";
 
 const INTROUVABLE = () => new ErreurHttp(404, "Candidature introuvable.", "introuvable");
@@ -46,10 +47,17 @@ export function routesCandidats(app, db) {
     journal: db.prepare("INSERT INTO journal (candidat_id, action, etape, par, le) VALUES (?, ?, ?, ?, ?)")
   };
 
-  /* Après chaque écriture sur candidats : le WAL est vidé et remis à zéro. */
+  /* Après chaque écriture sur candidats : le WAL est vidé et remis à zéro. Le point de contrôle n'attend pas un lecteur
+     plus de 100 ms (l'écriture est déjà validée, et l'accès synchrone gèlerait toutes les requêtes) : s'il ne peut aboutir,
+     une ancienne version peut rester dans les fichiers jusqu'au point de contrôle suivant. */
   function pointDeControle(log) {
-    const [r] = db.pragma("wal_checkpoint(TRUNCATE)");
-    if (r.busy) log.warn("Point de contrôle incomplet : une ancienne version peut rester dans le WAL jusqu'au suivant.");
+    db.pragma("busy_timeout = 100");
+    try {
+      const [r] = db.pragma("wal_checkpoint(TRUNCATE)");
+      if (r.busy) log.warn("Point de contrôle incomplet : une ancienne version peut rester dans les fichiers jusqu'au suivant.");
+    } finally {
+      db.pragma(`busy_timeout = ${ATTENTE_MS}`);
+    }
   }
 
   app.get("/api/candidats", async () => q.liste.all().map(enveloppe));

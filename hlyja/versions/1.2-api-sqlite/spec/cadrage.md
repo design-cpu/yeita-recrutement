@@ -81,3 +81,5 @@ Sujet technique sans interface : une API HTTP en JavaScript, dans `api/`, qui st
 - Adresse d'écoute : **127.0.0.1 par défaut, variable `HOST`** (V9, V10) ; `DEV_EMAIL` refusé si `HOST` n'est pas locale.
 - Fastify : **5.12.7** (13 jours au lieu de 14 ; corrige GHSA-389g-gv7q-r4x8) (V2).
 - `docs/backend/MODELE.md` : **section « Tables SQLite proposées » alignée** sur les tables réelles.
+- Après le tour 1, journal d'un dossier supprimé : **purgé**, une seule ligne `suppression` gardée.
+- Revue de code, lockfile : **gardé tel quel** ; l'exception aux 14 jours accordée pour Fastify s'étend à 9 dépendances transitives de 2 à 9 jours (fast-json-stringify 7.2.0, @fastify/deepmerge 3.2.4, set-cookie-parser 3.2.1, @fastify/forwarded 3.1.2, @fastify/accept-negotiator 2.1.2, @fastify/send 4.2.0, fast-uri 4.2.3 et 3.1.9, ret 0.5.1) : des versions plus anciennes ramènent 4 failles modérées de fast-uri.

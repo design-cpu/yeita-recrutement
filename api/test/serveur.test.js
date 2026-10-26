@@ -70,11 +70,11 @@ test("port occupé : code 1 et message", async t => {
 test("démarrage : valeurs résolues journalisées, écoute sur 127.0.0.1 par défaut, arrêt en code 0", async t => {
   const d = dossierTemporaire(t);
   const port = await portLibre();
-  const l = await demarrer(t, { PORT: String(port), DB_PATH: "base-relative.sqlite" }, d);
+  /* Chemin relatif résolu depuis api/, pas depuis le dossier courant (d) : il mène à un dossier temporaire, rien n'est écrit dans api/. */
+  const attendu = path.join(dossierTemporaire(t), "base-relative.sqlite");
+  const relatif = path.relative(path.dirname(SERVEUR), attendu);
+  const l = await demarrer(t, { PORT: String(port), DB_PATH: relatif }, d);
   const ligne = JSON.parse(l.sortie().split("\n").find(x => x.includes("API démarrée")));
-  /* Chemin relatif résolu depuis api/, pas depuis le dossier courant. */
-  const attendu = path.join(path.dirname(SERVEUR), "base-relative.sqlite");
-  t.after(() => { for (const s of ["", "-wal", "-shm"]) fs.rmSync(attendu + s, { force: true }); });
   assert.deepEqual([ligne.hote, ligne.port, ligne.base, ligne.user_version], ["127.0.0.1", port, attendu, 1]);
   assert.ok(!l.sortie().includes("joignable que par oauth2-proxy"));
   const r = await fetch(`http://127.0.0.1:${port}/api/sante`);
@@ -98,12 +98,15 @@ test("mode local : DEV_EMAIL et DEV_STATIC", async t => {
   const site = path.join(racine, "_site");
   fs.mkdirSync(site);
   fs.writeFileSync(path.join(site, "index.html"), "<p>site de test</p>");
+  fs.writeFileSync(path.join(site, ".secret"), "secret");
   const port = await portLibre();
   const l = await demarrer(t, { PORT: String(port), DB_PATH: path.join(racine, "data", "r.sqlite"), DEV_EMAIL: "dev@yeita.fr", DEV_STATIC: site });
   assert.match(l.sortie(), /Mode local : DEV_EMAIL=dev@yeita\.fr/);
   const page = await fetch(`http://127.0.0.1:${port}/`);
   assert.equal(page.status, 200);
   assert.match(await page.text(), /site de test/);
+  assert.notEqual(page.headers.get("cache-control"), "no-store");
+  assert.notEqual((await fetch(`http://127.0.0.1:${port}/.secret`)).status, 200, "fichier caché servi");
   assert.deepEqual(await (await fetch(`http://127.0.0.1:${port}/api/sante`)).json(), { ok: true });
   /* DEV_EMAIL n'est pas encore dans l'équipe : l'autorisation s'applique comme pour un vrai compte. */
   assert.equal((await fetch(`http://127.0.0.1:${port}/api/moi`)).status, 403);

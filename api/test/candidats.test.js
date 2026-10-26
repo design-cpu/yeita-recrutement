@@ -68,7 +68,7 @@ test("PUT refusés : champs, identifiant, taille, type", async t => {
     assert.equal(r.statusCode, 400, nom);
     assert.match(json(r).erreur, motif, nom);
   }
-  for (const id of ["jean-dupont", "cand-Lena-Garnier", "cand-a-b-c", "cand-" + "a".repeat(20) + "-b"]) {
+  for (const id of ["jean-dupont", "cand-Lena-Garnier", "cand-a-b-c", "cand-" + "a".repeat(20) + "-b", "cand-" + "a".repeat(150) + "-b"]) {
     const r = await put(app, id, null, dossier(id));
     assert.equal(r.statusCode, 400, id);
     assert.deepEqual(json(r), { erreur: "Identifiant invalide." });
@@ -77,6 +77,11 @@ test("PUT refusés : champs, identifiant, taille, type", async t => {
   const g = await requete(app, "rec@yeita.fr", { method: "PUT", url: `/api/candidats/${ID}`, payload: gros });
   assert.equal(g.statusCode, 413);
   assert.deepEqual(json(g), { erreur: "Dossier trop volumineux (1 Mo maximum)." });
+  for (const corps of ['{"__proto__":{"x":1}}', '{"version":null,"data":{"constructor":{"prototype":{"x":1}}}}']) {
+    const p = await requete(app, "rec@yeita.fr", { method: "PUT", url: `/api/candidats/${ID}`, payload: corps, headers: { "content-type": "application/json" } });
+    assert.equal(p.statusCode, 400, corps);
+    assert.deepEqual(json(p), { erreur: "JSON invalide." });
+  }
   const t415 = await requete(app, "rec@yeita.fr", { method: "PUT", url: `/api/candidats/${ID}`, payload: JSON.stringify({ version: null, data: d }), headers: { "content-type": "text/plain" } });
   assert.equal(t415.statusCode, 415);
   assert.equal(json(await requete(app, "rec@yeita.fr", { url: "/api/candidats" })).length, 0);
@@ -132,15 +137,42 @@ test("effacement sur le disque : version remplacée et dossier supprimé introuv
   assert.deepEqual(fichiersContiennent(dbPath, "REPERE-NOUVEAU"), [], "dossier supprimé encore lisible");
 });
 
-test("base occupée : PUT en 503 après l'attente, rien d'écrit", { timeout: 20000 }, async t => {
-  const { app, dbPath } = creerApp(t);
+test("base occupée : PUT, DELETE et POST en 503 après l'attente, rien d'écrit", { timeout: 40000 }, async t => {
+  const { app, db, dbPath } = creerApp(t);
+  await put(app, "cand-x-1", null, dossier("cand-x-1"));
   const autre = new Database(dbPath);
   autre.exec("BEGIN IMMEDIATE");
-  const r = await put(app, ID, null, dossier(ID));
+  const essais = [
+    () => put(app, ID, null, dossier(ID)),
+    () => requete(app, "rec@yeita.fr", { method: "DELETE", url: "/api/candidats/cand-x-1" }),
+    () => requete(app, "rec@yeita.fr", { method: "POST", url: "/api/options-disponibilite", payload: { libelle: "Fin janvier" } })
+  ];
+  const reponses = [];
+  for (const e of essais) reponses.push(await e());
   autre.exec("ROLLBACK"); autre.close();
-  assert.equal(r.statusCode, 503);
-  assert.deepEqual(json(r), { erreur: "Base occupée, réessaie dans un instant." });
-  assert.equal(json(await requete(app, "rec@yeita.fr", { url: "/api/candidats" })).length, 0);
+  for (const r of reponses) {
+    assert.equal(r.statusCode, 503);
+    assert.deepEqual(json(r), { erreur: "Base occupée, réessaie dans un instant." });
+  }
+  assert.deepEqual(json(await requete(app, "rec@yeita.fr", { url: "/api/candidats" })).map(e => e.id), ["cand-x-1"]);
+  assert.equal(db.prepare("SELECT count(*) n FROM options_disponibilite").get().n, 0);
+});
+
+test("point de contrôle gêné par un lecteur : écriture rendue sans attendre, avertissement journalisé", async t => {
+  const lignes = [];
+  const { app, dbPath } = creerApp(t, { flux: { write: l => lignes.push(l) } });
+  await put(app, ID, null, dossier(ID));
+  /* Un lecteur garde un instantané (comme une sauvegarde ou la ligne de commande sqlite3). */
+  const lecteur = new Database(dbPath);
+  lecteur.exec("BEGIN");
+  lecteur.prepare("SELECT count(*) FROM candidats").get();
+  const debut = Date.now();
+  const r = await put(app, ID, 1, dossier(ID, "Autre"));
+  const duree = Date.now() - debut;
+  lecteur.exec("COMMIT"); lecteur.close();
+  assert.equal(r.statusCode, 200);
+  assert.ok(duree < 1000, `PUT rendu en ${duree} ms`);
+  assert.ok(lignes.join("").includes("Point de contrôle incomplet"), "avertissement absent du journal");
 });
 
 test("journal du serveur : ni nom ni email, y compris sur 400, 409, 413 et 500", async t => {
