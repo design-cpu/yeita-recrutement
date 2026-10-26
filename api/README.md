@@ -88,7 +88,7 @@ cd api
 npm test
 ```
 
-Les tests (`node:test`) travaillent sur des bases temporaires et lancent l'API et `equipe.js` en processus fils ; ils ne touchent pas à `api/data/`. Compter une vingtaine de secondes : trois tests attendent volontairement l'expiration du délai de 5 secondes.
+Les tests (`node:test`) travaillent sur des bases temporaires et lancent l'API et `equipe.js` en processus fils ; ils ne touchent pas à `api/data/`. Compter une dizaine de secondes : deux tests attendent volontairement l'expiration du délai de 5 secondes.
 
 ## Contrat HTTP
 
