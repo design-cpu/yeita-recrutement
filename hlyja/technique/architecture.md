@@ -3,8 +3,8 @@ type: technique
 page: architecture
 titre: Architecture et déploiement
 maj: 1.1
-commit: 78dcc37
-sources: docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
+commit: 3909b8d
+sources: deploy/README.md, assets/config.js, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
 date: 2026-10-26
 ---
 
@@ -53,7 +53,7 @@ Communs : réseau `edge` (bridge `recrutement_edge`, 172.30.0.0/24), `restart: u
 | `reverse_proxy` | **`false`** | avec `true`, un `X-Forwarded-Uri` forgé depuis une adresse de confiance ouvre une page protégée (vérifié, v1.1) ; conséquence : les journaux ne montrent pas l'adresse du visiteur |
 | `trusted_proxy_ips` | `["172.30.0.0/24"]` | sans effet tant que `reverse_proxy = false` |
 | `cookie_secure`, `cookie_httponly`, `cookie_samesite` | `true`, `true`, `"lax"` | durée par défaut (168 h) |
-| `skip_auth_routes` | `^/$`, `^/index\.html$`, `^/one-pager\.html$`, `^/yeita-match-kit\.html$`, `^/assets/yeita\.css$`, `^/assets/yeita\.js$`, `^/assets/data-yeita-match\.js$`, `^/telechargements/[A-Za-z0-9_-][A-Za-z0-9._-]*$` | liste publique fermée, sur le chemin réel ; `/ping` est public par construction |
+| `skip_auth_routes` | `^/$`, `^/index\.html$`, `^/one-pager\.html$`, `^/yeita-match-kit\.html$`, `^/assets/yeita\.css$`, `^/assets/yeita\.js$`, `^/assets/data-yeita-match\.js$`, `^/telechargements/[A-Za-z0-9_-][A-Za-z0-9._-]*$` | liste publique fermée, sur le chemin réel ; `/ping` est public par construction ; `/one-pager.html` doit le rester : `assets/config.js` (`pagesCandidat.tonParcours`) l'envoie aux candidats |
 
 ## Caddy (`deploy/Caddyfile`, cas B)
 Site `{$DOMAIN}`, `reverse_proxy front:4180`, en-têtes `Strict-Transport-Security "max-age=31536000"`, `X-Content-Type-Options "nosniff"`, `Referrer-Policy "same-origin"`, `X-Frame-Options "DENY"`. Avec `DOMAIN=localhost` ou `*.localhost`, certificat de l'autorité locale de Caddy.
@@ -69,7 +69,7 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 | Script | Lancé par | Rôle | Garde-fous |
 |---|---|---|---|
 | `deploy/prepare-serveur.sh "<clé>"` | root, une fois | utilisateur `deploy` (groupe `docker`), clé SSH, clone dans `/opt/recrutement` (par `deploy`), `/var/backups/recrutement` (700) | n'installe rien ; vérifie outils, port 4180, sous-réseau 172.30.0.0/24 (réseaux Docker et routes), conteneurs `recrutement` d'un autre dossier, `deploy` existant hors groupe `docker`, groupe `deploy` orphelin, origine du dépôt — avant toute modification ; idempotent ; reprend un dossier vide laissé par un clone en échec ; `RECRUTEMENT_REPO` pour les essais |
-| `deploy/deploy.sh [commit]` | `deploy` | `git` (main ou commit de main), `build --pull`, `up -d --remove-orphans --force-recreate`, `image prune --filter label=fr.yeita.projet=recrutement`, attente de `/ping`, `check-site.sh` | réglages lus par `docker compose config --environment` (comme Compose les utilise) et cas B par `config --services` ; verrou `flock` (`~/.recrutement-deploy.lock`), refuse root, `.env` d'exemple, incohérent ou avec une valeur vide suivie d'un commentaire, dépôt modifié ou avec un fichier non suivi (une copie de `.env` serait publiée), conteneurs d'un autre dossier, 80/443 pris en cas B, commit hors `main` ou antérieur à 1.1 ; retire `caddy` sans profil ; commande de retour si `build`, `up` ou le contrôle échouent ; corps dans `main` (lu en entier) |
+| `deploy/deploy.sh [commit]` | `deploy` | `git` (main ou commit de main), `build --pull`, `up -d --remove-orphans --force-recreate`, `image prune --filter label=fr.yeita.projet=recrutement`, attente de `/ping`, `check-site.sh` | réglages lus par `docker compose config --environment` (comme Compose les utilise) et cas B par `config --services` ; verrou `flock` (`~/.recrutement-deploy.lock`), refuse root, `.env` d'exemple (identifiant, secret client, cookie secret), incohérent ou avec une valeur vide suivie d'un commentaire, dépôt modifié ou avec un fichier non suivi (une copie de `.env` serait publiée), conteneurs d'un autre dossier, 80/443 pris en cas B, commit hors `main` ou antérieur à 1.1 ; retire `caddy` sans profil ; commande de retour si `build`, `up` ou le contrôle échouent ; corps dans `main` (lu en entier) |
 | `tools/check-site.sh BASE_URL` | tous | 5 contrôles : `/one-pager.html` 200, `/index.html` 200, `/candidatures/` et `/assets/data-diamants.js` 302 vers `https://accounts.google.com/`, `/ping` 200 | codes 0/1/2, `--max-time 10`, certificat non vérifié pour `localhost` et `*.localhost` |
 
 ## Environnements

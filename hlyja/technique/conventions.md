@@ -3,7 +3,7 @@ type: technique
 page: conventions
 titre: Conventions et tests
 maj: 1.1
-commit: 78dcc37
+commit: 3909b8d
 sources: README.md, CONTRIBUER.md, tools/build.py, tools/check-site.sh, compose.yaml, .dockerignore, .gitignore, tools/test-store.js, tools/e2e-candidatures.py, tools/e2e-parcours.py, tools/e2e-liens.py, tools/e2e-pdf.py
 date: 2026-10-26
 ---
@@ -28,7 +28,7 @@ date: 2026-10-26
 ## Publication
 `python3 tools/build.py [dossier]` copie la racine sauf `SKIP` (`.git`, `.github`, `.agents`, `docs`, `tools`, `_site`, `dist`, `renders`, `README.md`, `STORAGE.md`, `.gitignore`, `hlyja`, `docker`, `deploy`, `compose.yaml`, `.dockerignore`, et tout nom commençant par `.env`) et enveloppe `index.html`. Tout `assets/` est publié. Depuis v1.1, le site est servi par l'image `front` sur le serveur OVH, déployé à la main par `deploy/deploy.sh` ([Architecture](architecture.md)) ; GitHub Pages n'est plus utilisé.
 
-Règles du déploiement (v1.1) : images figées par tag (`oauth2-proxy:v7.15.5`, `caddy:2.11.7`) ; secrets seulement dans `.env` ; aucune commande Docker globale sur le serveur partagé (nettoyage limité à l'étiquette `fr.yeita.projet=recrutement`, jamais de `system prune`) ; réglages de journaux et de redémarrage dans `compose.yaml`, jamais dans la configuration globale de Docker.
+Règles du déploiement (v1.1) : images servies figées par tag (`oauth2-proxy:v7.15.5`, `caddy:2.11.7`) ; l'image de construction `python:3.12-slim` suit les correctifs 3.12 (décision du pitch) ; secrets seulement dans `.env` ; aucune commande Docker globale sur le serveur partagé (nettoyage limité à l'étiquette `fr.yeita.projet=recrutement`, jamais de `system prune`) ; réglages de journaux et de redémarrage dans `compose.yaml`, jamais dans la configuration globale de Docker.
 
 ## Tests
 | Commande | Prérequis | Couvre |
