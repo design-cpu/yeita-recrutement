@@ -279,7 +279,11 @@ function ecrirePartie(d, o){
       var lu = o.lire(frais);
       if(JSON.stringify(lu === undefined ? null : lu) !== avant) return refus();
       o.poser(frais);
-      return save(frais).catch(function(e){ return (e && e.code === "conflit" && reste) ? essai(0) : Promise.reject(e); });
+      return save(frais).catch(function(e){
+        if(!(e && e.code === "conflit" && reste)) return Promise.reject(e);
+        /* La nouvelle tentative a réussi : le bandeau de conflit affiché par le refus n'a plus lieu d'être. */
+        return essai(0).then(function(r){ if(window.DOSSIER && DOSSIER.onRetabli) DOSSIER.onRetabli(); return r; });
+      });
     });
   }
   return essai(1);

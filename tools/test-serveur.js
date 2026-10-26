@@ -27,6 +27,7 @@ function fausseApi(){
     if(m === "GET") return ligne ? rep(200, {id, version: ligne.version, data: JSON.parse(ligne.data)}) : rep(404, {erreur: "Candidature introuvable.", code: "introuvable"});
     if(m === "DELETE"){ if(!ligne) return rep(404, {erreur: "Candidature introuvable.", code: "introuvable"}); delete api.base[id]; return rep(204, null); }
     if(m === "PUT"){
+      if(api.avantPut){ const f = api.avantPut; api.avantPut = null; f(id); }
       const c = JSON.parse(o.body), conflit = {erreur: "La candidature a été modifiée par quelqu'un d'autre. Recharge la page.", code: "conflit"};
       if(c.version === null){ if(ligne) return rep(409, conflit); api.base[id] = {version: 1, data: JSON.stringify(c.data)}; return rep(201, {id, version: 1, data: c.data}); }
       if(!ligne || ligne.version !== c.version) return rep(409, conflit);
@@ -374,6 +375,17 @@ process.on("unhandledRejection", e => { ok(false, "rejet non traité", e && e.me
     await D.remove(d.id);
     await rejette(D.ecrirePartie(r2, {poser: x => poserDec(x, "après suppression"), lire: lireDec}), "fiches : dossier supprimé → refus", "conflit");
     ok(!api.base[d.id], "fiches : aucune recréation");
+  }
+  {
+    /* Conflit sur une autre partie entre la relecture et l'écriture : nouvelle tentative réussie, bandeau retiré (revue Q2) */
+    const api = fausseApi(); const ctx = await demarrer(api); await attendre(ctx.DEMARRAGE.pret, "pret");
+    const D = ctx.DOSSIER, d = D.blank("Tentative"); await D.save(d);
+    const ouverte = await D.get(d.id);
+    api.avantPut = id => { const l = api.base[id], x = JSON.parse(l.data); x.fiches.decompte = {notes: {a: "autre page"}}; l.data = JSON.stringify(x); l.version++; };
+    const r = await attendre(D.ecrirePartie(ouverte, {poser: x => { x.fiches.ec1 = {f: {t: "après tentative"}}; }, lire: x => x.fiches.ec1}), "écriture avec nouvelle tentative");
+    const b = JSON.parse(api.base[d.id].data);
+    ok(r && b.fiches.ec1.f.t === "après tentative" && b.fiches.decompte.notes.a === "autre page", "nouvelle tentative : la partie est écrite, celle de l'autre page reste");
+    ok(ctx.__body.children.length && ctx.__body.children[0].retire === true, "nouvelle tentative réussie : le bandeau de conflit est retiré (revue Q2)");
   }
   {
     /* Départ d'une fiche pendant un enregistrement en cours : la partie se pose sur l'objet en vol (revue de code, Q1) */

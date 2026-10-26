@@ -78,6 +78,7 @@ function serveur(moi){
     choisi = A({sur401: sur401, surErreur: function(e){ erreur(e.message, e); }});
     D.use(choisi);
     D.onRefus = function(e){ erreur(e.message, e); };
+    D.onRetabli = effacer;
     if(window.QUI) QUI.compte(moi, rs[0].json.map(function(m){ return m.prenom; }));
     if(window.STORE) STORE.sourceDispos({
       ajouts: function(){ return options; },

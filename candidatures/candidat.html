@@ -421,10 +421,14 @@ window.addEventListener("pagehide", function(){ if(saveT){ clearTimeout(saveT); 
 window.addEventListener("storage", function(e){ if(e.key === D.KEY && cur && !saveT){ S.getCandidate(cur.id).then(function(c){ if(c){ cur = c; render(); } }); } });
 /* Mode serveur : au retour sur l'onglet, relire, sauf pendant une saisie (enregistrement en attente, en cours ou refusé,
    formulaire ouvert, champ actif) ; redessiner seulement si le dossier a changé. */
-DEMARRAGE.auRetour(function(){
+function peutRelire(){
   var a = document.activeElement;
-  if(!cur || saveT || enCours || refuse || refusOpen || (a && a.closest && a.closest("#body") && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return;
-  S.getCandidate(cur.id).then(function(c){ if(c && (c.meta && c.meta.modifieLe) !== (cur.meta && cur.meta.modifieLe) && !saveT && !enCours){ cur = c; render(); DEMARRAGE.effacer(); } });
+  return cur && !saveT && !enCours && !refuse && !refusOpen && !(a && a.closest && a.closest("#body") && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+}
+/* La garde est revue à la réponse : une saisie a pu commencer pendant la lecture. */
+DEMARRAGE.auRetour(function(){
+  if(!peutRelire()) return;
+  S.getCandidate(cur.id).then(function(c){ if(c && (c.meta && c.meta.modifieLe) !== (cur.meta && cur.meta.modifieLe) && peutRelire()){ cur = c; render(); DEMARRAGE.effacer(); } });
 });
 DEMARRAGE.pret.then(load);
 })();
