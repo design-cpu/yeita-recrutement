@@ -103,8 +103,8 @@ Synchrones au rendu : `QUI.equipe()` (`ui.js` l. 113, 172 : liste du champ Recru
 | Valeur et business | non | Pas d'enjeu commercial ; le gain (stockage partagé) est l'objet du pitch |
 | Mesure du succès | non | Rien à mesurer au-delà des critères d'acceptation |
 | UX / UI | oui | Prénom sans liste, attente du démarrage, messages d'accès, de réseau et de conflit, relecture au retour sur l'onglet |
-| Design system | non | Aucun composant visuel nouveau ; classes existantes |
-| Accessibilité | non | Pas de nouvel écran ; les messages réutilisent `role="status"` / `alert` existants (vérifiés au module UX/UI) |
+| Design system | non | Aucun composant visuel nouveau : le bandeau d'erreur (R11, `[ajout]`) réutilise `.notice.err` et `role="alert"`, avec un seul bouton |
+| Accessibilité | non | Pas de nouvel écran ; le bandeau réutilise `role="alert"` et ne déplace pas le focus (module UX/UI) |
 | Contenu et textes | oui | Textes exacts des messages (décision de l'utilisateur), note d'impression |
 | Données | non | Aucun modèle ni table nouveaux ; le dossier passe tel quel |
 | API et intégrations | oui | Usage du contrat HTTP de l'API par l'adaptateur, le démarrage, `QUI` et les options |

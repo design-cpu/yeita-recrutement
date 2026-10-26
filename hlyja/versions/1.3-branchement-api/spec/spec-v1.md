@@ -22,7 +22,7 @@ Recruteurs (rôles `recruteur`, `admin`), lecteurs (`lecture`), et l'exploitant 
 1. La page s'affiche sans données ; le démarrage appelle `/api/moi`.
 2. 200 : la page charge l'équipe et les options, puis lit ses dossiers ; en haut, « Connecté·e : Alice » à la place de la liste « Qui es-tu ? ».
 3. Chaque action est notée au nom du compte (`historique[].par` = prénom de l'équipe).
-Cas limites : session expirée (401) → la page se recharge et oauth2-proxy renvoie vers Google ; compte hors équipe (403) → message d'accès, aucune donnée ; API arrêtée (502) ou réseau coupé → message réseau avec « Réessayer », aucune donnée.
+Cas limites : session expirée (401) → la page se recharge et oauth2-proxy renvoie vers Google ; compte hors équipe (403) → message d'accès, aucune donnée ; API arrêtée (502) ou réseau coupé → message réseau avec « Recharger », aucune donnée.
 
 ### P2 — Deux recruteurs sur le même dossier
 1. Alice et Bob ouvrent la même candidature.
@@ -43,7 +43,7 @@ Léa (`lecture`) voit le tableau et les dossiers, « Connecté·e : Léa » ; to
 ## Périmètre
 ### Inclus
 - Démarrage (`assets/demarrage.js`), adaptateur serveur (`assets/adapter-serveur.js`), `QUI` et options de disponibilité en mode serveur, relecture au retour sur l'onglet, attente du démarrage dans les 6 pages.
-- Bandeau d'erreur visible du mode serveur (R11) : sans lui, un conflit ou un refus pendant un enregistrement automatique resterait invisible (`YEITA.flash(null, …)` n'écrit que dans la zone `#live`, masquée, V1).
+- `[ajout]` Bandeau d'erreur visible du mode serveur (R11), réduit au message et à un bouton « Recharger » (chef d'équipe, P1) : sans lui, un conflit ou un refus pendant un enregistrement automatique resterait invisible (`YEITA.flash(null, …)` n'écrit que dans la zone `#live`, masquée, V1).
 - Service `api` dans Docker, `docker/api.Dockerfile`, réseau `back`, volume, oauth2-proxy, `.dockerignore`, `check-site.sh`, `deploy.sh` (attente de l'api), `deploy/README.md`.
 - Notes d'impression de `carte.html` et `decompte.html` (décision de l'utilisateur).
 - `[ajout]` `YEITA.SITE` vers `https://recrutement.yeita.fr/` (R36) : la note corrigée garde sinon un lien « Ouvrir sur le site » qui mène à une page 404 (V25).
@@ -77,7 +77,7 @@ Bandeau « Données fictives » ; relais `yeita-match-resultat` ; règles de `st
 | R2 | Choix du mode sur la réponse de `/api/moi` (décision de l'utilisateur, V9, V10, V22) | **200** avec JSON `{prenom, role}` → serveur. **404** (tout type de contenu) → navigateur. **401** → rechargement (R8). **403** → bloqué, message d'accès (R9). **Autre statut, réponse non JSON, `fetch` rejeté** → bloqué, message réseau |
 | R3 | Mode serveur | `DOSSIER.use(AdaptateurServeur())`, puis `GET ../api/equipe` et `GET ../api/options-disponibilite` en parallèle ; l'échec de l'un d'eux suit R2 (401, 403, réseau). `DEMARRAGE.pret` est résolue ensuite seulement |
 | R4 | Mode navigateur | rien n'est changé : `LocalAdapter`, `QUI` local, options locales ; `DEMARRAGE.pret` résolue |
-| R4b | Mode bloqué | `DEMARRAGE.pret` n'est jamais résolue : la page ne lit ni n'écrit rien ; le bandeau (R11) donne le message et « Réessayer » (`location.reload()`) |
+| R4b | Mode bloqué | `DEMARRAGE.pret` n'est jamais résolue : la page ne lit ni n'écrit rien ; le bandeau (R11) donne le message et « Recharger » (`location.reload()`) |
 | R4c | Chaque page attend | la première lecture du stockage (V1, tableau du cadrage) et tout ce qui lit `QUI` ou les options passent dans `DEMARRAGE.pret.then(...)` ; le reste du script (textes, logo, écouteurs) ne change pas. `decompte.html` sans identifiant ne lit pas le stockage et n'attend pas |
 | R4d | Codes de l'ancienne carte | en mode serveur, `carte.html` ne lance pas `migrateCodes()` (les codes restent dans le navigateur, `codesDone` inchangé) : ce serait une migration de données locales vers la base, exclue par l'utilisateur |
 
@@ -99,7 +99,7 @@ Bandeau « Données fictives » ; relais `yeita-match-resultat` ; règles de `st
 ### Bandeau d'erreur
 | # | Règle | Détail / valeurs |
 |---|---|---|
-| R11 | Erreurs visibles en mode serveur | tout rejet de l'adaptateur (sauf 401 en cours de rechargement) et tout échec de R14 appellent `DEMARRAGE.erreur(message)` en plus de rejeter : bandeau `.notice.err`, `role="alert"`, en tête du `<body>`, fixé en haut de l'écran, avec le message et un bouton (« Recharger » pour un conflit, « Réessayer » pour le réseau, aucun pour la lecture seule) ; un nouveau message remplace le précédent ; un bouton « Fermer » le masque. Les pages qui affichent déjà `x.message` continuent de le faire |
+| R11 | `[ajout]` Erreurs visibles en mode serveur | tout rejet de l'adaptateur (sauf 401 en cours de rechargement) et tout échec de R14 appellent `DEMARRAGE.erreur(message)` en plus de rejeter : bandeau en tête du `<body>`, classes existantes `.notice.err` et `role="alert"`, avec le message et un seul bouton « Recharger » (`location.reload()`) ; un nouveau message remplace le précédent. Les pages qui affichent déjà `x.message` continuent de le faire |
 
 ### Identité (`assets/qui.js`)
 | # | Règle | Détail / valeurs |
@@ -157,9 +157,9 @@ Bandeau « Données fictives » ; relais `yeita-match-resultat` ; règles de `st
 ## UX / UI
 - **Attente** : pendant le démarrage, la page montre sa structure sans données (mêmes éléments masqués qu'aujourd'hui avant `load()`). Pas d'indicateur de chargement nouveau.
 - **En-tête** : « Connecté·e : Alice » à l'emplacement de « Qui es-tu ? » (`#qui`), même taille de texte ; rien en mode navigateur.
-- **Bandeau** (R11) : en haut de l'écran, au-dessus du contenu, `.notice.err`, `role="alert"` (lu aussitôt par les lecteurs d'écran), boutons au clavier dans l'ordre message → action → « Fermer » ; le focus n'est pas déplacé (l'utilisateur peut être en train d'écrire).
+- **Bandeau** (R11) : en tête de la page, `.notice.err`, `role="alert"` (lu aussitôt par les lecteurs d'écran), message puis bouton « Recharger » ; le focus n'est pas déplacé (l'utilisateur peut être en train d'écrire).
 - **Retour sur l'onglet** : la page se met à jour sans rechargement et sans perdre le défilement ; rien n'est relu si un enregistrement est en attente (`candidat.html`).
-- **Mode bloqué** : seul le bandeau est utile ; « Réessayer » recharge la page.
+- **Mode bloqué** : seul le bandeau est utile ; « Recharger » recharge la page.
 
 ## Contenu et textes
 Textes exacts (dans `assets/wording.fr.js`, clé `serveur`) :
@@ -172,7 +172,7 @@ Textes exacts (dans `assets/wording.fr.js`, clé `serveur`) :
 | Session (garde de R8) | Ta session n'a pas pu être vérifiée. Ferme l'onglet, puis rouvre le site. | nouveau |
 | Autre réponse JSON de l'API (400, 413, 415, 503, 404 sans `code`) | le texte `erreur` de l'API | `api/README.md` |
 | En-tête | Connecté·e : {prenom} | nouveau |
-| Boutons | Recharger · Réessayer · Fermer | nouveau |
+| Bouton du bandeau | Recharger | nouveau |
 | Note `carte.html` | Pour imprimer ou exporter en PDF, ouvre cette page dans un onglet du site du recrutement. | remplace « … depuis le site GitHub du recrutement. » |
 | Note `decompte.html` | Pour imprimer, ouvre cette page dans un onglet du site du recrutement, ou utilise le PDF du kit. | idem |
 
