@@ -3,7 +3,7 @@ type: technique
 page: docker-local
 titre: Lancer le site avec Docker sur un poste
 maj: 1.3
-commit: e59d120
+commit: 6cd5776
 sources: compose.yaml, docker/api.Dockerfile, .env.example, deploy/Caddyfile, deploy/oauth2-proxy.cfg, tools/check-site.sh, deploy/README.md
 date: 2026-10-26
 ---

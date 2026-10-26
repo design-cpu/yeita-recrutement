@@ -3,7 +3,7 @@ type: technique
 page: api
 titre: API de stockage (api/)
 maj: 1.3
-commit: e59d120
+commit: 6cd5776
 sources: api/server.js, api/equipe.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md
 date: 2026-10-26
 ---

@@ -3,7 +3,7 @@ type: technique
 page: architecture
 titre: Architecture et déploiement
 maj: 1.3
-commit: e59d120
+commit: 6cd5776
 sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, docker/api.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
 date: 2026-10-26
 ---
@@ -51,7 +51,7 @@ Construite depuis la racine (`build.context: .`), nommée `recrutement-front`.
 | Installation | `WORKDIR /app/api`, copie de `package.json`, `package-lock.json`, `.npmrc` (`ignore-scripts=true`), `npm ci --omit=dev`, puis copie de `api/` |
 | Données | `/data` propriétaire `node`, mode 700 ; base en 600 |
 | Exécution | `USER node`, `WORKDIR /app`, `ENV NODE_ENV=production HOST=0.0.0.0 PORT=8000 DB_PATH=/data/recrutement.sqlite`, `CMD ["node", "api/server.js"]` |
-| Santé | `HEALTHCHECK` 30 s / 5 s / 10 s de démarrage / 3 essais : `node -e fetch('http://127.0.0.1:8000/api/sante', {signal: AbortSignal.timeout(4000)})`, sain seulement sur 200 |
+| Santé | `HEALTHCHECK` 30 s / 5 s / 10 s de démarrage / 3 essais, en Node : `/data` inscriptible (`fs.accessSync('/data', W_OK)` ; un volume en lecture seule laisserait lire et rendrait 500 à chaque écriture, QA v1.3 B2) puis `fetch('http://127.0.0.1:8000/api/sante', {signal: AbortSignal.timeout(4000)})`, sain seulement sur 200 |
 Gestion de l'équipe : `docker compose exec api node api/equipe.js …` (même `DB_PATH`). Poids : ~418 Mo.
 
 ## Services Compose (`compose.yaml`, `name: recrutement`)

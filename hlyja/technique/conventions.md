@@ -3,7 +3,7 @@ type: technique
 page: conventions
 titre: Conventions et tests
 maj: 1.3
-commit: e59d120
+commit: 6cd5776
 sources: api/package.json, api/test/aide.js, README.md, CONTRIBUER.md, tools/build.py, tools/check-site.sh, compose.yaml, .dockerignore, .gitignore, tools/test-store.js, tools/test-serveur.js, tools/e2e-serveur.py, tools/e2e-candidatures.py, tools/e2e-parcours.py, tools/e2e-liens.py, tools/e2e-pdf.py
 date: 2026-10-26
 ---
