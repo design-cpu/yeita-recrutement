@@ -3,7 +3,7 @@ type: technique
 page: decisions
 titre: Décisions techniques
 maj: 1.2
-commit: COMMIT_A_REMPLIR
+commit: 2497be9
 sources: api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh
 date: 2026-10-26
 ---

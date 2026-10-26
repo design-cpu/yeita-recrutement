@@ -3,7 +3,7 @@ type: technique
 page: architecture
 titre: Architecture et déploiement
 maj: 1.2
-commit: COMMIT_A_REMPLIR
+commit: 2497be9
 sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
 date: 2026-10-26
 ---

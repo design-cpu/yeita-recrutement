@@ -3,7 +3,7 @@ type: technique
 page: api
 titre: API de stockage (api/)
 maj: 1.2
-commit: COMMIT_A_REMPLIR
+commit: 2497be9
 sources: api/server.js, api/equipe.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md
 date: 2026-10-26
 ---
@@ -89,10 +89,10 @@ Routeur : `maxParamLength` 200 (un `:id` plus long → 404 de route inconnue).
 |---|---|---|
 | `PORT` | 8000 | `^\d+$`, 1 à 65535 |
 | `HOST` | `127.0.0.1` | sans espace ; `local` = `127.0.0.1`, `::1`, `localhost` |
-| `DB_PATH` | `data/recrutement.sqlite` | relatif → depuis `api/` ; refus de `:memory:`, `#`, guillemets, dossier existant |
-| `NODE_ENV` | — | `production` comparé sans espaces ni casse |
+| `DB_PATH` | `data/recrutement.sqlite` | relatif → depuis `api/` ; refus de `:memory:`, `#`, guillemets, espace au début ou à la fin, dossier existant |
+| `NODE_ENV` | — | `production` comparé sans espaces ni casse ; `#` et guillemets refusés |
 | `DEV_EMAIL` | — | `emailValide` ; `local` et hors production |
-| `DEV_STATIC` | — | `#`, guillemets refusés ; dossier existant avec `index.html` ; refus si la base ou `api/` sont dedans (chemins réels) ; `local` et hors production ; servi par @fastify/static (`dotfiles: "deny"`) |
+| `DEV_STATIC` | — | `#`, guillemets, espace au début ou à la fin refusés ; dossier existant avec `index.html` ; refus si la base ou `api/` sont dedans (chemins réels) ; `local` et hors production ; servi par @fastify/static (`dotfiles: "deny"`) |
 Variable vide = absente. Toute erreur → `ErreurConfig` → code 1 et une ligne (avant l'écoute) ; port pris → code 1 « Impossible d'écouter sur … : port déjà utilisé. ».
 
 ## `equipe.js`
@@ -102,7 +102,7 @@ Variable vide = absente. Toute erreur → `ErreurConfig` → code 1 et une ligne
 Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue, hôte, adresse distante, statut, durée. Démarrage : `hote`, `port`, `base`, `user_version`, `node_env`, `dev_email`, `dev_static`. Avertissements : exposition (`HOST` non local), mode local, point de contrôle incomplet.
 
 ## Tests
-`cd api && npm test` (`node --test "test/*.test.js"`), 7 fichiers dans `api/test/` : `config`, `base`, `api` (autorisation, erreurs, options), `candidats`, `serveur` et `equipe` (processus fils), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
+`cd api && npm test` (`node --test "test/*.test.js"`), 52 tests (~20 s), 7 fichiers dans `api/test/` : `config`, `base`, `api` (autorisation, erreurs, options), `candidats`, `serveur` et `equipe` (processus fils), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
 
 ## Voir aussi
 - [Architecture et déploiement](architecture.md)

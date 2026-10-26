@@ -3,7 +3,7 @@ type: technique
 page: conventions
 titre: Conventions et tests
 maj: 1.2
-commit: COMMIT_A_REMPLIR
+commit: 2497be9
 sources: api/package.json, api/test/aide.js, README.md, CONTRIBUER.md, tools/build.py, tools/check-site.sh, compose.yaml, .dockerignore, .gitignore, tools/test-store.js, tools/e2e-candidatures.py, tools/e2e-parcours.py, tools/e2e-liens.py, tools/e2e-pdf.py
 date: 2026-10-26
 ---
@@ -39,7 +39,7 @@ Règles du déploiement (v1.1) : images servies figées par tag (`oauth2-proxy:v
 | `python3 tools/e2e-parcours.py` | idem | EC1, EC2, Bilans, EC3, Décision |
 | `python3 tools/e2e-liens.py` | idem | « Précédent », liens directs, feuille vierge |
 | `python3 tools/e2e-pdf.py` | idem, plus `pdftotext` (poppler) | exports PDF |
-| `cd api && npm test` | Node 22 ; `npm ci` dans `api/` | l'API (v1.2) : configuration, base et schéma, autorisation, dossiers, options, serveur et `equipe.js` en processus fils ; ~16 s (délais de 5 s volontaires) |
+| `cd api && npm test` | Node 22 ; `npm ci` dans `api/` | l'API (v1.2) : 52 tests — configuration, base et schéma, autorisation, dossiers, options, serveur et `equipe.js` en processus fils ; ~20 s (délais de 5 s volontaires) |
 | `tools/check-site.sh BASE_URL` | `curl` ; site déployé ou pile Docker locale | pages publiques en 200, pages protégées en 302 vers Google, `/ping` (v1.1) |
 
 Serveur : `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site`. Chaque test affiche `OK` / `FAIL` par vérification. Sans Playwright sur le poste : conteneur `mcr.microsoft.com/playwright/python:v1.63.0-noble` avec `pip install playwright==1.63.0` et `poppler-utils` (v1.1).
