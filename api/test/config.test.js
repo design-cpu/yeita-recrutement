@@ -27,6 +27,19 @@ test("PORT : vide vaut absent, valeurs absurdes refusées", t => {
   for (const v of ["abc", "0", "70000", "8000 # x", " 8000", "80.5", "-1", "# x"]) refuse({ PORT: v }, api, /^PORT refusé/);
 });
 
+test("DB_PATH et DEV_STATIC avec une espace au début ou à la fin : refusés", t => {
+  const api = dossierTemporaire(t);
+  siteConstruit(api);
+  for (const v of ["base.sqlite ", " base.sqlite"]) refuse({ DB_PATH: v }, api, /^DB_PATH refusé : .* commence ou finit par une espace/);
+  refuse({ DEV_STATIC: "_site " }, api, /^DEV_STATIC refusé : .* commence ou finit par une espace/);
+});
+
+test("NODE_ENV avec guillemets ou commentaire : refusé", t => {
+  const api = dossierTemporaire(t);
+  for (const v of ['"production"', "'production'", "production # x"]) refuse({ NODE_ENV: v, DEV_EMAIL: "moi@yeita.fr" }, api, /^NODE_ENV refusé/);
+  for (const v of ['"production"', "production # x"]) refuse({ NODE_ENV: v }, api, /^NODE_ENV refusé/);
+});
+
 test("HOST : avec espace refusé", t => {
   const api = dossierTemporaire(t);
   assert.equal(lireConfig({ HOST: "0.0.0.0" }, api).local, false);
@@ -88,7 +101,7 @@ test("valeurs absurdes : valeur vide suivie d'un commentaire, guillemets (QA)", 
   siteConstruit(racine);
   for (const v of [" # x", "\"8000\"", "'8000'"]) refuse({ PORT: v }, api, /^PORT refusé/);
   refuse({ HOST: " # x" }, api, /^HOST refusé/);
-  refuse({ DB_PATH: " # base" }, api, /^DB_PATH refusé : .* contient « # »/);
+  refuse({ DB_PATH: " # base" }, api, /^DB_PATH refusé : « /);
   for (const v of [" # x", "\"../_site\"", "'../_site'"]) refuse({ DEV_STATIC: v }, api, /^DEV_STATIC refusé : « /);
   for (const v of ["moi@yeita.fr # x", "\"moi@yeita.fr\"", " # moi@yeita.fr"]) refuse({ DEV_EMAIL: v }, api, /^DEV_EMAIL refusé : « /);
 });

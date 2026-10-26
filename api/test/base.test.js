@@ -40,7 +40,7 @@ test("réouverture : rien n'est recréé, données gardées", t => {
 test("base d'une version plus récente : refus", t => {
   const chemin = path.join(dossierTemporaire(t), "r.sqlite");
   const x = new Database(chemin); x.pragma("user_version = 2"); x.close();
-  assert.throws(() => ouvrirBase(chemin), e => e instanceof ErreurBase && /version plus récente \(user_version 2\)/.test(e.message));
+  assert.throws(() => ouvrirBase(chemin), e => e instanceof ErreurBase && /version plus récente \(user_version 2\) : .*r\.sqlite\.$/.test(e.message));
 });
 
 test("échec provoqué pendant le schéma puis relance (règle 2)", t => {

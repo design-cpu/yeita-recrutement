@@ -63,7 +63,7 @@ export function ouvrirBase(chemin) {
     appliquerSchema(db);
   } catch (e) {
     db.close();
-    if (e instanceof ErreurBase) throw e;
+    if (e instanceof ErreurBase) throw new ErreurBase(`${e.message.replace(/\.$/, "")} : ${chemin}.`);
     if (estOccupee(e)) throw new ErreurBase(`Base occupée (${chemin}) : réessaie dans un instant.`);
     throw new ErreurBase(`Schéma impossible à appliquer (${chemin}) : ${e.message}`);
   }

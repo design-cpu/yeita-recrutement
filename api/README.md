@@ -39,10 +39,10 @@ L'API croit l'en-tête `X-Forwarded-Email` posé par oauth2-proxy : **elle ne do
 |---|---|---|---|
 | `PORT` | `8000` | chiffres seuls, de 1 à 65535 | `abc`, `0`, `70000`, `8000 # commentaire` |
 | `HOST` | `127.0.0.1` | une adresse sans espace | une valeur avec un espace |
-| `DB_PATH` | `data/recrutement.sqlite` | chemin d'un fichier ; un chemin relatif part de `api/`, quel que soit le dossier courant | `:memory:`, `#`, guillemets, un dossier existant |
-| `NODE_ENV` | — | `production` sur le serveur (casse et espaces ignorés) | — |
+| `DB_PATH` | `data/recrutement.sqlite` | chemin d'un fichier ; un chemin relatif part de `api/`, quel que soit le dossier courant | `:memory:`, `#`, guillemets, espace au début ou à la fin, un dossier existant |
+| `NODE_ENV` | — | `production` sur le serveur (casse et espaces ignorés) | `#`, guillemets |
 | `DEV_EMAIL` | — | mode local : email @yeita.fr utilisé quand l'en-tête est absent | adresse invalide ; `HOST` autre que `127.0.0.1`, `::1`, `localhost` ; `NODE_ENV=production` |
-| `DEV_STATIC` | — | mode local : dossier du site construit (avec `index.html`), servi à la racine | dossier absent, sans `index.html`, contenant la base ou `api/` (ex. `..`), `#`, guillemets ; mêmes conditions que `DEV_EMAIL` |
+| `DEV_STATIC` | — | mode local : dossier du site construit (avec `index.html`), servi à la racine | dossier absent, sans `index.html`, contenant la base ou `api/` (ex. `..`), `#`, guillemets, espace au début ou à la fin ; mêmes conditions que `DEV_EMAIL` |
 
 Une variable vide vaut absente. Au démarrage, une ligne de journal donne les valeurs résolues : hôte, port, chemin absolu de la base, `user_version`, `NODE_ENV`, et le mode local s'il est actif.
 
@@ -75,7 +75,7 @@ node api/equipe.js disable <email>               # l'accès est refusé dès la 
 node api/equipe.js role <email> <rôle>           # ne réactive pas un membre désactivé
 ```
 
-Chaque commande commence par `Base : <chemin absolu>`. Code 0 si c'est fait, 1 sinon (message en français). Si l'API écrit au même moment, la commande attend jusqu'à 5 secondes, puis abandonne sans rien écrire : il suffit de la relancer.
+Chaque commande bien tapée commence par `Base : <chemin absolu>` (une commande mal tapée n'affiche que l'erreur et n'ouvre aucune base). Code 0 si c'est fait, 1 sinon (message en français). Si l'API écrit au même moment, la commande attend jusqu'à 5 secondes, puis abandonne sans rien écrire : il suffit de la relancer.
 
 ## Arrêter
 
@@ -88,7 +88,7 @@ cd api
 npm test
 ```
 
-Les tests (`node:test`) travaillent sur des bases temporaires et lancent l'API et `equipe.js` en processus fils ; ils ne touchent pas à `api/data/`. Compter une vingtaine de secondes : quatre écritures attendent volontairement l'expiration du délai de 5 secondes (base occupée).
+Les tests (`node:test`) travaillent sur des bases temporaires et lancent l'API et `equipe.js` en processus fils ; ils ne touchent pas à `api/data/`. Compter une vingtaine de secondes : cinq écritures attendent volontairement l'expiration du délai de 5 secondes (base occupée).
 
 ## Contrat HTTP
 
@@ -146,4 +146,4 @@ Toute autre erreur rejette la promesse avec le texte de `erreur` (un 404 sans `c
 - `equipe`, `options_disponibilite`.
 - Effacement réel : avec `secure_delete` et un point de contrôle `TRUNCATE` après chaque enregistrement, ni un dossier supprimé ni une version remplacée ne restent lisibles dans les fichiers de la base. Exception : si un autre programme lit la base au même moment (ligne de commande `sqlite3`, sauvegarde), le point de contrôle n'attend pas plus de 100 ms ; l'ancienne version reste alors dans les fichiers jusqu'à l'enregistrement suivant, et le journal du serveur le signale (« Point de contrôle incomplet »).
 - Fichiers de la base (`.sqlite`, `-wal`, `-shm`) lisibles par leur seul propriétaire (dossier en 700, fichiers en 600).
-- Journal du serveur (sortie standard, JSON) : méthode, adresse demandée (telle que reçue), hôte, adresse distante, statut, durée ; jamais le corps ni l'email.
+- Journal du serveur (sortie standard, JSON) : méthode, adresse demandée (telle que reçue), hôte, adresse distante, statut, durée ; jamais le corps ni l'email d'une requête (en mode local seulement, la ligne de démarrage rappelle `DEV_EMAIL`).

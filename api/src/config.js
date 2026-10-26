@@ -18,8 +18,10 @@ function valeur(env, nom) {
   return v === undefined || v === "" ? undefined : v;
 }
 
-/* Refus de forme communs aux chemins : commentaire de fin de ligne ou guillemets restés dans la valeur. */
+/* Refus de forme communs aux chemins : commentaire de fin de ligne, guillemets ou espaces restés dans la valeur
+   (SQLite ouvrirait un autre fichier que celui affiché). */
 function formeDeChemin(nom, v) {
+  if (v !== v.trim()) throw new ErreurConfig(`${nom} refusé : « ${v} » commence ou finit par une espace.`);
   if (v.includes("#")) throw new ErreurConfig(`${nom} refusé : « ${v} » contient « # » (commentaire resté dans la valeur ?).`);
   if (/["']/.test(v)) throw new ErreurConfig(`${nom} refusé : « ${v} » contient des guillemets.`);
 }
@@ -66,7 +68,9 @@ export function lireConfig(env, dossierApi = DOSSIER_API) {
   const host = valeur(env, "HOST") ?? "127.0.0.1";
   if (/\s/.test(host)) throw new ErreurConfig(`HOST refusé : « ${host} » contient un espace.`);
   const local = HOTES_LOCAUX.includes(host);
-  const production = (env.NODE_ENV ?? "").trim().toLowerCase() === "production";
+  const brutEnv = env.NODE_ENV ?? "";
+  if (/[#"']/.test(brutEnv)) throw new ErreurConfig(`NODE_ENV refusé : « ${brutEnv} » contient « # » ou des guillemets.`);
+  const production = brutEnv.trim().toLowerCase() === "production";
 
   const dbPath = cheminBase(env, dossierApi);
 
