@@ -15,7 +15,7 @@ Pour Sacha : ce que l'espace Candidatures enregistre, et comment le passer en SQ
 
 - **Le branchement** se fait en un point : `DOSSIER.use(adaptateurSQLite)`, chargé avant les pages.
 - **La migration à la lecture** est faite par `DOSSIER.upgrade()`. L'adaptateur rend les dossiers tels quels ; la page les met à niveau.
-- **Les conflits.** Deux recruteurs peuvent écrire le même dossier. Je recommande une colonne `version` et un refus quand la version lue n'est plus la bonne, avec le message « La candidature a été modifiée par quelqu'un d'autre. Recharge la page. ». `tools/test-adapter.js` montre ce comportement contre une fausse base.
+- **Les conflits.** Deux recruteurs peuvent écrire le même dossier. Je recommande une colonne `version` et un refus quand la version lue n'est plus la bonne, avec le message « La candidature a été modifiée par quelqu'un d'autre. Recharge la page. ».
 - **L'identité.** Elle passe par `assets/qui.js` :
   - `QUI.moi()` rend le prénom de la personne qui agit ;
   - avec l'authentification Google, `QUI.moi()` rend le prénom du compte connecté, et `QUI.monter()` l'affiche sans liste ;
@@ -188,5 +188,3 @@ CREATE TABLE journal (id INTEGER PRIMARY KEY, candidat_id TEXT, action TEXT, eta
 CREATE TABLE equipe (prenom TEXT PRIMARY KEY, email TEXT UNIQUE);   -- remplace YEITA_CONFIG.equipe une fois l'identité Google en place
 CREATE TABLE options_disponibilite (libelle TEXT PRIMARY KEY);
 ```
-
-La piste Supabase (`docs/backend/schema.sql`) est abandonnée au profit de SQLite sur OVH. Elle reste comme référence : RLS, journal, purge.

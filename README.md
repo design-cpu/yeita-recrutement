@@ -2,7 +2,7 @@
 
 Le site du parcours de recrutement Yeita : le hub, les fiches d'entretien et les supports candidat.
 
-La version de travail reste l'artefact **Expérience Collaborateur** sur Claude. Ce dépôt en est le miroir publié : mêmes fichiers, plus une étape de publication qui permet d'imprimer et d'exporter en PDF.
+Ce dépôt est la source du site : les pages, leurs fichiers partagés et une étape de publication qui permet d'imprimer et d'exporter en PDF.
 
 ## Les pages
 
@@ -22,19 +22,17 @@ Les anciennes pages `fiche-ec1.html`, `fiche-ec2.html`, `carte-identite.html`, `
 - Chaque page de l'espace porte l'identifiant du candidat (`?id=…`) : la fiche EC1, la fiche EC2, la feuille de décompte et la carte n'affichent que lui.
 - Les fiches EC1 et EC2 enregistrent à chaque saisie sur la candidature ; la carte d'identité se compose toute seule à partir d'elles.
 - Le résultat de Yeita Match arrive dans la fiche EC1 par la saisie à la main, l'import du fichier JSON du jeu en ligne (visio), ou la feuille de décompte du candidat (présentiel). Point d'entrée unique : `FICHE_EC1.setYeitaMatch`, décrit dans `docs/backend/MODELE.md`.
-- Jusqu'au déploiement sécurisé, tout vit dans le navigateur (données fictives uniquement). Le stockage partagé (SQLite) et l'authentification se branchent derrière `assets/dossier.js` sans changer les pages. La piste Supabase de `docs/backend/` est abandonnée.
+- Jusqu'au déploiement sécurisé, tout vit dans le navigateur (données fictives uniquement). Le stockage partagé (SQLite) et l'authentification se branchent derrière `assets/dossier.js` sans changer les pages : le contrat est décrit dans `docs/backend/MODELE.md`.
 
 ## Tests
 
 | Commande | Ce qui est vérifié |
 |---|---|
 | `node tools/test-store.js` | Règles du parcours : migration, passages, refus, annulation, export et import, exemples |
-| `node tools/test-adapter.js` | L'adaptateur Supabase contre une fausse base (piste abandonnée, gardée pour mémoire) |
 | `python3 tools/e2e-candidatures.py` | Le tableau et l'appel : ajout, Qui es-tu, questions, one-pager, État, liste, export et import |
 | `python3 tools/e2e-parcours.py` | EC1 et EC2 en pleine page, Bilans, EC3, Décision ; décompte → EC1, import JSON, refus au bilan, Vivier ; un lien par candidat, anciennes adresses, téléphone |
 | `python3 tools/e2e-liens.py` | « Précédent », liens directs, feuille de décompte vierge |
 | `python3 tools/e2e-pdf.py` | Exports PDF : carte d'une candidature, feuille vierge |
-| `python3 tools/e2e-backend.py` | L'écran de connexion Supabase (piste abandonnée, gardée pour mémoire) |
 
 Les tests de navigateur demandent le site construit et servi : `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site`.
 
@@ -47,4 +45,4 @@ Pour construire en local : `python3 tools/build.py` (le site sort dans `_site/`)
 
 ## Mettre à jour
 
-On modifie l'artefact Expérience Collaborateur, puis on recopie ses fichiers ici. `index.html` est un fragment d'artefact (sans `<html>` ni `<head>`) : c'est voulu, l'étape de publication l'enveloppe.
+Le dépôt est la seule source de vérité : on ne recopie plus rien depuis l'artefact Claude. Chaque changement se fait sur une branche, puis passe par une pull request vers `main` (détail dans `CONTRIBUER.md`). `index.html` reste un fragment (sans `<html>` ni `<head>`) : c'est voulu, l'étape de publication l'enveloppe.
