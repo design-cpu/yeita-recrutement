@@ -121,3 +121,28 @@ test("mode local : DEV_EMAIL remplace l'en-tête absent, l'en-tête l'emporte", 
   assert.equal(json(await requete(app, "rec@yeita.fr", { url: "/api/moi" })).email, "rec@yeita.fr");
   assert.equal((await requete(app, "pirate@gmail.com", { url: "/api/moi" })).statusCode, 401);
 });
+
+test("options de disponibilité : ajout, doublon, option de base, longueur, lecture seule", async t => {
+  const { app, db } = creerApp(t);
+  const post = (libelle, email = "rec@yeita.fr") => requete(app, email, { method: "POST", url: "/api/options-disponibilite", payload: { libelle } });
+  assert.deepEqual(json(await requete(app, "lec@yeita.fr", { url: "/api/options-disponibilite" })), []);
+  const a = await post("  Fin   janvier ");
+  assert.equal(a.statusCode, 201);
+  assert.deepEqual(json(a), ["Fin janvier"]);
+  const b = await post("6 mois", "adm@yeita.fr");
+  assert.deepEqual(json(b), ["Fin janvier", "6 mois"]);
+  const doublon = await post("Fin janvier");
+  assert.equal(doublon.statusCode, 200);
+  assert.deepEqual(json(doublon), ["Fin janvier", "6 mois"]);
+  const base = await post("1 mois");
+  assert.equal(base.statusCode, 200);
+  assert.deepEqual(json(base), ["Fin janvier", "6 mois"]);
+  for (const v of ["", "   ", "x".repeat(61), 12, null]) {
+    const r = await post(v);
+    assert.equal(r.statusCode, 400, String(v));
+    assert.deepEqual(json(r), { erreur: "Champ libelle : de 1 à 60 caractères." });
+  }
+  assert.equal((await post("é".repeat(60))).statusCode, 201);
+  assert.equal((await post("Autre", "lec@yeita.fr")).statusCode, 403);
+  assert.equal(db.prepare("SELECT count(*) n FROM options_disponibilite").get().n, 3);
+});
