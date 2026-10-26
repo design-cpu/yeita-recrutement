@@ -114,3 +114,37 @@ test("mode local : DEV_EMAIL et DEV_STATIC", async t => {
   const inconnue = await fetch(`http://127.0.0.1:${port}/api/index.html`);
   assert.equal(inconnue.status, 403);
 });
+
+test("schéma impossible au démarrage : code 1, base inchangée, relance après correction (QA)", async t => {
+  const d = dossierTemporaire(t);
+  const base = path.join(d, "r.sqlite");
+  const { default: Database } = await import("better-sqlite3");
+  const x = new Database(base); x.exec("CREATE TABLE journal (x)"); x.close();
+  const port = await portLibre();
+  const l = lancer(t, { PORT: String(port), DB_PATH: base });
+  assert.equal(await l.fin, 1);
+  assert.match(l.sortie().trim(), /^Schéma impossible à appliquer \(.*r\.sqlite\) : /);
+  const y = new Database(base);
+  assert.equal(y.pragma("user_version", { simple: true }), 0);
+  assert.deepEqual(y.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map(r => r.name), ["journal"]);
+  y.exec("DROP TABLE journal"); y.close();
+  const relance = await demarrer(t, { PORT: String(port), DB_PATH: base });
+  relance.p.kill("SIGINT");
+  assert.equal(await relance.fin, 0);
+});
+
+test("ligne de démarrage du mode local : DEV_EMAIL en forme, DEV_STATIC en chemin absolu, NODE_ENV (QA)", async t => {
+  const racine = dossierTemporaire(t);
+  const site = path.join(racine, "_site");
+  fs.mkdirSync(site);
+  fs.writeFileSync(path.join(site, "index.html"), "<p>site</p>");
+  const port = await portLibre();
+  /* DEV_STATIC relatif : résolu depuis api/, pas depuis le dossier courant. */
+  const relatif = path.relative(path.dirname(SERVEUR), site);
+  const l = await demarrer(t, { PORT: String(port), HOST: "localhost", NODE_ENV: "development", DB_PATH: path.join(racine, "r.sqlite"), DEV_EMAIL: " Dev@Yeita.FR ", DEV_STATIC: relatif }, os.tmpdir());
+  const ligne = JSON.parse(l.sortie().split("\n").find(x => x.includes("API démarrée")));
+  assert.deepEqual([ligne.hote, ligne.port, ligne.base, ligne.user_version, ligne.node_env, ligne.dev_email, ligne.dev_static],
+    ["localhost", port, path.join(racine, "r.sqlite"), 1, "development", "dev@yeita.fr", site]);
+  assert.match(l.sortie(), /Mode local : DEV_STATIC=/);
+  assert.ok(!l.sortie().includes("joignable que par oauth2-proxy"), "localhost est une adresse locale");
+});

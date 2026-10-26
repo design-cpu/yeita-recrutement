@@ -80,3 +80,15 @@ test("DEV_STATIC : site construit accepté, dossiers dangereux refusés", t => {
   fs.symlinkSync(racine, path.join(racine, "lien"));
   refuse({ DEV_STATIC: "../lien" }, api, /contient la base ou le dossier api/);
 });
+
+test("valeurs absurdes : valeur vide suivie d'un commentaire, guillemets (QA)", t => {
+  const racine = dossierTemporaire(t);
+  const api = path.join(racine, "api");
+  fs.mkdirSync(api);
+  siteConstruit(racine);
+  for (const v of [" # x", "\"8000\"", "'8000'"]) refuse({ PORT: v }, api, /^PORT refusé/);
+  refuse({ HOST: " # x" }, api, /^HOST refusé/);
+  refuse({ DB_PATH: " # base" }, api, /^DB_PATH refusé : .* contient « # »/);
+  for (const v of [" # x", "\"../_site\"", "'../_site'"]) refuse({ DEV_STATIC: v }, api, /^DEV_STATIC refusé : « /);
+  for (const v of ["moi@yeita.fr # x", "\"moi@yeita.fr\"", " # moi@yeita.fr"]) refuse({ DEV_EMAIL: v }, api, /^DEV_EMAIL refusé : « /);
+});

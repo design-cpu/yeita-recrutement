@@ -194,3 +194,30 @@ test("journal du serveur : ni nom ni email, y compris sur 400, 409, 413 et 500",
   assert.ok(!tout.includes("REPERE-NOM"), "un nom de candidat est dans le journal du serveur");
   assert.ok(!tout.includes("rec@yeita.fr"), "un email est dans le journal du serveur");
 });
+
+test("effacement sur le disque d'un dossier de plusieurs pages (débordement), sans VACUUM (QA)", async t => {
+  const { app, dbPath } = creerApp(t);
+  /* Environ 200 Ko : le dossier occupe des pages de débordement, effacées elles aussi. */
+  const gros = (nom, repere) => ({ ...dossier(ID, nom), notes: `${repere} `.repeat(20000) });
+  assert.equal((await put(app, ID, null, gros("Léna", "REPERE-GROS-ANCIEN"))).statusCode, 201);
+  assert.deepEqual(fichiersContiennent(dbPath, "REPERE-GROS-ANCIEN"), [""]);
+  assert.equal((await put(app, ID, 1, gros("Léna", "REPERE-GROS-NOUVEAU"))).statusCode, 200);
+  assert.deepEqual(fichiersContiennent(dbPath, "REPERE-GROS-ANCIEN"), [], "pages de la version remplacée encore lisibles");
+  assert.equal((await requete(app, "rec@yeita.fr", { method: "DELETE", url: `/api/candidats/${ID}` })).statusCode, 204);
+  assert.deepEqual(fichiersContiennent(dbPath, "REPERE-GROS-NOUVEAU"), [], "pages du dossier supprimé encore lisibles");
+});
+
+test("journal du serveur et table journal : rien du dossier après un 503 (QA)", { timeout: 20000 }, async t => {
+  const lignes = [];
+  const { app, db, dbPath } = creerApp(t, { flux: { write: l => lignes.push(l) } });
+  const autre = new Database(dbPath);
+  autre.exec("BEGIN IMMEDIATE");
+  const r = await put(app, ID, null, dossier(ID, "REPERE-OCCUPE Garnier"));
+  autre.exec("ROLLBACK"); autre.close();
+  assert.equal(r.statusCode, 503);
+  const tout = lignes.join("");
+  assert.ok(!tout.includes("REPERE-OCCUPE"), "un nom de candidat est dans le journal du serveur");
+  assert.ok(!tout.includes("rec@yeita.fr"), "un email est dans le journal du serveur");
+  assert.equal(db.prepare("SELECT count(*) n FROM journal").get().n, 0);
+  assert.deepEqual(fichiersContiennent(dbPath, "REPERE-OCCUPE"), []);
+});

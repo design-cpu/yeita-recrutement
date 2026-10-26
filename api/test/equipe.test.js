@@ -106,3 +106,18 @@ test("base occupée : add attend puis réussit ; délai dépassé, échec puis r
   assert.equal(lecture.prepare("SELECT count(*) n FROM equipe WHERE email = 'pauline@yeita.fr'").get().n, 1);
   lecture.close();
 });
+
+test("schéma impossible (table journal à user_version 0) : code 1, base inchangée, relance après correction (QA)", t => {
+  const dbPath = path.join(dossierTemporaire(t), "r.sqlite");
+  const x = new Database(dbPath); x.exec("CREATE TABLE journal (x)"); x.close();
+  const r = equipe(dbPath, "add", "leo@yeita.fr", "Léo");
+  assert.equal(r.code, 1);
+  assert.match(r.erreur, /^Schéma impossible à appliquer/);
+  const y = new Database(dbPath);
+  assert.equal(y.pragma("user_version", { simple: true }), 0);
+  assert.deepEqual(y.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map(l => l.name), ["journal"]);
+  y.exec("DROP TABLE journal"); y.close();
+  const relance = equipe(dbPath, "add", "leo@yeita.fr", "Léo");
+  assert.equal(relance.code, 0, relance.erreur);
+  assert.match(relance.sortie, /Ajouté : leo@yeita\.fr · Léo · recruteur · actif/);
+});
