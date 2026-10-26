@@ -267,3 +267,46 @@ Sans objet.
 | D1 | « Remplacer tout » en mode serveur | **Masqué en mode serveur** : seul « Fusion » est proposé ; `store.js` inchangé |
 | D3 | 404 sur `/api/moi` en production | **Mode bloqué sur l'hôte de `YEITA.SITE`** (message réseau) ; ailleurs, 404 → mode navigateur |
 | F5 | Pages ouvertes en `file://` ou dans l'artefact Claude | **`file:` → mode navigateur** sans appeler l'API ; artefact : comportement observé noté au guide de test |
+
+## Traitement
+Retours recevables seulement (spec v2). Chef d'équipe P2 appliqué.
+| # | Statut | Justification / modification |
+|---|---|---|
+| F4 | integre | R6h (`[ajout]`) ; P2 cas limite ; CA7 |
+| F5 | integre | R2 : `file:` → navigateur (arbitrage) ; H2 : artefact au guide de test |
+| F6 | integre | R38 : réponses simulées par interception réseau ; CA1 (attente de 2 s observée), CA2, CA13 |
+| F8 | integre | R3 : toute autre réponse → bloqué, jamais d'état mixte |
+| A1 | integre | R6f ; CA6 |
+| A2 | integre | R6g (`keepalive` sans seuil, V33 : un dossier pèse au plus ~20 Ko) ; CA8 |
+| A3 | integre | R6c à R6e ; message « Identifiant invalide… » ; CA13 |
+| A5 | integre | § API et intégrations : un seul tableau ordonné ; anciennes lignes contradictoires retirées (R8b, R9) |
+| S1 | integre | V30, V31 ; R22b (`inhibit_ipv4`) ; R24 ; CA17 sur moteur Linux ; contrôle au README (R32) |
+| S2 | integre | CA17 : formes de V6 sans session ; formes de détail au plan de QA (P2) |
+| S3 | integre | V35 ; § Sécurité réécrit |
+| S4 | rejete | Backlog (chef d'équipe P2) : mineur, déjà contrôlé à la QA sur `docker compose config` (R39) ; le pitch demande seulement d'attendre l'api |
+| D1 | integre | R17 (`[ajout]`, arbitrage de l'utilisateur) ; CA14 |
+| D2 | integre | R18 ; § Sécurité « Copies » ; R40 |
+| D3 | integre | R2 : 404 sous l'hôte de `YEITA.SITE` → bloqué (arbitrage de l'utilisateur) ; CA2 |
+| D5 | integre | CA21 |
+| D6 | integre | CA1 élargi ; exceptions listées au § Sécurité |
+| D7 | integre | H4 ; consigne au README (R32) ; aucun code (P2) |
+| D8 | integre | R6e : identifiant retenu comme supprimé |
+| D9 | integre | V34 |
+| D10 | integre | § Sécurité « Journaux » ; R32 |
+| E1 | integre | R30 : condition sur les services lus après le changement de commit ; CA20 |
+| E2 | integre | § Déploiement « Mise en service » ; R32 |
+| E3 | integre | V36 ; R22 (`name: recrutement_data`) ; CA16 |
+| E4 | integre | R27 : 200 en moins de 4 s seulement ; CA18 |
+| E5 | integre | § Déploiement « Retour arrière » ; R32 |
+| E6 | integre | V32 ; R25 : digest de l'index |
+| E7 | integre | R25 : `npm ci` dans le dossier de `api/package.json`, `.npmrc` compris ; CA18 ; disposition exacte dans la tâche |
+| E8 | integre | R32 (jamais `down -v` ni `volume prune`) ; étiquette sur le volume (R22) |
+| E9 | integre | R32 |
+| R1 | integre | R4e ; CA3 |
+| R2 | integre | R11b ; CA5 |
+| R3 | integre | R15b ; CA12 |
+| R4 | integre | R11 (collant) ; CA5 |
+| R6 | integre | R13 ; CA9 |
+| R7 | integre | R11 : aucun bouton pour la lecture seule |
+| R8 | rejete | Régression notée dans `MODELE.md` (R12, R40) ; proposer les noms lus dans les dossiers est une évolution : backlog (chef d'équipe P2) |
+| R9 | integre | R2 : 10 s sans réponse → bloqué ; CA2 |
