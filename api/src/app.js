@@ -2,6 +2,7 @@
    Chaque requête sous /api est identifiée et autorisée dans onRequest, donc avant l'analyse du corps ;
    seule la route GET /api/sante y échappe, reconnue par sa route et jamais par le texte de l'adresse. */
 import Fastify from "fastify";
+import fastifyStatic from "@fastify/static";
 import { LIMITE_CORPS, emailValide } from "./valeurs.js";
 import { estOccupee } from "./base.js";
 
@@ -76,6 +77,9 @@ export function construireApp({ config, db, logger = false, routes = [] }) {
   app.get("/api/equipe", async () => actifs.all().sort((a, b) => a.prenom.localeCompare(b.prenom, "fr")));
 
   for (const r of routes) r(app, db);
+
+  /* Mode local : le site construit, servi à la racine. Seule la route des fichiers échappe à l'autorisation. */
+  if (config.devStatic) app.register(fastifyStatic, { root: config.devStatic, prefix: "/", wildcard: true });
 
   /* Toute autre adresse sous /api : 404, après l'autorisation (jamais servie comme fichier en mode local). */
   app.all("/api/*", async () => { throw new ErreurHttp(404, "Route inconnue."); });
