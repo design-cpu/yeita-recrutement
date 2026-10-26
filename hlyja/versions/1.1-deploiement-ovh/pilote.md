@@ -1,14 +1,14 @@
 ---
 type: pilote
 version: 1.1
-points: 3
+points: 4
 dernier: ok
 date: 2026-10-26
 ---
 
 # Chef d'équipe — version 1.1
 
-> Plan + P1, P2, P3 · dernier verdict : ok.
+> Plan + P1 à P4 · dernier verdict : ok · aucun ajout retiré, 2 questions posées à l'utilisateur (/index.html, reverse_proxy).
 
 ## Plan · ok
 Plan écrit dans `version.md` (section « Plan d'équipe »). Jury de 4, spec 150 à 220 lignes, 7 à 9 tâches, ~14 fichiers, 8 à 10 scénarios de QA.
@@ -42,3 +42,15 @@ Actions (appliquées en v2) : bloquants et majeurs en règles et CA ; points du 
 | Spec finale | 148 lignes | 150 à 220 |
 Constats : découpage conforme, aucun ajout hors pitch. Banc d'essai R23 sans place prévue ; `CONTRIBUER.md` cité par le plan.
 Actions : le banc R23 reste une suite de commandes notées dans les fiches 04 et 05 (aucun script de test hors du dépôt) ; `CONTRIBUER.md` vérifié à l'étape documentation (aucune mention de GitHub Pages, `grep`) ; mentions de GitHub Pages dans les pages → backlog.
+
+## P4 — avant la QA · ok
+| Mesure | Valeur | Repère du plan |
+|---|---|---|
+| Tâches | 7, QA de tâche réussie | 7 à 9 |
+| Fichiers hors `hlyja/` | 15 (10 créés, 4 modifiés, 1 supprimé) ; +759 / −42 | ~14 |
+| Commits | 26 (11 de code, 15 hlyja) | — |
+| Corrections pendant les tâches | 3 | — |
+| Revue de code | 0 bloquant, 3 majeurs corrigés, 12 mineurs (4 corrigés, 8 notés) | — |
+| Fichiers hors code de production | 0 (banc R23 en commandes ; Playwright en conteneur jetable) | 1 à 3 |
+Constats : écart au plan faible ; ajouts petits et justifiés (`*.localhost`, outils vérifiés en plus, motifs `.dockerignore`) ; un écart de spec documenté (fiche 04 : conteneurs seulement). Les corrections de la revue ont été remises à l'épreuve dans le banc (revue-code.md) mais CA8/CA9 ne sont pas rejoués en entier.
+Actions : QA en priorité sur CA9 et CA8 rejoués avec `0f6b61f`, CA1/CA10 avec des copies `.env.*`, CA2/CA3/CA13 de bout en bout, non-régression ; rien de neuf dans le dépôt (pas de test Playwright, bats ni script de banc) ; candidats backlog : 8 mineurs notés, mentions de GitHub Pages dans les pages, surveillance du disque, retrait du projet, durée de session ; `CONTRIBUER.md` vérifié par `grep` à la doc.
