@@ -31,7 +31,22 @@ window.WORDING = {
     valider: "OK",
     note: "C'est noté : ",
     retire: "Prénom retiré",
-    requis: "Choisis ton prénom en haut de la page : il est noté dans l'historique à chaque action."
+    requis: "Choisis ton prénom en haut de la page : il est noté dans l'historique à chaque action.",
+    connecte: "Connecté·e : ",
+    lectureSeule: " · lecture seule"
+  },
+  /* Mode serveur (assets/demarrage.js, assets/adapter-serveur.js). Conflit : docs/backend/MODELE.md ; accès : api/README.md. */
+  serveur: {
+    conflit: "La candidature a été modifiée par quelqu'un d'autre. Recharge la page.",
+    horsEquipe: "Tu ne fais pas partie de l'équipe.",
+    lectureSeule: "Lecture seule : tu ne peux pas modifier.",
+    reseau: "La base ne répond pas. Vérifie ta connexion, puis réessaie.",
+    session: "Ta session n'a pas pu être vérifiée. Ferme l'onglet, puis rouvre le site.",
+    identifiant: "Identifiant invalide pour « {nom} » : ce dossier ne peut pas être enregistré dans la base.",
+    saisie: "Ce que tu as saisi depuis n'est pas enregistré : copie-le avant de recharger.",
+    nonEnregistre: "Non enregistré",
+    recharger: "Recharger",
+    exportTexte: "Les candidatures sont enregistrées sur le serveur de l'équipe. Un export est une copie : supprime-la après usage."
   },
 
   /* ---------- Les étapes : libellé, libellé court (colonnes, étapes en haut de la fiche), objectif en une phrase ---------- */
