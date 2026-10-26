@@ -1,20 +1,22 @@
 ---
 type: verifications
 version: 1.2
-total: 24
-ecarts: 6
+total: 29
+ecarts: 8
 date: 2026-10-26
 ---
 
 # Vérifications — API Node.js sur SQLite pour les dossiers candidat
 
-> 24 vérifications (V18 à V24 après le tour 1), 6 écarts avec ce qu'on supposait :
+> 29 vérifications (V18 à V24 après le tour 1, V25 à V29 après le tour 2), 8 écarts avec ce qu'on supposait :
 > - quiconque atteint directement le port de l'API peut forger son identité (V10) : l'utilisateur a choisi une écoute sur 127.0.0.1 par défaut, avec la variable `HOST` ;
 > - Fastify 5.12.5 a une faille faible, et le correctif n'a que 13 jours (V2) : l'utilisateur a choisi 5.12.7 ;
 > - avec npm 10 (Node 22), `npm ci` tente de compiler better-sqlite3 (V3) : on installe avec `--ignore-scripts` ;
 > - `MODELE.md` propose d'autres tables que le pitch (V12) : la section sera alignée (accord de l'utilisateur) ;
 > - un `DELETE` laisse le dossier lisible sur le disque (V18) : `secure_delete` et point de contrôle `TRUNCATE` ;
-> - Fastify accepte `text/plain` par défaut, et une requête sans `Content-Type` atteint la route (V19).
+> - Fastify accepte `text/plain` par défaut, et une requête sans `Content-Type` atteint la route (V19) ;
+> - après un simple PUT, l'ancien contenu reste dans le `-wal`, même après un point de contrôle `PASSIVE` (V25) ;
+> - deux ouvertures simultanées d'une base neuve se gênent si `user_version` est lu hors de la transaction (V26).
 
 Essais faits dans le scratchpad, hors du dépôt ; Docker Desktop 29.9.2 pour Node 22 et oauth2-proxy.
 
@@ -44,6 +46,11 @@ Essais faits dans le scratchpad, hors du dépôt ; Docker Desktop 29.9.2 pour No
 | V22 | Schéma et transaction | `user_version = 1` et `CREATE TABLE` dans une transaction annulée ; `journal_mode = WAL` dans une transaction | annulée : `user_version` 0, aucune table ; WAL dans une transaction : « cannot change into wal mode from within a transaction » | R12 : WAL avant la transaction du schéma |
 | V23 | Transaction différée et attente | connexion B (`timeout: 1000`) : lecture puis écriture dans une transaction différée pendant qu'A écrit | `SQLITE_BUSY_SNAPSHOT` en 0 ms : le délai ne s'applique pas ; V7 : en `BEGIN IMMEDIATE`, le délai s'applique | R11 : transactions d'écriture en `IMMEDIATE` |
 | V24 | Identifiants réellement produits | `assets/dossier.js` (`uid`, `importCode` l. 302) ; `assets/store.js` `importAll` (l. 276-290) ; relais `candidatures.html` (`#c-([A-Za-z0-9._~-]+)`) | toutes les créations passent par `uid()` ; `importCode` et `importAll` reprennent l'`id` d'un code ou d'un export, qui vient lui-même de `uid()` sauf fichier modifié à la main | R15 : motif de `uid()` |
+| V25 | Ancien contenu après un PUT seul | insertion « ANCIEN-REPERE », mise à jour, sans DELETE ; `secure_delete = ON` ; recherche dans `.db`, `-wal`, `-shm` | sans point de contrôle : **trouvé** dans `-wal` ; `wal_checkpoint(PASSIVE)` (comme le point automatique) : **trouvé** dans `-wal` ; `wal_checkpoint(TRUNCATE)` : propre partout | **Écart** : `TRUNCATE` après toute écriture sur `candidats` (R21) |
+| V26 | Schéma appliqué par deux connexions | deux connexions sur une base neuve, chacune lit `user_version` puis applique le schéma en `IMMEDIATE` | lecture hors transaction : la seconde échoue « table t already exists » ; relecture **dans** la transaction : la seconde attend, voit 1, ne crée rien, réussit | **Écart** : relire `user_version` dans la transaction (R12) |
+| V27 | Masque et fichiers créés par better-sqlite3 | `process.umask(0o077)` puis ouverture en WAL et écriture | `.db`, `-wal`, `-shm` en `600` | R10, R32 |
+| V28 | Exemption de `/api/sante` sur la route trouvée | crochet `onRequest` qui exempte `req.routeOptions.url === '/api/sante'` ; 9 URL | `/api/sante`, `/api/sante?x=1` → 200 ; `/api/sante/`, `/api/candidats?x=/api/sante`, `/api/sante/../candidats`, `/api//candidats`, `/api/SANTE`, `/api/sante%2F..%2Fcandidats` → 401 | R6 |
+| V29 | Corps vide et URL journalisée | analyseur JSON propre (corps vide → `undefined`) ; DELETE avec `Content-Type: application/json` sans corps ; journal d'une requête `/api/candidats/jean-dupont` refusée | DELETE → 200 (atteint la route) ; l'URL brute **est** journalisée (`/api/candidats/jean-dupont`), avant tout refus | R16 ; R15, R28 : l'URL est journalisée telle que reçue |
 
 ## Détail
 V3, `npm ci` sous Node 22 sans `--ignore-scripts` :
