@@ -39,7 +39,12 @@ Hors périmètre : les pages, Docker, le déploiement, les sauvegardes, toute ro
 Complexe, recommandé et confirmé par l'utilisateur : nouvelle API, nouvelles dépendances, nouveau modèle de données, confiance dans un en-tête d'authentification, données personnelles.
 
 ## Plan d'équipe
-<à écrire par le chef d'équipe>
+Écrit par le chef d'équipe au démarrage (détail : `pilote.md`).
+- Cadre : tout dans `api/` (Node 22, Fastify, better-sqlite3, node:test, dépendances figées). Retouches nécessaires hors `api/` : `tools/build.py` (`api/` exclu de la publication), `.gitignore` (`node_modules`, base), `docs/backend/MODELE.md` (section des tables alignée, accord de l'utilisateur). `.dockerignore` relève de Docker : backlog.
+- Jury de 5 + arbitre : Technique Node/Fastify/SQLite (obligatoire), Développeur intégrateur (celui qui écrira l'adaptateur navigateur), Sécurité, Données personnelles, Exploitation. Puis chef d'équipe P1 à P4, revue de code et sécurité, QA, rédacteur-relecteur, curateur, validateur.
+- Ordres de grandeur : spec 250 à 350 lignes ; 8 à 10 tâches ; 14 à 18 fichiers créés, 4 modifiés ; 35 à 45 scénarios de QA ; 8 à 9 pages de doc (architecture, conventions, décisions, nouvelle page API, avec vues humaines ; MODELE.md ; README).
+- Pas fait : e2e Playwright (aucune page touchée), Docker et banc OVH, charge, sauvegardes, adaptateur navigateur, `QUI`, migration des données du navigateur, `docker-local.md`.
+- Garde-fous : règle 1 (essai d'attaque sur X-Forwarded-Email avec témoin avant la spec v1), règle 2 (échec provoqué puis relance pour `equipe.js` et le schéma au démarrage), règle 3 (valeurs résolues de PORT, HOST, DEV_EMAIL, DEV_STATIC, chemin de la base ; valeurs absurdes refusées) ; aucun contenu de dossier dans `journal` ni dans les journaux du serveur ; mutations sur 401/403 et 409.
 
 ## Liens
 - Spec finale : spec/spec-finale.md
