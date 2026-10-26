@@ -7,13 +7,13 @@ branche: version/1.1-deploiement-ovh
 base: main
 mode: complexe
 type_version: livrable
-statut: en-cours
+statut: terminee
 date: 2026-10-26
 ---
 
 # Version 1.1 — Déploiement de l'espace Candidatures sur le serveur OVH, derrière Google
 
-> **Statut** : en cours · **Branche** : `version/1.1-deploiement-ovh`
+> **Statut** : terminée · **Branche** : `version/1.1-deploiement-ovh`
 > Objectif : rendre le site déployable sur le serveur OVH partagé de Yeita, dans Docker, l'espace Candidatures réservé aux comptes Google @yeita.fr, sans rien casser ni supposer des autres services du serveur.
 
 ## Objectif
