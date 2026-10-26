@@ -1,14 +1,14 @@
 ---
 type: verifications
 version: 1.1
-total: 19
+total: 21
 ecarts: 2
 date: 2026-10-26
 ---
 
 # Vérifications — Déploiement de l'espace Candidatures sur le serveur OVH
 
-> 19 vérifications, 2 écarts avec le pitch : `/index.html` redirigé par oauth2-proxy (second upstream, choix de l'utilisateur) ; **contournement de la connexion par `X-Forwarded-Uri`** avec `reverse_proxy = true` (V15 : `reverse_proxy = false`, choix de l'utilisateur).
+> 21 vérifications, 2 écarts avec le pitch : `/index.html` redirigé par oauth2-proxy (second upstream, choix de l'utilisateur) ; **contournement de la connexion par `X-Forwarded-Uri`** avec `reverse_proxy = true` (V15 : `reverse_proxy = false`, choix de l'utilisateur).
 > Les requêtes d'un reverse proxy de l'hôte arrivent depuis 172.30.0.1, dans 172.30.0.0/24, avec ou sans userland-proxy (V8).
 > Essais faits sur le poste (Docker Desktop 29.9.2, Compose 5.6.1) et dans un Docker Linux isolé (docker:29-dind).
 
@@ -33,6 +33,8 @@ date: 2026-10-26
 | V17 | Attributs du cookie | oauth2-proxy avec `cookie_secure`, `cookie_httponly`, `cookie_samesite = "lax"`, `cookie_expire = "12h"` ; journal de démarrage et `Set-Cookie` de `/candidatures/` | journal : `secure(https):true httponly:true expiry:12h0m0s samesite:lax` ; `Set-Cookie: _oauth2_proxy_csrf=…; HttpOnly; Secure; SameSite=Lax` | R5 |
 | V18 | Paquets pour tester les scripts dans Ubuntu 24.04 | `apt-cache policy` dans `ubuntu:24.04` | `docker.io` 29.1.3, `docker-compose-v2` 2.40.3, `util-linux` (`flock`), `iproute2` (`ss`) disponibles | Protocole de test des scripts (CA8, CA9) |
 | V19 | Adresse d'écoute par défaut d'oauth2-proxy | `--help` et essais V4 (lancés avec `http_address = "0.0.0.0:4180"`) | défaut `127.0.0.1:4180`, injoignable depuis l'extérieur du conteneur | R5 : `http_address = "0.0.0.0:4180"` |
+| V20 | `dockerd` dans `ubuntu:24.04` privilégié (protocole R23) | `docker.io`, `docker-compose-v2`, `iproute2`, `util-linux`, `openssh-client`, `git`, `curl`, `sudo` installés ; `dockerd` lancé à la main ; `docker run hello-world` | sans volume sur `/var/lib/docker` : échec de montage overlay ; **avec un volume** : « Hello from Docker! » ; stockage `overlayfs` (containerd), Docker 29.1.3, Compose 2.40.3 | R23 : conteneur lancé avec `-v /var/lib/docker` |
+| V21 | Nettoyage par étiquette avec le stockage containerd | même conteneur : images `recrutement-front` (étiquetées) et `autre` (non étiquetées) reconstruites, `docker image prune -f --filter label=fr.yeita.projet=recrutement`, étiquettes relevées avant et après | supprimées : les 2 images orphelines étiquetées ; gardées : `autre` et ses 2 images orphelines non étiquetées, `busybox`, `hello-world` | R14 vaut pour les deux stockages ; hypothèse levée |
 
 ## Détail
 V4 : `/index.html  301  http://127.0.0.1:14180/` ; journal : `mapping path "/" => file system "/srv/site/"`.
