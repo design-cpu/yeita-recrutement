@@ -63,4 +63,5 @@ Une branche par sujet, puis une pull request vers `main`.
 ## Voir aussi
 - [Architecture et déploiement](architecture.md)
 - [Décisions techniques](decisions.md)
+- [Lancer le site avec Docker sur ton poste](docker-local.md)
 - Les commandes exactes et les versions des outils de test sont dans la version complète.

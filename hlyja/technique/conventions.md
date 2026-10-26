@@ -50,6 +50,7 @@ Une branche par sujet (`feat/…`, `fix/…`, `version/<x.y>-<slug>` pour Hlýja
 ## Voir aussi
 - [Architecture et déploiement](architecture.md)
 - [Décisions](decisions.md)
+- [Lancer le site avec Docker sur un poste](docker-local.md)
 
 ## Historique
 | Version | Changement |

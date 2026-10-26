@@ -83,6 +83,7 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 ## Voir aussi
 - [Décisions](decisions.md)
 - [Conventions et tests](conventions.md)
+- [Lancer le site avec Docker sur un poste](docker-local.md)
 - Mode d'emploi du serveur : `deploy/README.md`
 
 ## Historique

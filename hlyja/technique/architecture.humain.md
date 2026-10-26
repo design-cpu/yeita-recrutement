@@ -69,5 +69,6 @@ Les deux premiers vérifient tout avant d'agir et s'arrêtent au moindre doute. 
 ## Voir aussi
 - [Décisions techniques](decisions.md)
 - [Conventions et tests](conventions.md)
+- [Lancer le site avec Docker sur ton poste](docker-local.md)
 - Le mode d'emploi pas à pas du serveur : `deploy/README.md`
 - Le détail (réglages, ports, garde-fous de chaque script) est dans la version complète.
