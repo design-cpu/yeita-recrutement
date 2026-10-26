@@ -30,6 +30,8 @@ Pour Sacha : ce que l'espace Candidatures enregistre, et comment le passer en SQ
   | Lecture seule (403) | Lecture seule : tu ne peux pas modifier. |
   | Réseau (5xx, réponse non JSON, pas de réponse) | La base ne répond pas. Vérifie ta connexion, puis réessaie. |
   | Session (401 juste après un rechargement dû à un 401) | Ta session n'a pas pu être vérifiée. Ferme l'onglet, puis rouvre le site. |
+  | Identifiant hors format (import) | Identifiant invalide pour « {nom} » : ce dossier ne peut pas être enregistré dans la base. |
+  | Ajouté au bandeau quand un enregistrement est refusé | Ce que tu as saisi depuis n'est pas enregistré : copie-le avant de recharger. |
 
   Un 401 recharge la page (oauth2-proxy renvoie vers Google), une fois.
 - **Le départ de la page** (`pagehide`) envoie la dernière saisie aussitôt, sans relire, avec `keepalive`. Risque accepté : si quelqu'un (ou une autre page) a enregistré le même dossier juste avant, ou si cet envoi arrive à l'API avant un enregistrement encore en cours, il est refusé et la page n'est plus là pour le dire : les 300 à 400 dernières millisecondes de saisie sont alors perdues.

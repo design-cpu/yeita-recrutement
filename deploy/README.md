@@ -222,7 +222,7 @@ Le **premier** déploiement qui apporte l'API est lancé par le `deploy.sh` de l
    # attendu : true false map[com.docker.network.bridge.inhibit_ipv4:true]
    IP=$(docker inspect -f '{{(index .NetworkSettings.Networks "recrutement_back").IPAddress}}' recrutement-api-1)
    docker inspect -f '{{(index .NetworkSettings.Networks "recrutement_back").GlobalIPv6Address}}' recrutement-api-1
-   # attendu : vide (aucune adresse IPv6)
+   # attendu : aucune adresse IPv6 (Docker 29 affiche « invalid IP », d'autres versions une ligne vide)
    curl -s -m 5 -o /dev/null -w '%{http_code}\n' "http://$IP:8000/api/sante"                  # depuis le serveur : attendu 000 (échec)
    docker run --rm --network host curlimages/curl:8.11.1 -s -m 5 -o /dev/null -w '%{http_code}\n' "http://$IP:8000/api/sante"   # attendu 000
    curl -s -m 5 -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/api/sante              # attendu 000

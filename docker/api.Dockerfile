@@ -17,9 +17,10 @@ WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=8000 DB_PATH=/data/recrutement.sqlite
 EXPOSE 8000
 
-# Sain seulement si /api/sante rend 200 en moins de 4 s (503 quand la base ne répond pas). Pas de curl dans l'image.
+# Sain seulement si /data est inscriptible (un volume monté en lecture seule laisserait lire mais rendrait 500 à chaque
+# écriture : vu à la QA v1.3, B2) et si /api/sante rend 200 en moins de 4 s (503 quand la base ne répond pas). Pas de curl.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:8000/api/sante', {signal: AbortSignal.timeout(4000)}).then(r => process.exit(r.status === 200 ? 0 : 1), () => process.exit(1))"]
+  CMD ["node", "-e", "try { require('fs').accessSync('/data', require('fs').constants.W_OK) } catch (e) { process.exit(1) } fetch('http://127.0.0.1:8000/api/sante', {signal: AbortSignal.timeout(4000)}).then(r => process.exit(r.status === 200 ? 0 : 1), () => process.exit(1))"]
 
 # docker compose exec api node api/equipe.js … : même dossier, même DB_PATH que l'API.
 CMD ["node", "api/server.js"]

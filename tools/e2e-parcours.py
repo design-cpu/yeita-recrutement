@@ -44,7 +44,7 @@ async def main():
         await ctx.route("https://fonts.googleapis.com/**", lambda r: r.fulfill(body="", content_type="text/css"))
         pg = await ctx.new_page()
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        pg.on("console", lambda m: errs.append(m.text) if m.type == "error" and "fonts.g" not in m.text else None)
+        pg.on("console", lambda m: errs.append(m.text) if m.type == "error" and "fonts.g" not in m.text and not (m.location or {}).get("url", "").endswith("/api/moi") else None)   # /api/moi : 404 attendu sans API (mode navigateur, v1.3)
         await pg.goto(C, wait_until="networkidle")
         await pg.evaluate("localStorage.clear()"); await pg.goto(C, wait_until="networkidle")
 
