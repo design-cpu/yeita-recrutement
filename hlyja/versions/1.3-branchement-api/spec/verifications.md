@@ -1,8 +1,8 @@
 ---
 type: verifications
 version: 1.3
-total: 37
-ecarts: 7
+total: 39
+ecarts: 8
 date: 2026-10-26
 ---
 
@@ -11,7 +11,7 @@ date: 2026-10-26
 > 29 vérifications sur `main` (`0186993`) et sur un banc Docker jetable (Docker Desktop 29.9.2, projet Compose `banc13`, copie du dépôt dans le scratchpad), avec un fournisseur OIDC de test (Dex v2.41.1) à la place de Google.
 > Les essais d'attaque tiennent : port de l'API non publié, caddy sans accès à l'api, en-tête forgé écrasé par l'email de la session.
 > 7 écarts : repli silencieux en production (V9, V10), messages absents de `MODELE.md` (V3), image de moins de 14 jours (V13), seconde note « site GitHub » et lien mort (V25), dossier `/data` en 755 (V14), **hôte Linux qui joint l'API par son adresse sur le réseau interne** (V30, après le tour 1, S1), nom du volume préfixé par le projet (V36). Les quatre premiers ont été tranchés par l'utilisateur avant la spec (cadrage).
-> Après le tour 1 : V30 à V37.
+> Après le tour 1 : V30 à V37 ; après le tour 2 : V38, V39 (**IPv6 sur `back` : l'hôte joint l'API** si IPv6 y est actif, écart).
 
 | # | Ce qu'on vérifie | Comment (commande, essai) | Résultat | Conséquence pour la spec |
 |---|---|---|---|---|
@@ -45,13 +45,15 @@ date: 2026-10-26
 | V28 | Cookie de session | `deploy/oauth2-proxy.cfg` | `cookie_samesite = "lax"`, `cookie_httponly`, `cookie_secure` | Argument (non essayé) : une page d'un autre site ne peut pas envoyer de `PUT`/`DELETE` avec le cookie ; le `fetch` des pages est de même origine (R10) |
 | V29 | 401 de l'API comparé au 401 d'oauth2-proxy | V21 et V9 | API : `{"erreur":"Identité absente ou invalide."}` ; oauth2-proxy : `{}` | R8 : tout 401 recharge, quel que soit le corps |
 | V30 | **Essai d'attaque** (S1, tour 1) : l'hôte Linux joint-il un conteneur sur un réseau `internal: true` ? | moteur Linux jetable (`docker:29-dind`, moteur 29.9.2) : réseau `--internal`, conteneur `httpd`, `wget http://<IP>` depuis l'hôte, depuis un conteneur `--network host`, et témoin depuis un conteneur du réseau | **Écart** : hôte → IP du conteneur : **joignable** ; `--network host` : **joignable** ; témoin : joignable. Le pont reçoit la passerelle `172.19.0.1/16` | R24 faux sur Linux sans réglage : option du pont (R22b) |
-| V31 | Parade de V30 | même moteur : `-o com.docker.network.bridge.inhibit_ipv4=true`, puis `-o com.docker.network.bridge.gateway_mode_ipv4=isolated` | les deux : pont sans adresse IPv4 ; hôte → IP : délai dépassé ; `--network host` : délai dépassé ; conteneur relié au réseau (seul, ou relié aussi à un autre réseau, comme `front`) → par nom : joignable | R22b : `inhibit_ipv4` (option la plus ancienne des deux) ; contrôle au déploiement (R30b) et au guide |
+| V31 | Parade de V30 | même moteur : `-o com.docker.network.bridge.inhibit_ipv4=true`, puis `-o com.docker.network.bridge.gateway_mode_ipv4=isolated` | les deux : pont sans adresse IPv4 ; hôte → IP : délai dépassé ; `--network host` : délai dépassé ; conteneur relié au réseau (seul, ou relié aussi à un autre réseau, comme `front`) → par nom : joignable | R22b : `inhibit_ipv4` (option la plus ancienne des deux) ; contrôle à la mise en service et au guide (R32) |
 | V32 | Digest de l'image (E6, tour 1) | `docker buildx imagetools inspect node:22.23.4-slim@sha256:de170b…` | `application/vnd.oci.image.index.v1+json` : index multi-architecture, avec `linux/amd64` (`sha256:ea11b74b…`) et arm64 | R25 : digest de l'index |
 | V33 | Taille d'un dossier (A2, tour 1) | `loadDemo()` dans Node (même chargement que `tools/test-store.js`), `Buffer.byteLength(JSON.stringify({version, data}))` ; dossier rempli de ~13 000 caractères | exemples : 1 428 à 4 753 octets ; dossier très rempli : 20 138 octets | R6g : `keepalive` sous 60 000 octets couvre l'usage courant |
 | V34 | `Cache-Control` au travers d'oauth2-proxy (D9, tour 1) | banc, session Dex, `GET /api/candidats`, `/api/moi`, `/api/candidats/<id>` | `no-store` sur les trois | § Sécurité |
 | V35 | Écritures inter-sites (S3, tour 1) | banc, session Dex : `POST` `text/plain` et formulaire ; `OPTIONS` (prévol) avec et sans cookie ; depuis une page d'une autre origine (`http://dex:5556`) : `fetch` `PUT` `credentials: "include"`, puis `POST` `no-cors` `text/plain` | `POST` `text/plain` et formulaire : **415** ; prévol sans cookie : 401, aucun `Access-Control-Allow-Origin` ; `PUT` inter-origine : bloqué (« Failed to fetch ») ; `POST` `no-cors` : envoyé (réponse opaque) mais **aucune option ajoutée** (liste inchangée) | § Sécurité réécrit : la protection est le 415 et le prévol refusé, pas `SameSite` |
 | V36 | Nom du volume (E3, tour 1) | `docker compose -p recrutement config --format json` sur le `compose.yaml` du banc | clé `recrutement_data` → `recrutement_recrutement_data` | **Écart** : R22 déclare `name: recrutement_data` |
 | V37 | Champs écrits par les fiches (F4, tour 1) | `ec1.html` l. 337-344, `ec2.html` l. 581-588, `decompte.html` l. 249-252, `candidat.html` l. 79-82 | `ec1` : `fiches.ec1`, `ec1` ; `ec2` : `fiches.ec2`, `ec2` (lit `identite.poste`) ; `decompte` : `fiches.decompte` ; `candidat` : le dossier entier (`S.saveCandidate(cur)`) | R6h : les trois fiches écrivent leur partie sur le dossier relu |
+| V38 | Sortie de `front` relié à `edge` et à `back` (S7, tour 2) | moteur Linux jetable : réseau `edge3` normal, `back3` `--internal` + `inhibit_ipv4` ; conteneur relié dans l'ordre `edge` puis `back`, puis dans l'ordre inverse ; `ip route`, `nslookup` et `wget https://oauth2.googleapis.com/` | les deux ordres : route par défaut par `edge` (`default via 172.22.0.1`) ; DNS résolu ; Google répond (404 HTTP : la connexion aboutit) ; témoin : ce conteneur joint l'api par nom | Aucune priorité de passerelle nécessaire ; repris dans CA17 |
+| V39 | IPv6 sur `back` (S6, tour 2) | même moteur : `back3` sans option IPv6 → `EnableIPv6=false` ; réseau `--internal --ipv6` + `inhibit_ipv4`, `wget http://[<IPv6 de api>]/` depuis l'hôte | **Écart** : avec IPv6 actif, l'hôte joint l'api (`fd56:d188:bccf::2`) malgré `inhibit_ipv4` | R22b : `enable_ipv6: false` explicite (un `daemon.json` qui active IPv6 par défaut ne s'applique pas) ; CA16 : `EnableIPv6: false` |
 
 ## Détail
 V5, V6 (sans session, via caddy, `https://localhost`) :

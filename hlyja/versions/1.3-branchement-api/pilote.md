@@ -1,7 +1,7 @@
 ---
 type: pilote
 version: 1.3
-points: 2
+points: 3
 dernier: ajuster
 date: 2026-10-26
 ---
@@ -37,3 +37,15 @@ Actions : R11 requalifié `[ajout]`, réduit au message et à un seul bouton « 
 | Arbitrages de l'utilisateur | 3 (D1, D3, F5) | — |
 Constats : plan respecté ; recevables presque doubles du repère mais tour utile (6 bloquants réels vérifiés dans le code, aucune dérive). D1 doit être marqué `[ajout]` (décision de l'utilisateur). Traiter 38 retours à la façon des challengers ferait dépasser 400 lignes ; dérive vers la réalisation amorcée (file, sonde, Dockerfile, liste des `page.route`, contrôles JSON de `deploy.sh`). S1 et E6 réglés par vérification. Pour A2, le seuil « au-delà de 60 000 octets » est inutile (V33).
 Actions : spec v2 ≤ 380 lignes et ≤ 30 CA, règle ajoutée ≤ 2 lignes ; A5 remplace les lignes contradictoires par un seul tableau ; D8 absorbé par la file d'A1. Dans les tâches : réalisation de la file, champs écrits par page, gardes de `candidat.html`, commande de la sonde, structure du Dockerfile, commande `imagetools`, numéros de ligne, noms de clés. Au plan de QA ou au guide : réponses simulées (`page.route`), formes de S2, essai CSRF de S3, `no-store` de D9, artefact (F5). Dans `deploy/README.md` (tâche de doc, une ligne de renvoi dans la spec) : E2, E5, E8, E9, D10, D7. **S4 → backlog.** **D7 → H4 + une phrase au README.** **R8 → régression notée dans `MODELE.md`, évolution au backlog.** Tour 2 : retours ouverts et règles modifiées seulement ; toute nouvelle `[extension]` écartée sauf indispensable ; 3e tour seulement si le score bouge et qu'il reste un bloquant.
+
+## P2 — après le tour 2 · ajuster
+| Mesure | Valeur | Repère du plan |
+|---|---|---|
+| Spec v2 | 295 lignes, 25 CA | ≤ 380 lignes, ≤ 30 CA |
+| Score du tour 2 | 88 (47 au tour 1), Intégrateur API 67 | 3e tour si le score bouge et qu'il reste un bloquant |
+| Retours recevables | 8 (1 bloquant, 6 majeurs, 1 mineur) | ~20 |
+| Retours écartés | 2 (doublons) | — |
+| Dérives / conflits / extensions | 0 / 0 / 0 | 0 |
+| Vérifications ajoutées | 2 (V38, V39) | — |
+Constats : plan respecté ; le 3e tour remplit sa condition (+41 points, un bloquant restant) et c'est le dernier ; recevables divisés par 5. Paquet v3 proportionné (A7 = déplacement d'une ligne ; F9, A2, R10, D11 d'un seul tenant ; S6, S7 en une mention). E10 : l'ordre de mise en service et la conduite à tenir relèvent du README. Risque de dérive vers la réalisation dans R6g et R6h.
+Actions : spec v3 ≤ 340 lignes et ≤ 27 CA ; étendre les CA existants plutôt qu'en créer ; E10 en une phrase avec renvoi au README ; mécanique de `pagehide` et numéros de ligne aux tâches ; renvois inexistants (« H5 », « R30b ») corrigés ; aucun nouvel ajout au tour 3 ; si le tour 3 n'est pas validé, les points restants vont à l'utilisateur, pas à un 4e tour. Appliqué : spec v3 de 303 lignes, 25 CA, E10 réduit à une phrase dans R32.
