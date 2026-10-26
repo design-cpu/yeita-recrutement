@@ -50,7 +50,7 @@ Le serveur est partagé : on ne sait pas d'avance ce qui y tourne.
 | Déploiement | `deploy`, à chaque mise à jour | met le serveur sur la dernière version de `main`, ou revient à une version antérieure |
 | Contrôle du site | tout le monde | vérifie 5 adresses : pages publiques ouvertes, pages protégées renvoyées vers Google |
 
-Les deux premiers vérifient tout avant d'agir et s'arrêtent au moindre doute. En cas d'échec, le déploiement affiche la commande pour revenir à la version précédente.
+Les deux premiers vérifient tout avant d'agir et s'arrêtent au moindre doute. En cas d'échec, le déploiement affiche la commande pour revenir à la version précédente : il faut la lancer tout de suite.
 
 ### Où ça tourne
 | Endroit | Adresse | Connexion |
