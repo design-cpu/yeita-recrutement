@@ -1,7 +1,7 @@
 ---
 type: verifications
 version: 1.3
-total: 39
+total: 40
 ecarts: 8
 date: 2026-10-26
 ---
@@ -11,7 +11,7 @@ date: 2026-10-26
 > 29 vérifications sur `main` (`0186993`) et sur un banc Docker jetable (Docker Desktop 29.9.2, projet Compose `banc13`, copie du dépôt dans le scratchpad), avec un fournisseur OIDC de test (Dex v2.41.1) à la place de Google.
 > Les essais d'attaque tiennent : port de l'API non publié, caddy sans accès à l'api, en-tête forgé écrasé par l'email de la session.
 > 7 écarts : repli silencieux en production (V9, V10), messages absents de `MODELE.md` (V3), image de moins de 14 jours (V13), seconde note « site GitHub » et lien mort (V25), dossier `/data` en 755 (V14), **hôte Linux qui joint l'API par son adresse sur le réseau interne** (V30, après le tour 1, S1), nom du volume préfixé par le projet (V36). Les quatre premiers ont été tranchés par l'utilisateur avant la spec (cadrage).
-> Après le tour 1 : V30 à V37 ; après le tour 2 : V38, V39 (**IPv6 sur `back` : l'hôte joint l'API** si IPv6 y est actif, écart).
+> Après le tour 1 : V30 à V37 ; après le tour 2 : V38, V39 (**IPv6 sur `back` : l'hôte joint l'API** si IPv6 y est actif, écart) ; après le tour 3 : V40.
 
 | # | Ce qu'on vérifie | Comment (commande, essai) | Résultat | Conséquence pour la spec |
 |---|---|---|---|---|
@@ -54,6 +54,7 @@ date: 2026-10-26
 | V37 | Champs écrits par les fiches (F4, tour 1) | `ec1.html` l. 337-344, `ec2.html` l. 581-588, `decompte.html` l. 249-252, `candidat.html` l. 79-82 | `ec1` : `fiches.ec1`, `ec1` ; `ec2` : `fiches.ec2`, `ec2` (lit `identite.poste`) ; `decompte` : `fiches.decompte` ; `candidat` : le dossier entier (`S.saveCandidate(cur)`) | R6h : les trois fiches écrivent leur partie sur le dossier relu |
 | V38 | Sortie de `front` relié à `edge` et à `back` (S7, tour 2) | moteur Linux jetable : réseau `edge3` normal, `back3` `--internal` + `inhibit_ipv4` ; conteneur relié dans l'ordre `edge` puis `back`, puis dans l'ordre inverse ; `ip route`, `nslookup` et `wget https://oauth2.googleapis.com/` | les deux ordres : route par défaut par `edge` (`default via 172.22.0.1`) ; DNS résolu ; Google répond (404 HTTP : la connexion aboutit) ; témoin : ce conteneur joint l'api par nom | Aucune priorité de passerelle nécessaire ; repris dans CA17 |
 | V39 | IPv6 sur `back` (S6, tour 2) | même moteur : `back3` sans option IPv6 → `EnableIPv6=false` ; réseau `--internal --ipv6` + `inhibit_ipv4`, `wget http://[<IPv6 de api>]/` depuis l'hôte | **Écart** : avec IPv6 actif, l'hôte joint l'api (`fd56:d188:bccf::2`) malgré `inhibit_ipv4` | R22b : `enable_ipv6: false` explicite (un `daemon.json` qui active IPv6 par défaut ne s'applique pas) ; CA16 : `EnableIPv6: false` |
+| V40 | `enable_ipv6: false` face à un moteur qui active IPv6 par défaut (S8, tour 3) | moteur jetable `docker:29-dind` lancé avec `--default-network-opt bridge=com.docker.network.enable_ipv6=true`, Compose 5.6.1 : réseau `back` (`internal`, `enable_ipv6: false`, `inhibit_ipv4`) et témoin `libre` (`internal`, sans option) | `back` : `EnableIPv6=false`, aucune adresse IPv6 pour `api`, IPv4 injoignable depuis l'hôte ; **témoin** `libre` : `EnableIPv6=true`, adresse `fd40:…::2` joignable depuis l'hôte | Le `false` explicite est transmis et l'emporte sur le réglage du moteur (R22b) ; le contrôle de mise en service vérifie aussi `EnableIPv6` (R32) |
 
 ## Détail
 V5, V6 (sans session, via caddy, `https://localhost`) :
