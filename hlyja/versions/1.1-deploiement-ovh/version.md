@@ -46,7 +46,12 @@ Hors périmètre : base de données et API, sauvegardes, déploiement automatiqu
 Complexe, recommandé et confirmé par l'utilisateur : nouvelles dépendances (Docker, oauth2-proxy, Caddy) et authentification. Toutes les décisions d'architecture sont prises par le pitch ; le jury juge leur mise en œuvre, pas leur choix.
 
 ## Plan d'équipe
-<à écrire par le chef d'équipe>
+Écrit par le chef d'équipe au démarrage (détail : `pilote.md`).
+- Cadre : aucune décision du pitch n'est rediscutée ; le jury juge la mise en œuvre (fidélité, oublis, risques sur un serveur partagé). Rien n'est exécuté sur le serveur : essais en local avec Docker Desktop (cas B, `DOMAIN=localhost`, faux identifiants).
+- Jury de 4 + arbitre : Technique Docker/Compose (obligatoire), Sécurité et authentification, Exploitation sur serveur partagé, Testabilité et lecteur du mode d'emploi. Puis chef d'équipe P1 à P4, revue de code et sécurité (scripts shell, configuration oauth2-proxy et Caddy), QA, rédacteur-relecteur, curateur, validateur.
+- Ordres de grandeur : spec 150 à 220 lignes ; 7 à 9 tâches ; ~14 fichiers (10 créés, 2-3 modifiés, 1 supprimé) ; 8 à 10 scénarios de QA ; doc : `technique/architecture.md` (nouvelle), `decisions.md`, `conventions.md`, mentions de GitHub Pages dans `README.md` et `CONTRIBUER.md`.
+- Pas fait : nouveau test Playwright (les pages ne changent pas), vraie connexion Google (pas de vrais identifiants), cas A avec un nginx réel (exemple seulement), tests unitaires shell (bats), doc produit et glossaire (rien ne change pour les utilisateurs), `outillage.md` (scripts décrits dans `deploy/README.md`).
+- Garde-fous : tout ajout hors pitch (CI de déploiement, supervision, pare-feu) va au backlog ; une vérification qui contredit le pitch est remontée à l'utilisateur, pas tranchée en silence.
 
 ## Liens
 - Spec finale : spec/spec-finale.md
