@@ -1,18 +1,20 @@
 ---
 type: verifications
 version: 1.2
-total: 17
-ecarts: 4
+total: 24
+ecarts: 6
 date: 2026-10-26
 ---
 
 # Vérifications — API Node.js sur SQLite pour les dossiers candidat
 
-> 17 vérifications, 4 écarts avec ce qu'on supposait :
+> 24 vérifications (V18 à V24 après le tour 1), 6 écarts avec ce qu'on supposait :
 > - quiconque atteint directement le port de l'API peut forger son identité (V10) : l'utilisateur a choisi une écoute sur 127.0.0.1 par défaut, avec la variable `HOST` ;
 > - Fastify 5.12.5 a une faille faible, et le correctif n'a que 13 jours (V2) : l'utilisateur a choisi 5.12.7 ;
 > - avec npm 10 (Node 22), `npm ci` tente de compiler better-sqlite3 (V3) : on installe avec `--ignore-scripts` ;
-> - `MODELE.md` propose d'autres tables que le pitch (V12) : la section sera alignée (accord de l'utilisateur).
+> - `MODELE.md` propose d'autres tables que le pitch (V12) : la section sera alignée (accord de l'utilisateur) ;
+> - un `DELETE` laisse le dossier lisible sur le disque (V18) : `secure_delete` et point de contrôle `TRUNCATE` ;
+> - Fastify accepte `text/plain` par défaut, et une requête sans `Content-Type` atteint la route (V19).
 
 Essais faits dans le scratchpad, hors du dépôt ; Docker Desktop 29.9.2 pour Node 22 et oauth2-proxy.
 
@@ -35,6 +37,13 @@ Essais faits dans le scratchpad, hors du dépôt ; Docker Desktop 29.9.2 pour No
 | V15 | Format de l'identifiant | `assets/dossier.js` `uid()` ; `importCode` | `cand-` + horodatage base 36 + `-` + 5 caractères base 36 ; `importCode` peut reprendre un `id` venu d'un code | R15 : motif borné, pas strictement celui de `uid()` |
 | V16 | Ce que Fastify écrit dans ses journaux | `logger: true`, PUT avec un corps nominatif, erreurs 413, 400, 500 | méthode, URL (paramètres compris), hôte, adresse ; jamais le corps ni les en-têtes ; le message d'erreur du JSON invalide ne cite pas le corps | R22 : journaux par défaut acceptables, pas de corps ni d'email |
 | V17 | Lanceur de tests | `node --test --help` (Node 26) ; `node:test` présent depuis Node 18 | disponible | R26 : `node --test` |
+| V18 | Effacement sur le disque | insertion d'un dossier « ZORGLUB-ANCIEN », PUT « ZORGLUB-NOUVEAU », DELETE, puis recherche du texte dans `.db`, `-wal`, `-shm` (better-sqlite3, WAL) | par défaut : **trouvé** dans `-wal`, puis dans `.db` après fermeture ; `secure_delete = ON` seul : trouvé dans `-wal` tant que la base est ouverte ; `wal_checkpoint(TRUNCATE)` seul : trouvé dans `.db` ; **`secure_delete = ON` + `wal_checkpoint(TRUNCATE)`** : propre partout, aussi après fermeture | **Écart** : effacement réel = les deux (R10, R21) |
+| V19 | Analyseurs de corps de Fastify | `inject` : PUT `text/plain`, formulaire, sans `Content-Type`, JSON avec `charset` ; DELETE avec `Content-Type: application/json` sans corps ; avec et sans `removeContentTypeParser('text/plain')` | défaut : `text/plain` → 200 (corps chaîne) ; formulaire → 415 ; sans `Content-Type` → 200 (corps `undefined`) ; `charset` → 200 ; DELETE JSON vide → 400 `FST_ERR_CTP_EMPTY_JSON_BODY`. Sans l'analyseur texte : `text/plain` → 415, le reste identique | **Écart** : analyseur texte retiré, `Content-Type` exigé par la route pour PUT et POST, corps vide accepté pour GET et DELETE (R16) |
+| V20 | Autorisation avant l'analyse du corps | crochet `onRequest` qui rend 403 ; PUT de 500 octets (limite 100) et PUT de JSON invalide | 403 dans les deux cas : `onRequest` passe avant l'analyse | R16, ordre des contrôles |
+| V21 | `api/.npmrc` seul | `ignore-scripts=true` dans `.npmrc`, `npm ci` sans option, `npm test`, `npm start` dans `node:22-bookworm-slim` | `npm ci` réussit sans Python ; `npm test` : 1 test passé ; `npm start` s'exécute (`ignore-scripts` ne bloque pas les commandes lancées explicitement) | R3 |
+| V22 | Schéma et transaction | `user_version = 1` et `CREATE TABLE` dans une transaction annulée ; `journal_mode = WAL` dans une transaction | annulée : `user_version` 0, aucune table ; WAL dans une transaction : « cannot change into wal mode from within a transaction » | R12 : WAL avant la transaction du schéma |
+| V23 | Transaction différée et attente | connexion B (`timeout: 1000`) : lecture puis écriture dans une transaction différée pendant qu'A écrit | `SQLITE_BUSY_SNAPSHOT` en 0 ms : le délai ne s'applique pas ; V7 : en `BEGIN IMMEDIATE`, le délai s'applique | R11 : transactions d'écriture en `IMMEDIATE` |
+| V24 | Identifiants réellement produits | `assets/dossier.js` (`uid`, `importCode` l. 302) ; `assets/store.js` `importAll` (l. 276-290) ; relais `candidatures.html` (`#c-([A-Za-z0-9._~-]+)`) | toutes les créations passent par `uid()` ; `importCode` et `importAll` reprennent l'`id` d'un code ou d'un export, qui vient lui-même de `uid()` sauf fichier modifié à la main | R15 : motif de `uid()` |
 
 ## Détail
 V3, `npm ci` sous Node 22 sans `--ignore-scripts` :
