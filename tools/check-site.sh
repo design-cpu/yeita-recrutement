@@ -27,6 +27,7 @@ controle() {
   local chemin="$1" attendu="$2" vers="${3:-}" res code loc
   res=$("${CURL[@]}" -w '%{http_code} %{redirect_url}' "$BASE$chemin")
   code="${res%% *}"; loc="${res#* }"
+  [ "$code" = 000 ] && code=""   # curl n'a reçu aucune réponse
   if [ "$code" = "$attendu" ] && { [ -z "$vers" ] || [ "${loc#"$vers"}" != "$loc" ]; }; then
     echo "OK    $chemin → $code${vers:+ vers $vers}"
   else

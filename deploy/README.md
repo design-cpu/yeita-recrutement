@@ -211,6 +211,8 @@ Deux déploiements ne peuvent pas tourner en même temps (verrou). Relancer apr�
 
 Le commit doit appartenir à `main` et contenir le déploiement Docker (pas d'avant cette version). En cas d'échec, `deploy.sh` affiche la commande exacte avec le commit précédent.
 
+Après un échec de `deploy.sh` (construction, démarrage ou contrôle), le dépôt est déjà sur le nouveau commit : lancez **tout de suite** la commande de retour affichée. Sinon, au prochain redémarrage du serveur, `front` chargerait la configuration de ce commit (`deploy/oauth2-proxy.cfg` est lu dans le dépôt).
+
 Après un retour arrière, le dépôt reste **détaché** sur ce commit. Le prochain `deploy.sh` **sans argument** reprend le dernier `main` : ne le lancez qu'une fois `main` corrigé.
 
 ## 11. Contrôler et lire un échec
@@ -224,7 +226,7 @@ Après un retour arrière, le dépôt reste **détaché** sur ce commit. Le proc
 | `/candidatures/` ou `data-diamants.js` → **reçu 200** | L'authentification ne protège plus : **urgent** | Revenir en arrière tout de suite (section 10), puis lire `deploy/oauth2-proxy.cfg` |
 | `/one-pager.html` ou `/index.html` → reçu 302 | La liste publique est cassée | `docker compose logs --tail 50 front` ; relire `skip_auth_routes` |
 | Toutes → reçu 502 | `front` est arrêté ou redémarre en boucle | `docker compose ps` ; `docker compose logs --tail 50 front` (souvent une variable de `.env`) |
-| Toutes → reçu 000 | Pas de réponse : DNS, certificat ou proxy | `dig +short recrutement.yeita.fr` ; cas B : `docker compose logs --tail 50 caddy` ; cas A : journal du proxy du serveur |
+| Toutes → reçu aucune réponse | Pas de réponse : DNS, certificat ou proxy | `dig +short recrutement.yeita.fr` ; cas B : `docker compose logs --tail 50 caddy` ; cas A : journal du proxy du serveur |
 | Toutes → reçu 404 ou 421 | Le proxy du cas A ne transmet pas ce nom | Relire l'exemple de la section 7 (`server_name`) |
 | `/candidatures/` → 302 vers une autre adresse | Mauvais fournisseur dans la configuration | `deploy/oauth2-proxy.cfg` : `provider = "google"` |
 
