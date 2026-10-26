@@ -37,12 +37,16 @@ main() {
   local reglages domaine profils retour
   reglages=$(docker compose config --environment) || arret "Compose ne peut pas lire les réglages (.env incomplet ?)."
   reglage() { printf '%s\n' "$reglages" | sed -n "s/^$1=//p" | tail -n 1; }
+  local nom
+  # Compose lit « VAR=   # commentaire » comme la valeur « # commentaire » : une variable vide passerait pour remplie.
+  for nom in DOMAIN COMPOSE_PROFILES OAUTH2_PROXY_CLIENT_ID OAUTH2_PROXY_CLIENT_SECRET OAUTH2_PROXY_COOKIE_SECRET OAUTH2_PROXY_REDIRECT_URL; do
+    case "$(reglage "$nom")" in "#"*) arret "$nom est vide (seul un commentaire suit le signe =) : remplissez-la ou retirez le commentaire." ;; esac
+  done
   domaine=$(reglage DOMAIN); profils=$(reglage COMPOSE_PROFILES); retour=$(reglage OAUTH2_PROXY_REDIRECT_URL)
   if [ -z "$domaine" ] || [ "$domaine" = localhost ]; then
     arret "DOMAIN vaut « ${domaine:-vide} » : mettez le domaine du serveur (recrutement.yeita.fr)."
   fi
   [ "$retour" = "https://$domaine/oauth2/callback" ] || arret "OAUTH2_PROXY_REDIRECT_URL vaut « $retour », attendu « https://$domaine/oauth2/callback »."
-  local nom
   for nom in OAUTH2_PROXY_COOKIE_SECRET OAUTH2_PROXY_CLIENT_ID; do
     [ -n "$(reglage "$nom")" ] || arret "$nom est vide dans .env."
     [ "$(reglage "$nom")" != "$(valeur "$nom" .env.example)" ] || arret "$nom a encore sa valeur d'exemple : remplacez-la (deploy/README.md)."
