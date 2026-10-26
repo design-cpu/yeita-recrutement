@@ -75,6 +75,9 @@ Aucune.
 - Nouvelles occurrences : [1.1-1](../../backlog/1.1-1-liens-ancien-site-github-pages.md) (reste le libellé « GitHub Pages » de l'inventaire), [1.2-8](../../backlog/1.2-8-fastify-static-importe-en-production.md) (`@fastify/static` maintenant dans l'image).
 - Traitées par cette version : [1.2-1](../../backlog/1.2-1-mise-en-service-api-derriere-oauth2-proxy.md) → fait (essai Google réel au guide), [1.2-2](../../backlog/1.2-2-contexte-docker-embarque-api.md) → fait, [1.2-3](../../backlog/1.2-3-adaptateur-navigateur-cas-a-traiter.md) → fait (sans la migration), [1.2-4](../../backlog/1.2-4-modele-phrases-perimees.md) → fait (phrases de `MODELE.md` réécrites).
 
+## Étonnements
+2 apprentissages retenus, 3 fusionnés avec des règles existantes ([1.3](../../etonnements/1.3-branchement-api.md)). Règles récurrentes signalées par le validateur (le skill devrait évoluer) : vérifications faites dans des conditions plus favorables que la cible (1.2 et 1.3 : `controles.md` § 1 devrait comparer les conditions — plateforme, état des données, concurrence, IPv4/IPv6 — à celles de la cible avant la spec v1) ; résultats de tests lus sur un signal partiel au lieu de la conclusion de la suite (1.2 et 1.3 : `controles.md` § 4 et § 6) ; une règle de concurrence validée par le débat et contredite par l'exécution (première occurrence).
+
 ## Couverture de la doc
 | Élément | Page |
 |---|---|
