@@ -41,7 +41,7 @@ Copie hors du dépôt (`muter.py` du scratchpad, `node --test --test-timeout=300
 | Contrôle | Mutation | Attendu | Obtenu |
 |---|---|---|---|
 | Relecture de `user_version` dans la transaction | retirée | échec du test concurrent | échec (« table … already exists » côté fils) |
-| Transaction immédiate du schéma | différée | échec du test concurrent | test annulé à 20 s (blocage) |
+| Transaction immédiate du schéma | différée | échec du test concurrent | **bloque** : test annulé à 20 s, cause non analysée (ni détectée ni survivante, étonnement 3 de la 1.2) |
 | Refus d'une version plus récente | retiré | échec « Missing expected exception » | échec, message attendu |
 | Masque `0o077` | retiré | échec « mode de la base » | échec, message attendu |
 | `secure_delete` | retiré | échec sur la valeur du réglage | échec, message attendu |
