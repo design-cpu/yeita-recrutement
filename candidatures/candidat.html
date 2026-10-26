@@ -53,6 +53,8 @@
 <script src="../assets/dossier.js"></script>
 <script src="../assets/qui.js"></script>
 <script src="../assets/store.js"></script>
+<script src="../assets/adapter-serveur.js"></script>
+<script src="../assets/demarrage.js"></script>
 <script src="../assets/data-parcours.js"></script>
 <script src="ui.js"></script>
 <script src="parcours-ui.js"></script>
@@ -61,7 +63,7 @@
 "use strict";
 var S = STORE, D = DOSSIER, PC = PARCOURS, E = YEITA.esc, t = UI.t, Y = YEITA_MATCH, Dm = DIAMANTS, EMP = EMPLOYABILITE;
 var CFG = window.YEITA_CONFIG || {};
-var cur = null, viewing = null, refusOpen = false, saveT = null;
+var cur = null, viewing = null, refusOpen = false, saveT = null, enCours = 0, refuse = false;
 var ID = UI.param("id");
 
 document.querySelectorAll("[data-t]").forEach(function(el){ el.textContent = t(el.dataset.t); });
@@ -76,10 +78,11 @@ document.getElementById("pu").innerHTML = PU.headHTML();
 document.querySelectorAll("#pu [data-t]").forEach(function(el){ el.textContent = t(el.dataset.t); });
 
 /* ---------- Enregistrement : tout passe par le candidat en mémoire, enregistré après une courte pause ---------- */
-function schedule(){ clearTimeout(saveT); saveT = setTimeout(saveNow, 400); }
+function schedule(){ clearTimeout(saveT); saveT = setTimeout(function(){ saveNow().catch(function(){}); }, 400); }
 function saveNow(){
-  clearTimeout(saveT); saveT = null;
-  return S.saveCandidate(cur).then(function(c){ cur = c; var s = document.getElementById("saved"); if(s) s.textContent = t("commun.enregistreA", {heure: UI.heure()}); return c; });
+  clearTimeout(saveT); saveT = null; enCours++;
+  return S.saveCandidate(cur).then(function(c){ enCours--; refuse = false; cur = c; var s = document.getElementById("saved"); if(s) s.textContent = t("commun.enregistreA", {heure: UI.heure()}); return c; },
+    function(x){ enCours--; refuse = true; var s = document.getElementById("saved"); if(s) s.textContent = t("serveur.nonEnregistre"); throw x; });
 }
 function flush(){ return saveT ? saveNow() : Promise.resolve(cur); }
 function setPath(o, path, v){ var k = path.split("."); while(k.length > 1){ var x = k.shift(); o = o[x] = o[x] || {}; } o[k[0]] = v; }
@@ -413,10 +416,17 @@ document.addEventListener("keydown", function(e){
   if(refusOpen){ refusOpen = false; renderPanel(); var r = document.getElementById("refuse"); if(r) r.focus(); return; }
   if(!document.getElementById("del-confirm").hidden){ document.getElementById("del-confirm").hidden = true; document.getElementById("del").focus(); }
 });
-window.addEventListener("pagehide", function(){ if(saveT) saveNow(); });
+window.addEventListener("pagehide", function(){ if(saveT){ clearTimeout(saveT); saveT = null; D.partir(cur); } });
 /* Une fiche remplie dans un autre onglet met la candidature à jour. */
 window.addEventListener("storage", function(e){ if(e.key === D.KEY && cur && !saveT){ S.getCandidate(cur.id).then(function(c){ if(c){ cur = c; render(); } }); } });
-load();
+/* Mode serveur : au retour sur l'onglet, relire, sauf pendant une saisie (enregistrement en attente, en cours ou refusé,
+   formulaire ouvert, champ actif) ; redessiner seulement si le dossier a changé. */
+DEMARRAGE.auRetour(function(){
+  var a = document.activeElement;
+  if(!cur || saveT || enCours || refuse || refusOpen || (a && a.closest && a.closest("#body") && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return;
+  S.getCandidate(cur.id).then(function(c){ if(c && (c.meta && c.meta.modifieLe) !== (cur.meta && cur.meta.modifieLe) && !saveT && !enCours){ cur = c; render(); DEMARRAGE.effacer(); } });
+});
+DEMARRAGE.pret.then(load);
 })();
 </script>
 </body>

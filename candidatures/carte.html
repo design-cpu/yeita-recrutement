@@ -303,6 +303,8 @@ details.interne > summary .ic{font-size:14px; font-weight:600; color:var(--muted
 <script src="../assets/wording.fr.js"></script>
 <script src="../assets/qui.js"></script>
 <script src="../assets/store.js"></script>
+<script src="../assets/adapter-serveur.js"></script>
+<script src="../assets/demarrage.js"></script>
 <script src="../assets/data-parcours.js"></script>
 <script src="ui.js"></script>
 <script>
@@ -545,6 +547,8 @@ document.addEventListener("click", function(e){
 });
 /* Une fiche reportée dans un autre onglet met la carte à jour aussitôt. */
 window.addEventListener("storage", function(e){ if(e.key === "yeita-dossiers" || e.key === null) refresh(cur && !cur.demo ? cur.id : undefined); });
+/* Mode serveur : au retour sur l'onglet, la carte se relit, et se redessine seulement si le dossier a changé. */
+DEMARRAGE.auRetour(function(){ if(!cur || cur.demo) return; DOSSIER.get(cur.id).then(function(d){ if(d && (d.meta && d.meta.modifieLe) !== (cur.meta && cur.meta.modifieLe)){ all = [d]; cur = d; render(); } }); });
 
 /* Trois refus types, tirés des phrases de la fiche #1 */
 document.getElementById("ex3").innerHTML = EMP.REFUS_TYPES.map(function(r){
@@ -582,7 +586,8 @@ function showFrom(){
   if(pr) fp.innerHTML = YEITA.inFrame() ? '<span>L\'export PDF passe par l\'impression, bloquée dans cet aperçu : ouvre la page depuis le site du recrutement.</span>' : '<span>Dans la fenêtre d\'impression, choisis « Enregistrer au format PDF ».</span>';
   if(pr && !YEITA.inFrame()) setTimeout(function(){ window.print(); }, 400);
 }
-migrateCodes().then(function(){ return refresh(qId); }).then(function(ok){
+/* En mode serveur, les codes de l'ancienne carte restent dans ce navigateur : pas de migration vers la base. */
+DEMARRAGE.pret.then(function(){ return DEMARRAGE.mode() === "serveur" ? null : migrateCodes(); }).then(function(){ return refresh(qId); }).then(function(ok){
   if(!ok){ missing(UI.t("commun.introuvable")); return; }
   if(hs === "interne" || Q.has("interne")) intEl.scrollIntoView({block:"start"});
   showFrom();
