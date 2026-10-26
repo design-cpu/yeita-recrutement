@@ -47,7 +47,7 @@ main() {
     arret "DOMAIN vaut « ${domaine:-vide} » : mettez le domaine du serveur (recrutement.yeita.fr)."
   fi
   [ "$retour" = "https://$domaine/oauth2/callback" ] || arret "OAUTH2_PROXY_REDIRECT_URL vaut « $retour », attendu « https://$domaine/oauth2/callback »."
-  for nom in OAUTH2_PROXY_COOKIE_SECRET OAUTH2_PROXY_CLIENT_ID; do
+  for nom in OAUTH2_PROXY_COOKIE_SECRET OAUTH2_PROXY_CLIENT_ID OAUTH2_PROXY_CLIENT_SECRET; do
     [ -n "$(reglage "$nom")" ] || arret "$nom est vide dans .env."
     [ "$(reglage "$nom")" != "$(valeur "$nom" .env.example)" ] || arret "$nom a encore sa valeur d'exemple : remplacez-la (deploy/README.md)."
   done
