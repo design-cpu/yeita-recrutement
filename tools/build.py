@@ -1,11 +1,12 @@
-# Construit le site publiable (GitHub Pages) à partir des fichiers de l'artefact.
+# Construit le site publiable (servi par l'image docker/front.Dockerfile) à partir des fichiers du dépôt.
 # index.html est un fragment d'artefact : on l'enveloppe dans un document complet.
 # Les autres pages sont déjà des documents complets et sont copiées telles quelles.
 import os, shutil, sys
 
 SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DST = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(SRC, "_site"))
-SKIP = {".git", ".github", ".agents", "docs", "tools", "_site", "dist", "renders", "README.md", "STORAGE.md", ".gitignore", "hlyja"}
+SKIP = {".git", ".github", ".agents", "docs", "tools", "_site", "dist", "renders", "README.md", "STORAGE.md", ".gitignore", "hlyja",
+        "docker", "deploy", "compose.yaml", ".dockerignore", ".env.example"}
 
 if os.path.exists(DST):
     shutil.rmtree(DST)
