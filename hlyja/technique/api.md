@@ -10,9 +10,10 @@ date: 2026-10-26
 
 # API de stockage (`api/`)
 
-> Le serveur Node.js qui garde les dossiers candidat entiers dans SQLite et expose le contrat list/get/put/remove de `docs/backend/MODELE.md`, réservé aux membres actifs de la table `equipe`. Placé derrière oauth2-proxy (`X-Forwarded-Email`) ; pas encore branché aux pages ni dans Docker (v1.2). Mode d'emploi et contrat HTTP pour l'intégrateur : `api/README.md`.
+> Le serveur Node.js qui garde les dossiers candidat entiers dans SQLite et expose le contrat list/get/put/remove de `docs/backend/MODELE.md`, réservé aux membres actifs de la table `equipe`. Conçue pour être placée derrière oauth2-proxy, qui posera `X-Forwarded-Email` ; en v1.2, elle n'est encore ni derrière oauth2-proxy, ni dans Docker, ni branchée aux pages. Mode d'emploi et contrat HTTP pour l'intégrateur : `api/README.md`.
 
 ## Vue d'ensemble
+Déploiement visé (version suivante) :
 ```mermaid
 flowchart LR
   N[Navigateur] -->|cookie de session| P[oauth2-proxy]
@@ -48,7 +49,7 @@ Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISP
 | `PUT /api/candidats/:id` | oui | recruteur, admin | `{version: null \| entier ≥ 1, data}` JSON ≤ 1 Mo | 201 (création, `version` 1), 200 (`version + 1`) | 400, 401, 403, 409 `conflit`, 413, 415, 503 | 1.2 |
 | `DELETE /api/candidats/:id` | oui | recruteur, admin | `:id` | 204 | 400, 401, 403, 404 `introuvable`, 503 | 1.2 |
 | `GET /api/options-disponibilite` | oui | tous | — | 200 `["…"]` (ajouts, ordre `rowid`) | 401, 403 | 1.2 |
-| `POST /api/options-disponibilite` | oui | recruteur, admin | `{libelle}` (1 à 60 caractères, espaces normalisés) | 201 ajouté, 200 doublon ou option de `DISPOS` ; corps : la liste | 400, 401, 403, 413, 415 | 1.2 |
+| `POST /api/options-disponibilite` | oui | recruteur, admin | `{libelle}` (1 à 60 caractères, espaces normalisés) | 201 ajouté, 200 doublon ou option de `DISPOS` ; corps : la liste | 400, 401, 403, 413, 415, 503 | 1.2 |
 | `* /api/*` (autre) | oui | tous | — | — | 404 « Route inconnue. » (après l'autorisation) | 1.2 |
 
 `version` de l'enveloppe = version de la ligne ; distincte de `data.version` (schéma du dossier, 3). `data` est rendu tel qu'enregistré (pas de mise à niveau). Textes et codes d'erreur : `api/README.md` § Contrat HTTP.
@@ -59,9 +60,9 @@ Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISP
 | Exemption | `onRequest` | route trouvée `GET /api/sante` (`req.routeOptions.url`), et la route statique `/*` en mode local ; jamais sur le texte de l'adresse |
 | Identité | `onRequest` | `X-Forwarded-Email` seul (`X-Forwarded-User` ignoré), `emailValide` : minuscules, `^[a-z0-9._%+-]+@yeita\.fr$` ; absent ou vide → `config.devEmail` ; invalide → 401 |
 | Équipe | `onRequest` | `SELECT … FROM equipe WHERE email = ?` à chaque requête ; absent ou `actif = 0` → 403 `hors-equipe` |
-| Rôle | `onRequest` | `lecture` : `GET` et `HEAD` seulement, sinon 403 `lecture-seule` |
+| Rôle | `onRequest` | `lecture` : `GET` et `HEAD` seulement (Fastify crée `HEAD` pour chaque `GET`), sinon 403 `lecture-seule` |
 | Corps | analyseur | seul `application/json` (`getDefaultJsonParser("error","error")` : `__proto__`, `constructor.prototype` refusés) ; corps vide → `undefined` ; `bodyLimit` 1 048 576 |
-| Type | `preValidation` | PUT et POST sans `Content-Type: application/json` → 415 |
+| Type | `preValidation` | PUT et POST sans `Content-Type: application/json` → 415 ; toute méthode avec un corps d'un autre type → 415 (aucun autre analyseur) |
 | Cache | `onSend` | `Cache-Control: no-store` sauf route statique `/*` |
 | Erreurs | `setErrorHandler` | `ErreurHttp` tel quel ; `FST_ERR_CTP_BODY_TOO_LARGE` → 413, `FST_ERR_CTP_INVALID_JSON_BODY` → 400, `FST_ERR_CTP_INVALID_MEDIA_TYPE` → 415, `SQLITE_BUSY*` → 503, autre 4xx → « Requête invalide. », sinon 500 journalisé sans message (type, code, pile sans 1re ligne) |
 | Introuvable | `setNotFoundHandler` | 404 « Route inconnue. » |
@@ -70,7 +71,7 @@ Routeur : `maxParamLength` 200 (un `:id` plus long → 404 de route inconnue).
 ## Base (`api/src/base.js`)
 | Table | Colonnes | Contraintes | Écrite par |
 |---|---|---|---|
-| `equipe` | `email` (clé), `prenom`, `role`, `actif`, `ajoute_le` | email en minuscules et `@yeita.fr` ; rôle `recruteur`/`admin`/`lecture` ; `actif` 0/1 | `equipe.js` |
+| `equipe` | `email` (clé), `prenom`, `role`, `actif`, `ajoute_le` | email en minuscules et `@yeita.fr` ; prénom non vide (`length(trim(prenom)) > 0`) ; rôle `recruteur`/`admin`/`lecture` ; `actif` 0/1 | `equipe.js` |
 | `candidats` | `id` (clé), `data` (JSON), `version` (≥ 1), `modifie_le`, `modifie_par` | aucune colonne tirée du JSON | PUT, DELETE |
 | `journal` | `id`, `candidat_id`, `action` (`creation`, `modification`, `suppression`), `etape` (une des 12 `ETAPES` ou `null`), `par`, `le` | jamais de contenu du dossier ; purgé à la suppression du dossier, une ligne `suppression` gardée | PUT, DELETE |
 | `options_disponibilite` | `libelle` (clé), `ajoute_le` | seulement les ajouts | POST |

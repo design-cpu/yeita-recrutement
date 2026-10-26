@@ -3,11 +3,16 @@ type: technique
 vue: humaine
 page: architecture
 titre: Architecture et déploiement
+maj: 1.2
+commit: 2497be9
+sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
+date: 2026-10-26
 ---
 
 # Architecture et déploiement
 
 > Depuis la v1.1, le site tourne dans Docker sur le serveur OVH de Yeita. Quelques pages restent publiques ; tout le reste demande un compte Google @yeita.fr. Les données restent dans le navigateur.
+> En v1.2, l'API de stockage est arrivée : elle se lance seule, mais n'est pas encore dans Docker ni utilisée par les pages.
 
 ## En un coup d'œil
 
@@ -52,11 +57,24 @@ Le serveur est partagé : on ne sait pas d'avance ce qui y tourne.
 
 Les deux premiers vérifient tout avant d'agir et s'arrêtent au moindre doute. En cas d'échec, le déploiement affiche la commande pour revenir à la version précédente : il faut la lancer tout de suite.
 
+### L'API de stockage (v1.2)
+Un serveur Node.js, dans le dossier `api/`, qui garde les dossiers candidat dans une base SQLite. Il est fait pour se placer derrière oauth2-proxy, qui lui dira qui est connecté. Pour l'instant, il se lance à part, sans Docker, et le site ne l'appelle pas.
+
+| Pièce | Rôle |
+|---|---|
+| Node.js 22 ou plus | fait tourner l'API |
+| Fastify | reçoit les demandes et y répond |
+| better-sqlite3 | lit et écrit la base SQLite |
+| @fastify/static | sert le site construit, en mode local seulement |
+
+Le fonctionnement de l'API est décrit dans sa propre page.
+
 ### Où ça tourne
 | Endroit | Adresse | Connexion |
 |---|---|---|
 | Poste, comme le serveur (cas B) | `https://localhost` | redirection vers Google visible, connexion impossible (faux identifiants) |
 | Poste, sans Docker | `http://localhost:8765` | aucune : sert aux tests de navigateur |
+| Poste, API seule (v1.2) | `http://127.0.0.1:8000` | mode local : on indique son email au lancement |
 | Serveur OVH | `https://recrutement.yeita.fr` | compte Google @yeita.fr |
 
 ## À savoir avant de modifier
@@ -65,10 +83,12 @@ Les deux premiers vérifient tout avant d'agir et s'arrêtent au moindre doute. 
 - **Ajouter une page publique, c'est modifier la liste** dans la configuration d'oauth2-proxy. Sans cela, la nouvelle page demande une connexion.
 - **Ne pas faire confiance aux en-têtes du proxy.** Cela ouvrirait une page protégée sans connexion. Conséquence : les journaux ne montrent pas l'adresse des visiteurs (voir les décisions).
 - **Le dépôt du serveur doit rester propre.** Un fichier en trop, comme une copie de `.env`, entrerait dans l'image : le déploiement refuse de partir.
+- **L'API ne doit être joignable que par oauth2-proxy.** Elle croit l'email qu'il lui transmet : le jour où elle entrera dans Docker, son port ne devra pas être publié.
 
 ## Voir aussi
+- [L'API de stockage](api.md)
 - [Décisions techniques](decisions.md)
 - [Conventions et tests](conventions.md)
 - [Lancer le site avec Docker sur ton poste](docker-local.md)
 - Le mode d'emploi pas à pas du serveur : `deploy/README.md`
-- Le détail (réglages, ports, garde-fous de chaque script) est dans la version complète.
+- Le détail (réglages, ports, garde-fous de chaque script, versions exactes) est dans la version complète.

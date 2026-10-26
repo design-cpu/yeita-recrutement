@@ -104,7 +104,7 @@ Toutes les routes sauf `/api/sante` exigent un membre actif de l'équipe, identi
 | `PUT /api/candidats/:id` | recruteur, admin | 201 (création) ou 200, `{id, version, data}` | 400, 401, 403, 409, 413, 415, 503 |
 | `DELETE /api/candidats/:id` | recruteur, admin | 204 | 400, 401, 403, 404, 503 |
 | `GET /api/options-disponibilite` | tous | 200 `["…"]` : les options **ajoutées**, dans l'ordre d'ajout | 401, 403 |
-| `POST /api/options-disponibilite` `{libelle}` | recruteur, admin | 201 (ajoutée) ou 200 (déjà là, ou option de base), corps : la liste | 400, 401, 403, 413, 415 |
+| `POST /api/options-disponibilite` `{libelle}` | recruteur, admin | 201 (ajoutée) ou 200 (déjà là, ou option de base), corps : la liste | 400, 401, 403, 413, 415, 503 |
 
 **L'enveloppe.** `version` est la version de la ligne en base (1, 2, 3…), qui change à chaque enregistrement. Elle est **distincte de `data.version`**, la version du schéma du dossier (toujours 3), que l'API ne lit pas. `data` est le dossier entier, rendu tel qu'il a été enregistré.
 
