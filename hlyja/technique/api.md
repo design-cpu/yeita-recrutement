@@ -2,22 +2,22 @@
 type: technique
 page: api
 titre: API de stockage (api/)
-maj: 1.2
-commit: 2497be9
+maj: 1.3
+commit: e59d120
 sources: api/server.js, api/equipe.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md
 date: 2026-10-26
 ---
 
 # API de stockage (`api/`)
 
-> Le serveur Node.js qui garde les dossiers candidat entiers dans SQLite et expose le contrat list/get/put/remove de `docs/backend/MODELE.md`, réservé aux membres actifs de la table `equipe`. Conçue pour être placée derrière oauth2-proxy, qui posera `X-Forwarded-Email` ; en v1.2, elle n'est encore ni derrière oauth2-proxy, ni dans Docker, ni branchée aux pages. Mode d'emploi et contrat HTTP pour l'intégrateur : `api/README.md`.
+> Le serveur Node.js qui garde les dossiers candidat entiers dans SQLite et expose le contrat list/get/put/remove de `docs/backend/MODELE.md`, réservé aux membres actifs de la table `equipe`. Placée derrière oauth2-proxy, qui pose `X-Forwarded-Email` ; depuis v1.3, elle tourne dans Docker (service `api`, réseau `back`, [Architecture](architecture.md)) et les pages l'utilisent quand elle répond ([Mode serveur](mode-serveur.md)). Aucun fichier de `api/src/` n'a changé en v1.3. Mode d'emploi et contrat HTTP pour l'intégrateur : `api/README.md`.
 
 ## Vue d'ensemble
-Déploiement visé (version suivante) :
+Déploiement (v1.3) :
 ```mermaid
 flowchart LR
   N[Navigateur] -->|cookie de session| P[oauth2-proxy]
-  P -->|X-Forwarded-Email| A[API Fastify\nHOST:PORT]
+  P -->|réseau back, X-Forwarded-Email| A[API Fastify\n0.0.0.0:8000 dans le conteneur]
   A --> D[(SQLite\nDB_PATH, WAL)]
   C[node api/equipe.js] --> D
 ```
@@ -105,7 +105,17 @@ Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue
 ## Tests
 `cd api && npm test` (`node --test "test/*.test.js"`), 52 tests (~20 s), 7 fichiers dans `api/test/` : `config`, `base`, `api` (autorisation, erreurs, options), `candidats`, `serveur` et `equipe` (processus fils), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
 
+## Consommateurs (v1.3)
+| Consommateur | Routes | Fichier |
+|---|---|---|
+| Démarrage des pages | `GET /api/moi`, `GET /api/equipe`, `GET /api/options-disponibilite` | `assets/demarrage.js` |
+| Options ajoutées | `POST /api/options-disponibilite` | `assets/demarrage.js` (`STORE.sourceDispos`) |
+| Dossiers | `GET /api/candidats`, `GET`/`PUT`/`DELETE /api/candidats/:id` | `assets/adapter-serveur.js` |
+| Sonde de santé | `GET /api/sante` (dans le conteneur, pas au travers d'oauth2-proxy, où elle exige une session) | `docker/api.Dockerfile` |
+Les réponses d'oauth2-proxy (401 `{}`, 502 HTML, 302) sont classées par `AdaptateurServeur.lire` ([Mode serveur](mode-serveur.md)).
+
 ## Voir aussi
+- [Mode serveur des pages](mode-serveur.md)
 - [Architecture et déploiement](architecture.md)
 - [Décisions](decisions.md)
 - [Conventions et tests](conventions.md)
@@ -115,3 +125,4 @@ Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue
 | Version | Changement |
 |---|---|
 | 1.2 | Création : routes, autorisation, base, configuration, `equipe.js` |
+| 1.3 | Dans Docker derrière oauth2-proxy ; consommateurs (pages) ; aucun changement du code de l'API |

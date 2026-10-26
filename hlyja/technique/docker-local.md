@@ -2,9 +2,9 @@
 type: technique
 page: docker-local
 titre: Lancer le site avec Docker sur un poste
-maj: 1.1
-commit: c7c60b6
-sources: compose.yaml, .env.example, deploy/Caddyfile, deploy/oauth2-proxy.cfg, tools/check-site.sh, deploy/README.md
+maj: 1.3
+commit: e59d120
+sources: compose.yaml, docker/api.Dockerfile, .env.example, deploy/Caddyfile, deploy/oauth2-proxy.cfg, tools/check-site.sh, deploy/README.md
 date: 2026-10-26
 ---
 
@@ -23,8 +23,9 @@ date: 2026-10-26
 | Étape | Commande | Résultat |
 |---|---|---|
 | Réglages | `cp .env.example .env` | `.env` prêt pour le local : `DOMAIN=localhost`, `COMPOSE_PROFILES=caddy`, faux identifiants Google, cookie secret d'exemple valide (32 caractères) |
-| Construire et lancer | `docker compose up -d --build` | conteneurs `recrutement-front-1` (127.0.0.1:4180) et `recrutement-caddy-1` (80, 443, 443/udp) |
-| Contrôler | `tools/check-site.sh https://localhost` | 5 `OK`, code 0 |
+| Construire et lancer | `docker compose up -d --build` | conteneurs `recrutement-front-1` (127.0.0.1:4180), `recrutement-api-1` (aucun port, réseau `back`, `healthy` en quelques secondes) et `recrutement-caddy-1` (80, 443, 443/udp) |
+| Contrôler | `tools/check-site.sh https://localhost` | 6 `OK` (dont `/api/moi` → 401), code 0 |
+| Équipe (v1.3) | `docker compose exec api node api/equipe.js add moi@yeita.fr Moi admin` | membre dans la base du volume `recrutement_data` ; une vraie connexion Google (ci-dessous) montre alors « Connecté·e : Moi » |
 | Ouvrir | `https://localhost/` | guide public ; `/candidatures/` redirige vers Google |
 `.env` est ignoré par git (`.gitignore`), par `.dockerignore` et par `tools/build.py`.
 
@@ -41,7 +42,7 @@ En HTTP simple, le cookie de session (`cookie_secure = true`) n'est pas renvoyé
 | Besoin | Commande |
 |---|---|
 | État | `docker compose ps` |
-| Journaux | `docker compose logs --tail 100 front` ; `docker compose --profile caddy logs --tail 100 caddy` |
+| Journaux | `docker compose logs --tail 100 front` ; `docker compose logs --tail 100 api` ; `docker compose --profile caddy logs --tail 100 caddy` |
 | Prendre en compte un `.env` ou un `deploy/*.cfg` modifié | `docker compose up -d --force-recreate` |
 | Reconstruire après un changement des pages | `docker compose up -d --build` |
 
@@ -50,8 +51,8 @@ En HTTP simple, le cookie de session (`cookie_secure = true`) n'est pas renvoyé
 |---|---|---|
 | Site | `docker compose --profile caddy down` | conteneurs `front` et `caddy` arrêtés et supprimés, réseau `recrutement_edge` supprimé ; volumes gardés |
 | Contrôle | `docker compose ps -a` | liste vide |
-| Volumes | `docker compose --profile caddy down --volumes` | supprime aussi `recrutement_caddy_data` (autorité locale et certificats) et `recrutement_caddy_config` |
-| Image | `docker image rm recrutement-front` | image construite supprimée (refaite par `up --build`) |
+| Volumes | `docker compose --profile caddy down --volumes` | supprime aussi `recrutement_caddy_data` (autorité locale et certificats), `recrutement_caddy_config` et **`recrutement_data` (la base des candidatures)** : en local seulement, jamais sur le serveur |
+| Images | `docker image rm recrutement-front recrutement-api` | images construites supprimées (refaites par `up --build`) |
 | Réglages | `rm .env` | |
 | Docker | menu de Docker Desktop › « Quit Docker Desktop », ou `osascript -e 'quit app "Docker"'` | |
 Sans `--profile caddy`, `down` laisse `caddy` en marche, ports 80 et 443 compris (V16). Après `--volumes`, l'autorité locale est recréée au prochain démarrage : retirer l'ancienne racine du trousseau si elle y avait été ajoutée.
@@ -91,3 +92,4 @@ Erreur Google `redirect_uri_mismatch` : l'URI du client ne correspond pas exacte
 | Version | Changement |
 |---|---|
 | 1.1 | Création : démarrage local, cas A et B, avertissements attendus, client Google OAuth d'essai |
+| 1.3 | Service `api` (aucun port), équipe par `docker compose exec`, 6e contrôle, volume `recrutement_data` (base) dans `down --volumes` |
