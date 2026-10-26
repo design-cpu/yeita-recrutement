@@ -1,14 +1,14 @@
 ---
 type: pilote
 version: 1.1
-points: 2
-dernier: ajuster
+points: 3
+dernier: ok
 date: 2026-10-26
 ---
 
 # Chef d'équipe — version 1.1
 
-> Plan + P1, P2 · dernier verdict : ajuster (spec v2 resserrée).
+> Plan + P1, P2, P3 · dernier verdict : ok.
 
 ## Plan · ok
 Plan écrit dans `version.md` (section « Plan d'équipe »). Jury de 4, spec 150 à 220 lignes, 7 à 9 tâches, ~14 fichiers, 8 à 10 scénarios de QA.
@@ -32,3 +32,13 @@ Actions : garder ces numéros dans la spec, viser 150 à 220 lignes ; `network_m
 | Fichiers prévus | 15 | ~14 |
 Constats : pas de dérive vers la réalisation ; risque de grossissement si les 31 retours entrent tels quels. Ajouts hors pitch proposés par le jury : `cookie_expire 12h` (S3), surveillance du disque (E12), HSTS conditionnel (S6), `tmux` (E8), `SKIP` élargi (D7).
 Actions (appliquées en v2) : bloquants et majeurs en règles et CA ; points du README en une phrase chacun dans R19 ; D6, E9, L10, L11, L6, S4, E10, E8 en une ligne ou renvoyés aux tâches ; S3 limité aux attributs explicites (durée par défaut gardée) ; E12 : hypothèse de stockage seulement ; S6 : documenté seulement ; candidats backlog : retrait du projet (E11), mentions de GitHub Pages dans les pages, surveillance du disque, durée de session. Viser 160 à 200 lignes.
+
+## P3 — après le découpage · ok
+| Mesure | Valeur | Repère du plan |
+|---|---|---|
+| Tâches | 7 | 7 à 9 |
+| Couverture | R1–R23, CA1–CA13 rattachés | tout couvert |
+| Fichiers prévus | 15 + `README.md` racine | ~14 |
+| Spec finale | 148 lignes | 150 à 220 |
+Constats : découpage conforme, aucun ajout hors pitch. Banc d'essai R23 sans place prévue ; `CONTRIBUER.md` cité par le plan.
+Actions : le banc R23 reste une suite de commandes notées dans les fiches 04 et 05 (aucun script de test hors du dépôt) ; `CONTRIBUER.md` vérifié à l'étape documentation (aucune mention de GitHub Pages, `grep`) ; mentions de GitHub Pages dans les pages → backlog.
