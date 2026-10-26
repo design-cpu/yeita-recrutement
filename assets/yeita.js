@@ -166,10 +166,11 @@ function radar(steps, tier, o){
   return g + '</svg>';
 }
 
-/* Une page publiée dans un artefact ne peut pas ouvrir l'impression : le bouton n'apparaît qu'hors cadre (GitHub Pages). */
+/* Une page publiée dans un artefact ne peut pas ouvrir l'impression : le bouton n'apparaît qu'hors cadre (sur le site du recrutement). */
 function inFrame(){ try{ return window.self !== window.top; }catch(e){ return true; } }
-/* L'adresse du site GitHub Pages du recrutement. À changer si le dépôt passe chez Yeichati. */
-var SITE = "https://leofuster-story.github.io/yeita-recrutement/";
+/* L'adresse du site du recrutement (serveur OVH de Yeita, depuis la v1.1). Sert aussi à reconnaître le site de production
+   (assets/demarrage.js : un 404 de l'API y bloque la page au lieu de passer dans le navigateur). */
+var SITE = "https://recrutement.yeita.fr/";
 /* L'adresse du hub dans Claude. Un lien direct vers une page passe par lui : HUB_URL + "#fiche-ec1", par exemple. */
 var HUB_URL = "https://claude.ai/artifact/XHFqCUicW1LboUFN9qSx1d";
 function wirePrint(){
@@ -182,6 +183,7 @@ function wirePrint(){
         n.hidden = false;
         var page = (location.pathname.split("/").pop() || "");
         if(!/\.html$/.test(page)) page = "";
+        else if(/\/candidatures\/[^/]*$/.test(location.pathname)) page = "candidatures/" + page;
         n.insertAdjacentHTML("beforeend", ' <a href="'+SITE+page+'" target="_blank" rel="noopener">Ouvrir sur le site</a>');
       }
     }
