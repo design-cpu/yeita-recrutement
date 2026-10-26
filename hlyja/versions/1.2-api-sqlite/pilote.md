@@ -1,14 +1,14 @@
 ---
 type: pilote
 version: 1.2
-points: 3
+points: 4
 dernier: ok
 date: 2026-10-26
 ---
 
 # Chef d'équipe — version 1.2
 
-> Plan + P1 à P3 · dernier verdict : ok.
+> Plan + P1 à P4 · dernier verdict : ok · 2 questions posées à l'utilisateur (journal, lockfile).
 
 ## Plan · ok
 Plan écrit dans `version.md` (section « Plan d'équipe »). Jury de 5, spec 250 à 350 lignes, 8 à 10 tâches, 14 à 18 fichiers créés et 4 modifiés, 35 à 45 scénarios de QA.
@@ -50,3 +50,16 @@ Suite donnée : D2 → l'utilisateur a choisi la purge (une ligne `suppression`)
 | Outillage hors projet | aucun | node:test |
 Constats : découpage fidèle, ordre proportionné au risque ; spec un peu sous le repère de longueur, sans risque de périmètre.
 Actions : `test/` limité à 7 fichiers ; tâche 09 limitée à `api/README.md`, au renvoi du README racine et à la section des tables de `MODELE.md` (référentiel à l'étape documentation) ; ne pas faire : Docker, `.dockerignore`, Playwright, adaptateur, migration, sauvegardes, charge, propriétaire dans `equipe.js`, `.git`/`.env` sous `DEV_STATIC`, H1, linter, CI ; aucun nouvel `[ajout]` sans P4.
+
+## P4 — avant la QA · ok
+| Mesure | Valeur | Repère du plan |
+|---|---|---|
+| Tâches | 9, toutes `ok` | 8 à 10 |
+| Fichiers hors `hlyja/` | 20 créés, 4 modifiés ; +2518 / −22 (lockfile compris) | 14 à 18 créés, 4 modifiés |
+| Routes, commandes | 9 routes, 4 commandes, aucune en plus | aucune hors pitch |
+| Tests | 44 (node:test), ~16 s ; `test-store.js` vert | `test/` ≤ 7 fichiers : tenu |
+| Corrections pendant les tâches | 4, toutes dans les tests | — |
+| Revue | 0 bloquant ; 1 majeur tranché par l'utilisateur ; 11 mineurs (9 corrigés, 1 couvert, Q6 non traité) | bloquants et majeurs |
+| Outillage hors projet | `muter.py` dans le scratchpad | aucun dans le dépôt |
+Constats : périmètre tenu ; 2 fichiers de plus que le repère (découpage de `src/`, lockfile), sans élargissement. Les 9 mineurs corrigés sont petits, liés à la sécurité ou aux données personnelles, et mis à l'épreuve : pas une dérive. S3 (`dotfiles: "deny"`) règle en partie l'idée « `.git`/`.env` sous `DEV_STATIC` » renvoyée au backlog : gardé (une option). Point faible : les 44 tests n'ont tourné que sous Node 26 ; CA1 sous `node:22-bookworm-slim` pas rejoué depuis V21.
+Actions : QA en priorité sur CA1 dans `node:22-bookworm-slim` sans Python, puis de bout en bout sur le vrai serveur (401, 403, 409), règles 2 et 3, absence de contenu dans les journaux, effacement réel, `equipe.js` et API sur la même base ; 35 à 45 scénarios. Ne pas lancer Playwright, Docker Compose, banc OVH ni charge ; ne pas rouvrir le lockfile ni Q6 ; ne pas réécrire les tests ; noter au backlog que S3 couvre déjà les fichiers cachés.
