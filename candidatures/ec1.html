@@ -350,7 +350,7 @@ function saveCand(){
     .then(function(c){ cand = c; savedAt = new Date(); refuse = false; renderExits(); }, function(x){ refuse = true; renderExits(); throw x; });
 }
 /* Départ de la page : sans relecture, la partie posée sur le dernier dossier lu ou écrit, envoyée aussitôt. */
-function partirCand(){ var x = JSON.parse(JSON.stringify(cand)); poserPartie()(x); DOSSIER.partir(x); }
+function partirCand(){ DOSSIER.partirPartie(cand, poserPartie()); }
 /* Une candidature qui n'a qu'une lecture EC1 (code collé, ancien report) : on reconstruit l'écran depuis cette lecture. */
 function fromEC1(c){
   var x = fresh(true), e = c.ec1; if(!e) return x;

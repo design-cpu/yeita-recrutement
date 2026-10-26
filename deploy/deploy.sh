@@ -119,7 +119,9 @@ $etrangers"
   done
   # L'api (depuis la 1.3) : attendue seulement si le commit déployé la déclare (lu après le changement de commit :
   # un retour vers un commit sans api ne doit pas l'attendre). Le 401 de check-site.sh vient d'oauth2-proxy, pas d'elle.
-  if docker compose config --services | grep -qx api; then
+  local services
+  services=$(docker compose config --services) || echec "$avant" "Compose ne peut pas lire les services."
+  if grep -qx api <<<"$services"; then
     local sante=""
     for i in $(seq 1 30); do
       sante=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$(docker compose ps -q api)" 2>/dev/null || true)

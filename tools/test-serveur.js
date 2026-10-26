@@ -227,6 +227,19 @@ process.on("unhandledRejection", e => { ok(false, "rejet non traité", e && e.me
     const ctx = await demarrer(api, {location: {hostname: "recrutement.yeita.fr"}});
     ok(ctx.DEMARRAGE.mode() === "bloque" && (await enAttente(ctx.DEMARRAGE.pret)) === "en attente", "démarrage : 404 sous l'hôte de production → bloqué, pret jamais résolue");
   }
+  for(const h of ["recrutement.yeita.fr.", "RECRUTEMENT.yeita.fr"]){
+    const api = fausseApi(); api.panne = u => u === "/api/moi" ? api.rep(404, "<html>404</html>", "text/html") : null;
+    const ctx = await demarrer(api, {location: {hostname: h}});
+    ok(ctx.DEMARRAGE.mode() === "bloque", "démarrage : 404 sous « " + h + " » (même site, forme différente) → bloqué");
+  }
+  {
+    const api = fausseApi(); api.panne = u => u === "/api/moi" ? api.rep(401, {}) : null;
+    const ctx = page(api, {demarrage: false});
+    ctx.sessionStorage = {getItem(){ throw new Error("bloqué"); }, setItem(){ throw new Error("bloqué"); }, removeItem(){}};
+    vm.runInContext(fs.readFileSync(path.join(root, "assets/demarrage.js"), "utf8"), ctx, {filename: "assets/demarrage.js"});
+    await delai(30);
+    ok(ctx.__recharges === 0 && ctx.DEMARRAGE.mode() === "bloque", "démarrage : 401 sans stockage de session → bloqué, sans rechargement (pas de boucle)");
+  }
   {
     const api = fausseApi();
     const ctx = await demarrer(api, {location: {protocol: "file:"}});
@@ -361,6 +374,40 @@ process.on("unhandledRejection", e => { ok(false, "rejet non traité", e && e.me
     await D.remove(d.id);
     await rejette(D.ecrirePartie(r2, {poser: x => poserDec(x, "après suppression"), lire: lireDec}), "fiches : dossier supprimé → refus", "conflit");
     ok(!api.base[d.id], "fiches : aucune recréation");
+  }
+  {
+    /* Départ d'une fiche pendant un enregistrement en cours : la partie se pose sur l'objet en vol (revue de code, Q1) */
+    const api = fausseApi(); const ctx = await demarrer(api); await attendre(ctx.DEMARRAGE.pret, "pret");
+    const D = ctx.DOSSIER, d = D.blank("Depart Fiche"); await D.save(d);
+    const ec1 = await D.get(d.id), dec = await D.get(d.id);
+    const lireDec = x => x.fiches && x.fiches.decompte, lireEc1 = x => x.fiches && x.fiches.ec1;
+    await attendre(D.ecrirePartie(dec, {poser: x => { x.fiches.decompte = {notes: {a: "décompte"}}; }, lire: lireDec}), "décompte écrit");
+    api.retardReponse.PUT = 150;
+    const enVol = D.ecrirePartie(ec1, {poser: x => { x.fiches.ec1 = {f: {t: "ec1 en vol"}}; }, lire: lireEc1});
+    await delai(40);
+    D.partirPartie(ec1, x => { x.fiches.ec1 = {f: {t: "ec1 au départ"}}; });
+    await attendre(Promise.allSettled([enVol]), "PUT en vol"); await delai(200);
+    api.retardReponse.PUT = 0;
+    const b = JSON.parse(api.base[d.id].data);
+    ok(b.fiches.decompte && b.fiches.decompte.notes.a === "décompte" && b.fiches.ec1.f.t === "ec1 au départ", "départ pendant un PUT en cours : la partie de l'autre page reste, la dernière frappe est en base", JSON.stringify(b.fiches));
+    /* Départ après une relecture non adoptée (EC2 au retour sur l'onglet) */
+    const ec2 = await D.get(d.id);
+    const autre = await D.get(d.id); autre.fiches.ec1 = {f: {t: "EC1 de Bob"}}; await D.save(autre);   /* relève la version par identifiant */
+    await D.get(d.id);                                                                                   /* relecture non adoptée */
+    await attendre(D.partirPartie(ec2, x => { x.fiches.ec2 = {f: {t: "EC2 au départ"}}; }), "départ EC2");
+    const b2 = JSON.parse(api.base[d.id].data);
+    ok(b2.fiches.ec1.f.t === "EC1 de Bob", "départ après une relecture non adoptée : l'EC1 de Bob n'est pas écrasée (refus accepté, H5)", JSON.stringify(b2.fiches));
+  }
+  {
+    /* Mode navigateur : un refus de fiche affiche aussi le bandeau */
+    const api = fausseApi(); api.panne = u => u === "/api/moi" ? api.rep(404, "x", "text/html") : null;
+    const ctx = await demarrer(api); await attendre(ctx.DEMARRAGE.pret, "pret nav");
+    const D = ctx.DOSSIER, d = D.blank("Refus Local"); await D.save(d);
+    const ouverte = await D.get(d.id), autre = await D.get(d.id);
+    autre.fiches.decompte = {notes: {a: "autre onglet"}}; await D.save(autre);
+    await D.ecrirePartie(ouverte, {poser: x => { x.fiches.decompte = {notes: {a: "périmée"}}; }, lire: x => x.fiches.decompte}).catch(() => {});
+    const bd = ctx.__body.children[0];
+    ok(bd && /modifiée par quelqu'un d'autre/.test(bd.innerHTML), "mode navigateur : refus d'une fiche → bandeau (R6i, revue de code Q3)");
   }
   {
     /* Mode navigateur : un dossier supprimé dans un autre onglet n'est pas recréé par une fiche restée ouverte */

@@ -6,6 +6,6 @@ _site
 *~
 api/node_modules
 api/data
-*.sqlite
-*.sqlite-wal
-*.sqlite-shm
+**/*.sqlite
+**/*.sqlite-wal
+**/*.sqlite-shm

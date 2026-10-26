@@ -29,7 +29,7 @@ if(window.STORE) STORE.sourceDispos({ajouts: function(){ return enMemoire; }, aj
 /* cas : l'erreur (code, ecriture) ou rien. Lecture seule : message seul ; enregistrement refusé : la saisie n'est pas gardée. */
 function erreur(message, cas){
   cas = cas || {};
-  var E = (window.YEITA && YEITA.esc) || String;
+  var E = (window.YEITA && YEITA.esc) || function(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
   var lecture = cas.code === "lecture-seule";
   var el = document.createElement("div");
   el.className = "notice err demarrage-bandeau";
@@ -50,6 +50,7 @@ function effacer(){ if(bandeau && bandeau.remove) bandeau.remove(); bandeau = nu
 function bloquer(message, cas){ mode = "bloque"; erreur(message, cas || {}); }
 function navigateur(){
   mode = "navigateur"; choisi = local; D.use(local);
+  D.onRefus = function(e){ erreur(e.message, e); };   /* une fiche refusée (autre onglet) le dit aussi dans ce mode */
   if(window.QUI) QUI.local();
   if(window.STORE) STORE.sourceDispos(null);
   resoudre();
@@ -60,7 +61,8 @@ function sur401(){
   var avant = 0;
   try{ avant = Number(sessionStorage.getItem(GARDE_401)) || 0; }catch(e){}
   if(avant && Date.now() - avant < FENETRE_401){ bloquer(t("session")); return new Promise(function(){}); }
-  try{ sessionStorage.setItem(GARDE_401, String(Date.now())); }catch(e){}
+  /* Sans stockage de session, la garde ne tiendrait pas : on s'arrête au lieu de risquer une boucle. */
+  try{ sessionStorage.setItem(GARDE_401, String(Date.now())); }catch(e){ bloquer(t("session")); return new Promise(function(){}); }
   location.reload();
   return new Promise(function(){});
 }
@@ -95,8 +97,11 @@ function serveur(moi){
     resoudre();
   });
 }
+/* Nom d'hôte comparé tel que le navigateur le résout : casse et point final ignorés (recrutement.yeita.fr. est le même site).
+   En cas de doute, on se considère en production : bloquer vaut mieux qu'un repli silencieux. */
 function hoteDeProduction(){
-  try{ return new URL(YEITA.SITE).hostname === location.hostname; }catch(e){ return false; }
+  function nom(h){ return String(h || "").toLowerCase().replace(/\.+$/, ""); }
+  try{ return nom(new URL(YEITA.SITE).hostname) === nom(location.hostname); }catch(e){ return true; }
 }
 
 function demarrer(){

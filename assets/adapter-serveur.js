@@ -51,7 +51,7 @@ function AdaptateurServeur(opts){
   var parObjet = new WeakMap();   /* objet dossier → version lue ou écrite */
   var parId = {};                 /* id → plus haute version reçue */
   var supprimes = {};             /* id supprimés depuis cette page */
-  var enCours = {};               /* id → version envoyée par le PUT en cours */
+  var enCours = {};               /* id → {objet, version} du PUT en cours */
   var files = {};                 /* id → dernière requête de la file */
 
   function retenir(id, d, v){
@@ -107,7 +107,7 @@ function AdaptateurServeur(opts){
       return enFile(id, function(){
         if(supprimes[id]) return echec(erreur("conflit", texte("conflit")), true);
         var v = parObjet.has(d) ? parObjet.get(d) : (id in parId ? parId[id] : null);
-        enCours[id] = v;
+        enCours[id] = {objet: d, version: v};
         return envoyer("PUT", adresse(id), {version: v, data: d}).then(function(r){
           delete enCours[id];
           var s = suite(r, function(r){ retenir(id, d, r.json.version); return d; });
@@ -126,19 +126,24 @@ function AdaptateurServeur(opts){
         });
       });
     },
-    /* Départ de la page (pagehide) : part aussitôt, hors de la file, avec keepalive. Si un PUT du même dossier est en
-       cours, porte la version qu'il produira ; sinon la plus haute connue. Un refus ne peut plus être affiché (H5). */
-    partir: function(d){
+    /* Départ de la page (pagehide) : part aussitôt, hors de la file, avec keepalive. d est posé sur base (le dernier
+       dossier lu ou écrit par la page, ou l'objet du PUT en cours) : il porte la version de base, ou celle que le PUT en
+       cours produira. Jamais la plus haute connue : elle pourrait couvrir des parties que d n'a pas (revue de code, Q1).
+       Un refus ne peut plus être affiché (H5). */
+    partir: function(d, base){
       var id = d && d.id;
       if(!MOTIF_ID.test(String(id || "")) || supprimes[id]) return Promise.resolve(null);
-      var v = (id in enCours) ? (enCours[id] === null ? 1 : enCours[id] + 1)
-        : (id in parId ? parId[id] : (parObjet.has(d) ? parObjet.get(d) : null));
+      base = base || d;
+      var vol = enCours[id];
+      var v = (vol && vol.objet === base) ? (vol.version === null ? 1 : vol.version + 1) : (parObjet.has(base) ? parObjet.get(base) : null);
       return envoyer("PUT", adresse(id), {version: v, data: d}, true).then(function(r){
         if(r.type === "ok") retenir(id, d, r.json.version);
         return r.type === "ok" ? d : null;
       });
     },
-    /* Version gardée pour un objet (tests et fiches). */
+    /* L'objet du PUT en cours pour cet identifiant, ou null (départ des fiches : leur partie se pose dessus). */
+    enVol: function(id){ return enCours[id] ? enCours[id].objet : null; },
+    /* Version gardée pour un objet (tests). */
     version: function(d){ return parObjet.has(d) ? parObjet.get(d) : null; }
   };
 }

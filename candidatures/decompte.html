@@ -443,7 +443,7 @@ window.addEventListener("afterprint", restore);
 document.getElementById("print-blank").addEventListener("click", function(){ if(!YEITA.inFrame()) printBlank(); });
 
 document.querySelectorAll("[data-t]").forEach(function(el){ el.textContent = UI.t(el.dataset.t); });
-window.addEventListener("pagehide", function(){ if(cand && candT){ clearTimeout(candT); candT = null; var x = JSON.parse(JSON.stringify(cand)); poserPartie()(x); DOSSIER.partir(x); } });
+window.addEventListener("pagehide", function(){ if(cand && candT){ clearTimeout(candT); candT = null; DOSSIER.partirPartie(cand, poserPartie()); } });
 if(!candId){ document.getElementById("sans-cand").hidden = false; fillIdent(); renderAll(); }
 else DEMARRAGE.pret.then(function(){ return DOSSIER.get(candId); }).then(function(c){
   if(!c){

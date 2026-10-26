@@ -285,7 +285,15 @@ function ecrirePartie(d, o){
   return essai(1);
 }
 /* Départ de la page (pagehide) : sans relecture, part aussitôt (adaptateur serveur : keepalive, hors file). */
-function partir(d){ d = touch(upgrade(d)); return adapter.partir ? adapter.partir(d) : adapter.put(d); }
+function partir(d){ d = touch(upgrade(d)); return adapter.partir ? adapter.partir(d, d) : adapter.put(d); }
+/* Départ d'une fiche : sa partie est posée sur l'objet de l'enregistrement en cours s'il y en a un (il contient ce que les
+   autres pages ont écrit), sinon sur base, le dernier dossier lu ou écrit par la page ; il part avec la version de cet objet. */
+function partirPartie(base, poser){
+  var socle = (adapter.enVol && adapter.enVol(base.id)) || base, x = clone(socle);
+  poser(x);
+  x = touch(upgrade(x));
+  return adapter.partir ? adapter.partir(x, socle) : adapter.put(x);
+}
 
 /* ---------- Codes : le passage d'un ordinateur à l'autre, en attendant une base partagée ---------- */
 function toCode(d, part){
@@ -346,7 +354,7 @@ window.DOSSIER = {
   norm: norm, now: now, touch: touch,
   list: function(){ return adapter.list(); },
   get: function(id){ return adapter.get(id); },
-  save: save, ecrirePartie: ecrirePartie, partir: partir,
+  save: save, ecrirePartie: ecrirePartie, partir: partir, partirPartie: partirPartie,
   remove: function(id){ if(currentId() === id && window.YEITA) YEITA.store.del(CUR); return adapter.remove(id); },
   current: current, setCurrent: setCurrent, findByName: findByName,
   report: report, setRestitution: setRestitution,
