@@ -9,7 +9,7 @@ window.YEITA_CONFIG = {
      Elles restent hors de l'espace protégé. Laisser vide une page qui n'existe pas encore : elle n'apparaît pas dans le mail. */
   pagesCandidat: {
     pourNousDecouvrir: "",                                                            /* One-pager « Pour nous découvrir » (présentation de Yeita) */
-    tonParcours: "https://design-cpu.github.io/yeita-recrutement/one-pager.html"      /* « Ton parcours chez Yeita » */
+    tonParcours: "https://recrutement.yeita.fr/one-pager.html"                     /* « Ton parcours chez Yeita » */
   },
 
   /* Le bloc « Infos pratiques » du mail du one-pager. Une ligne vide n'apparaît pas. */

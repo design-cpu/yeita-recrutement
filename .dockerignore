@@ -1,0 +1,6 @@
+.git
+hlyja
+_site
+.env*
+*.swp
+*~

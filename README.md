@@ -38,10 +38,9 @@ Les tests de navigateur demandent le site construit et servi : `python3 tools/bu
 
 ## Publier
 
-1. Dans les réglages du dépôt, **Pages** › Source : **GitHub Actions**.
-2. Chaque `push` sur `main` lance `.github/workflows/pages.yml`, qui construit le site avec `tools/build.py` et le publie.
+Le site est servi sur `https://recrutement.yeita.fr`, depuis le serveur OVH de Yeita, dans Docker : l'espace Candidatures y demande un compte Google @yeita.fr, les pages destinées aux candidats restent publiques. Le déploiement est manuel : mode d'emploi dans [`deploy/README.md`](deploy/README.md). GitHub Pages n'est plus utilisé.
 
-Pour construire en local : `python3 tools/build.py` (le site sort dans `_site/`).
+Pour construire en local : `python3 tools/build.py` (le site sort dans `_site/`). Pour lancer le site comme sur le serveur : `cp .env.example .env && docker compose up -d --build`, puis `https://localhost`.
 
 ## Mettre à jour
 

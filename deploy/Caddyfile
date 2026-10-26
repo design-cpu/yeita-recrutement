@@ -1,0 +1,12 @@
+# Cas B : Caddy obtient le certificat de {$DOMAIN} et transmet à front.
+# Avec DOMAIN=localhost (test local), le certificat vient de l'autorité locale de Caddy.
+{$DOMAIN} {
+	reverse_proxy front:4180
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		X-Frame-Options "DENY"
+	}
+}

@@ -4,8 +4,8 @@ Ce guide s'adresse à toute l'équipe, développeur ou non. Il dit où changer u
 
 ## Avant tout
 
-- **Données fictives uniquement**, jusqu'au déploiement sécurisé de Sacha. Aucun nom, e-mail, téléphone ou CV de vrai candidat dans l'outil, dans les tests, dans les captures ou dans un commit. Les exemples (`STORE.loadDemo`) sont inventés.
-- **Ne pas toucher** à l'authentification, au déploiement, au moteur de stockage ni à l'architecture du Yeita Match en ligne : c'est la branche de Sacha.
+- **Données fictives uniquement**, tant que le stockage partagé n'est pas branché : depuis la version 1.1, l'espace est en ligne derrière la connexion Google @yeita.fr, mais les données restent dans le navigateur de chacun. Aucun nom, e-mail, téléphone ou CV de vrai candidat dans l'outil, dans les tests, dans les captures ou dans un commit. Les exemples (`STORE.loadDemo`) sont inventés.
+- **Ne pas toucher** à l'authentification ni au déploiement (`deploy/`, `docker/`, `compose.yaml`, mode d'emploi dans `deploy/README.md`) sans l'équipe technique ; le moteur de stockage et l'architecture du Yeita Match en ligne restent la branche de Sacha.
 - **Garder stable l'interface de stockage** de `assets/dossier.js` : `list`, `get`, `put`, `remove`, en promesses. Le modèle qui fait foi est `docs/backend/MODELE.md`. Tout nouveau champ s'y documente.
 
 ## Changer un texte
