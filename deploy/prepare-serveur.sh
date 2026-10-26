@@ -102,7 +102,9 @@ fi
 
 # --- 7. Dossier du dépôt ---
 cloner=non
-if [ -e "$DOSSIER" ]; then
+if [ -d "$DOSSIER" ] && [ -z "$(ls -A "$DOSSIER")" ] && [ "$creer_utilisateur" = non ] && [ "$(stat -c %U "$DOSSIER")" = "$UTILISATEUR" ]; then
+  cloner=oui   # dossier vide laissé par une exécution interrompue
+elif [ -e "$DOSSIER" ]; then
   [ "$creer_utilisateur" = non ] || arret "$DOSSIER existe déjà alors que l'utilisateur $UTILISATEUR n'existe pas."
   [ -d "$DOSSIER/.git" ] || arret "$DOSSIER existe et n'est pas un dépôt git."
   [ "$(stat -c %U "$DOSSIER")" = "$UTILISATEUR" ] || arret "$DOSSIER n'appartient pas à $UTILISATEUR."
@@ -144,7 +146,11 @@ fi
 
 if [ "$cloner" = oui ]; then
   install -d -m 755 -o "$UTILISATEUR" -g "$UTILISATEUR" "$DOSSIER"
-  runuser -u "$UTILISATEUR" -- git clone --quiet "$DEPOT" "$DOSSIER"
+  if ! runuser -u "$UTILISATEUR" -- git clone --quiet "$DEPOT" "$DOSSIER"; then
+    rmdir "$DOSSIER" 2>/dev/null || true
+    echo "ARRÊT : le clone de $DEPOT a échoué ; $DOSSIER est retiré. Relancer le script après correction." >&2
+    exit 1
+  fi
   info "Dépôt cloné dans $DOSSIER par $UTILISATEUR."
 fi
 
