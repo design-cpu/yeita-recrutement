@@ -31,7 +31,7 @@ done
 docker compose version >/dev/null 2>&1 || arret "le plugin Docker Compose est absent (« docker compose version » échoue)."
 docker info >/dev/null 2>&1 || arret "Docker ne répond pas (« docker info » échoue)."
 getent group docker >/dev/null || arret "le groupe « docker » n'existe pas."
-info "Outils présents : docker, docker compose, git, flock, ss, ip, curl."
+info "Outils présents : docker, docker compose, git, flock, ss, ip, curl, ssh-keygen, useradd, runuser."
 
 # --- 2. Clé SSH ---
 case "$CLE" in *$'\n'*) arret "la clé doit tenir sur une seule ligne." ;; esac
@@ -94,9 +94,10 @@ info "Sous-réseau $SOUS_RESEAU libre${notre_pont:+ (tenu par le projet)}."
 # --- 6. Utilisateur deploy ---
 creer_utilisateur=non
 if id "$UTILISATEUR" >/dev/null 2>&1; then
-  id -nG "$UTILISATEUR" | tr ' ' '\n' | grep -qx docker || arret "l'utilisateur « $UTILISATEUR » existe déjà et n'est pas dans le groupe docker : il sert peut-être à un autre service. Lui donner ce groupe équivaut à des droits root ; c'est à vous d'en décider."
+  [[ " $(id -nG "$UTILISATEUR") " == *" docker "* ]] || arret "l'utilisateur « $UTILISATEUR » existe déjà et n'est pas dans le groupe docker : il sert peut-être à un autre service. Lui donner ce groupe équivaut à des droits root ; c'est à vous d'en décider."
   info "Utilisateur $UTILISATEUR présent, dans le groupe docker."
 else
+  getent group "$UTILISATEUR" >/dev/null && arret "un groupe « $UTILISATEUR » existe déjà sans utilisateur du même nom."
   creer_utilisateur=oui
 fi
 

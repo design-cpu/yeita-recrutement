@@ -1,4 +1,6 @@
 .git
 hlyja
 _site
-.env
+.env*
+*.swp
+*~

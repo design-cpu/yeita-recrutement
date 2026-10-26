@@ -13,7 +13,7 @@ VERROU="$HOME/.recrutement-deploy.lock"   # hors du dépôt
 arret() { echo "ARRÊT : $*" >&2; exit 1; }
 info() { echo "· $*"; }
 
-# Valeur d'une variable d'un fichier .env (dernière occurrence, guillemets retirés).
+# Valeur d'une variable d'un fichier .env (dernière occurrence, guillemets retirés) : sert pour .env.example.
 valeur() { sed -n "s/^$1=//p" "$2" | tail -n 1 | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'$/\1/"; }
 
 # Conteneurs (nom, projet, dossier) qui publient un port de l'hôte donné.
@@ -33,28 +33,31 @@ main() {
 
   # --- Réglages (.env) ---
   [ -f .env ] || arret "$dossier/.env est absent : copiez .env.example et remplissez-le (deploy/README.md)."
-  local domaine profils retour
-  domaine=$(valeur DOMAIN .env); profils=$(valeur COMPOSE_PROFILES .env); retour=$(valeur OAUTH2_PROXY_REDIRECT_URL .env)
+  # Les valeurs sont celles que Compose utilisera (commentaires, guillemets, variables du shell compris).
+  local reglages domaine profils retour
+  reglages=$(docker compose config --environment) || arret "Compose ne peut pas lire les réglages (.env incomplet ?)."
+  reglage() { printf '%s\n' "$reglages" | sed -n "s/^$1=//p" | tail -n 1; }
+  domaine=$(reglage DOMAIN); profils=$(reglage COMPOSE_PROFILES); retour=$(reglage OAUTH2_PROXY_REDIRECT_URL)
   if [ -z "$domaine" ] || [ "$domaine" = localhost ]; then
     arret "DOMAIN vaut « ${domaine:-vide} » : mettez le domaine du serveur (recrutement.yeita.fr)."
   fi
   [ "$retour" = "https://$domaine/oauth2/callback" ] || arret "OAUTH2_PROXY_REDIRECT_URL vaut « $retour », attendu « https://$domaine/oauth2/callback »."
   local nom
   for nom in OAUTH2_PROXY_COOKIE_SECRET OAUTH2_PROXY_CLIENT_ID; do
-    [ -n "$(valeur "$nom" .env)" ] || arret "$nom est vide dans .env."
-    [ "$(valeur "$nom" .env)" != "$(valeur "$nom" .env.example)" ] || arret "$nom a encore sa valeur d'exemple : remplacez-la (deploy/README.md)."
+    [ -n "$(reglage "$nom")" ] || arret "$nom est vide dans .env."
+    [ "$(reglage "$nom")" != "$(valeur "$nom" .env.example)" ] || arret "$nom a encore sa valeur d'exemple : remplacez-la (deploy/README.md)."
   done
 
   local caddy=non
-  case ",$profils," in *,caddy,*) caddy=oui ;; esac
+  case " $(docker compose config --services | tr '\n' ' ') " in *" caddy "*) caddy=oui ;; esac
 
   echo "Commit en place : $(git rev-parse --short HEAD) ($(git log -1 --format=%s))"
   echo "DOMAIN=$domaine · COMPOSE_PROFILES=${profils:-(vide : cas A)}"
   local avant; avant=$(git rev-parse --short HEAD)
 
-  # --- Dépôt propre ---
-  [ -z "$(git status --porcelain --untracked-files=no)" ] || arret "le dépôt contient des modifications locales :
-$(git status --short --untracked-files=no)"
+  # --- Dépôt propre : un fichier en trop entrerait dans l'image et serait servi aux comptes connectés ---
+  [ -z "$(git status --porcelain)" ] || arret "le dépôt contient des modifications ou des fichiers en trop (une copie de .env serait publiée) :
+$(git status --short)"
 
   # --- Le nom de projet « recrutement » n'appartient qu'à ce dossier ---
   local etrangers
@@ -98,8 +101,8 @@ $etrangers"
     docker compose --profile caddy rm --stop --force caddy
     info "Caddy du projet arrêté et supprimé (cas A)."
   fi
-  docker compose build --pull
-  docker compose up -d --remove-orphans --force-recreate
+  docker compose build --pull || echec "$avant" "la construction de l'image a échoué."
+  docker compose up -d --remove-orphans --force-recreate || echec "$avant" "le démarrage des conteneurs a échoué."
   docker image prune -f --filter "label=$ETIQUETTE" >/dev/null
   info "Conteneurs à jour ; anciennes images du projet supprimées."
 

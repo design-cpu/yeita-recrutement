@@ -31,7 +31,7 @@ La liste est dans `deploy/oauth2-proxy.cfg` (`skip_auth_routes`).
 
 ## 1. Prérequis
 
-Docker avec le plugin Compose, `git`, `curl`, `flock`, `ss` et `ip` (Debian ou Ubuntu les fournissent). **Les scripts n'installent rien** : s'il manque quelque chose, ils s'arrêtent et le disent.
+Docker avec le plugin Compose, `git`, `curl`, `flock`, `ss`, `ip`, `ssh-keygen`, `useradd`, `runuser`, `getent` et `stat` (Debian ou Ubuntu les fournissent). **Les scripts n'installent rien** : s'il manque quelque chose, ils s'arrêtent et le disent.
 
 > Le compte `deploy` est mis dans le groupe `docker`. Ce groupe donne des droits équivalents à root sur le serveur : ne donnez la clé SSH de `deploy` qu'aux personnes qui déploient.
 
@@ -64,8 +64,9 @@ La réponse doit être l'adresse IP du serveur. Sans DNS, aucun certificat HTTPS
 ## 4. Préparer le serveur (une fois, administrateur)
 
 ```bash
-git clone https://github.com/design-cpu/yeita-recrutement.git /tmp/recrutement
-sudo /tmp/recrutement/deploy/prepare-serveur.sh "ssh-ed25519 AAAA… personne@poste"
+d=$(mktemp -d)        # dossier privé : un autre compte du serveur ne peut pas y glisser un script
+git clone https://github.com/design-cpu/yeita-recrutement.git "$d/recrutement"
+sudo "$d/recrutement/deploy/prepare-serveur.sh" "ssh-ed25519 AAAA… personne@poste"
 ```
 
 Le script vérifie : les outils, le port 4180 (libre), le sous-réseau 172.30.0.0/24 (libre), l'absence de conteneurs « recrutement » venus d'ailleurs, et un utilisateur `deploy` déjà présent (s'il existe hors du groupe `docker`, le script s'arrête : c'est à vous de décider). Puis il crée l'utilisateur `deploy`, autorise la clé, clone le dépôt dans `/opt/recrutement` (propriétaire `deploy`) et crée `/var/backups/recrutement` (mode 700). Il ne touche ni au pare-feu, ni aux autres services, ni aux ports 80 et 443. On peut le relancer : il ne change rien.
@@ -198,7 +199,7 @@ En tant que `deploy`, de préférence dans `tmux` ou `screen` (une coupure SSH n
 /opt/recrutement/deploy/deploy.sh
 ```
 
-Le script affiche le commit en place, `DOMAIN` et le cas, vérifie les réglages, met le dépôt sur le dernier `main`, reconstruit l'image, recrée les conteneurs (la configuration est toujours rechargée), supprime les anciennes images **du projet seulement** (étiquette `fr.yeita.projet=recrutement`, jamais de nettoyage global), puis lance `tools/check-site.sh https://$DOMAIN`. En cas B, le contrôle est retenté pendant une minute, le temps que Caddy obtienne son certificat au premier déploiement.
+Le script affiche le commit en place, `DOMAIN` et le cas, vérifie les réglages (tels que Compose les lit) et que le dépôt n'a ni modification ni fichier en trop (une copie de `.env` serait publiée), met le dépôt sur le dernier `main`, reconstruit l'image, recrée les conteneurs (la configuration est toujours rechargée), supprime les anciennes images **du projet seulement** (étiquette `fr.yeita.projet=recrutement`, jamais de nettoyage global), puis lance `tools/check-site.sh https://$DOMAIN`. En cas B, le contrôle est retenté pendant une minute, le temps que Caddy obtienne son certificat au premier déploiement.
 
 Deux déploiements ne peuvent pas tourner en même temps (verrou). Relancer après une interruption est sans risque.
 
