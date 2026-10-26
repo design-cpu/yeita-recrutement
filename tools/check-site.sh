@@ -14,10 +14,10 @@ case "$1" in
 esac
 BASE="${1%/}"
 
-# Le certificat local de Caddy (DOMAIN=localhost) n'est pas reconnu : on ne le vérifie que pour localhost.
+# Le certificat local de Caddy (localhost, *.localhost) n'est pas reconnu : on ne le vérifie pas pour ces noms.
 CURL=(curl -s -o /dev/null --max-time 10)
 host="${BASE#*://}"; host="${host%%/*}"; host="${host%%:*}"
-[ "$host" = "localhost" ] && CURL+=(-k)
+case "$host" in localhost|*.localhost) CURL+=(-k) ;; esac
 
 GOOGLE="https://accounts.google.com/"
 echecs=0
