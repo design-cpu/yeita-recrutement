@@ -344,7 +344,7 @@ function loadDemo(){
         notes: [3,3,2, 3,2,2, 2,3,2, 2,1,null],
         exemples: ["A chiffré le coût de l'abandon à l'onboarding avant de proposer quoi que ce soit.", "", "", "A recruté des testeurs via le support quand l'accès direct était bloqué.", "", "", "", "A tenu une revue de lancement avec la conformité.", "", "", "", ""],
         lecture: "", aspirations: "Veut apprendre à cadrer une stratégie produit. Préfère un binôme les premières semaines.",
-        suspens: {palier: "J'apporte de la valeur, " + (s.job === "PrD" ? "Product Designer." : "Product Manager."), solides: "Problème et Solution : des exemples précis, chiffrés.", creux: "Stratégie : peu d'occasions de la pratiquer jusqu'ici.",
+        suspens: {palier: "J'apporte de l'impact, " + (s.job === "PrD" ? "Product Designer." : "Product Manager."), solides: "Problème et Solution : des exemples précis, chiffrés.", creux: "Stratégie : peu d'occasions de la pratiquer jusqu'ici.",
           questions: "Son envie réelle de cadrer la stratégie, ou de rester près de l'équipe\nCe qu'il attend du binôme les premières semaines", contestation: "Se voit plus avancé sur la stratégie que ce que la fiche #2 montre.", conditions: "Prétentions à placer dans la grille. Disponible dans deux mois."},
         reporteLe: daysAgo(s.age + 1)});
       c.bilans.ec2 = {faitLe: daysAgo(s.age), par: "Andrea", mode: "asynchrone", issue: "continuer"};

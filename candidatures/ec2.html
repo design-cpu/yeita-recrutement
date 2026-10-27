@@ -207,7 +207,7 @@ details.crit[open] .cchev{transform:rotate(45deg)}
   <section class="block" aria-labelledby="t-sus">
     <h2 id="t-sus">Points en suspens pour l'EC3 <span class="tag int" data-t="commun.nonCommunique"></span></h2>
     <div class="suspens">
-      <div class="field"><label for="p-palier">Palier proposé et rôle</label><textarea id="p-palier" rows="2" placeholder="Ex. : J'apporte de la valeur, Product Manager."></textarea></div>
+      <div class="field"><label for="p-palier">Palier proposé et rôle</label><textarea id="p-palier" rows="2" placeholder="Ex. : J'apporte de l'impact, Product Manager."></textarea></div>
       <div class="field"><label for="p-solides">Diamants solides</label><textarea id="p-solides" rows="2" placeholder="Ceux où la personne a prouvé, pas déclaré."></textarea></div>
       <div class="field"><label for="p-creux">Diamants creux</label><textarea id="p-creux" rows="2" placeholder="Et si c'est un manque d'expérience ou un manque d'intérêt."></textarea></div>
       <div class="field"><label for="p-questions">À creuser en EC3</label><textarea id="p-questions" rows="3" placeholder="Trois au plus, une par ligne. EC1 et EC2 compris."></textarea></div>
@@ -763,7 +763,7 @@ document.addEventListener("click", function(e){
     scores = {}; s.forEach(function(v,i){ if(v!=null) scores[sid(Math.floor(i/3), i%3)] = v; });
     notes = {"0-0":"Est partie du contrat du gros client avant de parler roadmap.","0-2":"A cité RICE puis a expliqué pourquoi elle ne l'utilise plus.","1-0":"A recruté des utilisateurs via le support quand le client a bloqué l'accès direct.","2-0":"A décrit un pré-mortem mené avant un lancement."};
     tier = 2; f = {"f-nom":"Camille Rousseau","f-date":"2026-10-21","f-par":"Thélo","f-asp":"Veut se former au cadrage stratégique. Préfère un binôme les premières semaines. Aucun frein sur le présentiel.",
-      "p-palier":"J'apporte de la valeur, Product Manager.", "p-solides":"Problème et Solution : des exemples précis, chiffrés.", "p-creux":"Stratégie : manque d'expérience plus que d'intérêt.",
+      "p-palier":"J'apporte de l'impact, Product Manager.", "p-solides":"Problème et Solution : des exemples précis, chiffrés.", "p-creux":"Stratégie : manque d'expérience plus que d'intérêt.",
       "p-questions":"Son appétence réelle pour le cadrage : y aller, ou rester près de l'équipe ?", "p-contestation":"Se voit plus avancée sur la stratégie que ce que la fiche #2 montre.", "p-conditions":"Disponible sous un mois. Prétentions dans la fourchette du palier."};
     rep = {dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:true}; reportError = "";
     YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f, rep:rep}); load(); renderDiamonds(); renderRead(); renderReport(); renderFrom1(); YEITA.flash(null, "Exemple chargé"); return;
