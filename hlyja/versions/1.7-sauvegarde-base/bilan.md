@@ -72,6 +72,9 @@ Aucune.
 - Traitée par cette version : [1.2-5](../../backlog/1.2-5-sauvegarde-base-sqlite.md) → fait.
 - Remarqué par le curateur, non corrigé : les fiches 1.6-1 à 1.6-4 portent `nature: amelioration` (à lire `evolution`).
 
+## Étonnements
+3 retenus sur 4 (`etonnements/1.7-sauvegarde-base.md`) : parade ajoutée en challenge essayée contre les exécutions concurrentes (fusion avec la règle 2 de la 1.3), tests depuis un état de processus neutre, commandes du poste essayées sous son shell (zsh). **Règles récurrentes signalées par le validateur** (le skill devrait évoluer) : vérification faite dans des conditions plus favorables que la cible (5e version) ; contrôle qui ne peut pas échouer (4e) ; règle de concurrence non exercée (2e) ; `controles.md` n'a toujours ni colonne « conditions » au § 1, ni classement « bloque / plantage » au § 6.
+
 ## Couverture de la doc
 | Élément | Page |
 |---|---|
