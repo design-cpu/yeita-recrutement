@@ -7,6 +7,7 @@ window.WORDING = {
   commun: {
     espace: "Candidatures",
     fictif: "Données fictives uniquement, jusqu'au déploiement sécurisé. Tout reste dans ce navigateur.",
+    serveur: "Les candidatures sont enregistrées sur le serveur de l'équipe Yeita, accessible aux seuls recruteurs connectés.",
     volatile: "Ce navigateur refuse d'enregistrer : tout disparaîtra à la fermeture de l'onglet. Exporte la base avant de partir.",
     retourTableau: "Toutes les candidatures",
     guide: "Guide du recruteur",

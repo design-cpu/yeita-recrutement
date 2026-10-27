@@ -54,8 +54,11 @@ function page(api, o = {}){
   const el = () => ({innerHTML: "", hidden: false, textContent: "", children: [], classList: {add(){}, remove(){}}, setAttribute(){}, addEventListener(){}, contains(){ return false; },
     querySelector(){ return null; }, insertBefore(n){ this.children.unshift(n); }, appendChild(n){ this.children.push(n); }, remove(){ this.retire = true; }, focus(){}});
   const body = el();
+  /* Le bandeau jaune de la page, deux fois (sa recherche se fait par data-t, comme dans le DOM) */
+  const ficts = [0, 1].map(() => ({attrs: {"data-t": "commun.fictif"}, textContent: "texte fictif", setAttribute(k, v){ this.attrs[k] = String(v); }}));
+  const parDataT = sel => { const m = /^\[data-t="([^"]+)"\]$/.exec(sel); return m ? ficts.filter(f => f.attrs["data-t"] === m[1]) : []; };
   const doc = {visibilityState: "visible", body, activeElement: null, readyState: "complete",
-    getElementById: id => id === "live" ? null : null, createElement: () => el(), querySelector: () => null, querySelectorAll: () => [],
+    getElementById: id => id === "live" ? null : null, createElement: () => el(), querySelector: () => null, querySelectorAll: parDataT,
     addEventListener: (t, f) => { (ecouteurs[t] = ecouteurs[t] || []).push(f); }};
   const ctx = {console, Date, JSON, Math, Promise, Object, Array, String, Error, RegExp, Number, WeakMap, Map, Set, setTimeout, clearTimeout, URL,
     AbortSignal, encodeURIComponent, decodeURIComponent,
@@ -67,7 +70,7 @@ function page(api, o = {}){
   const fichiers = ["assets/yeita.js", "assets/config.js", "assets/wording.fr.js", "assets/dossier.js", "assets/qui.js", "assets/store.js", "assets/adapter-serveur.js"];
   if(o.demarrage !== false) fichiers.push("assets/demarrage.js");
   for(const f of fichiers) vm.runInContext(fs.readFileSync(path.join(root, f), "utf8"), ctx, {filename: f});
-  ctx.__mem = mem; ctx.__sess = sess; ctx.__ecouteurs = ecouteurs; ctx.__body = body;
+  ctx.__mem = mem; ctx.__sess = sess; ctx.__ecouteurs = ecouteurs; ctx.__body = body; ctx.__ficts = ficts;
   Object.defineProperty(ctx, "__recharges", {get: () => recharges});
   return ctx;
 }
@@ -310,6 +313,22 @@ process.on("unhandledRejection", e => { ok(false, "rejet non traité", e && e.me
     await ctx.DOSSIER.save(d).catch(() => {});
     const b2 = ctx.__body.children[0];
     ok(/Lecture seule/.test(b2.innerHTML) && !/Recharger/.test(b2.innerHTML) && !/copie-le/.test(b2.innerHTML), "bandeau : lecture seule → message seul, sans bouton");
+  }
+  {
+    /* Bandeau jaune : le texte dit où sont les candidatures, selon le mode retenu (spec 1.4, R1 à R3) */
+    const api = fausseApi(); const ctx = await demarrer(api);
+    await attendre(ctx.DEMARRAGE.pret, "pret");
+    const serveur = ctx.WORDING.commun.serveur;
+    ok(/serveur de l'équipe Yeita/.test(serveur) && ctx.__ficts.every(f => f.textContent === serveur && f.attrs["data-t"] === "commun.serveur"),
+      "bandeau jaune : mode serveur → texte et data-t « commun.serveur »", ctx.__ficts.map(f => f.attrs["data-t"] + " · " + f.textContent).join(" | "));
+    const api2 = fausseApi(); api2.panne = u => u === "/api/moi" ? api2.rep(404, "x", "text/html") : null;
+    const nav = await demarrer(api2); await attendre(nav.DEMARRAGE.pret, "pret nav");
+    ok(nav.__ficts.every(f => f.textContent === "texte fictif" && f.attrs["data-t"] === "commun.fictif"), "bandeau jaune : mode navigateur → texte « commun.fictif » inchangé");
+    for(const [nom, panne] of [["/api/moi en 502", u => u === "/api/moi"], ["/api/equipe en 404 après /api/moi en 200", u => u === "/api/equipe"]]){
+      const api3 = fausseApi(); api3.panne = u => panne(u) ? api3.rep(u === "/api/moi" ? 502 : 404, u === "/api/moi" ? "<html>" : {erreur: "Route inconnue."}, u === "/api/moi" ? "text/html" : undefined) : null;
+      const bl = await demarrer(api3);
+      ok(bl.DEMARRAGE.mode() === "bloque" && bl.__ficts.every(f => f.textContent === "texte fictif" && f.attrs["data-t"] === "commun.fictif"), "bandeau jaune : mode bloqué (" + nom + ") → texte inchangé");
+    }
   }
   {
     /* Retour sur l'onglet */

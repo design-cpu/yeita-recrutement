@@ -16,6 +16,7 @@ PORT = int(os.environ.get("E2E_PORT", "18765"))
 B = "http://127.0.0.1:%d/" % PORT
 C = B + "candidatures/"
 ECHEANCE = 20000      # par vérification (ms) : un blocage échoue avec son message
+SERVEUR = "Les candidatures sont enregistrées sur le serveur de l'équipe Yeita, accessible aux seuls recruteurs connectés."   # bandeau jaune (1.4)
 EQUIPE = [("alice@yeita.fr", "Alice", "recruteur"), ("bob@yeita.fr", "Bob", "recruteur"), ("lea@yeita.fr", "Léa", "lecture")]
 ok_all = True
 def check(label, cond, extra=""):
@@ -93,6 +94,9 @@ async def principal():
             pg = await ouvrir(alice, C)
             qui = await pg.locator("#qui").inner_text()
             check("prénom sans liste : « Connecté·e : Alice », aucun sélecteur", "Connecté·e : Alice" in qui and await pg.locator("#qui-sel").count() == 0, qui)
+            f = await pg.locator(".fict").inner_text()
+            check("bandeau jaune index.html : texte du serveur de l'équipe, « Connecté·e : Alice » gardé, plus « Tout reste dans ce navigateur » (1.4, CA1)",
+                  SERVEUR in f and "Connecté·e : Alice" in f and "Tout reste dans ce navigateur" not in f, f)
             pl = await ouvrir(lea, C)
             check("lecteur : « Connecté·e : Léa · lecture seule »", "Connecté·e : Léa · lecture seule" in await pl.locator("#qui").inner_text())
             check("import en mode serveur : pas d'option « Remplacer tout » (CA14)", await pg.locator('input[name="imp-mode"][value="remplacement"]').count() == 0
@@ -215,6 +219,17 @@ async def principal():
             check("suppression : le repère n'est pas dans le journal de l'API", "Zéphyrin" not in journal and "Perçu repère" not in journal)
             bruts = b"".join(open(os.path.join(base, f), "rb").read() for f in os.listdir(base) if f.startswith("e2e.sqlite"))
             check("suppression : le repère n'est plus dans les fichiers de la base (sans VACUUM)", "Zéphyrin".encode() not in bruts and b"Perc" not in bruts)
+
+            # --- Bandeau jaune des autres pages, sur un dossier existant (1.4, CA1) ---
+            ti = await ouvrir(alice, C)
+            bid = await ti.evaluate("STORE.createCandidate({personne: 'Bandeau Jaune', job: 'PM / PO'}, 'Alice').then(function(c){ return c.id; })")
+            for nom in ("candidat", "ec1", "ec2", "decompte", "carte"):
+                pj = await ouvrir(alice, C + nom + ".html?id=" + bid)
+                f = await pj.locator(".fict").first.inner_text()
+                check("bandeau jaune %s.html : texte du serveur de l'équipe, plus « Tout reste dans ce navigateur » (1.4, CA1)" % nom,
+                      SERVEUR in f and "Tout reste dans ce navigateur" not in f and await pj.evaluate("DEMARRAGE.mode()") == "serveur", f)
+                await pj.close()
+            await ti.close()
 
             # --- Réponses simulées au démarrage (CA2, CA3) ---
             async def demarrage(route_fn, attente=1500):

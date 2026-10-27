@@ -17,6 +17,7 @@ var local = D.adapter();
 
 function W(){ return (window.WORDING && WORDING.serveur) || {}; }
 function t(cle){ return W()[cle] || A.texte(cle); }
+function texteServeur(){ return (window.WORDING && WORDING.commun && WORDING.commun.serveur) || "Les candidatures sont enregistrées sur le serveur de l'équipe Yeita, accessible aux seuls recruteurs connectés."; }
 
 /* ---------- Adaptateur d'attente : tout appel attend le choix du mode ; en mode bloqué, rien ne part ---------- */
 function plusTard(nom){ return function(){ var args = arguments; return pret.then(function(){ return choisi[nom].apply(choisi, args); }); }; }
@@ -94,6 +95,8 @@ function serveur(moi){
           });
       }
     });
+    /* Le bandeau jaune dit où sont les candidatures. Le data-t suit : une page qui pose ses textes après garde le bon. */
+    document.querySelectorAll('[data-t="commun.fictif"]').forEach(function(el){ el.setAttribute("data-t", "commun.serveur"); el.textContent = texteServeur(); });
     mode = "serveur";
     resoudre();
   });
