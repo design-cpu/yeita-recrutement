@@ -7,6 +7,9 @@ maj: 1.7
 
 > Les mots du produit et du projet, expliqués simplement.
 
+## age
+L'outil qui chiffre les sauvegardes. Il n'a besoin, sur le serveur, que de la partie publique de la clé : la partie secrète reste au coffre.
+
 ## API
 Un programme qui ne montre pas de pages : il répond aux demandes d'autres programmes, comme les pages du site. Celle du projet garde les dossiers candidat dans une base partagée et dit qui a le droit de les lire ou de les modifier.
 Aussi : API de stockage.
@@ -19,6 +22,10 @@ Aussi : bandeau.
 Le bandeau en tête des pages de Candidatures. Sur le site de l'équipe, il dit que les candidatures sont enregistrées sur le serveur de l'équipe Yeita, accessible aux seuls recruteurs connectés, et affiche « Connecté·e : prénom ». Ailleurs, il rappelle que les données sont fictives et restent dans le navigateur.
 Aussi : bandeau « Données fictives ».
 
+## Bucket
+L'espace de stockage chez OVH (Object Storage) où arrivent les sauvegardes chiffrées. Il efface seul les copies de plus de 30 jours, et le serveur n'a pas le droit d'y effacer quoi que ce soit.
+Aussi : OVH Object Storage.
+
 ## Caddy
 Un logiciel qui reçoit les visites d'un site web et obtient tout seul le certificat HTTPS. Le projet en lance un dans le cas B, quand le serveur n'a pas déjà de proxy.
 Aussi : Caddy du projet, service caddy.
@@ -26,6 +33,10 @@ Aussi : Caddy du projet, service caddy.
 ## Cas A / cas B
 Les deux façons d'installer le site sur le serveur. Cas A : un proxy existe déjà sur le serveur, on lui ajoute le site. Cas B : rien n'occupe les ports web, le projet apporte son propre Caddy.
 Aussi : cas A, cas B.
+
+## Clé de sauvegarde
+La clé secrète qui ouvre les sauvegardes. Elle n'est jamais sur le serveur : elle est rangée dans le coffre de mots de passe de Yeita et connue d'au moins deux personnes. La perdre rend toutes les sauvegardes illisibles.
+Aussi : clé privée age.
 
 ## Conflit d'écriture
 Ce qui arrive quand deux personnes modifient le même dossier en même temps. Chaque dossier porte un numéro de version : un enregistrement fait à partir d'une version dépassée est refusé, et la personne doit recharger la page au lieu d'écraser le travail de l'autre. Cette méthode s'appelle la « version optimiste ».
@@ -46,6 +57,9 @@ Aussi : effacement.
 ## En-tête
 Une information jointe à chaque demande envoyée à un serveur, invisible pour le visiteur. oauth2-proxy en ajoute une qui donne l'email du compte connecté ; l'API s'y fie pour savoir qui parle.
 Aussi : en-têtes, X-Forwarded-Email.
+
+## healthchecks.io
+Le service qui prévient l'administrateur par email quand une sauvegarde échoue, quand le disque du serveur se remplit, ou quand il n'a plus de nouvelles de l'un des deux.
 
 ## HTTPS
 La version chiffrée d'une adresse web. Le navigateur affiche un cadenas ; il faut un certificat, que le proxy du serveur ou Caddy se charge d'obtenir.
@@ -97,7 +111,6 @@ Aussi : suggéré.
 Le panneau qui s'ouvre à droite avec le bouton « Notes », à tout moment, sans perdre l'endroit où on était dans la page. On y écrit en vrac pendant l'entretien, une note par étape ; rien ne part chez le candidat. Les notes des autres étapes s'y relisent.
 Aussi : Notes, notes libres.
 
-
 ## Profil Compose
 Un interrupteur dans Docker Compose qui active des conteneurs optionnels. Le profil `caddy` allume le Caddy du projet (cas B) ; laissé vide, seul le site tourne (cas A).
 Aussi : profil caddy, COMPOSE_PROFILES.
@@ -106,9 +119,19 @@ Aussi : profil caddy, COMPOSE_PROFILES.
 Le programme qui reçoit les visites sur l'adresse publique et les transmet au bon service du serveur. C'est souvent lui qui gère le HTTPS.
 Aussi : reverse proxy, proxy de l'hôte, proxy existant.
 
+## rclone
+L'outil qui envoie les sauvegardes chiffrées du serveur vers le bucket OVH.
+
 ## Réseau interne
 Un réseau Docker sans sortie vers Internet ni adresse sur le serveur lui-même. L'API n'est reliée qu'à celui-là, avec oauth2-proxy : personne d'autre, même sur le serveur, ne peut lui parler.
 Aussi : réseau back.
+
+## Restauration
+Remettre la base des candidatures dans l'état d'une sauvegarde, après une panne ou une erreur. Ce qui a été saisi depuis la date de la copie est perdu, et les suppressions faites depuis sont à refaire.
+
+## Sauvegarde
+La copie de la base des candidatures faite chaque nuit, vérifiée puis chiffrée : sans la clé rangée au coffre, personne ne peut la lire. Elle est gardée 30 jours sur le serveur et 30 jours chez OVH, en Europe.
+Aussi : copie chiffrée.
 
 ## Serveur partagé
 Le serveur OVH de Yeita, qui fait tourner d'autres services que le projet ne connaît pas. D'où la règle : ne toucher qu'à ce qui appartient au projet.
@@ -118,19 +141,9 @@ Aussi : serveur OVH.
 Une base de données tenue dans un simple fichier, sans serveur de base à installer. L'API y range les dossiers candidat, l'équipe et le journal.
 Aussi : base SQLite.
 
+## Timer systemd
+Le réveil du serveur qui lance une tâche à heure fixe : chaque nuit vers 3 h pour la sauvegarde, chaque heure pour le disque. Si le serveur était éteint, la tâche part à son redémarrage.
+
 ## Volume
-Un dossier géré par Docker, qui survit à l'arrêt et à la recréation des conteneurs. Le volume `recrutement_data` contient la base des candidatures : c'est la seule copie, à ne jamais supprimer.
+Un dossier géré par Docker, qui survit à l'arrêt et à la recréation des conteneurs. Le volume `recrutement_data` contient la base des candidatures, à ne jamais supprimer ; depuis la 1.7, elle est aussi sauvegardée chaque nuit hors du serveur.
 Aussi : volume Docker, recrutement_data.
-
-## Sauvegarde
-La copie de la base des candidatures faite chaque nuit, vérifiée puis chiffrée : sans la clé rangée au coffre, personne ne peut la lire. Elle est gardée 30 jours sur le serveur et 30 jours chez OVH, en Europe.
-Aussi : copie chiffrée.
-
-## Restauration
-Remettre la base des candidatures dans l'état d'une sauvegarde, après une panne ou une erreur. Ce qui a été saisi depuis la date de la copie est perdu, et les suppressions faites depuis sont à refaire.
-
-## Clé de sauvegarde
-La clé secrète qui ouvre les sauvegardes. Elle n'est jamais sur le serveur : elle est rangée dans le coffre de mots de passe de Yeita et connue d'au moins deux personnes. La perdre rend toutes les sauvegardes illisibles.
-
-## healthchecks.io
-Le service qui prévient l'administrateur par email quand une sauvegarde échoue, quand le disque du serveur se remplit, ou quand il n'a plus de nouvelles de l'un des deux.

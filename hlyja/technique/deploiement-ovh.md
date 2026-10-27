@@ -16,7 +16,7 @@ date: 2026-10-27
 | # | Où | Action | Sortie attendue (lue dans le code) |
 |---|---|---|---|
 | 1 | espace client OVH | entrée **A** `recrutement` → `51.75.252.121` ; supprimer les entrées `recrutement` existantes ; pas d'AAAA | `dig +short recrutement.yeita.fr` = IP |
-| 2 | serveur, `ubuntu` | `apt install docker.io docker-compose-v2 certbot python3-certbot-nginx tmux` (paquets Ubuntu, vérifiés par `apt-cache policy` avant) | `docker version`, `docker compose version`, `certbot --version` ; pm2 et nginx toujours actifs |
+| 2 | serveur, `ubuntu` | `apt install docker.io docker-compose-v2 certbot python3-certbot-nginx tmux age rclone` (v1.7 : `age` et `rclone`, exigés par `prepare-serveur.sh` à l'étape 3) (paquets Ubuntu, vérifiés par `apt-cache policy` avant) | `docker version`, `docker compose version`, `certbot --version` ; pm2 et nginx toujours actifs |
 | 3 | poste + serveur, `ubuntu` | `pbcopy` de la clé ; `read CLE` sur une ligne seule (un `read` dans un collage multiligne lirait la ligne suivante) ; clone dans `mktemp -d` ; `sudo prepare-serveur.sh "$CLE"` | `Serveur prêt.` (prepare-serveur.sh l. 163) ; `ssh deploy@… whoami` → `deploy` |
 | 4 | console Google Cloud | client existant : URI `https://recrutement.yeita.fr/oauth2/callback`, audience **Interne** | |
 | 5 | serveur, `deploy` | `.env` écrit par heredoc (6 variables de `.env.example`, `COMPOSE_PROFILES=` vide, cookie secret généré), ID et secret remplacés à la main dans `nano` | contrôlé par `deploy.sh` l. 35-52 |
@@ -38,4 +38,10 @@ date: 2026-10-27
 | Libellés cités | `Connecté·e : ` et `Tu ne fais pas partie de l'équipe.` (`assets/wording.fr.js` l. 36, 42) ; `/api/moi` (`api/src/app.js` l. 77) |
 | Interdit sur le serveur | `docker compose down -v`, `docker volume prune` (volume `recrutement_data`) |
 | Sauvegardes (v1.7) | à mettre en place avant de vraies candidatures : jusque-là, le volume est la seule copie ; restaurer : `deploy/RESTAURER.md` |
-| 1.7 | Étape 11 : sauvegardes (`deploy/README.md` § 14) |
+
+## Historique
+| Version | Changement |
+|---|---|
+| 1.5 | Création : ordre de la première mise en ligne |
+| 1.6 | Relevé du serveur réel |
+| 1.7 | `age` et `rclone` à l'étape 2 ; étape 11 : sauvegardes (`deploy/README.md` § 14) |

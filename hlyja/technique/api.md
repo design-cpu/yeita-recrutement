@@ -104,7 +104,7 @@ Variable vide = absente. Toute erreur → `ErreurConfig` → code 1 et une ligne
 Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue, hôte, adresse distante, statut, durée. Démarrage : `hote`, `port`, `base`, `user_version`, `node_env`, `dev_email`, `dev_static`. Avertissements : exposition (`HOST` non local), mode local, point de contrôle incomplet.
 
 ## Tests
-`cd api && npm test` (`node --test "test/*.test.js"`), 52 tests (~20 s), 7 fichiers dans `api/test/` : `config`, `base`, `api` (autorisation, erreurs, options), `candidats`, `serveur` et `equipe` (processus fils), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
+`cd api && npm test` (`node --test "test/*.test.js"`), 55 tests (~20 s), 7 fichiers dans `api/test/` : `config`, `base`, `api` (autorisation, erreurs, options), `candidats`, `serveur` et `equipe` (commandes en ligne en processus fils : `equipe.js` et, depuis la 1.7, `sauvegarde.js` — copie pendant des écritures, base absente ou abîmée, dossier non inscriptible, `--nettoyer`), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
 
 ## Consommateurs (v1.3)
 | Consommateur | Routes | Fichier |

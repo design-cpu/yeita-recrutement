@@ -3,15 +3,15 @@ type: technique
 vue: humaine
 page: decisions
 titre: Décisions techniques
-maj: 1.3
-commit: 6cd5776
-sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh
-date: 2026-10-26
+maj: 1.7
+commit: 26c1d9f
+sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md
+date: 2026-10-27
 ---
 
 # Décisions techniques
 
-> Les grands choix du dépôt et ce qu'ils écartent. En v1.1, le site est hébergé chez Yeita derrière une connexion Google. En v1.2, une API garde les dossiers dans SQLite. En v1.3, les pages l'utilisent, sans jamais basculer en silence dans le navigateur en production.
+> Les grands choix du dépôt et ce qu'ils écartent. En v1.1, le site est hébergé chez Yeita derrière une connexion Google. En v1.2, une API garde les dossiers dans SQLite. En v1.3, les pages l'utilisent. En v1.7, la base est sauvegardée chaque nuit, chiffrée, chez OVH, sans que le serveur puisse effacer ces copies.
 
 ## En un coup d'œil
 
@@ -34,46 +34,69 @@ date: 2026-10-26
 | Réseau interne sans adresse sur le serveur | Seul oauth2-proxy joint l'API | v1.3 |
 | Image Node figée | Une version précise, avec son correctif de sécurité | v1.3 |
 | « Remplacer tout » masqué | En mode serveur, seule la fusion est proposée | v1.3 |
+| Méthode de copie | La copie passe par SQLite lui-même, vérifiée, en un seul fichier | v1.7 |
+| Chiffrement et clé | Une clé publique sur le serveur, la clé privée au coffre | v1.7 |
+| Rétention et droits chez OVH | OVH efface au bout de 30 jours ; le serveur ne peut rien effacer | v1.7 |
+| Alertes | Deux contrôles healthchecks.io, un par tâche | v1.7 |
+| Restauration | La copie en clair ne touche jamais le disque du serveur | v1.7 |
 
-Les décisions de v1.0 à v1.2 sont expliquées dans la version complète. Voici celles de v1.3.
+Les décisions de v1.0 à v1.3 sont expliquées dans la version complète. Voici celles de v1.7.
 
-## Ne jamais basculer en silence
+## Copier sans retarder l'effacement
 
-À la lettre, le pitch passait dans le navigateur dès que l'API ne répondait pas « oui ». Un essai a montré le danger : une API arrêtée ou une session expirée auraient fait travailler les recruteurs dans leur navigateur, sans le savoir, en production.
+Une lecture longue de la base, par un autre outil, empêche l'API de nettoyer ses fichiers : un dossier supprimé y resterait lisible plus longtemps. La copie utilise donc la fonction de sauvegarde de SQLite, dans le conteneur, et ne garde la base ouverte que le temps de la copie.
 
-| Situation | Choix retenu |
+La copie est vérifiée avant de recevoir son nom définitif, et tient en un seul fichier. Les autres façons de copier (copier les fichiers à chaud, l'outil `sqlite3`) sont écartées.
+
+## Chiffrer pour une seule clé
+
+Les copies contiennent les dossiers candidat et quittent le serveur. Elles sont chiffrées avec age pour une seule clé publique. La clé privée est créée sur un poste, rangée au coffre de Yeita et connue d'au moins deux personnes. Une copie ne se déchiffre que sur un poste, jamais sur le serveur.
+
+> Perdre la clé privée rend toutes les copies illisibles. À la mise en service, on vérifie que la clé du coffre correspond à celle du serveur, et qu'une vraie copie s'ouvre.
+
+## Laisser OVH effacer, pas le serveur
+
+Un serveur piraté ne doit pas pouvoir détruire les copies. Trois comptes de stockage se partagent les rôles :
+
+| Compte | Ce qu'il peut faire | Où il vit |
+|---|---|---|
+| Administrateur | tout régler, y compris l'effacement automatique à 30 jours | au coffre, utilisé depuis un poste |
+| Serveur | déposer des copies, sans jamais pouvoir les effacer | sur le serveur |
+| Restauration | lire les copies | au coffre, avec la clé privée |
+
+Le compte du serveur pourrait encore remplacer un fichier du même nom. Chaque copie porte donc un nom à la seconde près : une relance ne remplace jamais celle de la nuit.
+
+| Endroit | Un dossier supprimé y reste au plus |
 |---|---|
-| Pas d'API, hors production, ou page ouverte depuis un fichier | mode navigateur, comme avant |
-| Session expirée | un rechargement, avec une garde contre la boucle |
-| Tout le reste en production | mode bloqué, avec un bandeau |
+| Copie de travail, à côté de la base | 3 jours |
+| Copies chiffrées du serveur | 31 jours |
+| Copies chez OVH | 32 jours |
 
-> Conséquence : un oauth2-proxy mal réglé bloque les pages au lieu de les faire basculer. Les tests et les aperçus restent en mode navigateur.
+## Une alerte par tâche
 
-## Ne pas se mettre en conflit avec soi-même
+Chaque tâche signale son succès ou son échec à son propre contrôle healthchecks.io. Un contrôle unique aurait été trompeur : les signaux du disque, toutes les heures, l'auraient gardé au vert malgré une sauvegarde ratée. Un contrôle qui ne reçoit plus rien alerte aussi : il voit un serveur éteint ou un timer cassé.
 
-Les pages enregistrent toutes les 300 à 400 ms, et certaines gardent un dossier lu à l'ouverture. Garder une seule version par dossier aurait laissé un vieil objet écraser un enregistrement récent. Les pages retiennent donc la version de chaque objet lu, et envoient les enregistrements d'un même dossier un par un. Elles ne réessaient jamais seules.
+L'adresse d'un contrôle est un secret : elle ne passe jamais dans la ligne de commande d'un programme, que tout compte du serveur peut lire. Le signal ne compte comme reçu que si healthchecks.io répond exactement « OK ».
 
-## Laisser chaque fiche écrire sa partie
+## Restaurer sans risque
 
-La fiche EC1 et la feuille de décompte d'un candidat sont faites pour être ouvertes ensemble. Chacune écrivait le dossier entier lu à l'ouverture : elles se seraient refusées l'une l'autre. Désormais, chacune relit le dossier, vérifie que sa partie n'a pas changé ailleurs, la pose et écrit.
+Une restauration ratée ne doit pas détruire la base, et la copie en clair ne doit jamais toucher le disque du serveur.
 
-> Risque accepté : en quittant la page juste après avoir tapé, les dernières frappes peuvent se perdre si un collègue a enregistré le même dossier juste avant.
+```mermaid
+flowchart LR
+  A[Copie déchiffrée sur un poste] --> B[Envoyée par SSH dans le volume]
+  B --> C{Empreinte et contrôle bons ?}
+  C -- oui --> D[Base remplacée]
+  C -- non --> E[Rien n'est touché]
+  D --> F[Suppressions refaites dans l'interface]
+```
 
-## Fermer l'API au serveur lui-même
-
-Sur Linux, un réseau Docker « interne » reste joignable depuis le serveur par l'adresse du conteneur. Or l'API croit l'email qu'on lui transmet. Le réseau de l'API n'a donc ni adresse sur le serveur, ni IPv6, et aucun port n'est publié. Un contrôle du réseau est fait avant d'ajouter le premier admin.
-
-## Figer l'image Node
-
-La version récente de Node 22 apporte un correctif de sécurité, mais a moins de 14 jours. L'utilisateur a accepté l'exception : l'image est figée par son empreinte, et ne change que par une décision explicite.
-
-## Masquer « Remplacer tout »
-
-En mode serveur, « Remplacer tout » effacerait les dossiers de toute l'équipe absents du fichier, sans sauvegarde. Seule la fusion reste proposée (choix de l'utilisateur). Une fusion d'un vieil export peut toutefois faire revenir un dossier supprimé.
+Avant de remplacer, l'état actuel est sauvegardé, pour pouvoir revenir en arrière. Après, l'équipe supprime à nouveau, dans l'interface, les dossiers supprimés depuis la date de la copie. La procédure a été rejouée sur un serveur d'essai, dans trois situations.
 
 ## Voir aussi
 - [Comment les pages choisissent où ranger les dossiers](mode-serveur.md)
 - [L'API de stockage](api.md)
 - [Architecture et déploiement](architecture.md)
 - [Conventions et tests](conventions.md)
+- Restaurer la base : `deploy/RESTAURER.md`
 - Le détail de chaque décision (contexte, options écartées, conséquences) est dans la version complète.

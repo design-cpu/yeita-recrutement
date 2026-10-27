@@ -31,10 +31,10 @@ pbpaste > "$d/cle.txt"; pbcopy </dev/null; age-keygen -y "$d/cle.txt"
 
 (`pbcopy </dev/null` vide le presse-papiers : la clé n'y reste pas. Désactiver aussi tout historique du presse-papiers pendant la procédure.)
 
-Identifiants « restauration » (rien n'est écrit sur le disque ; `read -s` ne les affiche pas) :
+Identifiants « restauration » (rien n'est écrit sur le disque ; `read -s` ne les affiche pas ; ces lignes marchent sous zsh, le shell par défaut de macOS, comme sous bash) :
 
 ```bash
-read -r -p "Clé d'accès S3 (restauration) : " RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID; read -r -s -p "Secret S3 : " RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY; echo
+printf "Clé d'accès S3 (restauration) : "; read -r RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID; printf "Secret S3 : "; read -r -s RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY; echo
 export RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY RCLONE_CONFIG_RESTAU_TYPE=s3 RCLONE_CONFIG_RESTAU_PROVIDER=Other RCLONE_CONFIG_RESTAU_ENDPOINT=https://s3.gra.io.cloud.ovh.net RCLONE_CONFIG_RESTAU_REGION=gra
 ```
 

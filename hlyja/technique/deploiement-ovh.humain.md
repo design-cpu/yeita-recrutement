@@ -3,15 +3,15 @@ type: technique
 vue: humaine
 page: deploiement-ovh
 titre: Déployer sur OVH et tester avec Google, pas à pas
-maj: 1.6
-commit: 4b98c3a
-sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js
+maj: 1.7
+commit: 26c1d9f
+sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js, deploy/README.md, deploy/backup.sh, deploy/verif-disque.sh, deploy/healthchecks.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, deploy/RESTAURER.md
 date: 2026-10-27
 ---
 
 # Déployer sur OVH et tester avec Google, pas à pas
 
-> Fais une case à la fois, de haut en bas. Chaque commande se copie-colle telle quelle. Après chaque commande, une case « Tu dois voir » te dit si c'est bon. Si ce n'est pas bon, lis le **Sinon** juste en dessous et ne passe pas à la suite. Tes coches restent enregistrées dans ce navigateur : tu peux t'arrêter et reprendre plus tard.
+> Fais une case à la fois, de haut en bas. Chaque commande se copie-colle telle quelle (sauf quand la case te demande d'y remplacer un nom ou une adresse). Après chaque commande, une case « Tu dois voir » te dit si c'est bon. Si ce n'est pas bon, lis le **Sinon** juste en dessous et ne passe pas à la suite. Tes coches restent enregistrées dans ce navigateur : tu peux t'arrêter et reprendre plus tard.
 
 Ce guide est écrit pour **ton** serveur OVH :
 
@@ -52,7 +52,9 @@ dig +short recrutement.yeita.fr
 
 ---
 
-## Étape 2 — Installer Docker et certbot (compte `ubuntu`)
+## Étape 2 — Installer Docker, certbot et les outils de sauvegarde (compte `ubuntu`)
+
+`age` (chiffrement) et `rclone` (envoi chez OVH) servent aux sauvegardes de l'étape 11. Le script de l'étape 3 refuse de continuer s'ils manquent : on les installe donc dès maintenant.
 
 - [ ] Connecte-toi :
 
@@ -63,17 +65,17 @@ ssh -i ~/.ssh/id_ed25519 ubuntu@51.75.252.121
 - [ ] Vérifie qu'Ubuntu propose bien les logiciels :
 
 ```bash
-apt-cache policy docker.io docker-compose-v2 certbot python3-certbot-nginx | grep -E '^[a-z]|Candidate|Candidat'
+apt-cache policy docker.io docker-compose-v2 certbot python3-certbot-nginx age rclone | grep -E '^[a-z]|Candidate|Candidat'
 ```
 
-- [ ] **Tu dois voir** quatre noms (`docker.io:`, `docker-compose-v2:`, `certbot:`, `python3-certbot-nginx:`), chacun suivi d'une ligne `Candidate:` avec un numéro de version.
+- [ ] **Tu dois voir** six noms (`docker.io:`, `docker-compose-v2:`, `certbot:`, `python3-certbot-nginx:`, `age:`, `rclone:`), chacun suivi d'une ligne `Candidate:` avec un numéro de version.
 
 **Sinon** (une ligne dit `Candidate: (none)`) : arrête-toi ici et envoie la sortie à l'équipe technique.
 
 - [ ] Installe-les (une à deux minutes) :
 
 ```bash
-sudo apt update && sudo apt install -y docker.io docker-compose-v2 certbot python3-certbot-nginx tmux
+sudo apt update && sudo apt install -y docker.io docker-compose-v2 certbot python3-certbot-nginx tmux age rclone
 ```
 
 - [ ] **Tu dois voir** l'installation défiler, puis le retour à l'invite `ubuntu@vps-b800c3bb:~$`. Certains logiciels (comme certbot) sont peut-être déjà installés : `est déjà la version la plus récente` (ou `is already the newest version`) est normal.
@@ -83,10 +85,10 @@ sudo apt update && sudo apt install -y docker.io docker-compose-v2 certbot pytho
 - [ ] Vérifie que tout est installé :
 
 ```bash
-sudo docker version --format 'Docker {{.Server.Version}}' && sudo docker compose version && certbot --version
+sudo docker version --format 'Docker {{.Server.Version}}' && sudo docker compose version && certbot --version && age --version && rclone version | head -n 1
 ```
 
-- [ ] **Tu dois voir** trois lignes : `Docker …`, `Docker Compose version …`, `certbot …`.
+- [ ] **Tu dois voir** cinq lignes : `Docker …`, `Docker Compose version …`, `certbot …`, un numéro de version d'age (par exemple `1.2.1` ou `v1.2.1`), puis `rclone v…`.
 
 **Sinon** : arrête-toi ici et envoie la sortie à l'équipe technique.
 
@@ -487,15 +489,374 @@ cd ~/Documents/Yeita/Projects/Github/yeita-recrutement && tools/check-site.sh ht
 
 C'est en ligne. 🎉
 
+> **Avant d'enregistrer de vraies candidatures, fais l'étape 11.** Tant qu'elle n'est pas faite, la base n'existe qu'à un seul endroit : le serveur.
+
+---
+
+## Étape 11 — Les sauvegardes de chaque nuit (Mac, OVH, healthchecks.io, serveur)
+
+Chaque nuit vers 3 h, le serveur copiera la base, la chiffrera et l'enverra chez OVH. Un email te préviendra si ça rate ou si le disque se remplit. Cette étape se fait une seule fois, dans l'ordre. Compte une heure.
+
+Il te faut :
+- l'accès au **coffre de mots de passe** de Yeita (tu vas y ranger une clé et des identifiants) ;
+- un compte sur **healthchecks.io** (gratuit) ;
+- ton espace client **OVH**.
+
+### 11.1 — La clé des sauvegardes (sur ton Mac)
+
+Cette clé ouvre les sauvegardes. Elle ne va **jamais** sur le serveur. **Si elle est perdue, toutes les sauvegardes sont illisibles.**
+
+- [ ] Dans le Terminal de ton Mac, installe les outils (quelques minutes) :
+
+```bash
+brew install age rclone sqlite awscli
+```
+
+- [ ] **Tu dois voir** le retour à l'invite, sans ligne `Error:`.
+
+**Sinon** (`brew: command not found`) : Homebrew n'est pas installé sur ton Mac. Demande à l'équipe technique.
+
+- [ ] Crée la clé :
+
+```bash
+(umask 077; age-keygen -o ~/recrutement-sauvegarde.key)
+```
+
+- [ ] **Tu dois voir** une ligne `Public key: age1…`.
+- [ ] Copie la **clé privée** (rien ne s'affiche, c'est normal) :
+
+```bash
+grep '^AGE-SECRET-KEY-' ~/recrutement-sauvegarde.key | pbcopy
+```
+
+- [ ] Dans le coffre, crée une fiche « Recrutement — clé des sauvegardes » et colle (`Cmd+V`) la clé privée dans le champ mot de passe. Elle commence par `AGE-SECRET-KEY-`.
+- [ ] Affiche la **clé publique**, et colle-la aussi dans la fiche (champ notes) :
+
+```bash
+age-keygen -y ~/recrutement-sauvegarde.key
+```
+
+- [ ] **Tu dois voir** une seule ligne qui commence par `age1`. Garde-la sous la main : elle sert à l'étape 11.5.
+- [ ] Partage la fiche du coffre avec au moins une autre personne de Yeita.
+- [ ] Efface la clé de ton Mac et vide le presse-papiers :
+
+```bash
+rm ~/recrutement-sauvegarde.key && pbcopy </dev/null && echo "OK : clé effacée du Mac"
+```
+
+- [ ] **Tu dois voir** `OK : clé effacée du Mac`.
+
+### 11.2 — Le stockage chez OVH (navigateur, puis Mac)
+
+Trois comptes de stockage (« utilisateurs S3 ») se partagent les rôles :
+
+| Utilisateur | Sert à | Où vont ses identifiants |
+|---|---|---|
+| administrateur | créer et régler le stockage | le coffre ; jamais sur le serveur |
+| serveur | déposer les copies, sans pouvoir les effacer | le serveur (étape 11.4) ; aussi le coffre |
+| restauration | relire les copies | le coffre, dans la fiche de la clé |
+
+- [ ] Ouvre l'espace client OVH › **Public Cloud** › **Object Storage**.
+- [ ] Crée les trois utilisateurs S3 : `administrateur`, `serveur`, `restauration`. Pour chacun, range dans le coffre sa **clé d'accès** et son **secret** (le secret ne s'affiche souvent qu'une fois).
+- [ ] Avec l'utilisateur **administrateur**, crée un conteneur (« bucket ») :
+  - région **GRA** (Gravelines, Union européenne) ;
+  - **sans** versionnement ;
+  - un nom à toi, par exemple `yeita-recrutement-sauvegardes`. Note-le dans le coffre : il revient dans toutes les commandes qui suivent.
+
+**Sinon** (le nom est déjà pris) : choisis-en un autre, et utilise-le partout à la place.
+
+- [ ] Sur ton Mac, prépare les deux règles d'accès. Remplace d'abord `yeita-recrutement-sauvegardes` par ton nom de bucket sur la première ligne, puis copie-colle tout le bloc :
+
+```bash
+B=yeita-recrutement-sauvegardes
+cat > ~/politique-serveur.json <<EOF
+{"Statement": [
+  {"Sid": "DeposerEtLire", "Effect": "Allow",
+   "Action": ["s3:PutObject", "s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation", "s3:ListBucketMultipartUploads", "s3:ListMultipartUploadParts", "s3:AbortMultipartUpload"],
+   "Resource": ["arn:aws:s3:::$B", "arn:aws:s3:::$B/*"]},
+  {"Sid": "JamaisEffacer", "Effect": "Deny",
+   "Action": ["s3:DeleteObject", "s3:DeleteBucket", "s3:PutLifecycleConfiguration", "s3:PutBucketPolicy", "s3:PutBucketVersioning"],
+   "Resource": ["arn:aws:s3:::$B", "arn:aws:s3:::$B/*"]}
+]}
+EOF
+cat > ~/politique-restauration.json <<EOF
+{"Statement": [
+  {"Sid": "Lire", "Effect": "Allow",
+   "Action": ["s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation", "s3:ListBucketMultipartUploads"],
+   "Resource": ["arn:aws:s3:::$B", "arn:aws:s3:::$B/*"]},
+  {"Sid": "JamaisEffacer", "Effect": "Deny",
+   "Action": ["s3:DeleteObject", "s3:DeleteBucket", "s3:PutLifecycleConfiguration", "s3:PutBucketPolicy", "s3:PutBucketVersioning"],
+   "Resource": ["arn:aws:s3:::$B", "arn:aws:s3:::$B/*"]}
+]}
+EOF
+ls ~/politique-*.json
+```
+
+- [ ] **Tu dois voir** deux fichiers : `politique-restauration.json` et `politique-serveur.json`.
+- [ ] Dans OVH, onglet des **utilisateurs S3** : sur l'utilisateur `serveur`, **Importer une politique** › choisis `politique-serveur.json` (dans ton dossier personnel). Sur l'utilisateur `restauration`, importe `politique-restauration.json`. Ne pose aucune politique sur `administrateur`.
+
+**Sinon** (tu ne trouves pas « Importer une politique ») : arrête-toi ici et demande à l'équipe technique. Sans ces règles, le serveur pourrait effacer les sauvegardes.
+
+- [ ] Règle l'effacement automatique à 30 jours, avec l'utilisateur **administrateur**. Remplace le nom du bucket sur la première ligne, copie-colle le bloc, puis colle la clé d'accès et le secret de l'administrateur quand on te les demande (le secret ne s'affiche pas) :
+
+```bash
+B=yeita-recrutement-sauvegardes
+printf "Clé d'accès S3 (administrateur) : "; read -r AWS_ACCESS_KEY_ID; printf "Secret S3 (administrateur) : "; read -r -s AWS_SECRET_ACCESS_KEY; echo
+export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION=gra
+cat > ~/lifecycle.json <<'EOF'
+{"Rules": [{"ID": "expiration-30-jours", "Status": "Enabled", "Filter": {"Prefix": ""}, "Expiration": {"Days": 30}}]}
+EOF
+aws s3api put-bucket-lifecycle-configuration --bucket "$B" --lifecycle-configuration file://$HOME/lifecycle.json --endpoint-url https://s3.gra.io.cloud.ovh.net
+aws s3api get-bucket-lifecycle-configuration --bucket "$B" --endpoint-url https://s3.gra.io.cloud.ovh.net | grep -q '"Days": 30' && echo "OK : effacement automatique à 30 jours" || echo "PROBLÈME : la règle des 30 jours n'est pas en place"
+aws s3api get-bucket-versioning --bucket "$B" --endpoint-url https://s3.gra.io.cloud.ovh.net | grep -q Enabled && echo "PROBLÈME : le versionnement est actif" || echo "OK : pas de versionnement"
+unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; rm -f ~/lifecycle.json ~/politique-serveur.json ~/politique-restauration.json
+```
+
+- [ ] **Tu dois voir** `OK : effacement automatique à 30 jours`, puis `OK : pas de versionnement`.
+
+**Sinon** :
+- `PROBLÈME : le versionnement est actif` : désactive-le dans OVH (page du bucket), puis relance le bloc.
+- une erreur `AccessDenied` ou `InvalidAccessKeyId` : la clé ou le secret de l'administrateur est mal recopié. Relance le bloc.
+- une autre erreur : envoie la sortie à l'équipe technique.
+
+### 11.3 — Les alertes (navigateur, healthchecks.io)
+
+- [ ] Sur `https://healthchecks.io`, crée deux contrôles **distincts** :
+
+| Nom | Période (Period) | Délai de grâce (Grace) |
+|---|---|---|
+| `recrutement-sauvegarde` | 1 jour | 2 heures |
+| `recrutement-disque` | 1 heure | 30 minutes |
+
+- [ ] Pour les deux, la notification par email va à l'équipe.
+- [ ] Copie l'**adresse de ping** de chacun (elle ressemble à `https://hc-ping.com/…`) dans le coffre. Ce sont des secrets : nulle part ailleurs.
+
+### 11.4 — Le compte de stockage du serveur (compte `deploy`)
+
+- [ ] Connecte-toi en `deploy` :
+
+```bash
+ssh -i ~/.ssh/id_ed25519 deploy@51.75.252.121
+```
+
+- [ ] Remplace le nom du bucket sur la deuxième ligne, copie-colle **tout** le bloc (parenthèses comprises), puis colle la clé d'accès et le secret de l'utilisateur **serveur** (le secret ne s'affiche pas) :
+
+```bash
+(
+B=yeita-recrutement-sauvegardes
+umask 077; mkdir -p ~/.config/rclone
+[ ! -e ~/.config/rclone/rclone.conf ] || { echo "rclone.conf existe déjà : ajouter le remote ovh avec « rclone config »."; exit 1; }
+read -r -p "Clé d'accès S3 (serveur) : " K; read -r -s -p "Secret S3 : " S; echo
+cat > ~/.config/rclone/rclone.conf <<EOF
+[ovh]
+type = s3
+provider = Other
+endpoint = https://s3.gra.io.cloud.ovh.net
+region = gra
+access_key_id = $K
+secret_access_key = $S
+acl = private
+no_check_bucket = true
+EOF
+rclone lsd "ovh:$B" && echo "Remote ovh prêt."
+)
+```
+
+- [ ] **Tu dois voir** `Remote ovh prêt.`
+
+**Sinon** :
+- `rclone.conf existe déjà` : arrête-toi et demande à l'équipe technique (un réglage existe déjà, on ne l'écrase pas).
+- une erreur `AccessDenied`, `403` ou `SignatureDoesNotMatch` : la clé ou le secret est mal recopié. Efface le fichier avec `rm ~/.config/rclone/rclone.conf`, puis refais cette case.
+
+### 11.5 — Les réglages des sauvegardes (compte `deploy`)
+
+- [ ] Toujours en `deploy`, ajoute les quatre lignes de réglage (copie-colle tout le bloc) :
+
+```bash
+cd /opt/recrutement
+if grep -q '^AGE_RECIPIENT=' .env; then echo "Les lignes sont déjà dans .env : passe à la case suivante."; else cat >> .env <<'EOF'
+
+AGE_RECIPIENT=A_REMPLACER
+RCLONE_DEST=ovh:A_REMPLACER/recrutement
+HEALTHCHECK_SAUVEGARDE_URL=A_REMPLACER
+HEALTHCHECK_DISQUE_URL=A_REMPLACER
+EOF
+echo "OK : quatre lignes ajoutées"; fi
+```
+
+- [ ] Ouvre le fichier :
+
+```bash
+nano .env
+```
+
+- [ ] Descends jusqu'aux quatre nouvelles lignes, et remplace chaque `A_REMPLACER` :
+  - `AGE_RECIPIENT=` : la **clé publique** `age1…` de l'étape 11.1 (pas la clé privée) ;
+  - `RCLONE_DEST=ovh:` … `/recrutement` : ton **nom de bucket**, par exemple `RCLONE_DEST=ovh:yeita-recrutement-sauvegardes/recrutement` ;
+  - `HEALTHCHECK_SAUVEGARDE_URL=` : l'adresse de ping du contrôle `recrutement-sauvegarde` ;
+  - `HEALTHCHECK_DISQUE_URL=` : l'adresse de ping du contrôle `recrutement-disque`.
+- [ ] Ne touche pas aux autres lignes. Enregistre et ferme : `Ctrl+O`, puis `Entrée`, puis `Ctrl+X`.
+- [ ] Vérifie :
+
+```bash
+grep -q A_REMPLACER .env && echo "PROBLÈME : il reste A_REMPLACER dans .env" || echo "OK : .env rempli"
+```
+
+- [ ] **Tu dois voir** `OK : .env rempli`.
+
+**Sinon** : refais `nano .env` et remplace ce qui reste.
+
+- [ ] Quitte le serveur :
+
+```bash
+exit
+```
+
+### 11.6 — Les réveils de la nuit et de chaque heure (compte `ubuntu`)
+
+- [ ] Connecte-toi en `ubuntu` :
+
+```bash
+ssh -i ~/.ssh/id_ed25519 ubuntu@51.75.252.121
+```
+
+- [ ] Installe et active les deux timers (copie-colle tout le bloc) :
+
+```bash
+cd /opt/recrutement && sudo bash -c 'set -e
+for u in recrutement-backup.service recrutement-backup.timer recrutement-verif-disque.service recrutement-verif-disque.timer; do
+  if [ ! -e /etc/systemd/system/$u ]; then install -m 644 deploy/systemd/$u /etc/systemd/system/$u; echo "copiée : $u"
+  elif cmp -s deploy/systemd/$u /etc/systemd/system/$u; then echo "identique : $u"
+  else echo "DIFFÉRENTE : $u (rien n est écrasé)"; diff /etc/systemd/system/$u deploy/systemd/$u || true; exit 1; fi
+done
+systemctl daemon-reload
+systemctl enable --now recrutement-backup.timer recrutement-verif-disque.timer' && systemctl list-timers 'recrutement-*'
+```
+
+- [ ] **Tu dois voir** quatre lignes `copiée : …` (ou `identique : …`), puis un tableau avec `recrutement-backup.timer` (prochain passage vers 3 h) et `recrutement-verif-disque.timer` (prochain passage à l'heure pleine).
+
+**Sinon** (une ligne `DIFFÉRENTE : …`) : rien n'a été écrasé. Arrête-toi et envoie la sortie à l'équipe technique.
+
+- [ ] Quitte le serveur :
+
+```bash
+exit
+```
+
+### 11.7 — Premier essai (compte `deploy`)
+
+- [ ] Connecte-toi en `deploy` :
+
+```bash
+ssh -i ~/.ssh/id_ed25519 deploy@51.75.252.121
+```
+
+- [ ] Lance une sauvegarde à la main (moins d'une minute) :
+
+```bash
+cd /opt/recrutement && deploy/backup.sh
+```
+
+- [ ] **Tu dois voir**, à la fin : `Sauvegarde réussie : recrutement-….db.age (… octets), envoyée.`
+- [ ] Attends une minute (healthchecks.io ignore les signaux trop rapprochés), puis lance le contrôle du disque :
+
+```bash
+deploy/verif-disque.sh
+```
+
+- [ ] **Tu dois voir** une ligne `Disque racine : … % ; dossier Docker : … % ; seuil : 80 %.`
+- [ ] Vérifie que la copie est arrivée chez OVH :
+
+```bash
+rclone lsl "$(docker compose config --environment | sed -n 's/^RCLONE_DEST=//p')"
+```
+
+- [ ] **Tu dois voir** au moins une ligne qui finit par `.db.age`.
+- [ ] Sur `https://healthchecks.io`, **tu dois voir** les deux contrôles au vert.
+
+**Sinon**, d'après le message affiché :
+
+| Message | Que faire |
+|---|---|
+| `ARRÊT : … est vide`, `… valeur d'exemple`, `… https://`, `… identiques`, `… clé publique age` | une ligne de `.env` est fausse : refais l'étape 11.5 à partir de `nano .env`, puis relance |
+| `ÉCHEC (api non saine)` | l'API ne va pas bien : tape `docker compose logs --tail 50 api` et envoie la sortie à l'équipe technique |
+| `ÉCHEC (envoi (rclone))` | le compte de stockage du serveur est refusé : refais l'étape 11.4 |
+| `Signalement … impossible` ou `refusé` | vérifie les deux adresses de ping dans `nano .env`, attends une minute, relance |
+| `une sauvegarde est déjà en cours` | attends deux minutes et relance |
+| autre chose | envoie la sortie à l'équipe technique |
+
+- [ ] Quitte le serveur :
+
+```bash
+exit
+```
+
+### 11.8 — Vérifier qu'une sauvegarde s'ouvre (sur ton Mac)
+
+Le but : prouver que la clé du coffre ouvre bien la copie arrivée chez OVH. Tout se passe dans un dossier temporaire, effacé à la fin.
+
+- [ ] Dans un **nouveau** Terminal sur ton Mac, crée le dossier temporaire :
+
+```bash
+umask 077; d=$(mktemp -d); cd "$d"; echo "$d"
+```
+
+- [ ] **Tu dois voir** un chemin qui commence par `/var/folders/`.
+- [ ] Dans le coffre, copie la clé privée (`AGE-SECRET-KEY-…`), puis vérifie qu'elle correspond à celle du serveur :
+
+```bash
+pbpaste > "$d/cle.txt"; pbcopy </dev/null
+[ "$(age-keygen -y "$d/cle.txt")" = "$(ssh -i ~/.ssh/id_ed25519 deploy@51.75.252.121 "sed -n 's/^AGE_RECIPIENT=//p' /opt/recrutement/.env")" ] && echo "OK : la clé du coffre correspond au serveur" || echo "PROBLÈME : la clé du coffre ne correspond pas à AGE_RECIPIENT"
+```
+
+- [ ] **Tu dois voir** `OK : la clé du coffre correspond au serveur`.
+
+**Sinon** : arrête-toi. Les sauvegardes seraient illisibles avec cette clé. Envoie le message à l'équipe technique (jamais la clé elle-même).
+
+- [ ] Donne les identifiants de l'utilisateur **restauration** (copie-colle, puis colle la clé d'accès et le secret ; rien n'est écrit sur le disque) :
+
+```bash
+printf "Clé d'accès S3 (restauration) : "; read -r RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID; printf "Secret S3 : "; read -r -s RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY; echo
+export RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY RCLONE_CONFIG_RESTAU_TYPE=s3 RCLONE_CONFIG_RESTAU_PROVIDER=Other RCLONE_CONFIG_RESTAU_ENDPOINT=https://s3.gra.io.cloud.ovh.net RCLONE_CONFIG_RESTAU_REGION=gra
+```
+
+- [ ] Récupère la dernière copie, déchiffre-la et contrôle-la. Remplace le nom du bucket sur la première ligne, puis copie-colle tout le bloc :
+
+```bash
+B=yeita-recrutement-sauvegardes
+f=$(rclone lsf "restau:$B/recrutement" | grep '\.db\.age$' | sort | tail -n 1); echo "Copie : $f"
+rclone copy "restau:$B/recrutement/$f" "$d/"
+age -d -i "$d/cle.txt" -o "$d/copie.db" "$d/$f"
+[ "$(sqlite3 -readonly "$d/copie.db" 'PRAGMA integrity_check;')" = ok ] && echo "OK : la sauvegarde s'ouvre et elle est intacte" || echo "PROBLÈME : la sauvegarde ne s'ouvre pas"
+```
+
+- [ ] **Tu dois voir** `Copie : recrutement-….db.age`, puis `OK : la sauvegarde s'ouvre et elle est intacte`.
+
+**Sinon** : envoie les messages affichés à l'équipe technique (jamais la clé ni la copie).
+
+- [ ] Efface tout du Mac (copie, clé, identifiants) :
+
+```bash
+cd / && rm -rf "$d"; pbcopy </dev/null; unset RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY; echo "OK : poste nettoyé"
+```
+
+- [ ] **Tu dois voir** `OK : poste nettoyé`. Ferme ce Terminal.
+
+Les sauvegardes sont en place. 🎉 À refaire (11.8 seulement) après tout changement de clé.
+
 ---
 
 ## Pour plus tard (compte `deploy`, dans `/opt/recrutement`)
 
 | Tu veux | Tape |
 |---|---|
-| Mettre en ligne la dernière version | `/opt/recrutement/deploy/deploy.sh` (le site est coupé ~15 secondes : pas pendant un entretien) |
+| Mettre en ligne la dernière version | `/opt/recrutement/deploy/deploy.sh` (le site est coupé ~15 secondes : pas pendant un entretien ; pendant une sauvegarde, il s'arrête sur « un déploiement est déjà en cours » : relance-le quelques minutes après) |
 | Revenir à la version d'avant | `/opt/recrutement/deploy/deploy.sh <code>` (le code est affiché en cas d'échec) |
 | Voir si tout tourne | `docker compose ps` |
 | Retirer l'accès à quelqu'un | `docker compose exec api node api/equipe.js disable prenom.nom@yeita.fr` |
+| Faire une sauvegarde tout de suite | `deploy/backup.sh` |
+| Voir les prochaines sauvegardes | `systemctl list-timers 'recrutement-*'` |
+| Voir les copies gardées sur le serveur | `ls -l /var/backups/recrutement` (seulement des fichiers `.db.age`) |
+| Restaurer la base | ne le fais pas seul : la procédure est dans `deploy/RESTAURER.md`, à suivre avec l'équipe technique |
 
-**Ne tape jamais** `docker compose down -v` ni `docker volume prune` sur le serveur : ces commandes effacent toutes les candidatures, et il n'y en a pas d'autre copie.
+**Ne tape jamais** `docker compose down -v` ni `docker volume prune` sur le serveur : ces commandes effacent toutes les candidatures. Les sauvegardes de la nuit permettent de les remettre, mais tout ce qui a été saisi depuis la dernière serait perdu.

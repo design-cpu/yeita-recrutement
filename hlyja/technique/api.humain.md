@@ -3,15 +3,15 @@ type: technique
 vue: humaine
 page: api
 titre: API de stockage (api/)
-maj: 1.3
-commit: 6cd5776
-sources: api/server.js, api/equipe.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md
-date: 2026-10-26
+maj: 1.7
+commit: 26c1d9f
+sources: api/server.js, api/equipe.js, api/sauvegarde.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md
+date: 2026-10-27
 ---
 
 # L'API de stockage
 
-> Un petit serveur garde les dossiers candidat dans une base SQLite partagée et ne répond qu'aux membres de l'équipe. Arrivée en v1.2, elle est en service depuis la v1.3 : elle tourne dans Docker, derrière oauth2-proxy, et les pages l'utilisent en mode serveur.
+> Un petit serveur garde les dossiers candidat dans une base SQLite partagée et ne répond qu'aux membres de l'équipe. Arrivée en v1.2, elle est en service depuis la v1.3 : elle tourne dans Docker, derrière oauth2-proxy, et les pages l'utilisent en mode serveur. Depuis la v1.7, une commande en fait chaque nuit une copie vérifiée, point de départ de la sauvegarde.
 
 ## En un coup d'œil
 
@@ -21,9 +21,11 @@ flowchart LR
   P -->|réseau interne, email du compte| A[API]
   A --> D[(Base SQLite)]
   C[Commande équipe] --> D
+  S[Commande sauvegarde] -->|lecture seule| D
+  S --> K[Copie vérifiée]
 ```
 
-oauth2-proxy vérifie la connexion Google, puis transmet la demande à l'API avec l'email du compte. L'API regarde si cet email fait partie de l'équipe, puis lit ou écrit dans la base. Son code n'a pas changé en v1.3 : seule sa place a changé.
+oauth2-proxy vérifie la connexion Google, puis transmet la demande à l'API avec l'email du compte. L'API regarde si cet email fait partie de l'équipe, puis lit ou écrit dans la base. Deux commandes, lancées dans le conteneur, ouvrent la base à côté : l'une gère l'équipe, l'autre copie la base.
 
 ## Les éléments principaux
 
@@ -66,7 +68,7 @@ Chaque dossier porte un numéro de version, qui augmente à chaque enregistremen
 | Équipe | email, prénom, rôle, actif ou non |
 | Options de disponibilité | seulement celles ajoutées |
 
-Une suppression efface vraiment : le contenu ne reste pas lisible dans les fichiers.
+Une suppression efface vraiment : le contenu ne reste pas lisible dans les fichiers de la base. Il reste en revanche dans les sauvegardes faites avant, jusqu'à leur effacement (32 jours au plus).
 
 ### Gérer l'équipe
 On gère l'équipe par une commande, pas par le site. Sur le serveur, elle passe par le conteneur de l'API :
@@ -76,6 +78,31 @@ docker compose exec api node api/equipe.js add prenom.nom@yeita.fr Prénom admin
 ```
 
 La même commande liste l'équipe, désactive un membre ou change son rôle.
+
+### Copier la base (v1.7)
+La commande de sauvegarde fait une copie cohérente de la base, même pendant que l'équipe enregistre. Elle ne garde la base ouverte que le temps de la copie : l'effacement réel n'est pas retardé.
+
+```mermaid
+flowchart LR
+  A[Copie sous un nom provisoire] --> B{Copie intacte ?}
+  B -- oui --> C[Un seul fichier, nom du jour]
+  B -- non --> D[Rien n'est gardé, erreur]
+```
+
+| Ce qu'elle garantit | En clair |
+|---|---|
+| Un nom définitif = une copie vérifiée | une copie abîmée n'est jamais gardée |
+| Un seul fichier | la copie s'ouvre seule, sans fichiers annexes |
+| Lisible par son seul propriétaire | comme la base elle-même |
+| Ménage sur demande | avec `--nettoyer`, les copies de plus de 2 jours partent, jamais celle qui vient d'être faite |
+
+Chaque nuit, le script de sauvegarde du serveur la lance ainsi, puis chiffre et envoie la copie :
+
+```bash
+docker compose exec -T api node api/sauvegarde.js --nettoyer
+```
+
+La dernière ligne affichée est le chemin de la copie : le script de sauvegarde s'en sert, il ne faut pas en changer la forme.
 
 ### Lancer l'API sur son poste
 Le mode local permet d'essayer l'API sans oauth2-proxy. On dit à l'API quel membre on est ; elle peut aussi servir le site construit, qui passe alors en mode serveur.
@@ -92,7 +119,8 @@ DEV_EMAIL=moi@yeita.fr npm start
 - **Le mode local est verrouillé.** L'image de production le refuse, et l'API s'arrête si on tente de l'activer.
 - **Les réponses comptent pour les pages.** Les pages classent chaque réponse (succès, conflit, refus, panne) : changer un code ou un message change ce que voit le recruteur.
 - **Une écriture à la fois.** Si la base est occupée plus de 5 secondes, l'API demande de réessayer.
-- **Les tests** : `cd api && npm test` (52 tests, une vingtaine de secondes).
+- **Ne jamais copier la base autrement.** Copier ses fichiers pendant qu'elle tourne, ou la lire longtemps avec un autre outil, retarde l'effacement des dossiers supprimés. Seule la commande de sauvegarde est faite pour ça.
+- **Les tests** : `cd api && npm test` (55 tests, une vingtaine de secondes, dont ceux de la commande de sauvegarde).
 
 ## Voir aussi
 - [Comment les pages choisissent où ranger les dossiers](mode-serveur.md)

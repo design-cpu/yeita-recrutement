@@ -22,7 +22,7 @@ date: 2026-10-27
 | `tools/` | construction du site, tests, `check-site.sh` (contrôle d'un site déployé) |
 | `docker/` | `front.Dockerfile` (v1.1), `api.Dockerfile` (v1.3) |
 | `deploy/` | configuration et scripts du serveur, `README.md` (mode d'emploi) (v1.1) ; `systemd/` (unités, v1.7), `RESTAURER.md` (v1.7) |
-| `api/` | l'API de stockage (v1.2) : `server.js`, `equipe.js`, `src/`, `test/`, `README.md` ; `node_modules/` et `data/` jamais commités (`.gitignore`) ; jamais publiée (`SKIP`) |
+| `api/` | l'API de stockage (v1.2) : `server.js`, `equipe.js`, `sauvegarde.js` (v1.7), `src/`, `test/`, `README.md` ; `node_modules/` et `data/` jamais commités (`.gitignore`) ; jamais publiée (`SKIP`) |
 | `compose.yaml`, `.env.example`, `.dockerignore` | pile Docker ; `.env` (secrets) n'est jamais commité (`.gitignore`) (v1.1) |
 | `hlyja/` | trace Hlýja, exclue de la publication (`SKIP` de `tools/build.py`) |
 
@@ -42,7 +42,7 @@ Règles du déploiement (v1.1) : images servies figées par tag (`oauth2-proxy:v
 | `python3 tools/e2e-pdf.py` | idem, plus `pdftotext` (poppler) | exports PDF |
 | `python3 tools/e2e-serveur.py` | site construit dans `_site`, Node 22 et `npm ci` dans `api/`, Playwright Python ; lance lui-même l'API (port 18765, base temporaire, `DEV_STATIC`) | mode serveur de bout en bout : trois navigateurs (Alice, Bob recruteurs, Léa lecture) par `X-Forwarded-Email` ; réponses d'oauth2-proxy, réseau et lenteur simulées par interception (v1.3) ; bandeau jaune des 6 pages et boutons d'exemples (v1.4) ; 51 vérifications ; 20 s par vérification (Playwright) ; l'API lancée est arrêtée dans `finally` |
 | `cd api && npm test` | Node 22 ; `npm ci` dans `api/` | l'API (v1.2) : 55 tests — configuration, base et schéma, autorisation, dossiers, options, serveur, `equipe.js` et `sauvegarde.js` (v1.7, lancée sous `umask 022`) en processus fils ; ~20 s (délais de 5 s volontaires) ; verdict `ℹ fail 0` |
-| `bash tools/test-sauvegarde.sh <dépôt>` (v1.7) | root dans un conteneur jetable `ubuntu:26.04` avec l'utilisateur `deploy`, `/var/backups/recrutement` (700), docker (CLI et plugin compose), `age`, `rclone`, `curl`, `openssl`, `python3` ; port 127.0.0.1:8443 libre | `deploy/backup.sh` et `deploy/verif-disque.sh` : faux `docker` (sauf `compose config`, réel), `rclone`, `age`, `df`, vrai `curl` vers un faux healthchecks.io HTTPS (`CURL_CA_BUNDLE`) ; 119 vérifications ; finit par **`TOUT OK`** (code 0) ou `ÉCHECS : n` (code 1) |
+| `bash tools/test-sauvegarde.sh <dépôt>` (v1.7) | root dans un conteneur jetable `ubuntu:26.04` avec l'utilisateur `deploy`, `/var/backups/recrutement` (700), docker (CLI et plugin compose), `age`, `rclone`, `curl`, `openssl`, `python3` ; port 127.0.0.1:8443 libre | `deploy/backup.sh` et `deploy/verif-disque.sh` : faux `docker` (sauf `compose config`, réel), `rclone`, `df` ; vrai `age` (avec des modes de panne simulés) et vrai `curl` vers un faux healthchecks.io HTTPS (`CURL_CA_BUNDLE`) ; 119 vérifications ; finit par **`TOUT OK`** (code 0) ou `ÉCHECS : n` (code 1) |
 | `tools/check-site.sh BASE_URL` | `curl` ; site déployé ou pile Docker locale | pages publiques en 200, pages protégées en 302 vers Google, `/ping` (v1.1), `/api/moi` → 401 sans session (v1.3) |
 
 Serveur : `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site`.
