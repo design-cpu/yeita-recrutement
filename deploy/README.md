@@ -37,7 +37,7 @@ La liste est dans `deploy/oauth2-proxy.cfg` (`skip_auth_routes`).
 
 Docker avec le plugin Compose, `git`, `curl`, `flock`, `ss`, `ip`, `ssh-keygen`, `useradd`, `runuser`, `getent` et `stat` (Debian ou Ubuntu les fournissent). **Les scripts n'installent rien** : s'il manque quelque chose, ils s'arrêtent et le disent.
 
-Relevez la version du moteur Docker du serveur (`docker version --format '{{.Server.Version}}'`) et notez-la ici : ______. La coupure réseau de l'API (`inhibit_ipv4`, `enable_ipv6: false` sur `back`) a été vérifiée avec le moteur **29.9.2** (v1.3). Sur un moteur plus ancien, refaire le contrôle réseau de la section 9b **avant** toute donnée réelle.
+Relevez la version du moteur Docker du serveur (`docker version --format '{{.Server.Version}}'`) et notez-la ici : "29.9.2". La coupure réseau de l'API (`inhibit_ipv4`, `enable_ipv6: false` sur `back`) a été vérifiée avec le moteur **29.9.2** (v1.3). Sur un moteur plus ancien, refaire le contrôle réseau de la section 9b **avant** toute donnée réelle.
 
 > Le compte `deploy` est mis dans le groupe `docker`. Ce groupe donne des droits équivalents à root sur le serveur : ne donnez la clé SSH de `deploy` qu'aux personnes qui déploient.
 
@@ -216,18 +216,38 @@ Deux déploiements ne peuvent pas tourner en même temps (verrou). Relancer apr�
 Le **premier** déploiement qui apporte l'API est lancé par le `deploy.sh` de la version en place, qui ne connaît pas l'API (le script est lu en entier avant de changer de commit) : il n'attend pas qu'elle soit saine. Après ce premier déploiement, dans `/opt/recrutement` :
 
 1. **État** : `docker compose ps api` doit montrer `healthy`. Sinon : `docker compose logs --tail 50 api` (la cause est sur une ligne), puis relancer `deploy/deploy.sh`.
-2. **Contrôle réseau, avant d'ajouter qui que ce soit** (tant que l'équipe est vide, un en-tête forgé ne reçoit que 403) :
+2. **Contrôle réseau, avant d'ajouter qui que ce soit.** L'API croit l'identité que lui transmet oauth2-proxy : il faut vérifier qu'aucun autre programme du serveur ne peut lui parler. Copiez tout le bloc ci-dessous dans le terminal du serveur (connecté en `deploy`) et appuyez sur Entrée. Il ne modifie rien ; il affiche une ligne `OK` ou `PROBLÈME` par vérification, puis un **verdict** qui dit quoi faire.
    ```bash
-   docker network inspect recrutement_back --format '{{.Internal}} {{.EnableIPv6}} {{.Options}}'
-   # attendu : true false map[com.docker.network.bridge.inhibit_ipv4:true]
-   IP=$(docker inspect -f '{{(index .NetworkSettings.Networks "recrutement_back").IPAddress}}' recrutement-api-1)
-   docker inspect -f '{{(index .NetworkSettings.Networks "recrutement_back").GlobalIPv6Address}}' recrutement-api-1
-   # attendu : aucune adresse IPv6 (Docker 29 affiche « invalid IP », d'autres versions une ligne vide)
-   curl -s -m 5 -o /dev/null -w '%{http_code}\n' "http://$IP:8000/api/sante"                  # depuis le serveur : attendu 000 (échec)
-   docker run --rm --network host curlimages/curl:8.11.1 -s -m 5 -o /dev/null -w '%{http_code}\n' "http://$IP:8000/api/sante"   # attendu 000
-   curl -s -m 5 -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/api/sante              # attendu 000
+   cd /opt/recrutement && (
+   pb=0
+   ok() { echo "  OK        $*"; }
+   ko() { echo "  PROBLÈME  $*"; pb=1; }
+   echo "Contrôle réseau de l'API :"
+   etat=$(docker inspect -f '{{.State.Health.Status}}' recrutement-api-1 2>/dev/null)
+   if [ "$etat" = healthy ]; then ok "l'API tourne et va bien"; else ko "l'API ne va pas bien (état : ${etat:-introuvable}) : docker compose logs --tail 50 api"; fi
+   reseau=$(docker network inspect recrutement_back --format '{{.Internal}} {{.EnableIPv6}} {{index .Options "com.docker.network.bridge.inhibit_ipv4"}}' 2>/dev/null)
+   if [ "$reseau" = "true false true" ]; then ok "le réseau de l'API est fermé (interne, sans IPv6, sans adresse sur le serveur)"; else ko "le réseau de l'API n'est pas réglé comme prévu (lu : ${reseau:-introuvable})"; fi
+   ip4=$(docker inspect -f '{{(index .NetworkSettings.Networks "recrutement_back").IPAddress}}' recrutement-api-1 2>/dev/null)
+   ip6=$(docker inspect -f '{{json (index .NetworkSettings.Networks "recrutement_back").GlobalIPv6Address}}' recrutement-api-1 2>/dev/null)
+   if [ "$ip6" = '""' ]; then ok "l'API n'a pas d'adresse IPv6"; else ko "l'API a une adresse IPv6 : $ip6"; fi
+   temoin=$(docker run --rm --network recrutement_back curlimages/curl:8.11.1 -s -m 5 -o /dev/null -w '%{http_code}' http://api:8000/api/sante 2>/dev/null)
+   if [ "$temoin" = 200 ]; then ok "témoin : un conteneur placé exprès sur le réseau de l'API la joint (l'essai sait voir une API joignable)"; else ko "témoin : même un conteneur du réseau de l'API ne la joint pas (réponse : ${temoin:-aucune}) ; les essais suivants ne prouvent rien"; fi
+   essai() {
+     if [ "$2" = 200 ]; then ko "$1 JOINT l'API : n'importe quel programme de ce serveur pourrait se faire passer pour un membre de l'équipe"; else ok "$1 ne joint pas l'API"; fi
+   }
+   essai "le serveur, par l'adresse de l'API ($ip4)" "$(curl -s -m 5 -o /dev/null -w '%{http_code}' "http://$ip4:8000/api/sante" 2>/dev/null)"
+   essai "le serveur, par 127.0.0.1:8000" "$(curl -s -m 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/api/sante 2>/dev/null)"
+   essai "un conteneur en réseau hôte" "$(docker run --rm --network host curlimages/curl:8.11.1 -s -m 5 -o /dev/null -w '%{http_code}' "http://$ip4:8000/api/sante" 2>/dev/null)"
+   echo
+   if [ "$pb" = 0 ]; then
+     echo "VERDICT : tout est bon. Tu peux ajouter le premier admin (étape 3)."
+   else
+     echo "VERDICT : NE PAS CONTINUER. Lance « docker compose stop api », n'ajoute personne à l'équipe,"
+     echo "          reviens à la version précédente (section 10), et envoie ce qui est affiché ci-dessus."
+   fi
+   )
    ```
-   **Si l'une de ces commandes répond 200**, ou si le réseau n'est pas interne, sans IPv6 et avec l'option : `docker compose stop api`, n'ajoutez aucun membre, revenez à la version précédente (section 10) et signalez-le.
+   Résultat attendu : sept lignes `OK`, puis « VERDICT : tout est bon ». La ligne « témoin » vérifie que l'essai lui-même fonctionne : un conteneur placé exprès sur le réseau de l'API doit la joindre, sinon les autres `OK` ne prouvent rien. Dès qu'une ligne dit `PROBLÈME`, le verdict dit de ne pas continuer : arrêtez l'API (`docker compose stop api`), n'ajoutez personne, revenez à la version précédente (section 10) et envoyez ce qui est affiché à l'équipe technique. (Tant que l'équipe est vide, personne ne peut lire de dossier, même en cas de problème : c'est pour cela que ce contrôle se fait avant le premier admin.) Essayé sur un moteur Linux jetable en v1.3 : tout `OK` sur la pile normale ; quatre `PROBLÈME` quand la protection du réseau est retirée exprès.
 3. **Premier admin** (section 13) : `docker compose exec api node api/equipe.js add prenom.nom@yeita.fr Prénom admin`.
 4. **Vérifier l'identité Google** : connecté avec ce compte, ouvrez `https://recrutement.yeita.fr/api/moi` : la page doit afficher votre email et votre prénom. Un 401 ici veut dire que l'email du compte n'arrive pas à l'API : `docker compose stop api` et signalez-le.
 5. **Données des navigateurs** : les dossiers saisis dans les navigateurs avant cette version (données fictives) ne sont pas repris. Une fois l'API en service, chacun efface les données du site dans son navigateur (Chrome : cadenas › Paramètres du site › Supprimer les données), après avoir ressaisi à la main ce qu'il veut garder.

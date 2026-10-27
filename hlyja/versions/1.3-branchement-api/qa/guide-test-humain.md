@@ -27,14 +27,22 @@ Ouvre `http://127.0.0.1:8000/candidatures/`. Tout est dans `/tmp/essai-13` ; pou
 Sur le serveur, pour les parcours 1 et 2 : accès SSH en `deploy`, `/opt/recrutement`, et un compte Google @yeita.fr.
 
 ## Parcours essentiels
-### 1. Contrôle réseau de la mise en service (README § 9b) — priorité haute, sur le serveur
-Après le premier déploiement de la 1.3 (lancé par le script de la 1.2), **avant** d'ajouter le premier admin.
-- [ ] `docker version --format '{{.Server.Version}}'` : noter la version dans `deploy/README.md` § 1. Si elle est inférieure à 29.9.2, faire tout ce parcours avec une attention particulière (la parade n'a été vérifiée que sur 29.9.2).
-- [ ] `docker compose ps api` : `healthy`.
-- [ ] `docker network inspect recrutement_back --format '{{.Internal}} {{.EnableIPv6}} {{.Options}}'` : `true false map[com.docker.network.bridge.inhibit_ipv4:true]`.
-- [ ] Commande de l'adresse IPv6 de l'api : **la sortie attendue est `invalid IP`** (le README dit « vide », c'est ce que Docker 29.9.2 affiche quand il n'y a pas d'adresse ; une adresse du type `fd..:…` serait un échec). Pour une sortie vide, ajouter `json` : `docker inspect -f '{{json (index .NetworkSettings.Networks "recrutement_back").GlobalIPv6Address}}' recrutement-api-1` → `""`.
-- [ ] Les trois `curl` du README (hôte → adresse de l'api, réseau hôte → adresse de l'api, hôte → `127.0.0.1:8000`) : `000` tous les trois.
-- [ ] Vérifier : si l'un répond `200`, `docker compose stop api`, ne rien ajouter, revenir en arrière (§ 10) et le signaler.
+### 1. Contrôle réseau de la mise en service — priorité haute, sur le serveur
+**Pourquoi** : l'API fait confiance à l'identité que lui transmet oauth2-proxy. Si un autre programme du serveur pouvait lui parler directement, il pourrait se faire passer pour n'importe quel membre de l'équipe. Ce contrôle vérifie que ce n'est pas possible. On le fait **après le premier déploiement de la 1.3 et avant d'ajouter le premier admin** : tant que l'équipe est vide, personne ne peut lire de dossier, même en cas de problème.
+- [ ] Connecté au serveur en `deploy`, relever la version de Docker : `docker version --format '{{.Server.Version}}'`. L'écrire dans `deploy/README.md` § 1. Si elle est inférieure à 29.9.2, le signaler (la protection n'a été essayée que sur 29.9.2), et faire quand même le contrôle.
+- [ ] Copier **tout** le bloc de `deploy/README.md` § 9b, étape 2, dans le terminal, puis Entrée. Il ne change rien, il lit et il essaie.
+- [ ] Lire le résultat. **C'est bon** si les sept lignes commencent par `OK` et que la dernière dit « VERDICT : tout est bon » : passer au parcours 2.
+- [ ] **Ce n'est pas bon** si une ligne commence par `PROBLÈME` : le verdict dit « NE PAS CONTINUER ». Faire ce qu'il dit (`docker compose stop api`, n'ajouter personne, revenir à la version précédente avec `deploy/deploy.sh <commit>`, section 10), copier l'affichage et l'envoyer.
+
+Ce que veulent dire les lignes, si besoin :
+| Ligne | Ce qu'elle vérifie |
+|---|---|
+| l'API tourne et va bien | le conteneur `api` est démarré et sa sonde de santé répond |
+| le réseau de l'API est fermé | le réseau `back` est interne, sans IPv6, et n'a pas d'adresse sur le serveur |
+| l'API n'a pas d'adresse IPv6 | aucune porte d'entrée par IPv6 |
+| témoin | un conteneur placé exprès sur le réseau de l'API la joint : l'essai sait reconnaître une API joignable (sans ce témoin, les `OK` suivants ne prouveraient rien) |
+| le serveur, par l'adresse de l'API / par 127.0.0.1:8000 | un programme du serveur ne peut pas parler à l'API |
+| un conteneur en réseau hôte | un autre service Docker du serveur ne peut pas non plus |
 
 ### 2. H1 : l'email du vrai compte Google arrive à l'API — priorité haute, sur le serveur
 - [ ] `docker compose exec api node api/equipe.js add prenom.nom@yeita.fr Prénom admin` (ton compte).
@@ -67,15 +75,14 @@ Après le premier déploiement de la 1.3 (lancé par le script de la 1.2), **ava
 - [ ] H2 : si tu as un aperçu de la page dans un artefact Claude, elle doit se comporter comme ci-dessus (mode navigateur si l'hôte rend 404). Note ce que tu observes.
 
 ## Points d'attention
-- **Défaut B1 (majeur, tests)** : `tools/e2e-candidatures.py` et `tools/e2e-parcours.py` finissent maintenant par « SOMETHING FAILED » (toutes les vérifications OK, mais la console contient l'erreur du 404 de `/api/moi`, attendu en mode navigateur). Sur `main`, « ALL OK ». Ne pas lire « 40 OK » comme une réussite tant que ce n'est pas corrigé.
-- **Défaut B2 (majeur, exploitation)** : si le volume `recrutement_data` passe en lecture seule (disque abîmé, remontage du système de fichiers) alors que la base existe, l'API démarre et reste `healthy` ; toutes les lectures marchent, chaque enregistrement échoue avec « Erreur interne. » dans le bandeau. `deploy.sh` et `check-site.sh` ne le voient pas. Si l'équipe signale « Erreur interne. » à chaque enregistrement : `docker compose logs api | grep SQLITE_READONLY`.
+- Les suites `tools/e2e-*.py` : lire leur **dernière ligne** (`ALL OK` ou `TOUT OK`) ; deux d'entre elles sortent avec le code 0 même en échec. Le défaut B1 de la QA (« SOMETHING FAILED » dû au 404 attendu de `/api/moi`) est corrigé.
+- Le défaut B2 de la QA (volume en lecture seule, API restée « saine ») est corrigé : la sonde de santé passe en échec ; si l'équipe signale « Erreur interne. » à chaque enregistrement, regarder `docker compose ps api` et `docker compose logs api | grep SQLITE_READONLY`.
 - Le bandeau jaune « Données fictives uniquement, jusqu'au déploiement sécurisé. Tout reste dans ce navigateur. » reste affiché en mode serveur, où il devient faux (hors périmètre de la spec : à décider avant d'y mettre de vraies candidatures).
-- Le README § 9b annonce une sortie « vide » pour l'adresse IPv6 ; Docker affiche `invalid IP` (voir parcours 1).
 - H4 : après la mise en service, chacun efface les données du site dans son navigateur (README § 9b, point 5). Confirmer qu'aucune vraie candidature n'était dans les navigateurs.
 - Chaque déploiement coupe l'API ~15 s : déployer hors des entretiens.
 
 ## Inutile de tester
-- Le démarrage dans tous ses cas (404, 401 et sa garde, 403, 502, non JSON, délai), l'adaptateur (versions, file, identifiants, 409), les options, la relecture au retour sur l'onglet, les fiches écrites par partie, la suppression vue d'un autre navigateur : `tools/test-serveur.js` (81) et `tools/e2e-serveur.py` (37), mis à l'épreuve par mutation.
+- Le démarrage dans tous ses cas (404, 401 et sa garde, 403, 502, non JSON, délai), l'adaptateur (versions, file, identifiants, 409), les options, la relecture au retour sur l'onglet, les fiches écrites par partie, la suppression vue d'un autre navigateur : `tools/test-serveur.js` (83) et `tools/e2e-serveur.py` (38), mis à l'épreuve par mutation.
 - L'isolement réseau de l'API (hôte, réseau hôte, caddy, IPv6), l'en-tête d'identité forgé avec et sans session, les formes d'adresse, l'image (utilisateur, droits, sonde, mode local refusé), `.dockerignore`, `deploy.sh` (attente, échec, retour arrière) : banc Linux et banc Dex de la QA. Seul le contrôle du parcours 1 est à refaire, parce qu'il dépend du moteur du serveur.
 - L'effacement d'un dossier supprimé ou rectifié (fichiers de la base, journaux, navigateurs) : vérifié sur la pile Docker.
 - Les textes : comparés mot pour mot à la spec.
