@@ -641,7 +641,8 @@ function formatYM(){
   document.querySelectorAll("#sheet > .sec .sn").forEach(function(n, i){ n.textContent = i + 1; });
   sec.querySelector(".in").insertAdjacentHTML("afterbegin", '<fieldset class="plain ym-fmt"><legend>' + E(UI.t("ec.ymPasse")) + '</legend><div class="radios-inline">'
     + '<label><input type="radio" name="ym-fmt" value="presentiel">' + E(UI.t("ec.presentiel")) + '</label><label><input type="radio" name="ym-fmt" value="visio">' + E(UI.t("ec.visio")) + '</label>'
-    + '<a class="btn small" id="ym-en-ligne" href="' + E((YEITA_MATCH && YEITA_MATCH.GAME_URL) || "") + '" target="_blank" rel="noopener" hidden>' + E(UI.t("ec.ouvrirJeu")) + YEITA.icon("ExternalLink", 15, 2.2) + '<span class="sr-only"> (' + E(UI.t("docs.nouvelOnglet")) + ')</span></a></div></fieldset>');
+    + '<a class="btn small" id="ym-en-ligne" href="' + E((YEITA_MATCH && YEITA_MATCH.GAME_URL) || "") + '" target="_blank" rel="noopener" hidden>' + E(UI.t("ec.ouvrirJeu")) + YEITA.icon("ExternalLink", 15, 2.2) + '<span class="sr-only"> (' + E(UI.t("docs.nouvelOnglet")) + ')</span></a>'
+    + '<a class="btn small" id="ym-decompte" href="decompte.html?id=' + encodeURIComponent(cand ? cand.id : "") + '" hidden>' + E(UI.t("ec.ouvrirDecompte")) + '</a></div></fieldset>');
   syncFormatYM();
 }
 function syncFormatYM(){
@@ -651,6 +652,8 @@ function syncFormatYM(){
   if(imp) imp.hidden = v !== "visio";
   /* En visio, le jeu en ligne s'ouvre d'ici, juste à côté du choix ; en présentiel, rien. */
   var en = document.getElementById("ym-en-ligne"); if(en) en.hidden = v !== "visio" || !en.getAttribute("href");
+  /* En présentiel, la feuille de décompte du candidat, au même endroit (elle reporte le résultat ici). */
+  var dc = document.getElementById("ym-decompte"); if(dc) dc.hidden = v !== "presentiel" || !cand;
 }
 document.addEventListener("change", function(e){
   if(e.target.name !== "ym-fmt") return;

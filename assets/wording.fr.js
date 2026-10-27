@@ -254,6 +254,7 @@ window.WORDING = {
     liens: "Liens et outils",
     masquerCarte: "Masquer sur la carte",
     ouvrirJeu: "Ouvrir Yeita Match en ligne",
+    ouvrirDecompte: "Ouvrir la feuille de décompte",
     grilleOuvrir: "Ouvrir la grille de salaire dans un nouvel onglet",
     seniorite: "Junior 0 à 1 · Intermédiaire 2 à 3 · Senior 3 à 4",
     echange: "Échange libre",
