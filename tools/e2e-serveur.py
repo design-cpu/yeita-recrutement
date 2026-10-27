@@ -108,6 +108,8 @@ async def principal():
             await pd.route("**/api/equipe", equipe_lente)
             await pd.goto(C, wait_until="domcontentloaded")
             pendant = await pd.evaluate("(function(){ var m = DEMARRAGE.mode(); document.getElementById('demo-load').click(); document.getElementById('empty-demo').click(); return m; })()")
+            check("exemples : « Retirer les exemples » caché pendant l'attente du démarrage (1.4, R6)",
+                  pendant == "attente" and await pd.evaluate("document.getElementById('demo-clear').hidden"), "mode : %s" % pendant)
             await pd.wait_for_timeout(3500)
             st, liste = api("alice@yeita.fr", "GET", "candidats")
             check("exemples : clic sur « Charger des exemples » pendant l'attente du démarrage → rien dans la base (1.4, CA3)",
@@ -276,6 +278,10 @@ async def principal():
                     await pg.click("#add-open"); await pg.fill("#a-personne", "Pendant Panne"); await pg.click('#add-form button[value="liste"]'); await pg.wait_for_timeout(500)
                     check("mode bloqué : « Nouvelle candidature » n'écrit rien, ni API ni yeita-dossiers (CA3)",
                           await pg.evaluate("localStorage.getItem('yeita-dossiers')") is None and not any(x["data"]["candidat"]["nom"] == "Pendant Panne" for x in api("alice@yeita.fr", "GET", "candidats")[1]))
+                    await pg.evaluate("document.getElementById('demo-load').click(); document.getElementById('empty-demo').click()"); await pg.wait_for_timeout(800)
+                    check("mode bloqué : clic sur « Charger des exemples » → rien dans l'API ni dans yeita-dossiers, « Retirer les exemples » caché (1.4, R4, R6)",
+                          await pg.evaluate("localStorage.getItem('yeita-dossiers')") is None and not any(x["data"]["meta"].get("demo") for x in api("alice@yeita.fr", "GET", "candidats")[1])
+                          and await pg.evaluate("document.getElementById('demo-clear').hidden"))
                 await ctx.close()
             ctx, pg, req = await demarrage(lambda r: r.fulfill(status=404, body="<html>404</html>", content_type="text/html"))
             check("démarrage 404 text/html (pas d'API sur ce site) → mode navigateur, liste « Qui es-tu ? »", await pg.evaluate("DEMARRAGE.mode()") == "navigateur" and await pg.locator("#qui-sel").count() == 1)
