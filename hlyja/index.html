@@ -805,7 +805,7 @@ function docPage(kind, name, anchor){
   if (m.commit) props += '<dt>' + icon('branch', 's') + 'Vérifié contre</dt><dd><span class="src">' + esc(m.commit) + '</span>' + (d.fresh ? (d.fresh.stale ? '<span class="tag yellow">À revérifier' + (d.fresh.commits ? ' · ' + plural(d.fresh.commits, 'commit') + ' depuis' : d.fresh.error ? ' · ' + esc(d.fresh.error) : '') + '</span>' : '<span class="tag green">À jour avec le code</span>') : '') + '<span style="color:var(--faint)">— le code fait foi en cas d\u2019écart</span></dd>';
   if (m.sources) props += '<dt>' + icon('code', 's') + 'Fichiers sources</dt><dd>' + String(m.sources).split(',').map(x => '<span class="src">' + esc(x.trim()) + '</span>').join('') + '</dd>';
   const p = page('<div class="p-icon" style="background:' + (kind === 'tech' ? 'var(--purple-tag);color:var(--purple-ink)' : 'var(--blue-tag);color:var(--blue-ink)') + '">' + icon(ic) + '</div><h1 class="p-title">' + esc(m.titre || name) + '</h1><dl class="props">' + props + '</dl>');
-  const view = fileView(d, { onRedraw(){ } });
+  const view = fileView(d, { checklist: kind + ':' + name, onRedraw(){ } });
   p.appendChild(view);
   withToc(p, p, anchor);
 }
