@@ -3,9 +3,9 @@ type: technique
 page: mode-serveur
 titre: Mode serveur des pages (démarrage, adaptateur, identité)
 maj: 1.4
-commit: 30e0977
+commit: c51ed2c
 sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, assets/qui.js, assets/store.js, assets/wording.fr.js, assets/yeita.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/decompte.html, candidatures/carte.html, tools/test-serveur.js, tools/e2e-serveur.py
-date: 2026-10-26
+date: 2026-10-27
 ---
 
 # Mode serveur des pages (démarrage, adaptateur, identité)

@@ -3,9 +3,9 @@ type: doc
 domaine: stockage-partage
 titre: Candidatures partagées et identité
 maj: 1.4
-commit: 30e0977
+commit: c51ed2c
 sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, assets/qui.js, assets/store.js, assets/wording.fr.js, assets/yeita.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/decompte.html, candidatures/carte.html, deploy/README.md
-date: 2026-10-26
+date: 2026-10-27
 ---
 
 # Candidatures partagées et identité
@@ -46,7 +46,7 @@ La page attend la réponse (10 s au plus) avant d'afficher ou d'enregistrer quoi
 | Recruteurs hors équipe | Un nom tapé dans le champ Recruteurs reste dans le dossier, mais n'est plus proposé ailleurs (avant : gardé dans le navigateur) | 1.3 |
 | Import en mode serveur | Seule la fusion est proposée (« Remplacer tout » supprimerait les dossiers de toute l'équipe) ; un export est une copie : « Les candidatures sont enregistrées sur le serveur de l'équipe. Un export est une copie : supprime-la après usage. » | 1.3 |
 | Bandeau jaune | En mode serveur, le bandeau jaune en tête des six pages dit « Les candidatures sont enregistrées sur le serveur de l'équipe Yeita, accessible aux seuls recruteurs connectés. » ; ailleurs (mode navigateur, mode bloqué, attente de la réponse de la base) il garde « Données fictives uniquement, jusqu'au déploiement sécurisé. Tout reste dans ce navigateur. » | 1.4 |
-| Pas d'exemples dans la base partagée | En mode serveur, le tableau ne propose pas « Charger des exemples » (ni dans la section Sauvegarde, ni sur le tableau vide, qui dit seulement « Ajoute la première personne avec qui tu as un appel de découverte. ») ; avant la réponse de la base, ces boutons ne font rien. « Retirer les exemples » n'apparaît que si la base contient déjà des exemples, et les retire pour toute l'équipe | 1.4 |
+| Pas d'exemples dans la base partagée | En mode serveur, le tableau ne propose pas « Charger des exemples » (ni dans la section Sauvegarde, ni sur le tableau vide, qui dit seulement « Ajoute la première personne avec qui tu as un appel de découverte. ») ; avant la réponse de la base, ou si la page est bloquée, ces boutons ne font rien. « Retirer les exemples » n'apparaît que si la base contient déjà des exemples, et les retire pour toute l'équipe | 1.4 |
 | Impression | La note d'impression renvoie vers un onglet du site du recrutement, et « Ouvrir sur le site » mène à `recrutement.yeita.fr` | 1.3 |
 
 ## Cas particuliers

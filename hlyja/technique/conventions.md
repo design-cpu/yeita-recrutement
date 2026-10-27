@@ -3,9 +3,9 @@ type: technique
 page: conventions
 titre: Conventions et tests
 maj: 1.4
-commit: 30e0977
+commit: c51ed2c
 sources: api/package.json, api/test/aide.js, README.md, CONTRIBUER.md, tools/build.py, tools/check-site.sh, compose.yaml, .dockerignore, .gitignore, tools/test-store.js, tools/test-serveur.js, tools/e2e-serveur.py, tools/e2e-candidatures.py, tools/e2e-parcours.py, tools/e2e-liens.py, tools/e2e-pdf.py
-date: 2026-10-26
+date: 2026-10-27
 ---
 
 # Conventions et tests
@@ -68,4 +68,4 @@ Une branche par sujet (`feat/…`, `fix/…`, `version/<x.y>-<slug>` pour Hlýja
 | 1.1 | Dossiers `docker/`, `deploy/` ; publication par Docker, fin de GitHub Pages ; `check-site.sh` ; règles du déploiement |
 | 1.2 | Dossier `api/`, `api` dans `SKIP`, tests de l'API (`node:test`) |
 | 1.3 | `docker/api.Dockerfile`, `assets/demarrage.js`, `assets/adapter-serveur.js` ; tests `tools/test-serveur.js` et `tools/e2e-serveur.py` |
-| 1.4 | Ancien modèle v2 de `docs/` supprimé ; compteurs de `test-serveur` et `e2e-serveur` |
+| 1.4 | Ancien modèle v2 de `docs/` supprimé ; `e2e-candidatures` couvre le bandeau et les boutons d'exemples du mode navigateur ; compteurs de `test-serveur` et `e2e-serveur` |
