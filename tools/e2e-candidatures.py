@@ -37,6 +37,10 @@ async def main():
         check("page candidat sans identifiant : aucun candidat affiché", await pg.locator("#missing").is_visible() and not await pg.locator("#body").is_visible())
         await pg.goto(C, wait_until="networkidle"); await pg.wait_for_timeout(200)
         check("état vide", await pg.locator("#empty").is_visible())
+        fict = await pg.locator(".fict").inner_text(); vide = await pg.locator("#empty p").inner_text()
+        check("mode navigateur : bandeau « Tout reste dans ce navigateur », tableau vide avec ses exemples, « Retirer les exemples » présent (1.4, R7)",
+              "Tout reste dans ce navigateur" in fict and "serveur de l'équipe" not in fict and "charge des exemples fictifs" in vide
+              and await pg.locator("#empty-demo").is_visible() and await pg.locator("#demo-load").count() == 1 and not await pg.evaluate("document.getElementById('demo-clear').hidden"), f"{fict} / {vide}")
 
         # Qui es-tu
         await pg.click("#add-open"); await pg.fill("#a-personne", "Test"); await pg.click("#add-form button[value=ouvrir]"); await pg.wait_for_timeout(200)
@@ -118,6 +122,7 @@ async def main():
 
         # Exemples, colonnes masquées, liste triable
         await pg.click("#save > summary"); await pg.click("#demo-load"); await pg.wait_for_timeout(400)
+        check("mode navigateur : exemples chargés, « Retirer les exemples » visible (1.4, R7)", await pg.locator("#demo-clear").is_visible())
         check("colonnes : 9 visibles, 3 masquées par défaut", await pg.locator(".kcol").count() == 9 and await pg.locator("#col-vivier").count() == 0)
         await pg.click("#more"); await pg.wait_for_timeout(200)
         check("Afficher plus : Go sur mission, Vivier, Non retenu", await pg.locator(".kcol").count() == 12 and await pg.locator('.kcol:has(h2#col-vivier) .kc').count() == 1)

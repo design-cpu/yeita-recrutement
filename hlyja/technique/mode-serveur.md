@@ -2,10 +2,10 @@
 type: technique
 page: mode-serveur
 titre: Mode serveur des pages (démarrage, adaptateur, identité)
-maj: 1.3
-commit: 3b314a9
+maj: 1.4
+commit: c51ed2c
 sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, assets/qui.js, assets/store.js, assets/wording.fr.js, assets/yeita.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/decompte.html, candidatures/carte.html, tools/test-serveur.js, tools/e2e-serveur.py
-date: 2026-10-26
+date: 2026-10-27
 ---
 
 # Mode serveur des pages (démarrage, adaptateur, identité)
@@ -50,7 +50,7 @@ Au chargement : `D.use(adaptateur d'attente)` (chaque méthode attend `pret` pui
 |---|---|
 | `hoteDeProduction()` | `nom(new URL(YEITA.SITE).hostname) === nom(location.hostname)`, `nom` = minuscules, points finaux retirés ; exception → `true` |
 | `sur401()` | `sessionStorage` `yeita-rechargement-401` : horodatage de moins de 60 s → bloqué, message de session ; sinon horodatage écrit puis `location.reload()` ; écriture impossible → bloqué, session ; rend une promesse jamais résolue |
-| `serveur(moi)` | `GET ../api/equipe` et `../api/options-disponibilite` ; un 401 → `sur401` ; autre que 200 avec un tableau → bloqué ; sinon `D.use(AdaptateurServeur({sur401, surErreur}))`, `D.onRefus`, `QUI.compte(moi, prénoms)`, `STORE.sourceDispos({ajouts, ajouter})` (POST, la réponse remplace la liste), mode `serveur`, `pret` résolue |
+| `serveur(moi)` | `GET ../api/equipe` et `../api/options-disponibilite` ; un 401 → `sur401` ; autre que 200 avec un tableau → bloqué ; sinon `D.use(AdaptateurServeur({sur401, surErreur}))`, `D.onRefus`, `QUI.compte(moi, prénoms)`, `STORE.sourceDispos({ajouts, ajouter})` (POST, la réponse remplace la liste), chaque `[data-t="commun.fictif"]` reçoit `data-t="commun.serveur"` et son texte (v1.4), mode `serveur`, `pret` résolue |
 | `navigateur()` | `D.use(LocalAdapter)`, `D.onRefus` (bandeau), `QUI.local()`, `STORE.sourceDispos(null)`, `pret` résolue |
 
 ## `assets/adapter-serveur.js` — `window.AdaptateurServeur(opts)`
@@ -99,7 +99,7 @@ Tout rejet (hors 401) appelle `surErreur(e)` puis rejette ; `e.ecriture` vaut `t
 ## Pages
 | Page | Première lecture | Retour sur l'onglet | Écriture |
 |---|---|---|---|
-| `index.html` | `DEMARRAGE.pret.then(load)` ; en mode serveur, `label` de « Remplacer tout » retiré | relit la liste, redessine si `id@modifieLe` change | `store.js` (inchangé) |
+| `index.html` | `DEMARRAGE.pret.then(load)` ; en mode serveur, `label` de « Remplacer tout » retiré, `#demo-load` et `#empty-demo` retirés, texte du tableau vide `tableau.vide.texteServeur` (v1.4) ; le clic sur `#demo-load` / `#empty-demo` ne fait rien hors du mode `navigateur` ; `#demo-clear` caché au départ, puis à chaque `renderBoard` : visible en mode navigateur, en mode serveur seulement si un dossier lu a `meta.demo` (v1.4) | relit la liste, redessine si `id@modifieLe` change | `store.js` (inchangé) |
 | `candidat.html` | `DEMARRAGE.pret.then(load)` | relit si `peutRelire()` (ni enregistrement en attente, en cours ou refusé, ni formulaire de refus ouvert, ni champ actif dans `#body`), revérifié à la réponse ; redessine si `meta.modifieLe` change ; retire le bandeau | dossier entier ; « Non enregistré » dans `#saved` sur refus ; `pagehide` → `D.partir(cur)` |
 | `ec1.html`, `ec2.html` | `DEMARRAGE.pret.then(get)` | `ec2` : `renderFrom1()` | `ecrirePartie` : `{fiches.ec1, ec1}` / `{fiches.ec2, ec2}` ; « Non enregistré » dans `renderExits` des deux pages (EC2 corrigée à la relecture de la doc) ; `pagehide` → `partirPartie(cand, …)` |
 | `decompte.html` | `DEMARRAGE.pret.then(get)` (avec `?id=`) | — | `ecrirePartie` : `fiches.decompte` ; `pagehide` → `partirPartie` |
@@ -107,13 +107,13 @@ Tout rejet (hors 401) appelle `surErreur(e)` puis rejette ; `e.ecriture` vaut `t
 Les écoutes `storage` existantes restent (mode navigateur).
 
 ## Textes (`assets/wording.fr.js`)
-`qui.connecte` « Connecté·e : », `qui.lectureSeule` « · lecture seule » ; `serveur` : `conflit`, `horsEquipe`, `lectureSeule`, `reseau`, `session`, `identifiant`, `saisie`, `nonEnregistre`, `recharger`, `exportTexte`. `YEITA.SITE` = `https://recrutement.yeita.fr/` (`assets/yeita.js`) ; `wirePrint` y ajoute le nom de la page, précédé de `candidatures/` pour une page de ce dossier (lien « Ouvrir sur le site »).
+`qui.connecte` « Connecté·e : », `qui.lectureSeule` « · lecture seule » ; `commun.serveur` (bandeau jaune en mode serveur) et `tableau.vide.texteServeur` (v1.4) ; `serveur` : `conflit`, `horsEquipe`, `lectureSeule`, `reseau`, `session`, `identifiant`, `saisie`, `nonEnregistre`, `recharger`, `exportTexte`. `YEITA.SITE` = `https://recrutement.yeita.fr/` (`assets/yeita.js`) ; `wirePrint` y ajoute le nom de la page, précédé de `candidatures/` pour une page de ce dossier (lien « Ouvrir sur le site »).
 
 ## Stockage du navigateur en mode serveur
 Rien n'est écrit dans `yeita-dossiers`, `yeita-equipe-ajouts`, `yeita-recruteur`, `yeita-options-disponibilite`. Restent : `yeita-dossier-courant` (un identifiant), `yeita-dernier-export` (date du dernier export, `store.js`), `yeita-candidatures-ui`, `yeita-carte-identite`, `yeita-match-resultat` (relais hors périmètre), `sessionStorage` `yeita-notice`, `yeita-rechargement-401`.
 
 ## Tests
-`node tools/test-serveur.js` (83 vérifications, fausse API, contexte `vm` comme `tools/test-store.js`) ; `tools/e2e-serveur.py` (38 vérifications, API réelle) : voir [Conventions](conventions.md#tests).
+`node tools/test-serveur.js` (87 vérifications, fausse API, contexte `vm` comme `tools/test-store.js`) ; `tools/e2e-serveur.py` (51 vérifications, API réelle) : voir [Conventions](conventions.md#tests).
 
 ## Voir aussi
 - [API de stockage](api.md)
@@ -125,3 +125,4 @@ Rien n'est écrit dans `yeita-dossiers`, `yeita-equipe-ajouts`, `yeita-recruteur
 | Version | Changement |
 |---|---|
 | 1.3 | Création : démarrage, adaptateur serveur, identité et options en mode serveur, écriture des fiches par partie |
+| 1.4 | Bandeau jaune en mode serveur (`commun.serveur`) ; boutons d'exemples de `index.html` selon le mode |

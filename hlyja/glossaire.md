@@ -1,6 +1,6 @@
 ---
 type: glossaire
-maj: 1.3
+maj: 1.4
 ---
 
 # Glossaire
@@ -14,6 +14,10 @@ Aussi : API de stockage.
 ## Bandeau d'erreur
 Le message rouge qui s'affiche en haut de la page quand la base refuse ou ne répond pas : quelqu'un a modifié le dossier entre-temps, la connexion est coupée, ou le compte n'a pas le droit d'écrire. Il reste visible même en bas d'une longue fiche et propose de recharger la page.
 Aussi : bandeau.
+
+## Bandeau jaune
+Le bandeau en tête des pages de Candidatures. Sur le site de l'équipe, il dit que les candidatures sont enregistrées sur le serveur de l'équipe Yeita, accessible aux seuls recruteurs connectés, et affiche « Connecté·e : prénom ». Ailleurs, il rappelle que les données sont fictives et restent dans le navigateur.
+Aussi : bandeau « Données fictives ».
 
 ## Caddy
 Un logiciel qui reçoit les visites d'un site web et obtient tout seul le certificat HTTPS. Le projet en lance un dans le cas B, quand le serveur n'a pas déjà de proxy.

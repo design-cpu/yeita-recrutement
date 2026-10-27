@@ -7,6 +7,7 @@ window.WORDING = {
   commun: {
     espace: "Candidatures",
     fictif: "Données fictives uniquement, jusqu'au déploiement sécurisé. Tout reste dans ce navigateur.",
+    serveur: "Les candidatures sont enregistrées sur le serveur de l'équipe Yeita, accessible aux seuls recruteurs connectés.",
     volatile: "Ce navigateur refuse d'enregistrer : tout disparaîtra à la fermeture de l'onglet. Exporte la base avant de partir.",
     retourTableau: "Toutes les candidatures",
     guide: "Guide du recruteur",
@@ -108,6 +109,7 @@ window.WORDING = {
     vide: {
       titre: "Aucune candidature pour l'instant",
       texte: "Ajoute la première personne avec qui tu as un appel de découverte. Pour une démo, charge des exemples fictifs.",
+      texteServeur: "Ajoute la première personne avec qui tu as un appel de découverte.",
       exemples: "Charger des exemples"
     },
     colonnes: {candidat: "Candidat", job: "Job", xp: "XP", dispo: "Disponibilité", etat: "État", recruteurs: "Recruteurs", etape: "Étape", debut: "Début du process", lien: "Lien"},

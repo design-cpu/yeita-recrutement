@@ -86,7 +86,7 @@
             <div class="field" id="exp-w" hidden><label for="exp-text" data-t="tableau.sauvegarde.copieExport"></label><textarea id="exp-text" readonly spellcheck="false"></textarea><div class="actions"><button type="button" class="btn small" id="exp-copy" data-t="tableau.sauvegarde.copier"></button></div></div>
             <div class="field"><label for="imp-text" data-t="tableau.sauvegarde.coller"></label><textarea id="imp-text" spellcheck="false" placeholder='{"schema":"yeita-candidatures", …}'></textarea><div class="actions"><button type="button" class="btn small" id="imp-go" data-t="tableau.sauvegarde.importerTexte"></button></div></div>
             <p class="imp-msg" id="imp-msg" aria-live="polite"></p>
-            <div class="save-row"><button type="button" class="btn small quiet" id="demo-load" data-t="tableau.sauvegarde.exemples"></button><button type="button" class="btn small quiet" id="demo-clear" data-t="tableau.sauvegarde.retirerExemples"></button></div>
+            <div class="save-row"><button type="button" class="btn small quiet" id="demo-load" data-t="tableau.sauvegarde.exemples"></button><button type="button" class="btn small quiet" id="demo-clear" data-t="tableau.sauvegarde.retirerExemples" hidden></button></div>
           </div>
         </details>
       </div>
@@ -179,6 +179,8 @@ function renderBoard(){
   var retours = actifs.filter(function(c){ return c.etat === "retour-a-faire"; }).length;
   document.getElementById("bsum").textContent = all.length ? t("tableau.resume", {enCours: actifs.length}) + (retours ? ", " + t(retours > 1 ? "tableau.resumeRetours" : "tableau.resumeRetour", {n: retours}) : "") + "." : "";
   var empty = !all.length;
+  /* Retirer les exemples : en mode serveur, seulement s'il y en a dans la base partagée (jamais avant le premier affichage). */
+  document.getElementById("demo-clear").hidden = DEMARRAGE.mode() === "serveur" ? !all.some(function(c){ return c.meta && c.meta.demo; }) : DEMARRAGE.mode() !== "navigateur";
   document.getElementById("empty").hidden = !empty;
   document.getElementById("kanban").hidden = empty || ui.mode !== "kanban";
   document.getElementById("list").hidden = empty || ui.mode !== "liste";
@@ -295,7 +297,8 @@ document.addEventListener("click", function(e){
   if(tgt.id === "exp"){ S.exportAll().then(function(txt){ download(txt); renderBoard(); say(t("tableau.sauvegarde.exportPret")); }); return; }
   if(tgt.id === "exp-copy"){ YEITA.copy(document.getElementById("exp-text").value, function(ok){ YEITA.flash(tgt, ok ? t("tableau.sauvegarde.exportCopie") : ""); }); return; }
   if(tgt.id === "imp-go"){ var txt = document.getElementById("imp-text").value; if(!txt.trim()){ var m = document.getElementById("imp-msg"); m.className = "imp-msg bad"; m.textContent = t("tableau.sauvegarde.importVide"); return; } importText(txt).then(function(){ document.getElementById("imp-text").value = ""; }); return; }
-  if(tgt.id === "demo-load" || tgt.id === "empty-demo"){ S.clearDemo().then(S.loadDemo).then(load).then(function(){ say(t("tableau.sauvegarde.exemplesCharges")); }); return; }
+  /* Les exemples ne se chargent que dans le navigateur : pendant l'attente, l'appel partirait plus tard vers la base partagée. */
+  if(tgt.id === "demo-load" || tgt.id === "empty-demo"){ if(DEMARRAGE.mode() !== "navigateur") return; S.clearDemo().then(S.loadDemo).then(load).then(function(){ say(t("tableau.sauvegarde.exemplesCharges")); }); return; }
   if(tgt.id === "demo-clear"){ S.clearDemo().then(load).then(function(){ say(t("tableau.sauvegarde.exemplesRetires")); }); return; }
 });
 document.getElementById("mode").addEventListener("keydown", function(e){
@@ -316,6 +319,12 @@ QUI.onChange(function(){});
 DEMARRAGE.pret.then(function(){
   /* « Remplacer tout » supprimerait les dossiers de toute l'équipe absents du fichier : seule la fusion reste. */
   if(DEMARRAGE.mode() === "serveur"){ var rp = document.querySelector('input[name="imp-mode"][value="remplacement"]'); if(rp) rp.closest("label").remove(); }
+  /* Pas d'exemples fictifs dans la base partagée de l'équipe. */
+  if(DEMARRAGE.mode() === "serveur"){
+    ["demo-load", "empty-demo"].forEach(function(id){ var b = document.getElementById(id); if(b) b.remove(); });
+    var vide = document.querySelector('#empty [data-t="tableau.vide.texte"]');
+    if(vide){ vide.setAttribute("data-t", "tableau.vide.texteServeur"); vide.textContent = t("tableau.vide.texteServeur"); }
+  }
   return load();
 });
 })();
