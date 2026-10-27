@@ -32,10 +32,14 @@ La liste est dans `deploy/oauth2-proxy.cfg` (`skip_auth_routes`).
 | `deploy/prepare-serveur.sh` | Préparation, une seule fois, par l'administrateur |
 | `deploy/deploy.sh` | Déploiement et retour arrière, par le compte `deploy` |
 | `tools/check-site.sh` | Contrôle du site (6 adresses, dont `/api/moi` → 401 sans session) |
+| `deploy/backup.sh`, `deploy/healthchecks.sh` | Sauvegarde chiffrée de la base chaque nuit, signalée à healthchecks.io (section 14) |
+| `deploy/verif-disque.sh` | Alerte quand un disque dépasse 80 % (section 14) |
+| `deploy/systemd/` | Unités `recrutement-backup` et `recrutement-verif-disque` (service et timer) |
+| `deploy/RESTAURER.md` | Restaurer la base, ou ouvrir une copie sur un poste |
 
 ## 1. Prérequis
 
-Docker avec le plugin Compose, `git`, `curl`, `flock`, `ss`, `ip`, `ssh-keygen`, `useradd`, `runuser`, `getent` et `stat` (Debian ou Ubuntu les fournissent). **Les scripts n'installent rien** : s'il manque quelque chose, ils s'arrêtent et le disent.
+Docker avec le plugin Compose, `git`, `curl`, `flock`, `ss`, `ip`, `ssh-keygen`, `useradd`, `runuser`, `getent` et `stat` (Debian ou Ubuntu les fournissent), plus `age` et `rclone` pour les sauvegardes (`sudo apt install age rclone` ; paquets Ubuntu 26.04 : age 1.2.1, rclone 1.60.1). **Les scripts n'installent rien** : s'il manque quelque chose, ils s'arrêtent et le disent.
 
 Relevez la version du moteur Docker du serveur (`docker version --format '{{.Server.Version}}'`) et notez-la ici : "29.9.2". La coupure réseau de l'API (`inhibit_ipv4`, `enable_ipv6: false` sur `back`) a été vérifiée avec le moteur **29.9.2** (v1.3). Sur un moteur plus ancien, refaire le contrôle réseau de la section 9b **avant** toute donnée réelle.
 
@@ -262,6 +266,8 @@ Le commit doit appartenir à `main` et contenir le déploiement Docker (pas d'av
 
 Après un échec de `deploy.sh` (construction, démarrage ou contrôle), le dépôt est déjà sur le nouveau commit : lancez **tout de suite** la commande de retour affichée. Sinon, au prochain redémarrage du serveur, `front` chargerait la configuration de ce commit (`deploy/oauth2-proxy.cfg` est lu dans le dépôt).
 
+Avant de revenir à un commit **antérieur aux sauvegardes (v1.7)**, arrêtez leurs timers (les scripts n'y existent pas) : `sudo systemctl disable --now recrutement-backup.timer recrutement-verif-disque.timer` ; les réactiver au retour (section 14).
+
 Revenez **de préférence à un commit qui contient déjà l'API** : la base reste servie. Un retour vers une version sans API retire le conteneur `api` (le volume `recrutement_data` et ses données restent) et **remet les pages dans le navigateur** : ce qui est saisi pendant ce temps reste sur chaque poste et ne sera pas repris au retour de l'API. Prévenez l'équipe de ne rien saisir tant que l'API n'est pas revenue.
 
 Après un retour arrière, le dépôt reste **détaché** sur ce commit. Le prochain `deploy.sh` **sans argument** reprend le dernier `main` : ne le lancez qu'une fois `main` corrigé.
@@ -315,7 +321,147 @@ docker compose exec api node api/equipe.js role prenom.nom@yeita.fr lecture     
 
 `disable` coupe l'accès aux données **dès la requête suivante** : la session Google de la personne reste ouverte, mais ne lui montre plus que les pages, sans aucun dossier (« Tu ne fais pas partie de l'équipe. »). Le rôle `lecture` peut tout voir et ne peut rien modifier.
 
-La base est dans le volume `recrutement_data` (`docker volume inspect recrutement_data`) : c'est **la seule copie** des candidatures (pas de sauvegarde automatique). **Ne lancez jamais `docker compose down -v` ni `docker volume prune`** sur ce serveur : ces commandes effacent la base.
+La base est dans le volume `recrutement_data` (`docker volume inspect recrutement_data`) : elle est copiée chaque nuit, chiffrée, hors du serveur (section 14). **Ne lancez jamais `docker compose down -v` ni `docker volume prune`** sur ce serveur : ces commandes effacent la base.
+
+## 14. Sauvegardes
+
+Chaque nuit entre 3 h et 3 h 15, `recrutement-backup.timer` lance `deploy/backup.sh` en tant que `deploy` : copie contrôlée de la base dans le conteneur (`node api/sauvegarde.js`), récupérée dans `/var/backups/recrutement`, chiffrée avec age pour la clé publique `AGE_RECIPIENT`, copie en clair supprimée, envoi par rclone vers `RCLONE_DEST` (OVH Object Storage), copies chiffrées gardées 30 jours sur le serveur. Chaque heure, `recrutement-verif-disque.timer` lance `deploy/verif-disque.sh` : alerte au-delà de 80 % sur `/` ou sur le disque de Docker. Les deux signalent succès ou échec à deux contrôles healthchecks.io ; un contrôle qui ne reçoit plus rien passe aussi en alerte. Serveur éteint à l'heure prévue : la tâche part au démarrage suivant, une fois Docker démarré.
+
+Restaurer, ou ouvrir une copie : `deploy/RESTAURER.md`.
+
+Durée de vie d'un dossier supprimé dans les copies : au plus 3 jours dans le volume (`/data/sauvegardes`), 31 jours sur le serveur, 32 jours sur OVH ; plus longtemps tant que l'alerte de sauvegarde est rouge (les anciennes copies ne sont effacées qu'après un envoi réussi).
+
+### Mise en service (une fois, dans l'ordre)
+
+**1. Clé age, sur un poste (jamais sur le serveur).**
+
+```bash
+age-keygen -o recrutement-sauvegarde.key
+```
+
+Ranger dans le coffre de mots de passe de Yeita la clé privée (`AGE-SECRET-KEY-…`) et la clé publique (`age1…`, affichée par la commande), connues d'au moins deux personnes, puis effacer le fichier du poste (`rm recrutement-sauvegarde.key`). **Sans la clé privée, toutes les copies sont illisibles.** La clé publique va dans `AGE_RECIPIENT`.
+
+**2. OVH Object Storage, depuis un poste** (espace client OVH, Public Cloud, Object Storage). Trois utilisateurs S3 :
+
+| Utilisateur | Sert à | Où sont ses identifiants |
+|---|---|---|
+| administrateur | créer le bucket, poser les politiques et le cycle de vie, relire | coffre ; utilisé seulement depuis un poste, **jamais posé sur le serveur** |
+| serveur | déposer les copies, sans pouvoir effacer | `~/.config/rclone/rclone.conf` de `deploy` (600) |
+| restauration | lire les copies pour restaurer | coffre, avec la clé privée, l'endpoint, la région et le nom du bucket |
+
+- Créer avec l'utilisateur **administrateur** un bucket **non versionné**, dans une région de l'Union européenne (`GRA` ou `SBG`), endpoint `.io` (`https://s3.gra.io.cloud.ovh.net` pour GRA). Le propriétaire du bucket a tous les droits quoi que dise sa politique : c'est pourquoi le serveur utilise un autre utilisateur.
+- Politique de l'utilisateur **serveur** (onglet des utilisateurs S3, « Importer une politique » ; remplacer `BUCKET`) :
+
+```json
+{"Statement": [
+  {"Sid": "DeposerEtLire", "Effect": "Allow",
+   "Action": ["s3:PutObject", "s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation", "s3:ListBucketMultipartUploads", "s3:ListMultipartUploadParts", "s3:AbortMultipartUpload"],
+   "Resource": ["arn:aws:s3:::BUCKET", "arn:aws:s3:::BUCKET/*"]},
+  {"Sid": "JamaisEffacer", "Effect": "Deny",
+   "Action": ["s3:DeleteObject", "s3:DeleteBucket", "s3:PutLifecycleConfiguration", "s3:PutBucketPolicy", "s3:PutBucketVersioning"],
+   "Resource": ["arn:aws:s3:::BUCKET", "arn:aws:s3:::BUCKET/*"]}
+]}
+```
+
+- Politique de l'utilisateur **restauration** : la même sans `s3:PutObject`, `s3:AbortMultipartUpload` ni `s3:ListMultipartUploadParts` dans la première règle.
+- Règle de cycle de vie à 30 jours, posée et relue avec l'utilisateur **administrateur** (client `aws` sur le poste) :
+
+```bash
+cat > lifecycle.json <<'EOF'
+{"Rules": [{"ID": "expiration-30-jours", "Status": "Enabled", "Filter": {"Prefix": ""}, "Expiration": {"Days": 30}}]}
+EOF
+aws s3api put-bucket-lifecycle-configuration --bucket BUCKET --lifecycle-configuration file://lifecycle.json --endpoint-url https://s3.gra.io.cloud.ovh.net
+aws s3api get-bucket-lifecycle-configuration --bucket BUCKET --endpoint-url https://s3.gra.io.cloud.ovh.net
+aws s3api get-bucket-versioning --bucket BUCKET --endpoint-url https://s3.gra.io.cloud.ovh.net    # rien, ou pas de « Enabled »
+```
+
+Limite connue : l'utilisateur serveur peut remplacer un objet du même nom. Chaque sauvegarde a un nom à la seconde près (`recrutement-AAAA-MM-JJTHHMMSSZ.db.age`) : cela n'arrive pas en usage normal.
+
+**3. Remote rclone, sur le serveur, en tant que `deploy`** (identifiants de l'utilisateur **serveur** ; `read -s` ne les affiche pas) :
+
+```bash
+umask 077; mkdir -p ~/.config/rclone
+read -r -p "Clé d'accès S3 (serveur) : " K; read -r -s -p "Secret S3 : " S; echo
+cat > ~/.config/rclone/rclone.conf <<EOF
+[ovh]
+type = s3
+provider = Other
+endpoint = https://s3.gra.io.cloud.ovh.net
+region = gra
+access_key_id = $K
+secret_access_key = $S
+acl = private
+no_check_bucket = true
+EOF
+unset K S; rclone lsd ovh:BUCKET && echo "Remote ovh prêt."
+```
+
+**4. healthchecks.io** : deux contrôles **distincts**, notification par email à l'équipe :
+
+| Contrôle | Période | Grâce |
+|---|---|---|
+| Sauvegarde | 1 jour | 2 heures (15 min de délai aléatoire + 1 h de durée maximale) |
+| Disque | 1 heure | 30 minutes |
+
+Leurs adresses de ping (`https://hc-ping.com/<uuid>`) sont des secrets : seulement dans `.env`.
+
+**5. `.env`, en tant que `deploy`** : compléter les 4 variables (modèle et commentaires dans `.env.example`) ; les scripts refusent une valeur vide, réduite à un commentaire, égale à l'exemple, une adresse qui n'est pas `https://`, deux adresses identiques, une clé qui n'est pas une seule clé `age1…`.
+
+```bash
+cd /opt/recrutement && nano .env
+AGE_RECIPIENT=age1…
+RCLONE_DEST=ovh:BUCKET/recrutement
+HEALTHCHECK_SAUVEGARDE_URL=https://hc-ping.com/…
+HEALTHCHECK_DISQUE_URL=https://hc-ping.com/…
+```
+
+**6. Unités systemd, par l'administrateur** (compte avec `sudo`). Une unité absente est copiée, une unité identique laissée ; une unité **différente n'est jamais écrasée** : la différence s'affiche et rien d'autre n'est fait.
+
+```bash
+cd /opt/recrutement && sudo bash -c 'set -e
+for u in recrutement-backup.service recrutement-backup.timer recrutement-verif-disque.service recrutement-verif-disque.timer; do
+  if [ ! -e /etc/systemd/system/$u ]; then install -m 644 deploy/systemd/$u /etc/systemd/system/$u; echo "copiée : $u"
+  elif cmp -s deploy/systemd/$u /etc/systemd/system/$u; then echo "identique : $u"
+  else echo "DIFFÉRENTE : $u (rien n est écrasé)"; diff /etc/systemd/system/$u deploy/systemd/$u || true; exit 1; fi
+done
+systemctl daemon-reload
+systemctl enable --now recrutement-backup.timer recrutement-verif-disque.timer' && systemctl list-timers 'recrutement-*'
+```
+
+Attendu : 4 lignes « copiée » (ou « identique »), puis les deux timers avec leur prochain passage.
+
+**Mettre à jour une unité** (après un déploiement qui l'a changée, quand la commande affiche « DIFFÉRENTE ») : relire la différence affichée, puis `sudo install -m 644 deploy/systemd/<unité> /etc/systemd/system/<unité> && sudo systemctl daemon-reload`.
+
+**7. Premiers essais, en tant que `deploy`** (attendre une minute entre deux essais : healthchecks.io ignore plus de 5 pings par minute) :
+
+```bash
+cd /opt/recrutement && deploy/backup.sh       # attendu : « Sauvegarde réussie : recrutement-…Z.db.age (… octets), envoyée. »
+deploy/verif-disque.sh                         # attendu : « Disque racine : … % ; dossier Docker : … % ; seuil : 80 %. »
+rclone lsl "$(docker compose config --environment | sed -n 's/^RCLONE_DEST=//p')"
+```
+
+Les deux contrôles passent au vert. Puis, depuis un poste, suivre « Ouvrir une copie » de `deploy/RESTAURER.md` sur la copie qui vient d'arriver chez OVH : elle doit se déchiffrer avec la clé du coffre et donner `ok`. À refaire après tout changement de clé ou d'`AGE_RECIPIENT`.
+
+### Au quotidien
+
+| Besoin | Commande |
+|---|---|
+| Prochains passages | `systemctl list-timers 'recrutement-*'` |
+| Dernière sauvegarde (administrateur) | `sudo systemctl status recrutement-backup` ; `sudo journalctl -u recrutement-backup -n 50` (`deploy` ne lit pas le journal système : il relance `deploy/backup.sh` à la main pour voir la sortie) |
+| Sauvegarde à la demande | `sudo systemctl start recrutement-backup`, ou `deploy/backup.sh` en tant que `deploy` |
+| Copies sur le serveur | `ls -l /var/backups/recrutement` (seulement des `.db.age`) |
+
+Pendant une sauvegarde, `deploy/deploy.sh` s'arrête sur « un déploiement est déjà en cours » : le relancer quelques minutes après. À l'inverse, une sauvegarde attend jusqu'à 10 minutes la fin d'un déploiement.
+
+| Message de `backup.sh` | Cause | Que faire |
+|---|---|---|
+| `… est vide`, `… valeur d'exemple`, `… https://`, `… identiques`, `… clé publique age` | Réglage de `.env` | Corriger `.env` (étape 5) |
+| `ÉCHEC (api non saine)` | L'api ne répond pas | `docker compose ps api`, `docker compose logs --tail 50 api` |
+| `ÉCHEC (copie dans le conteneur api)` | Base occupée ou abîmée, disque plein | `docker compose logs --tail 50 api` ; relancer ; disque : `df -h` |
+| `ÉCHEC (chiffrement (age))` | Disque plein, `AGE_RECIPIENT` faux | `df -h /var/backups` |
+| `ÉCHEC (envoi (rclone))` | Identifiants, réseau, OVH | `rclone lsd ovh:BUCKET` |
+| `Signalement … impossible` ou `refusé` | Réseau, adresse inconnue de healthchecks.io, trop de pings | Vérifier l'adresse ; attendre une minute |
+| `une sauvegarde est déjà en cours` | Autre exécution en cours | Attendre |
 
 ## Tester sur un poste (sans serveur)
 
