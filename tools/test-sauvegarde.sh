@@ -300,7 +300,7 @@ verifie "R8 SIGTERM : aucun clair" aucun_clair
 
 echo "== CA9 : verif-disque.sh =="
 reinitialiser
-lancer verif-disque.sh
+lancer verif-disque.sh FAUX_DOCKER_DIR=/var   # vrai df ; /var existe aussi dans un banc sans dockerd
 verifie "CA9 vrai df : succès" [ "$CODE" -eq 0 ]
 verifie "CA9 vrai df : valeurs dans le corps" bash -c '[[ "$(dernier_ping)" =~ ^/$1\ \|\ Disque\ racine\ :\ [0-9]+\ % ]]' _ "$UUID_D"
 for c in "80,80:0" "81,10:1" "10,81:1"; do
@@ -320,6 +320,19 @@ reinitialiser; lancer verif-disque.sh
 verifie "CA9 rien ne fuit" rien_ne_fuit
 ( cd "$DEPOT" && bash deploy/verif-disque.sh ) > "$T/sortie" 2>&1; CODE=$?
 verifie "CA9 root refusé" bash -c '[ "$1" -eq 1 ] && grep -q "pas en root" "$2"' _ "$CODE" "$T/sortie"
+
+echo "== CA14 : prepare-serveur.sh sans age ou sans rclone (ajout QA) =="
+# PATH réduit à des liens vers tous les outils du banc sauf un ; le script s'arrête avant toute modification.
+empreinte_systeme() { { cat /etc/passwd /etc/group; stat -c '%n %a %U' /var/backups/recrutement /home/deploy 2>/dev/null; ls -A /opt; } | sha256sum; }
+for absent in age rclone; do
+  mkdir -p "$T/sans-$absent"
+  for f in /usr/bin/* /usr/sbin/* /bin/* /sbin/*; do [ "$(basename "$f")" = "$absent" ] || ln -sf "$f" "$T/sans-$absent/" 2>/dev/null; done
+  avant=$(empreinte_systeme)
+  PATH="$T/sans-$absent" RECRUTEMENT_REPO=/nulle-part bash "$DEPOT/deploy/prepare-serveur.sh" "ssh-ed25519 AAAAqa qa" > "$T/sortie" 2>&1; CODE=$?
+  verifie "CA14 sans $absent : code 1" [ "$CODE" -eq 1 ]
+  verifie "CA14 sans $absent : message R13" grep -qF "« $absent » est absent. Installez-le vous-même (apt install age rclone) ; ce script n'installe rien." "$T/sortie"
+  verifie "CA14 sans $absent : rien modifié" [ "$avant" = "$(empreinte_systeme)" ]
+done
 
 echo
 if [ "$ECHECS" -eq 0 ]; then echo "TOUT OK"; exit 0; else echo "ÉCHECS : $ECHECS"; exit 1; fi

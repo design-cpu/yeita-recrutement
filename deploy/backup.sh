@@ -139,7 +139,7 @@ main() {
   # --- (9) Succès ---
   ETAPE="signalement du succès"
   trap - EXIT INT TERM HUP
-  ping_hc "$HC_URL" "Sauvegarde réussie ($taille octets chiffrés)." || arret "la sauvegarde est faite, mais son succès n'a pas pu être signalé."
+  ping_hc "$HC_URL" "Sauvegarde réussie (code 0, $taille octets chiffrés)." || arret "la sauvegarde est faite, mais son succès n'a pas pu être signalé."
   echo "Sauvegarde réussie : $(basename "$chiffre") ($taille octets), envoyée."
 }
 

@@ -433,6 +433,8 @@ systemctl enable --now recrutement-backup.timer recrutement-verif-disque.timer' 
 
 Attendu : 4 lignes « copiée » (ou « identique »), puis les deux timers avec leur prochain passage.
 
+**Retirer les sauvegardes** (administrateur ; obligatoire avant un retour vers un commit antérieur à la 1.7, section 10) : `sudo systemctl disable --now recrutement-backup.timer recrutement-verif-disque.timer`. Retrait complet : `sudo rm /etc/systemd/system/recrutement-backup.service /etc/systemd/system/recrutement-backup.timer /etc/systemd/system/recrutement-verif-disque.service /etc/systemd/system/recrutement-verif-disque.timer && sudo systemctl daemon-reload`. Les copies déjà faites restent dans `/var/backups/recrutement` et sur OVH.
+
 **Mettre à jour une unité** (après un déploiement qui l'a changée, quand la commande affiche « DIFFÉRENTE ») : relire la différence affichée, puis `sudo install -m 644 deploy/systemd/<unité> /etc/systemd/system/<unité> && sudo systemctl daemon-reload`.
 
 **7. Premiers essais, en tant que `deploy`** (attendre une minute entre deux essais : healthchecks.io ignore plus de 5 pings par minute) :
