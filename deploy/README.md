@@ -240,14 +240,14 @@ Le **premier** déploiement qui apporte l'API est lancé par le `deploy.sh` de l
    essai "un conteneur en réseau hôte" "$(docker run --rm --network host curlimages/curl:8.11.1 -s -m 5 -o /dev/null -w '%{http_code}' "http://$ip4:8000/api/sante" 2>/dev/null)"
    echo
    if [ "$pb" = 0 ]; then
-     echo "VERDICT : tout est bon. Tu peux ajouter le premier admin (étape 3)."
+     echo "VERDICT : tout est bon. Tu peux ajouter le premier admin."
    else
-     echo "VERDICT : NE PAS CONTINUER. Lance « docker compose stop api », n'ajoute personne à l'équipe,"
-     echo "          reviens à la version précédente (section 10), et envoie ce qui est affiché ci-dessus."
+     echo "VERDICT : NE PAS CONTINUER. Arrête l'API (docker compose stop api), n'ajoute personne à l'équipe,"
+     echo "          et envoie tout ce qui est affiché ci-dessus à l'équipe technique."
    fi
    )
    ```
-   Résultat attendu : sept lignes `OK`, puis « VERDICT : tout est bon ». La ligne « témoin » vérifie que l'essai lui-même fonctionne : un conteneur placé exprès sur le réseau de l'API doit la joindre, sinon les autres `OK` ne prouvent rien. Dès qu'une ligne dit `PROBLÈME`, le verdict dit de ne pas continuer : arrêtez l'API (`docker compose stop api`), n'ajoutez personne, revenez à la version précédente (section 10) et envoyez ce qui est affiché à l'équipe technique. (Tant que l'équipe est vide, personne ne peut lire de dossier, même en cas de problème : c'est pour cela que ce contrôle se fait avant le premier admin.) Essayé sur un moteur Linux jetable en v1.3 : tout `OK` sur la pile normale ; quatre `PROBLÈME` quand la protection du réseau est retirée exprès.
+   Résultat attendu : sept lignes `OK`, puis « VERDICT : tout est bon ». La ligne « témoin » vérifie que l'essai lui-même fonctionne : un conteneur placé exprès sur le réseau de l'API doit la joindre, sinon les autres `OK` ne prouvent rien. Dès qu'une ligne dit `PROBLÈME`, le verdict dit de ne pas continuer : arrêtez l'API (`docker compose stop api`), n'ajoutez personne et envoyez ce qui est affiché à l'équipe technique ; le retour à la version précédente se fait ensuite (section 10). (Tant que l'équipe est vide, personne ne peut lire de dossier, même en cas de problème : c'est pour cela que ce contrôle se fait avant le premier admin.) Essayé sur un moteur Linux jetable en v1.3 : tout `OK` sur la pile normale ; quatre `PROBLÈME` quand la protection du réseau est retirée exprès.
 3. **Premier admin** (section 13) : `docker compose exec api node api/equipe.js add prenom.nom@yeita.fr Prénom admin`.
 4. **Vérifier l'identité Google** : connecté avec ce compte, ouvrez `https://recrutement.yeita.fr/api/moi` : la page doit afficher votre email et votre prénom. Un 401 ici veut dire que l'email du compte n'arrive pas à l'API : `docker compose stop api` et signalez-le.
 5. **Données des navigateurs** : les dossiers saisis dans les navigateurs avant cette version (données fictives) ne sont pas repris. Une fois l'API en service, chacun efface les données du site dans son navigateur (Chrome : cadenas › Paramètres du site › Supprimer les données), après avoir ressaisi à la main ce qu'il veut garder.

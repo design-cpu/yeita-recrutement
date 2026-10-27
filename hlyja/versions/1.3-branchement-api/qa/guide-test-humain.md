@@ -1,88 +1,244 @@
 ---
 type: guide-test
 version: 1.3
-parcours: 6
-date: 2026-10-26
+parcours: 10
+date: 2026-10-27
 ---
 
-# Guide de test — Pages de candidatures branchées sur l'API, API dans Docker derrière oauth2-proxy
+# Guide de test — Candidatures partagées par l'équipe, API dans Docker
 
-> 6 parcours, ~40 min, dont deux **sur le serveur OVH** (on ne peut pas les faire ailleurs) : commence par les parcours 1 et 2, dans cet ordre, avant d'ajouter qui que ce soit à l'équipe.
-> Avant de merger : lire aussi « Points d'attention » (deux défauts trouvés par la QA, à trancher).
+> Partie A : sur ton poste, **avant de merger** (7 parcours, ~30 min).
+> Partie B : sur le serveur, **après le merge et le premier déploiement, avant d'ajouter qui que ce soit à l'équipe** (3 parcours, ~15 min).
+> Tout est ici : tu lances les commandes, tu compares avec « Tu dois voir », et « Sinon » dit quoi faire.
 
-## Préparer
-Sur le poste, pour les parcours 3 à 6 (mode serveur en local, sans Google) :
+---
+
+# Partie A — Sur ton poste, avant de merger
+
+## Préparer (une fois)
+Il te faut Node 22 ou plus récent, Python 3, et un navigateur (Chrome ou Firefox).
+
+**Terminal 1** — copie tout le bloc, puis Entrée. Il prépare une base d'essai à part (dans `/tmp/essai-13`, rien d'autre n'est touché) et lance l'API avec le site :
 ```bash
+cd ~/Documents/Yeita/Projects/Github/yeita-recrutement
 git switch version/1.3-branchement-api
 python3 tools/build.py _site
 cd api && npm ci
 export DB_PATH=/tmp/essai-13/recrutement.sqlite
 node equipe.js add moi@yeita.fr Moi admin
-node equipe.js add bob@yeita.fr Bob recruteur
-node equipe.js add lea@yeita.fr Léa lecture
 DEV_EMAIL=moi@yeita.fr DEV_STATIC=../_site npm start
 ```
-Ouvre `http://127.0.0.1:8000/candidatures/`. Tout est dans `/tmp/essai-13` ; pour effacer à la fin : `rm -rf /tmp/essai-13`. En local, l'identité vient de `DEV_EMAIL` : pour jouer Bob ou Léa, relance l'API avec `DEV_EMAIL=bob@yeita.fr` (ou utilise une extension qui ajoute l'en-tête `X-Forwarded-Email`).
+Tu dois voir, à la fin : une ligne qui contient `"msg":"API démarrée"`. Laisse ce terminal ouvert pendant toute la partie A.
+Sinon : si un message dit que le port 8000 est déjà utilisé, ferme le programme qui l'occupe, ou relance la dernière ligne précédée de `PORT=8001` et remplace `8000` par `8001` dans toutes les adresses de ce guide.
 
-Sur le serveur, pour les parcours 1 et 2 : accès SSH en `deploy`, `/opt/recrutement`, et un compte Google @yeita.fr.
+**Terminal 2** — il servira à changer ton rôle pendant les essais. Copie ces deux lignes :
+```bash
+cd ~/Documents/Yeita/Projects/Github/yeita-recrutement/api
+export DB_PATH=/tmp/essai-13/recrutement.sqlite
+```
 
-## Parcours essentiels
-### 1. Contrôle réseau de la mise en service — priorité haute, sur le serveur
-**Pourquoi** : l'API fait confiance à l'identité que lui transmet oauth2-proxy. Si un autre programme du serveur pouvait lui parler directement, il pourrait se faire passer pour n'importe quel membre de l'équipe. Ce contrôle vérifie que ce n'est pas possible. On le fait **après le premier déploiement de la 1.3 et avant d'ajouter le premier admin** : tant que l'équipe est vide, personne ne peut lire de dossier, même en cas de problème.
-- [ ] Connecté au serveur en `deploy`, relever la version de Docker : `docker version --format '{{.Server.Version}}'`. L'écrire dans `deploy/README.md` § 1. Si elle est inférieure à 29.9.2, le signaler (la protection n'a été essayée que sur 29.9.2), et faire quand même le contrôle.
-- [ ] Copier **tout** le bloc de `deploy/README.md` § 9b, étape 2, dans le terminal, puis Entrée. Il ne change rien, il lit et il essaie.
-- [ ] Lire le résultat. **C'est bon** si les sept lignes commencent par `OK` et que la dernière dit « VERDICT : tout est bon » : passer au parcours 2.
-- [ ] **Ce n'est pas bon** si une ligne commence par `PROBLÈME` : le verdict dit « NE PAS CONTINUER ». Faire ce qu'il dit (`docker compose stop api`, n'ajouter personne, revenir à la version précédente avec `deploy/deploy.sh <commit>`, section 10), copier l'affichage et l'envoyer.
+---
 
-Ce que veulent dire les lignes, si besoin :
-| Ligne | Ce qu'elle vérifie |
-|---|---|
-| l'API tourne et va bien | le conteneur `api` est démarré et sa sonde de santé répond |
-| le réseau de l'API est fermé | le réseau `back` est interne, sans IPv6, et n'a pas d'adresse sur le serveur |
-| l'API n'a pas d'adresse IPv6 | aucune porte d'entrée par IPv6 |
-| témoin | un conteneur placé exprès sur le réseau de l'API la joint : l'essai sait reconnaître une API joignable (sans ce témoin, les `OK` suivants ne prouveraient rien) |
-| le serveur, par l'adresse de l'API / par 127.0.0.1:8000 | un programme du serveur ne peut pas parler à l'API |
-| un conteneur en réseau hôte | un autre service Docker du serveur ne peut pas non plus |
+## A1. Ton prénom à la place de « Qui es-tu ? »
+1. Ouvre `http://127.0.0.1:8000/candidatures/`.
 
-### 2. H1 : l'email du vrai compte Google arrive à l'API — priorité haute, sur le serveur
-- [ ] `docker compose exec api node api/equipe.js add prenom.nom@yeita.fr Prénom admin` (ton compte).
-- [ ] Dans un navigateur, ouvre `https://recrutement.yeita.fr/candidatures/` : connexion Google, puis la page.
-- [ ] Ouvre `https://recrutement.yeita.fr/api/moi` dans le même navigateur.
-- [ ] Vérifier : `{"email":"prenom.nom@yeita.fr","prenom":"Prénom","role":"admin"}` (ton email, pas un autre). Un 401 ici : `docker compose stop api` et le signaler.
-- [ ] Vérifier : en haut du tableau, à droite, « Connecté·e : Prénom » à la place de « Qui es-tu ? ».
-- [ ] Dans une fenêtre privée (sans session), ouvre `https://recrutement.yeita.fr/api/moi` : 401, pas de page Google.
+Tu dois voir : en haut à droite, « Connecté·e : Moi ». Aucune liste « Qui es-tu ? ».
+Sinon : note ce qui est affiché et arrête-toi là (le reste du guide en dépend).
 
-### 3. Deux recruteurs sur le même dossier — priorité haute
-- [ ] Crée une candidature « Essai Conflit ». Ouvre-la dans deux onglets (ou deux navigateurs, un par compte sur le serveur).
-- [ ] Onglet 2 : change l'e-mail, attends une seconde. Onglet 1 : fais défiler la page tout en bas, puis tape un téléphone.
-- [ ] Vérifier : un bandeau rose reste collé en haut de l'écran : « La candidature a été modifiée par quelqu'un d'autre. Recharge la page. Ce que tu as saisi depuis n'est pas enregistré : copie-le avant de recharger. Recharger » ; l'indicateur en haut du bloc dit « Non enregistré » ; ton téléphone est toujours dans le champ, et tu peux continuer à taper (le curseur n'a pas bougé).
-- [ ] « Recharger » : la page revient avec l'e-mail de l'onglet 2, sans ton téléphone.
-- [ ] Le texte du bandeau te paraît-il clair pour un recruteur ? (capture de référence : `/private/tmp/claude-501/-Users-sderrouazi-Documents-Yeita-Projects-Github-yeita-recrutement/d97386d7-da7f-4b43-bc26-6c29f916ac88/scratchpad/qa/captures/conflit-bas-de-page.png`, version téléphone : `conflit-mobile-defile.png` dans le même dossier)
+## A2. Créer une candidature, puis recharger
+1. Clique « Ajouter un candidat ».
+2. Dans « Nom Prénom », tape `Essai Conflit`.
+3. Clique « Enregistrer et revenir à la liste ».
+4. Recharge la page (Cmd+R ou F5).
 
-### 4. Lecteur et compte retiré — priorité moyenne
-- [ ] Avec le compte de Léa (`lecture`) : « Connecté·e : Léa · lecture seule » en haut ; le tableau et les dossiers sont visibles.
-- [ ] Modifie un champ : bandeau « Lecture seule : tu ne peux pas modifier. », **sans** bouton.
-- [ ] `node equipe.js disable bob@yeita.fr` (sur le serveur : `docker compose exec api node api/equipe.js disable …`) pendant que Bob a une page ouverte ; Bob recharge : « Tu ne fais pas partie de l'équipe. », aucun dossier. `add` le réactive.
+Tu dois voir : la carte « Essai Conflit » est toujours là après le rechargement.
+Sinon : note-le, c'est un défaut.
 
-### 5. Quitter la page juste après une frappe — priorité moyenne
-- [ ] Dans `ec1.html` d'un candidat, tape une phrase dans « Ce qu'on a perçu » et clique **aussitôt** sur « Toutes les candidatures » (moins d'une demi-seconde).
-- [ ] Rouvre la fiche : la phrase est là. Même essai dans `candidat.html` (un champ, puis retour au tableau).
-- [ ] Sur le serveur, faire l'essai avec un **autre compte que le tien** (la QA l'a fait avec Bob sur le banc ; l'envoi de départ porte le cookie de session).
+## A3. Deux onglets sur la même candidature (conflit)
+1. Clique la carte « Essai Conflit ». Copie l'adresse de la page et ouvre-la dans un **second onglet**.
+2. **Onglet 2** : dans « Infos candidat », champ « E-mail », tape `deux@example.com`. Attends 2 secondes.
+3. **Onglet 1** : fais défiler la page **tout en bas**. Puis remonte au champ « Téléphone » et tape `0611111111`. Attends 2 secondes.
 
-### 6. Hors du site de production — priorité basse
-- [ ] `python3 -m http.server 8765 --directory _site`, puis `http://127.0.0.1:8765/candidatures/` : la liste « Qui es-tu ? » est là, tout marche comme avant (mode navigateur). Une erreur 404 sur `/api/moi` dans la console est normale.
-- [ ] Ouvre `_site/candidatures/index.html` directement (fichier) : idem, sans erreur réseau.
-- [ ] H2 : si tu as un aperçu de la page dans un artefact Claude, elle doit se comporter comme ci-dessus (mode navigateur si l'hôte rend 404). Note ce que tu observes.
+Tu dois voir, dans l'onglet 1 :
+- un bandeau rose collé en haut de l'écran, même si la page est défilée, qui dit « La candidature a été modifiée par quelqu'un d'autre. Recharge la page. » puis « Ce que tu as saisi depuis n'est pas enregistré : copie-le avant de recharger. », avec un bouton « Recharger » ;
+- à côté du titre « Infos candidat », « Non enregistré » ;
+- ton téléphone toujours dans le champ, et le curseur toujours dedans.
 
-## Points d'attention
-- Les suites `tools/e2e-*.py` : lire leur **dernière ligne** (`ALL OK` ou `TOUT OK`) ; deux d'entre elles sortent avec le code 0 même en échec. Le défaut B1 de la QA (« SOMETHING FAILED » dû au 404 attendu de `/api/moi`) est corrigé.
-- Le défaut B2 de la QA (volume en lecture seule, API restée « saine ») est corrigé : la sonde de santé passe en échec ; si l'équipe signale « Erreur interne. » à chaque enregistrement, regarder `docker compose ps api` et `docker compose logs api | grep SQLITE_READONLY`.
-- Le bandeau jaune « Données fictives uniquement, jusqu'au déploiement sécurisé. Tout reste dans ce navigateur. » reste affiché en mode serveur, où il devient faux (hors périmètre de la spec : à décider avant d'y mettre de vraies candidatures).
-- H4 : après la mise en service, chacun efface les données du site dans son navigateur (README § 9b, point 5). Confirmer qu'aucune vraie candidature n'était dans les navigateurs.
-- Chaque déploiement coupe l'API ~15 s : déployer hors des entretiens.
+4. Clique « Recharger ».
 
-## Inutile de tester
-- Le démarrage dans tous ses cas (404, 401 et sa garde, 403, 502, non JSON, délai), l'adaptateur (versions, file, identifiants, 409), les options, la relecture au retour sur l'onglet, les fiches écrites par partie, la suppression vue d'un autre navigateur : `tools/test-serveur.js` (83) et `tools/e2e-serveur.py` (38), mis à l'épreuve par mutation.
-- L'isolement réseau de l'API (hôte, réseau hôte, caddy, IPv6), l'en-tête d'identité forgé avec et sans session, les formes d'adresse, l'image (utilisateur, droits, sonde, mode local refusé), `.dockerignore`, `deploy.sh` (attente, échec, retour arrière) : banc Linux et banc Dex de la QA. Seul le contrôle du parcours 1 est à refaire, parce qu'il dépend du moteur du serveur.
-- L'effacement d'un dossier supprimé ou rectifié (fichiers de la base, journaux, navigateurs) : vérifié sur la pile Docker.
-- Les textes : comparés mot pour mot à la spec.
+Tu dois voir : l'e-mail `deux@example.com` est là, le téléphone est vide.
+Sinon : note ce qui manque. Le texte du bandeau te paraît-il clair pour un recruteur ? Note ton avis.
+
+## A4. Compte en lecture seule
+1. **Terminal 2** :
+```bash
+node equipe.js role moi@yeita.fr lecture
+```
+2. Dans le navigateur, recharge la page de « Essai Conflit ».
+
+Tu dois voir : en haut, « Connecté·e : Moi · lecture seule ».
+
+3. Tape quelque chose dans le champ « Téléphone ». Attends 2 secondes.
+
+Tu dois voir : un bandeau « Lecture seule : tu ne peux pas modifier. », **sans** bouton.
+
+4. **Terminal 2**, remets ton rôle :
+```bash
+node equipe.js role moi@yeita.fr admin
+```
+Sinon : note ce qui est affiché.
+
+## A5. Compte retiré de l'équipe
+1. **Terminal 2** :
+```bash
+node equipe.js disable moi@yeita.fr
+```
+2. Recharge `http://127.0.0.1:8000/candidatures/`.
+
+Tu dois voir : un bandeau « Tu ne fais pas partie de l'équipe. » et aucune candidature.
+
+3. **Terminal 2**, remets ton accès :
+```bash
+node equipe.js add moi@yeita.fr Moi admin
+```
+4. Recharge : tout est revenu.
+Sinon : note ce qui est affiché.
+
+## A6. Fermer la page juste après avoir tapé
+1. Sur la page de « Essai Conflit », tape `0699999999` dans « Téléphone », puis **ferme l'onglet tout de suite** (Cmd+W ou Ctrl+W), sans attendre.
+2. Rouvre `http://127.0.0.1:8000/candidatures/` et clique « Essai Conflit ».
+
+Tu dois voir : `0699999999` dans « Téléphone ».
+
+3. Même essai dans la fiche EC1 : sur la page de « Essai Conflit », ouvre l'étape EC1 (si elle n'est pas encore accessible, ouvre dans la barre d'adresse la même adresse en remplaçant `candidat.html` par `ec1.html`). Ouvre la section « Ce qu'on a perçu de toi », tape une phrase, ferme l'onglet tout de suite, puis rouvre la fiche EC1.
+
+Tu dois voir : la phrase est là.
+Sinon : note-le.
+
+## A7. Sans base, tout marche comme avant
+1. Dans le **terminal 1**, arrête l'API : Ctrl+C.
+2. Toujours dans le terminal 1 :
+```bash
+cd .. && python3 -m http.server 8765 --directory _site
+```
+3. Ouvre `http://127.0.0.1:8765/candidatures/`.
+
+Tu dois voir : la liste « Qui es-tu ? » en haut, et tu peux ajouter une candidature comme avant. (Si tu ouvres la console du navigateur, une erreur 404 sur `/api/moi` est normale.)
+Sinon : note-le.
+
+4. Arrête le serveur : Ctrl+C.
+
+## Nettoyer
+```bash
+rm -rf /tmp/essai-13
+```
+
+---
+
+# Partie B — Sur le serveur, après le premier déploiement
+
+À faire **dans cet ordre**, juste après avoir mergé puis déployé cette version, et **avant d'ajouter qui que ce soit à l'équipe**. Connecte-toi au serveur en `deploy` (SSH), puis :
+```bash
+cd /opt/recrutement
+```
+
+## B1. Contrôle réseau (personne d'autre ne doit pouvoir parler à l'API)
+**Pourquoi** : l'API croit l'identité que lui transmet la connexion Google. Si un autre programme du serveur pouvait lui parler directement, il pourrait se faire passer pour n'importe quel membre de l'équipe. Tant que l'équipe est vide, personne ne peut lire de candidature : c'est pour cela qu'on vérifie maintenant.
+
+1. Note la version de Docker du serveur :
+```bash
+docker version --format '{{.Server.Version}}'
+```
+Tu dois voir : un numéro, par exemple `29.9.2`. Note-le. S'il est plus petit que `29.9.2`, signale-le à l'équipe technique (la protection a été essayée sur 29.9.2), et continue quand même.
+
+2. Copie **tout** ce bloc, puis Entrée. Il ne modifie rien : il lit et il essaie.
+```bash
+cd /opt/recrutement && (
+pb=0
+ok() { echo "  OK        $*"; }
+ko() { echo "  PROBLÈME  $*"; pb=1; }
+echo "Contrôle réseau de l'API :"
+etat=$(docker inspect -f '{{.State.Health.Status}}' recrutement-api-1 2>/dev/null)
+if [ "$etat" = healthy ]; then ok "l'API tourne et va bien"; else ko "l'API ne va pas bien (état : ${etat:-introuvable}) : docker compose logs --tail 50 api"; fi
+reseau=$(docker network inspect recrutement_back --format '{{.Internal}} {{.EnableIPv6}} {{index .Options "com.docker.network.bridge.inhibit_ipv4"}}' 2>/dev/null)
+if [ "$reseau" = "true false true" ]; then ok "le réseau de l'API est fermé (interne, sans IPv6, sans adresse sur le serveur)"; else ko "le réseau de l'API n'est pas réglé comme prévu (lu : ${reseau:-introuvable})"; fi
+ip4=$(docker inspect -f '{{(index .NetworkSettings.Networks "recrutement_back").IPAddress}}' recrutement-api-1 2>/dev/null)
+ip6=$(docker inspect -f '{{json (index .NetworkSettings.Networks "recrutement_back").GlobalIPv6Address}}' recrutement-api-1 2>/dev/null)
+if [ "$ip6" = '""' ]; then ok "l'API n'a pas d'adresse IPv6"; else ko "l'API a une adresse IPv6 : $ip6"; fi
+temoin=$(docker run --rm --network recrutement_back curlimages/curl:8.11.1 -s -m 5 -o /dev/null -w '%{http_code}' http://api:8000/api/sante 2>/dev/null)
+if [ "$temoin" = 200 ]; then ok "témoin : un conteneur placé exprès sur le réseau de l'API la joint (l'essai sait voir une API joignable)"; else ko "témoin : même un conteneur du réseau de l'API ne la joint pas (réponse : ${temoin:-aucune}) ; les essais suivants ne prouvent rien"; fi
+essai() {
+  if [ "$2" = 200 ]; then ko "$1 JOINT l'API : n'importe quel programme de ce serveur pourrait se faire passer pour un membre de l'équipe"; else ok "$1 ne joint pas l'API"; fi
+}
+essai "le serveur, par l'adresse de l'API ($ip4)" "$(curl -s -m 5 -o /dev/null -w '%{http_code}' "http://$ip4:8000/api/sante" 2>/dev/null)"
+essai "le serveur, par 127.0.0.1:8000" "$(curl -s -m 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/api/sante 2>/dev/null)"
+essai "un conteneur en réseau hôte" "$(docker run --rm --network host curlimages/curl:8.11.1 -s -m 5 -o /dev/null -w '%{http_code}' "http://$ip4:8000/api/sante" 2>/dev/null)"
+echo
+if [ "$pb" = 0 ]; then
+  echo "VERDICT : tout est bon. Tu peux ajouter le premier admin."
+else
+  echo "VERDICT : NE PAS CONTINUER. Arrête l'API (docker compose stop api), n'ajoute personne à l'équipe,"
+  echo "          et envoie tout ce qui est affiché ci-dessus à l'équipe technique."
+fi
+)
+```
+Tu dois voir : sept lignes qui commencent par `OK`, puis `VERDICT : tout est bon.` Passe à B2.
+
+Sinon (au moins une ligne `PROBLÈME`) : ne va pas plus loin.
+- Arrête l'API :
+```bash
+docker compose stop api
+```
+- N'ajoute personne à l'équipe.
+- Copie tout ce que le bloc a affiché et envoie-le à l'équipe technique. Elle décidera du retour à la version précédente.
+
+## B2. Ton vrai compte Google arrive bien jusqu'à l'API
+1. Ajoute-toi comme premier admin (remplace l'email et le prénom par les tiens) :
+```bash
+docker compose exec api node api/equipe.js add prenom.nom@yeita.fr Prénom admin
+```
+Tu dois voir : une ligne `Ajouté : prenom.nom@yeita.fr · Prénom · admin · actif …`.
+
+2. Dans ton navigateur, ouvre `https://recrutement.yeita.fr/candidatures/` et connecte-toi avec ce compte Google.
+
+Tu dois voir : en haut à droite, « Connecté·e : Prénom ».
+
+3. Dans le même navigateur, ouvre `https://recrutement.yeita.fr/api/moi`.
+
+Tu dois voir : `{"email":"prenom.nom@yeita.fr","prenom":"Prénom","role":"admin"}`, avec **ton** email.
+
+4. Dans une fenêtre de navigation privée (sans connexion), ouvre `https://recrutement.yeita.fr/api/moi`.
+
+Tu dois voir : une page d'erreur 401 (ou `{}`), **pas** la page de connexion Google, et aucune donnée.
+
+Sinon (étape 3 ou 4 différente) :
+```bash
+docker compose stop api
+```
+puis envoie à l'équipe technique ce que tu as vu, sans ajouter personne d'autre.
+
+## B3. L'équipe, et les données des navigateurs
+1. Ajoute les autres membres, un par un (rôle `recruteur`, ou `lecture` pour quelqu'un qui doit seulement voir) :
+```bash
+docker compose exec api node api/equipe.js add prenom.nom@yeita.fr Prénom recruteur
+```
+2. Vérifie la liste :
+```bash
+docker compose exec api node api/equipe.js list
+```
+Tu dois voir : une ligne par membre, avec `actif`.
+
+3. Demande à chacun, après sa première connexion qui affiche « Connecté·e : son prénom », d'effacer les données du site dans son navigateur. Les candidatures saisies avant cette version restaient dans chaque navigateur et ne sont pas reprises.
+- Chrome : cadenas à gauche de l'adresse › Paramètres du site › Supprimer les données.
+- Avant d'effacer, chacun ressaisit à la main ce qu'il veut garder.
+- Confirme qu'il ne s'agissait que de données fictives.
+
+4. À savoir pour la suite :
+- Pour retirer quelqu'un : `docker compose exec api node api/equipe.js disable prenom.nom@yeita.fr`. Effet immédiat.
+- Chaque déploiement coupe l'API une quinzaine de secondes : déploie en dehors des entretiens.
+- Ne lance jamais `docker compose down -v` ni `docker volume prune` sur ce serveur : la base des candidatures serait effacée.
+
+---
+
+## Ce qui n'est pas à tester à la main
+Tout le reste a été vérifié par des tests automatiques et par la QA sur des serveurs d'essai : tous les cas de démarrage (session expirée, panne, réponse inattendue), les versions et les conflits, les fiches ouvertes ensemble, la suppression vue d'un autre navigateur, l'isolement réseau sous Linux, l'en-tête d'identité forgé, l'image Docker et le script de déploiement (attente, échec, retour arrière).
