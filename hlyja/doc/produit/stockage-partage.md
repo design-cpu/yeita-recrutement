@@ -2,9 +2,9 @@
 type: doc
 domaine: stockage-partage
 titre: Candidatures partagées et identité
-maj: 1.4
-commit: c51ed2c
-sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, assets/qui.js, assets/store.js, assets/wording.fr.js, assets/yeita.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/decompte.html, candidatures/carte.html, deploy/README.md
+maj: 1.7
+commit: 26c1d9f
+sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, assets/qui.js, assets/store.js, assets/wording.fr.js, assets/yeita.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/decompte.html, candidatures/carte.html, deploy/README.md, deploy/RESTAURER.md, api/README.md
 date: 2026-10-27
 ---
 
@@ -47,6 +47,9 @@ La page attend la réponse (10 s au plus) avant d'afficher ou d'enregistrer quoi
 | Import en mode serveur | Seule la fusion est proposée (« Remplacer tout » supprimerait les dossiers de toute l'équipe) ; un export est une copie : « Les candidatures sont enregistrées sur le serveur de l'équipe. Un export est une copie : supprime-la après usage. » | 1.3 |
 | Bandeau jaune | En mode serveur, le bandeau jaune en tête des six pages dit « Les candidatures sont enregistrées sur le serveur de l'équipe Yeita, accessible aux seuls recruteurs connectés. » ; ailleurs (mode navigateur, mode bloqué, attente de la réponse de la base) il garde « Données fictives uniquement, jusqu'au déploiement sécurisé. Tout reste dans ce navigateur. » | 1.4 |
 | Pas d'exemples dans la base partagée | En mode serveur, le tableau ne propose pas « Charger des exemples » (ni dans la section Sauvegarde, ni sur le tableau vide, qui dit seulement « Ajoute la première personne avec qui tu as un appel de découverte. ») ; avant la réponse de la base, ou si la page est bloquée, ces boutons ne font rien. « Retirer les exemples » n'apparaît que si la base contient déjà des exemples, et les retire pour toute l'équipe | 1.4 |
+| Sauvegarde | Chaque nuit, la base est copiée, vérifiée, chiffrée et envoyée hors du serveur (OVH, Union européenne) ; l'administrateur est prévenu par email si une sauvegarde échoue ou si le disque dépasse 80 % ; rien ne change pour l'équipe (`deploy/README.md` § 14) | 1.7 |
+| Effacement et copies | Un dossier supprimé disparaît aussitôt de la base, mais reste dans les copies chiffrées au plus 32 jours (3 jours dans le serveur, 31 jours dans ses copies, 32 jours chez OVH), plus longtemps tant que l'alerte de sauvegarde est rouge | 1.7 |
+| Restauration | Après une restauration, l'équipe supprime à nouveau, dans l'interface, les dossiers qu'elle avait supprimés depuis la date de la copie (liste et adresses fournies par l'exploitant, `deploy/RESTAURER.md`) ; pour un seul dossier perdu, on ouvre une copie et on ressaisit, sans restauration complète | 1.7 |
 | Impression | La note d'impression renvoie vers un onglet du site du recrutement, et « Ouvrir sur le site » mène à `recrutement.yeita.fr` | 1.3 |
 
 ## Cas particuliers
@@ -55,6 +58,7 @@ La page attend la réponse (10 s au plus) avant d'afficher ou d'enregistrer quoi
 - Un import « Fusion » d'un ancien export peut recréer un dossier supprimé depuis.
 - Des exemples chargés dans la base avant la 1.4 restent visibles de toute l'équipe jusqu'à ce que quelqu'un clique « Retirer les exemples ».
 - Chaque déploiement coupe la base une quinzaine de secondes : les pages ouvertes affichent alors le message réseau.
+- Une restauration complète remet la base à la date de la copie : ce qui a été saisi depuis est perdu (l'état d'avant la restauration est gardé en copie chiffrée). Après la perte du serveur, les suppressions de la dernière journée ne sont pas connues et sont refaites d'après les demandes reçues.
 
 ## Voir aussi
 - [Mode serveur des pages](../../technique/mode-serveur.md)
@@ -66,3 +70,4 @@ La page attend la réponse (10 s au plus) avant d'afficher ou d'enregistrer quoi
 |---|---|
 | 1.3 | Création : mode serveur, mode navigateur, mode bloqué, identité du compte, conflits, fiches par partie, import et impression |
 | 1.4 | Bandeau jaune juste en mode serveur ; plus d'exemples fictifs chargés dans la base partagée |
+| 1.7 | Sauvegarde chaque nuit, durée de vie des dossiers supprimés dans les copies, suppressions refaites après une restauration |

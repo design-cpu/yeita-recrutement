@@ -29,3 +29,14 @@ Actions appliquées : CA17, CA18, CA20 fusionnés, CA21 retiré vers le plan de 
 ## P3 — après le découpage · ajuster
 7 tâches (7 à 9) ; 16 fichiers touchés (13 à 16) ; hors code de production : `api/test/equipe.test.js`, `tools/test-sauvegarde.sh` (1 à 3) ; `api/test` reste à 7 fichiers.
 Actions appliquées : `README.md` racine ajouté à la tâche 07 (documenter `tools/test-sauvegarde.sh`) ; `deploy/healthchecks.sh` et `tools/test-sauvegarde.sh` tracés dans `decoupage.md` comme écarts assumés.
+
+## P4 — avant la QA · ajuster
+| Mesure | Valeur | Repère du plan |
+|---|---|---|
+| Spec finale | 146 lignes | 150 à 220 (réduite en P2) |
+| Tâches | 7 | 7 à 9 |
+| Fichiers touchés hors `hlyja/` | 16 (+1199/−5) | 13 à 16 |
+| Hors code de production | 2 (`api/test/equipe.test.js`, `tools/test-sauvegarde.sh`) | 1 à 3 |
+| Mutations | 28 (7 + 21) | 10 à 15 |
+Constats : périmètre tenu, aucun ajout non demandé dans le diff ; mutations au double du repère (chaque garde de `backup.sh` ciblée, 5 ajoutées après la revue) ; outillage lourd mais cohérent (325 lignes, 119 vérifications).
+Actions : écart des mutations noté au bilan, aucune mutation ajoutée en QA ; QA plafonnée à 25 scénarios dont une restauration de bout en bout ; 4 entrées au backlog (`Wants=docker.service`, `reglage()` en double, test « nom déjà pris », `deploy.sh` sans `umask`) ; commande shellcheck corrigée dans `conventions.md` (`LC_ALL=C.UTF-8`).

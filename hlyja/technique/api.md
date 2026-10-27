@@ -2,10 +2,10 @@
 type: technique
 page: api
 titre: API de stockage (api/)
-maj: 1.3
-commit: 3b314a9
-sources: api/server.js, api/equipe.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md
-date: 2026-10-26
+maj: 1.7
+commit: 26c1d9f
+sources: api/server.js, api/equipe.js, api/sauvegarde.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md
+date: 2026-10-27
 ---
 
 # API de stockage (`api/`)
@@ -28,6 +28,7 @@ Un processus, une connexion better-sqlite3 (synchrone). `equipe.js` ouvre sa pro
 |---|---|---|
 | `api/server.js` | Point d'entrée (`npm start`) : `lireConfig`, `ouvrirBase`, `construireApp`, écoute, ligne de démarrage, avertissements, arrêt sur `SIGINT`/`SIGTERM` (code 0), erreurs de démarrage (code 1) | — |
 | `api/equipe.js` | Commande `add|list|disable|role` | — |
+| `api/sauvegarde.js` (v1.7) | Commande `node api/sauvegarde.js [--nettoyer]` : base ouverte en lecture seule (`fileMustExist`), `db.backup()` vers `<dossier de la base>/sauvegardes/recrutement-AAAA-MM-JJ.db.tmp-<pid>` (date UTC), `integrity_check` = `ok` exigé, `journal_mode = DELETE` (un seul fichier), renommage ; masque 077 (dossier 700, copie 600) ; dernière ligne de sortie = chemin de la copie (contrat de `deploy/backup.sh`) ; `--nettoyer` : `recrutement-AAAA-MM-JJ.db` et temporaires de plus de 48 h (date de modification), jamais la copie faite ; code 0/1, messages en français ; aucune route, aucun changement du reste de l'API | — |
 | `api/src/config.js` | Lecture et contrôle des variables | `lireConfig(env, dossierApi)`, `cheminBase(env, dossierApi)`, `ErreurConfig`, `DOSSIER_API` |
 | `api/src/base.js` | Ouverture de la base, réglages, schéma | `ouvrirBase(chemin)` → `{db, creee, userVersion}`, `SCHEMA`, `VERSION_SCHEMA` (1), `ATTENTE_MS` (5000), `ErreurBase`, `estOccupee(e)` |
 | `api/src/app.js` | Application Fastify : analyseur JSON, autorisation, erreurs, `/api/sante`, `/api/moi`, `/api/equipe`, site local | `construireApp({config, db, logger, routes})`, `ErreurHttp(statut, message, code)`, `envoyer(rep, statut, erreur, code)` |
@@ -126,3 +127,4 @@ Les réponses d'oauth2-proxy (401 `{}`, 502 HTML, 302) sont classées par `Adapt
 |---|---|
 | 1.2 | Création : routes, autorisation, base, configuration, `equipe.js` |
 | 1.3 | Dans Docker derrière oauth2-proxy ; consommateurs (pages) ; aucun changement du code de l'API |
+| 1.7 | `api/sauvegarde.js` (copie contrôlée de la base) ; ses tests dans `api/test/equipe.test.js` (commandes en ligne) |

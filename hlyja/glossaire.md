@@ -1,6 +1,6 @@
 ---
 type: glossaire
-maj: 1.6
+maj: 1.7
 ---
 
 # Glossaire
@@ -121,3 +121,16 @@ Aussi : base SQLite.
 ## Volume
 Un dossier géré par Docker, qui survit à l'arrêt et à la recréation des conteneurs. Le volume `recrutement_data` contient la base des candidatures : c'est la seule copie, à ne jamais supprimer.
 Aussi : volume Docker, recrutement_data.
+
+## Sauvegarde
+La copie de la base des candidatures faite chaque nuit, vérifiée puis chiffrée : sans la clé rangée au coffre, personne ne peut la lire. Elle est gardée 30 jours sur le serveur et 30 jours chez OVH, en Europe.
+Aussi : copie chiffrée.
+
+## Restauration
+Remettre la base des candidatures dans l'état d'une sauvegarde, après une panne ou une erreur. Ce qui a été saisi depuis la date de la copie est perdu, et les suppressions faites depuis sont à refaire.
+
+## Clé de sauvegarde
+La clé secrète qui ouvre les sauvegardes. Elle n'est jamais sur le serveur : elle est rangée dans le coffre de mots de passe de Yeita et connue d'au moins deux personnes. La perdre rend toutes les sauvegardes illisibles.
+
+## healthchecks.io
+Le service qui prévient l'administrateur par email quand une sauvegarde échoue, quand le disque du serveur se remplit, ou quand il n'a plus de nouvelles de l'un des deux.

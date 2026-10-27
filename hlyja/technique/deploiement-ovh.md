@@ -2,9 +2,9 @@
 type: technique
 page: deploiement-ovh
 titre: Déployer sur OVH et tester avec Google, pas à pas
-maj: 1.6
-commit: 4b98c3a
-sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js
+maj: 1.7
+commit: 26c1d9f
+sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js, deploy/README.md, deploy/backup.sh, deploy/verif-disque.sh
 date: 2026-10-27
 ---
 
@@ -25,6 +25,7 @@ date: 2026-10-27
 | 8 | serveur, `deploy` | bloc de contrôle réseau de l'API (`deploy/README.md` § 9b, recopié tel quel) — obligatoire : moteur Docker d'Ubuntu, pas le 29.9.2 vérifié en v1.3 | 7 `OK`, `VERDICT : tout est bon.` |
 | 9 | serveur, `deploy` | `docker compose exec api node api/equipe.js add <email> <Prénom> admin` | membre listé par `list` |
 | 10 | navigateur + poste | public sans connexion ; `/candidatures/` → Google → `Connecté·e : <prénom>` ; `/api/moi` → `{email, prenom, role}` ; compte gmail refusé (Interne) ; `tools/check-site.sh https://recrutement.yeita.fr` → 6 `OK` | |
+| 11 | poste, OVH, serveur (`ubuntu`, puis `deploy`) | sauvegardes : `deploy/README.md` § 14, étapes 1 à 7 (clé age sur un poste, bucket OVH et trois utilisateurs S3, cycle de vie depuis un poste, remote rclone de `deploy`, deux contrôles healthchecks.io, 4 variables de `.env`, unités systemd par `sudo`, premiers essais) ; prérequis `sudo apt install age rclone` (v1.7) | `Sauvegarde réussie : recrutement-…Z.db.age (… octets), envoyée.` ; `Disque racine : … % ; dossier Docker : … % ; seuil : 80 %.` ; deux contrôles au vert ; `systemctl list-timers 'recrutement-*'` |
 
 ## Points à savoir
 | Point | Détail |
@@ -35,4 +36,6 @@ date: 2026-10-27
 | Redémarrage en attente | le serveur affiche « System restart required » : non fait, pas nécessaire au déploiement (couperait les apps pm2) |
 | Secret client Google | affiché une seule fois à la création dans la console actuelle |
 | Libellés cités | `Connecté·e : ` et `Tu ne fais pas partie de l'équipe.` (`assets/wording.fr.js` l. 36, 42) ; `/api/moi` (`api/src/app.js` l. 77) |
-| Interdit sur le serveur | `docker compose down -v`, `docker volume prune` (volume `recrutement_data`, seule copie) |
+| Interdit sur le serveur | `docker compose down -v`, `docker volume prune` (volume `recrutement_data`) |
+| Sauvegardes (v1.7) | à mettre en place avant de vraies candidatures : jusque-là, le volume est la seule copie ; restaurer : `deploy/RESTAURER.md` |
+| 1.7 | Étape 11 : sauvegardes (`deploy/README.md` § 14) |

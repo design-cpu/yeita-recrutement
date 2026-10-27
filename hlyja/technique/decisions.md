@@ -2,10 +2,10 @@
 type: technique
 page: decisions
 titre: Décisions techniques
-maj: 1.3
-commit: 3b314a9
-sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh
-date: 2026-10-26
+maj: 1.7
+commit: 26c1d9f
+sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md
+date: 2026-10-27
 ---
 
 # Décisions techniques
@@ -34,6 +34,11 @@ date: 2026-10-26
 | Réseau `back` sans adresse hôte | Sur un moteur Linux, l'hôte et tout conteneur en réseau hôte joignent un conteneur d'un réseau `internal` par son adresse, en IPv4 et en IPv6 si actif ; l'API croit `X-Forwarded-Email` (vérifié, v1.3, V30, V39) | `internal: true`, `enable_ipv6: false`, `com.docker.network.bridge.inhibit_ipv4: "true"` ; aucun port publié ; contrôle réseau avant le premier admin (`deploy/README.md` § 9b) | `gateway_mode_ipv4: isolated` (même effet, option plus récente) ; secret partagé proxy/API (évolution de l'API, hors périmètre) | Vérifié sur le moteur 29.9.2 ; à refaire sur un moteur plus ancien | 1.3 |
 | Image Node figée | `node:22-slim` = 22.23.4, correctif de sécurité de moins de 14 jours | `node:22.23.4-slim` figée par le digest de l'index multi-architecture (choix de l'utilisateur, exception à l'âge minimal) | `node:22-slim` flottante ; 22.23.3 (plus de 14 jours, sans le correctif) | Mise à jour par changement explicite du digest | 1.3 |
 | « Remplacer tout » masqué en mode serveur | En mode serveur, l'import « Remplacer tout » supprimerait les dossiers de toute l'équipe absents du fichier, sans sauvegarde | Seule la fusion est proposée en mode serveur (choix de l'utilisateur) ; `store.js` inchangé | Garder l'option avec un avertissement | Un import « Fusion » d'un vieil export peut recréer un dossier supprimé (écrit dans `MODELE.md`) | 1.3 |
+| Méthode de copie | Une lecture longue de la base empêche le point de contrôle de l'API, et un dossier supprimé reste lisible jusqu'à l'enregistrement suivant (fiche 1.2-5) | `db.backup()` de better-sqlite3 dans le conteneur (`api/sauvegarde.js`), contrôle `integrity_check`, un seul fichier (`journal_mode = DELETE`), sous un nom temporaire puis renommé (décision du pitch) | `sqlite3 .backup`, copie des fichiers à chaud, `VACUUM INTO` | Aucune lecture gardée au-delà de la copie ; la copie a l'en-tête WAL de la base sans le changement de journal (vérifié, v1.7) | 1.7 |
+| Chiffrement et clé | Les copies contiennent les dossiers candidat et quittent le serveur | `age` vers une seule clé publique `age1…` (`AGE_RECIPIENT`) ; clé privée créée sur un poste, au coffre, connue de deux personnes ; déchiffrement seulement sur un poste (décision du pitch) | GPG ; clé SSH comme destinataire (age l'accepte : refusée par `backup.sh`, v1.7) | Perte de la clé = copies illisibles ; contrôle `age-keygen -y` = `AGE_RECIPIENT` et essai de bout en bout à la mise en service | 1.7 |
+| Rétention distante et droits S3 | `rclone copy` n'efface jamais ; un serveur compromis ne doit pas pouvoir détruire les copies | Bucket non versionné en région UE avec règle de cycle de vie à 30 jours ; trois utilisateurs S3 : administrateur (poste seulement), serveur (écriture sans effacement, refus explicite), restauration (lecture seule, au coffre) (décisions de l'utilisateur) | Effacement par `backup.sh` (`rclone delete --min-age`) ; garder sans limite | Le serveur peut encore remplacer un objet du même nom : noms à la seconde (`recrutement-AAAA-MM-JJTHHMMSSZ.db.age`) ; durée maximale d'un dossier supprimé dans les copies : 3 j (volume), 31 j (serveur), 32 j (OVH) | 1.7 |
+| Alertes | Prévenir quand une sauvegarde échoue ou que le disque se remplit, sans tableau de bord | Deux contrôles healthchecks.io distincts (sauvegarde 1 j + 2 h de grâce, disque 1 h + 30 min), succès et `/fail` avec un texte fixe, réponse `OK` exacte exigée, adresse jamais en argument d'un processus | Une seule adresse pour les deux (les pings horaires masqueraient une sauvegarde ratée) ; pings dans les arguments de `curl` (lisibles dans `ps`) | Un contrôle sans ping alerte aussi (timer cassé, serveur éteint) | 1.7 |
+| Restauration | La copie en clair ne doit jamais toucher le disque du serveur ; une restauration ratée ne doit pas détruire la base | Copie envoyée par l'entrée standard de `docker compose run` dans le volume, en tant que `node` ; empreinte SHA-256 et `integrity_check` vérifiés dans le conteneur avant de remplacer ; état actuel sauvegardé avant ; suppressions refaites dans l'interface | `docker compose cp` vers le volume (fichier posé à l'uid de `deploy`, illisible par l'api, vérifié v1.7) ; réécrire les suppressions en SQL hors de l'API | `deploy/RESTAURER.md` rejoué sur le banc (3 cas) | 1.7 |
 
 ## Voir aussi
 - [API de stockage](api.md)
@@ -47,3 +52,4 @@ date: 2026-10-26
 | 1.1 | Hébergement Docker derrière oauth2-proxy (l'authentification de la décision « Stockage et authentification » est en place ; le stockage SQLite reste à faire), `reverse_proxy = false`, `/index.html` en 200 |
 | 1.2 | API de stockage, confiance dans `X-Forwarded-Email`, version optimiste, effacement réel, exception sur l'âge des dépendances |
 | 1.3 | Choix du mode des pages, versions et file par dossier, fiches qui écrivent leur partie, réseau `back` sans adresse hôte, image Node figée, « Remplacer tout » masqué ; la décision « Stockage et authentification » est réalisée |
+| 1.7 | Méthode de copie, chiffrement et clé, rétention distante et droits S3, alertes, restauration |
