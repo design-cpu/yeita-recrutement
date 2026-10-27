@@ -18,6 +18,12 @@ export const ROLES = ["recruteur", "admin", "lecture"];
 export const HOTES_LOCAUX = ["127.0.0.1", "::1", "localhost"];
 
 export const LIMITE_CORPS = 1048576;
+
+/* Fichiers des candidats (1.7) : 10 Mo au plus (un portfolio PDF exporté de Figma pèse souvent 3 à 8 Mo). */
+export const LIMITE_FICHIER = 10 * 1048576;
+export const TYPES_FICHIER = ["application/pdf", "image/png", "image/jpeg"];
+export const CHAMPS_FICHIER = ["cv", "portfolio"];
+export const MOTIF_FICHIER = /^fic-[a-f0-9]{18}$/;
 export const MESSAGE_CONFLIT = "La candidature a été modifiée par quelqu'un d'autre. Recharge la page.";
 
 /* Email mis en forme (espaces retirés, minuscules) s'il est valide, sinon null. */

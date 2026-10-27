@@ -46,12 +46,17 @@ function initiales(nom){
   var m = D.decoupe(nom); var a = (m.prenom || "").charAt(0), b = (m.nom || "").charAt(0);
   return ((a + b) || String(nom || "?").slice(0, 2)).toUpperCase();
 }
-/* Les recruteurs, par leur prénom : « Pauline, Andrea ». */
+/* Le nom complet d'un membre de l'équipe, d'après config.equipeNoms (« Pauline » → « Pauline … ») ; sinon le nom tel quel. */
+function nomComplet(n){ n = String(n || "").trim(); var M = (window.YEITA_CONFIG && YEITA_CONFIG.equipeNoms) || {}; return M[n] || n; }
 function prenom(n){ var m = D.decoupe(n); return m.prenom || String(n || ""); }
-function recruteursHTML(list){
+/* Les recruteurs : par leurs initiales sur la carte du kanban (initiales = true), par leur nom complet partout ailleurs. */
+function recruteursHTML(list, initiales_){
   list = list || [];
   if(!list.length) return '<span class="ini none">' + E(t("tableau.recruteursVide")) + '</span>';
-  return '<span class="ini" title="' + E(list.join(", ")) + '"><span class="sr-only">' + E(t("tableau.colonnes.recruteurs")) + ' : </span>' + E(list.map(prenom).join(", ")) + '</span>';
+  var noms = list.map(nomComplet);
+  if(initiales_ === true) return '<span class="ini pastilles" title="' + E(noms.join(", ")) + '">' + list.map(function(n){ return '<span aria-hidden="true">' + E(initiales(nomComplet(n))) + '</span>'; }).join("")
+    + '<span class="sr-only">' + E(t("tableau.colonnes.recruteurs") + " : " + noms.join(", ")) + '</span></span>';
+  return '<span class="ini"><span class="sr-only">' + E(t("tableau.colonnes.recruteurs")) + ' : </span>' + E(noms.join(", ")) + '</span>';
 }
 function etatHTML(c, interactive){
   var e = c.etat || "a-planifier";
@@ -188,6 +193,6 @@ function init(opts){
 
 window.UI = {t: t, etapeLabel: etapeLabel, etatLabel: etatLabel, fmtDay: fmtDay, fmtWhen: fmtWhen, heure: heure,
   urlCandidat: urlCandidat, absolu: absolu, param: param, copier: copier, lienHTML: lienHTML,
-  jobXp: jobXp, initiales: initiales, prenom: prenom, recruteursHTML: recruteursHTML, etatHTML: etatHTML, tip: tip, floatTip: floatTip,
+  jobXp: jobXp, initiales: initiales, prenom: prenom, nomComplet: nomComplet, recruteursHTML: recruteursHTML, etatHTML: etatHTML, tip: tip, floatTip: floatTip,
   tagsHTML: tagsHTML, tagsValues: tagsValues, tagsAdd: tagsAdd, dispoHTML: dispoHTML, init: init, closeMenu: closeMenu};
 })();

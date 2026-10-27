@@ -1,6 +1,6 @@
 ---
 type: glossaire
-maj: 1.6
+maj: 1.7
 ---
 
 # Glossaire
@@ -38,6 +38,10 @@ Aussi : conteneurs.
 ## Docker Compose
 L'outil qui décrit et lance ensemble les conteneurs d'un projet, à partir d'un seul fichier (`compose.yaml`). Une commande démarre tout, une autre arrête tout.
 Aussi : Compose, pile Compose.
+
+## Documents du candidat
+Le CV et le portfolio, dans la fiche du candidat. Chacun est soit un fichier déposé (PDF, PNG ou JPG, 10 Mo au plus), gardé sur le serveur de l'équipe avec la candidature et effacé avec elle, soit un lien. Chaque dépôt et chaque retrait est noté dans l'historique.
+Aussi : dépôt de fichier, CV, portfolio.
 
 ## Effacement réel
 Supprimer un dossier de sorte qu'il ne reste plus lisible nulle part dans les fichiers de la base. Une base de données ordinaire marque souvent la place comme libre sans effacer le contenu ; l'API, elle, l'écrase.

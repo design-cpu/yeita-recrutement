@@ -4,6 +4,7 @@
 import { ErreurHttp } from "./app.js";
 import { ATTENTE_MS } from "./base.js";
 import { ETAPES, MESSAGE_CONFLIT, MOTIF_ID, SCHEMA_DOSSIER } from "./valeurs.js";
+import { routesFichiers } from "./fichiers.js";
 
 const INTROUVABLE = () => new ErreurHttp(404, "Candidature introuvable.", "introuvable");
 const CONFLIT = () => new ErreurHttp(409, MESSAGE_CONFLIT, "conflit");
@@ -44,6 +45,7 @@ export function routesCandidats(app, db) {
       WHERE id = ? AND version = ?`),
     supprimer: db.prepare("DELETE FROM candidats WHERE id = ?"),
     purger: db.prepare("DELETE FROM journal WHERE candidat_id = ?"),
+    fichiers: db.prepare("DELETE FROM fichiers WHERE candidat_id = ?"),
     journal: db.prepare("INSERT INTO journal (candidat_id, action, etape, par, le) VALUES (?, ?, ?, ?, ?)")
   };
 
@@ -59,6 +61,8 @@ export function routesCandidats(app, db) {
       db.pragma(`busy_timeout = ${ATTENTE_MS}`);
     }
   }
+
+  routesFichiers(app, db, pointDeControle);
 
   app.get("/api/candidats", async () => q.liste.all().map(enveloppe));
 
@@ -94,6 +98,8 @@ export function routesCandidats(app, db) {
       if (q.supprimer.run(id).changes === 0) throw INTROUVABLE();
       /* Demande d'effacement : le parcours ne reste pas au journal, seule la suppression y est notée (arbitrage de l'utilisateur). */
       q.purger.run(id);
+      /* Ses fichiers (CV, portfolio) partent avec lui, dans la même transaction (1.7). */
+      q.fichiers.run(id);
       q.journal.run(id, "suppression", null, req.membre.email, new Date().toISOString());
     });
     effacer.immediate();

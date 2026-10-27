@@ -129,3 +129,4 @@ Rien n'est écrit dans `yeita-dossiers`, `yeita-equipe-ajouts`, `yeita-recruteur
 | 1.3 | Création : démarrage, adaptateur serveur, identité et options en mode serveur, écriture des fiches par partie |
 | 1.4 | Bandeau jaune en mode serveur (`commun.serveur`) ; boutons d'exemples de `index.html` selon le mode |
 | 1.6 | Deux écrivains de plus : le panneau Notes (`notesLibres[étape]`, par partie) et la fenêtre Fiche du candidat du menu ⋯ ; les fiches EC1 et EC2 travaillent sur une copie de leur partie |
+| 1.7 | Dépôt de fichiers : `AdaptateurServeur.deposer`, `fichierUrl`, `retirerFichier` (hors de la file par dossier) ; en mode navigateur, CV et portfolio en lien seulement |

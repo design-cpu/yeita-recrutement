@@ -14,7 +14,7 @@
 <!-- Espace Candidatures : le parcours d'un candidat. Adresse : candidat.html?id=<identifiant>&etape=<étape>.
      L'identifiant est opaque (jamais le nom). Les textes viennent de assets/wording.fr.js. -->
 <div id="live" aria-live="polite"></div>
-<div class="wrap wide">
+<div class="wrap etape">
   <header class="topbar">
     <a href="../index.html#guide" aria-label="Retour au hub Expérience collaborateur" style="padding:0" id="logo"></a>
     <span class="where" data-t="commun.espace">Candidatures</span>
@@ -142,9 +142,9 @@ function renderPanel(){
   if(window.NOTES) NOTES.maj();
 }
 function stopHTML(c){
-  if(c.parcours.etape === S.VIVIER){ var d = c.decision || {}; return '<p class="readonly"><b>' + E(UI.etapeLabel(S.VIVIER)) + '</b>. ' + E(t("decision.prise", {choix: t("decision.choix.vivier.label"), quand: UI.fmtWhen(d.le), par: d.par || "?"})) + (d.commentaire ? ' « ' + E(d.commentaire) + ' »' : '') + '</p>'; }
+  if(c.parcours.etape === S.VIVIER){ var d = c.decision || {}; return '<p class="readonly"><b>' + E(UI.etapeLabel(S.VIVIER)) + '</b>. ' + E(t("decision.prise", {choix: t("decision.choix.vivier.label"), quand: UI.fmtWhen(d.le), par: UI.nomComplet(d.par) || "?"})) + (d.commentaire ? ' « ' + E(d.commentaire) + ' »' : '') + '</p>'; }
   var cl = c.parcours.cloture || {};
-  return '<p class="readonly"><b>' + E(t("fiche.arrete")) + '</b>. ' + E(t("refus.arrete", {quand: UI.fmtWhen(cl.le), par: cl.par ? ", " + cl.par : "", motif: S.motifLabel(cl.motif) + (cl.detail ? ", " + cl.detail : "")})) + ' ' + E(cl.carteEnvoyee ? t("refus.carteEnvoyeeOui") : t("refus.carteEnvoyeeNon")) + '</p>';
+  return '<p class="readonly"><b>' + E(t("fiche.arrete")) + '</b>. ' + E(t("refus.arrete", {quand: UI.fmtWhen(cl.le), par: cl.par ? ", " + UI.nomComplet(cl.par) : "", motif: S.motifLabel(cl.motif) + (cl.detail ? ", " + cl.detail : "")})) + ' ' + E(cl.carteEnvoyee ? t("refus.carteEnvoyeeOui") : t("refus.carteEnvoyeeNon")) + '</p>';
 }
 var RENDER = {};
 
@@ -153,13 +153,12 @@ RENDER.appel = function(c, ro){
   var a = c.appel, r = a.reponses || {}, Q = WORDING.appel.questions, job = c.identite.job;
   var jobTxt = WORDING.jobsDansUnePhrase && WORDING.jobsDansUnePhrase[job];
   var h = ro ? '' : '<section class="infos" aria-labelledby="inf-t"><div class="ihead"><h3 id="inf-t">' + E(t("infos.titre")) + '</h3><span class="saved" id="saved" aria-live="polite"></span></div>' + MC.infosHTML(c, false) + '</section>';
-  h += linksHTML(PC.etape("appel"));
   function q(n, k, label, extra, ph){
     return '<div class="q"><label for="q-' + k + '"><span class="qn">' + n + '</span>' + E(label) + '</label>' + (extra || '<textarea id="q-' + k + '" data-f="appel.reponses.' + k + '" rows="2" placeholder="' + E(ph || t("appel.placeholder")) + '">' + E(r[k] || "") + '</textarea>') + '</div>';
   }
   h += '<div class="box"><div class="ihead" style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:center"><h3>' + E(t("etapes.appel.label")) + '</h3>'
     + '<div class="grid-fields" style="grid-template-columns:repeat(2, minmax(0, 12em))"><div class="field"><label for="ap-date">' + E(t("appel.date")) + '</label><input type="date" id="ap-date" data-f="appel.date" value="' + E(a.date) + '"></div>'
-    + '<div class="field"><label for="ap-par">' + E(t("appel.par")) + '</label><input type="text" id="ap-par" data-f="appel.par" value="' + E(a.par || S.me()) + '" autocomplete="off"></div></div></div>'
+    + '<div class="field"><label for="ap-par">' + E(t("appel.par")) + '</label><input type="text" id="ap-par" data-f="appel.par" value="' + E(a.par || UI.nomComplet(S.me())) + '" autocomplete="off"></div></div></div>'
     + '<div class="qlist">'
     + q(1, "recherche", Q.recherche) + q(2, "pourquoi", Q.pourquoi)
     + q(3, "role", jobTxt ? t("appel.questions.role", {job: jobTxt}) : Q.roleGenerique)
@@ -181,7 +180,7 @@ function mailOnePager(c){
   if(P.tonParcours) pages += t("onePager.pageParcours", {url: P.tonParcours}) + "\n";
   var lignes = [["infosAdresse", I.adresse], ["infosAcces", I.acces], ["infosCode", I.code]].filter(function(x){ return x[1]; });
   if(lignes.length) infos = "\n" + t("onePager.infosTitre") + "\n" + lignes.map(function(x){ return t("onePager." + x[0], {v: x[1]}); }).join("\n") + "\n";
-  var corps = t("onePager.corps", {prenom: c.identite.prenom || "", pages: pages, infos: infos, moi: S.me() || ""});
+  var corps = t("onePager.corps", {prenom: c.identite.prenom || "", pages: pages, infos: infos, moi: UI.nomComplet(S.me()) || ""});
   return "https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(c.identite.email || "") + "&su=" + encodeURIComponent(t("onePager.objet")) + "&body=" + encodeURIComponent(corps);
 }
 function onePagerHTML(c, ro){
@@ -189,7 +188,7 @@ function onePagerHTML(c, ro){
   return '<div class="onepager"><h3>' + E(t("onePager.titre")) + '</h3><p>' + E(email ? t("onePager.texte") : t("onePager.sansEmail")) + '</p>'
     + '<div class="actions">' + (email && !ro ? '<a class="btn" href="' + E(mailOnePager(c)) + '" target="_blank" rel="noopener">' + E(t("onePager.envoyer")) + ' <span class="sr-only">' + E(t("onePager.envoyerSr")) + '</span></a>' : '')
     + '<label class="check"><input type="checkbox" id="op-sent"' + (sent ? ' checked' : '') + '>' + E(t("onePager.coche")) + '</label>'
-    + (sent ? '<span class="saved">' + E(t("onePager.envoyeLe", {quand: UI.fmtWhen(a.onePager.envoyeLe), qui: a.onePager.par || "?"})) + '</span>' : '') + '</div></div>';
+    + (sent ? '<span class="saved">' + E(t("onePager.envoyeLe", {quand: UI.fmtWhen(a.onePager.envoyeLe), qui: UI.nomComplet(a.onePager.par) || "?"})) + '</span>' : '') + '</div></div>';
 }
 
 /* Bilans EC1 et EC2 : récap de la carte, forme du débrief, trois issues */
@@ -198,9 +197,10 @@ function lines(x){ return String(x || "").split(/\n+/).map(function(s){ return s
 function imprimerHTML(c, primaire){
   return '<a class="btn' + (primaire ? ' primary' : '') + ' print" href="carte.html?id=' + encodeURIComponent(c.id) + '&amp;imprimer=1" target="_blank" rel="noopener">' + YEITA.icon("Printer", 18, 2) + '<span>' + E(t("commun.imprimer")) + '</span><span class="sr-only"> (' + E(t("bilan.ouvrirCarte")) + ', nouvel onglet)</span></a>';
 }
-function carteHTML(c){
+/* interne : la partie interne Yeita de la carte, en lecture sous la carte (Bilans EC1 et EC2), support du bilan. */
+function carteHTML(c, interne){
   return '<section class="carte-in" aria-labelledby="ci-t"><div class="ci-h"><h3 id="ci-t">' + E(t("bilan.carteBref")) + '</h3>' + imprimerHTML(c) + '</div>'
-    + '<iframe class="carte-frame" id="carte-frame" src="carte.html?id=' + encodeURIComponent(c.id) + '&amp;seule=1" title="' + E(t("bilan.carteBref") + " · " + c.candidat.nom) + '" loading="lazy"></iframe></section>';
+    + '<iframe class="carte-frame" id="carte-frame" src="carte.html?id=' + encodeURIComponent(c.id) + '&amp;seule=1' + (interne ? '&amp;interne=1' : '') + '" title="' + E(t("bilan.carteBref") + (interne ? ", " + t("bilan.interneTitre") : "") + " · " + c.candidat.nom) + '" loading="lazy"></iframe></section>';
 }
 /* La hauteur du cadre suit celle de la carte (même origine). */
 function carteAjuste(){
@@ -212,7 +212,7 @@ function bilanHTML(c, k){
   var b = c.bilans[k] || {};
   return '<div class="onepager"><h3>' + E(t("bilan.forme")) + '</h3>'
     + '<fieldset class="plain"><legend class="sr-only">' + E(t("bilan.forme")) + '</legend><div class="radios-inline"><label><input type="radio" name="bl-mode" value="appel"' + (b.mode !== "asynchrone" ? ' checked' : '') + '>' + E(t("bilan.enAppel")) + '</label><label><input type="radio" name="bl-mode" value="asynchrone"' + (b.mode === "asynchrone" ? ' checked' : '') + '>' + E(t("bilan.enAsync")) + '</label></div></fieldset></div>'
-    + carteHTML(c);
+    + carteHTML(c, true);
 }
 RENDER["bilan-ec1"] = function(c){ return bilanHTML(c, "ec1"); };
 RENDER["bilan-ec2"] = function(c){ return bilanHTML(c, "ec2"); };
@@ -229,13 +229,13 @@ RENDER.decision = function(c, ro){
   var n3 = NOTES.texte(c, "ec3") || (c.ec3 && c.ec3.notes) || "";
   var h = linksHTML(PC.etape("decision"))
     + '<div class="box"><h3>' + E(t("decision.pourDecider")) + '</h3><dl class="carteprev recap"><dt>' + E(t("decision.palier")) + '</dt><dd>' + E(s.palier || t("bilan.nonRenseigne")) + '</dd><dt>' + E(t("decision.conditions")) + '</dt><dd>' + E(s.conditions || t("bilan.nonRenseigne")) + '</dd><dt>' + E(t("decision.notesEC3")) + '</dt><dd style="white-space:pre-line">' + E(n3 || "Aucune note") + '</dd></dl></div>';
-  if(ro){ return h + (d.choix ? '<p class="readonly">' + E(t("decision.prise", {choix: t("decision.choix." + d.choix + ".label"), quand: UI.fmtWhen(d.le), par: d.par || "?"})) + (d.commentaire ? ' « ' + E(d.commentaire) + ' »' : '') + '</p>' : ''); }
+  if(ro){ return h + (d.choix ? '<p class="readonly">' + E(t("decision.prise", {choix: t("decision.choix." + d.choix + ".label"), quand: UI.fmtWhen(d.le), par: UI.nomComplet(d.par) || "?"})) + (d.commentaire ? ' « ' + E(d.commentaire) + ' »' : '') + '</p>' : ''); }
   return h + '<section class="box" aria-labelledby="dec-t"><h3 id="dec-t">' + E(t("decision.titre")) + '</h3><fieldset class="plain"><legend class="sr-only">' + E(t("decision.titre")) + '</legend><div class="chips-check" style="display:grid; gap:8px">'
     + S.DECISIONS.map(function(k){ return '<label style="border-radius:12px; align-items:flex-start; padding:10px 14px"><input type="radio" name="dec" value="' + k + '" style="margin-top:3px"><span><b>' + E(t("decision.choix." + k + ".label")) + '</b><br><span class="hint">' + E(t("decision.choix." + k + ".aide")) + '</span></span></label>'; }).join("")
     + '</div></fieldset><div class="field"><label for="dec-com">' + E(t("decision.commentaire")) + '</label><textarea id="dec-com" rows="3" aria-describedby="dec-com-h"></textarea><span class="hint" id="dec-com-h">' + E(t("decision.commentaireAide")) + '</span></div>'
     + '<p class="form-err" id="dec-err" role="alert" hidden></p><div class="actions"><button type="button" class="btn primary" id="dec-go">' + E(t("decision.valider")) + '</button></div></section>';
 };
-function decisionRecap(c){ var d = c.decision || {}; return d.choix ? '<p class="readonly">' + E(t("decision.prise", {choix: t("decision.choix." + d.choix + ".label"), quand: UI.fmtWhen(d.le), par: d.par || "?"})) + (d.commentaire ? ' « ' + E(d.commentaire) + ' »' : '') + '</p>' : ''; }
+function decisionRecap(c){ var d = c.decision || {}; return d.choix ? '<p class="readonly">' + E(t("decision.prise", {choix: t("decision.choix." + d.choix + ".label"), quand: UI.fmtWhen(d.le), par: UI.nomComplet(d.par) || "?"})) + (d.commentaire ? ' « ' + E(d.commentaire) + ' »' : '') + '</p>' : ''; }
 RENDER.proposition = function(c, ro){
   var d = c.decision || {};
   return decisionRecap(c) + linksHTML(PC.etape("proposition"))
@@ -350,7 +350,7 @@ document.addEventListener("click", function(e){
     if(!choix){ er2.textContent = t("decision.choisir"); er2.hidden = false; return; }
     if(choix === S.NON_RETENU){ if(!com.trim()){ er2.textContent = t("decision.commentaireRequis"); er2.hidden = false; document.getElementById("dec-com").focus(); return; } pendingDecision = com; refusOpen = true; renderPanel(); document.getElementById("rf-t").focus(); return; }
     flush().then(function(){ return S.decide(cur.id, {choix: choix, commentaire: com, par: S.me()}); })
-      .then(function(c){ after(c, t("decision.prise", {choix: t("decision.choix." + choix + ".label"), quand: UI.fmtWhen(c.decision.le), par: c.decision.par}), true); })
+      .then(function(c){ after(c, t("decision.prise", {choix: t("decision.choix." + choix + ".label"), quand: UI.fmtWhen(c.decision.le), par: UI.nomComplet(c.decision.par)}), true); })
       .catch(function(x){ er2.textContent = x.message; er2.hidden = false; document.getElementById("dec-com").focus(); });
     return;
   }
@@ -370,7 +370,9 @@ MC.init({
   avant: function(){ return flush(); },
   apres: function(c){ cur = c; render(); },
   supprime: function(id, nom){ clearTimeout(saveT); saveT = null; try{ sessionStorage.setItem("yeita-supprime", nom); }catch(x){} location.href = "index.html"; },
-  etape: function(){ return viewing; }
+  etape: function(){ return viewing; },
+  /* CV et Portfolio du bloc Infos candidat de l'appel */
+  page: {get: function(){ return cur; }, changer: schedule, avant: function(){ return flush(); }, relu: function(c){ cur = c; }, redessiner: function(){ renderPanel(); }}
 });
 NOTES.monter({
   etape: function(){ return viewing; },

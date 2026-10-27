@@ -235,11 +235,13 @@ function closeCandidate(id, opts){
   });
 }
 /* Annuler le dernier passage (un clic de trop). La correction reste dans l'historique. Les changements d'État ne s'annulent pas ici. */
+/* Les lignes de l'historique qui marquent un passage d'étape (ni un changement d'État, ni un fichier déposé ou retiré). */
+function estPassage(h){ return h.type !== "etat" && h.type !== "fichier"; }
 function undoLast(id, par){
   return D.get(id).then(function(c){
     if(!c) return err("Candidat introuvable.");
     var h = c.historique, last = null;
-    for(var i = h.length - 1; i >= 0; i--){ if(h[i].type !== "etat"){ last = h[i]; break; } }
+    for(var i = h.length - 1; i >= 0; i--){ if(estPassage(h[i])){ last = h[i]; break; } }
     if(!last || last.de === null || last.annulation) return err("Il n'y a pas de passage à annuler.");
     var cur = c.parcours.etape;
     if(cur !== last.vers) return err("Le dernier passage ne correspond plus à l'étape en cours.");
@@ -263,7 +265,7 @@ function joursOuvres(fromIso, toDate){
   return n;
 }
 function enteredStepAt(c){
-  for(var i = c.historique.length - 1; i >= 0; i--){ if(c.historique[i].type !== "etat" && c.historique[i].vers === c.parcours.etape) return c.historique[i].le; }
+  for(var i = c.historique.length - 1; i >= 0; i--){ if(estPassage(c.historique[i]) && c.historique[i].vers === c.parcours.etape) return c.historique[i].le; }
   return c.meta.creeLe;
 }
 function waiting(c){ var e = c.parcours.etape; return (e === NON_RETENU || e === "onboarding" || e === VIVIER) ? 0 : joursOuvres(enteredStepAt(c)); }

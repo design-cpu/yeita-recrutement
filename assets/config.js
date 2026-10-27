@@ -5,6 +5,12 @@ window.YEITA_CONFIG = {
      On peut toujours ajouter un autre nom depuis l'interface ; il est alors gardé dans ce navigateur. */
   equipe: ["Peter", "Thélo", "Andrea", "Pauline", "Léo"],
 
+  /* Le nom complet de chaque membre, affiché partout (historique, « fait par », « envoyé par », recruteurs), sauf sur la carte
+     du kanban (initiales). Un nom absent de cette liste s'affiche tel qu'il a été saisi. À compléter. */
+  equipeNoms: {
+    "Léo": "Léo Fuster"
+  },
+
   /* Les pages publiques envoyées au candidat après l'appel de découverte (mail du one-pager).
      Elles restent hors de l'espace protégé. Laisser vide une page qui n'existe pas encore : elle n'apparaît pas dans le mail. */
   pagesCandidat: {
@@ -40,7 +46,7 @@ window.YEITA_CONFIG = {
   /* Mention RGPD, sur la carte d'identité (écran et PDF) et la page des étapes du recrutement. À valider avec la personne
      en charge des données : durée de conservation après la fin du recrutement, et adresse de contact. */
   rgpd: {
-    dureeMois: 6,
+    dureeMois: 22,
     contact: "[adresse de contact RGPD à définir]"
   }
 };

@@ -2,7 +2,7 @@
 type: technique
 page: conventions
 titre: Conventions et tests
-maj: 1.4
+maj: 1.7
 commit: c51ed2c
 sources: api/package.json, api/test/aide.js, README.md, CONTRIBUER.md, tools/build.py, tools/check-site.sh, compose.yaml, .dockerignore, .gitignore, tools/test-store.js, tools/test-serveur.js, tools/e2e-serveur.py, tools/e2e-candidatures.py, tools/e2e-parcours.py, tools/e2e-liens.py, tools/e2e-pdf.py
 date: 2026-10-27
@@ -25,6 +25,12 @@ date: 2026-10-27
 | `api/` | l'API de stockage (v1.2) : `server.js`, `equipe.js`, `src/`, `test/`, `README.md` ; `node_modules/` et `data/` jamais commités (`.gitignore`) ; jamais publiée (`SKIP`) |
 | `compose.yaml`, `.env.example`, `.dockerignore` | pile Docker ; `.env` (secrets) n'est jamais commité (`.gitignore`) (v1.1) |
 | `hlyja/` | trace Hlýja, exclue de la publication (`SKIP` de `tools/build.py`) |
+
+## Mise en page des étapes (1.7)
+- **Une seule largeur** pour toutes les étapes d'un candidat (appel, EC1, bilans, EC2, EC3, décision, proposition, onboarding) : `<div class="wrap etape">`, soit 1120 px au plus (`--etape-max`, `candidatures/style.css`). Toute nouvelle page d'étape la reprend.
+- **Pourquoi 1120 px :** la scorecard EC2 (sélecteur de palier sur une ligne, 4 tuiles, radar) et la carte d'identité y tiennent sans défilement ; avec le panneau Notes ouvert (420 px), il reste au moins 900 px de contenu dès 1360 px d'écran.
+- **Panneau Notes :** à côté du contenu dès 1360 px (`body.np-on` décale la page) ; en dessous, par-dessus.
+- **Fiche du candidat :** un seul composant (`MC.infosHTML`, `candidatures/menu-candidat.js`), 4 groupes, grille de 3 colonnes (2 sous 760 px, 1 sous 480 px), dans l'appel comme dans la fenêtre.
 
 ## Publication
 `python3 tools/build.py [dossier]` copie la racine sauf `SKIP` (`.git`, `.github`, `.agents`, `docs`, `tools`, `_site`, `dist`, `renders`, `README.md`, `STORAGE.md`, `.gitignore`, `hlyja`, `docker`, `deploy`, `compose.yaml`, `.dockerignore`, `api` (v1.2), et tout nom commençant par `.env`) et enveloppe `index.html`. Tout `assets/` est publié. Depuis v1.1, le site est servi par l'image `front` sur le serveur OVH, déployé à la main par `deploy/deploy.sh` ([Architecture](architecture.md)) ; GitHub Pages n'est plus utilisé.
@@ -69,3 +75,4 @@ Une branche par sujet (`feat/…`, `fix/…`, `version/<x.y>-<slug>` pour Hlýja
 | 1.2 | Dossier `api/`, `api` dans `SKIP`, tests de l'API (`node:test`) |
 | 1.3 | `docker/api.Dockerfile`, `assets/demarrage.js`, `assets/adapter-serveur.js` ; tests `tools/test-serveur.js` et `tools/e2e-serveur.py` |
 | 1.4 | Ancien modèle v2 de `docs/` supprimé ; `e2e-candidatures` couvre le bandeau et les boutons d'exemples du mode navigateur ; compteurs de `test-serveur` et `e2e-serveur` |
+| 1.7 | Mise en page des étapes : largeur commune, panneau Notes, composant unique de la fiche du candidat ; tests de l'API : `fichiers` |

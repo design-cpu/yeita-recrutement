@@ -2,7 +2,7 @@
 type: technique
 page: api
 titre: API de stockage (api/)
-maj: 1.3
+maj: 1.7
 commit: 3b314a9
 sources: api/server.js, api/equipe.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md
 date: 2026-10-26
@@ -33,6 +33,7 @@ Un processus, une connexion better-sqlite3 (synchrone). `equipe.js` ouvre sa pro
 | `api/src/app.js` | Application Fastify : analyseur JSON, autorisation, erreurs, `/api/sante`, `/api/moi`, `/api/equipe`, site local | `construireApp({config, db, logger, routes})`, `ErreurHttp(statut, message, code)`, `envoyer(rep, statut, erreur, code)` |
 | `api/src/candidats.js` | Routes des dossiers, journal, point de contrôle | `routesCandidats(app, db)` |
 | `api/src/options.js` | Routes des options de disponibilité | `routesOptions(app, db)` |
+| `api/src/fichiers.js` | Routes des fichiers des candidats (1.7), appelées par `routesCandidats` | `routesFichiers(app, db, pointDeControle)`, `nomPropre(brut, type)`, `ROUTE_ENVOI` |
 | `api/src/routes.js` | Liste des routes de données | `routesApi` |
 | `api/src/valeurs.js` | Valeurs recopiées (source citée) et constantes | `SCHEMA_DOSSIER`, `MOTIF_ID`, `ETAPES` (12), `DISPOS` (6), `MOTIF_EMAIL`, `ROLES`, `HOTES_LOCAUX`, `LIMITE_CORPS` (1 048 576), `MESSAGE_CONFLIT`, `emailValide(brut)` |
 
@@ -48,6 +49,10 @@ Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISP
 | `GET /api/candidats/:id` | oui | tous | `:id` (`MOTIF_ID`) | 200 `{id, version, data}` | 400, 401, 403, 404 `introuvable` | 1.2 |
 | `PUT /api/candidats/:id` | oui | recruteur, admin | `{version: null \| entier ≥ 1, data}` JSON ≤ 1 Mo | 201 (création, `version` 1), 200 (`version + 1`) | 400, 401, 403, 409 `conflit`, 413, 415, 503 | 1.2 |
 | `DELETE /api/candidats/:id` | oui | recruteur, admin | `:id` | 204 | 400, 401, 403, 404 `introuvable`, 503 | 1.2 |
+| `POST /api/candidats/:id/fichiers?champ=cv\|portfolio` | oui | recruteur, admin | corps brut `application/pdf`, `image/png` ou `image/jpeg`, ≤ 10 Mo (`LIMITE_FICHIER`) ; nom dans `X-Nom-Fichier` (`encodeURIComponent`) | 201 `{id, champ, nom, type, taille, deposeLe, deposePar}` | 400 (champ, vide, id), 401, 403, 404 `introuvable`, 413 `fichier-trop-gros`, 415 `type-fichier` (type annoncé ou premiers octets), 503 | 1.7 |
+| `GET /api/candidats/:id/fichiers` | oui | tous | — | 200 `[{id, champ, nom, type, taille, deposeLe, deposePar}]` | 400, 401, 403, 404 `introuvable` | 1.7 |
+| `GET /api/candidats/:id/fichiers/:fid` | oui | tous | `:fid` (`MOTIF_FICHIER`) | 200, le fichier, son type, `Content-Disposition: inline`, `X-Content-Type-Options: nosniff`, `no-store` | 400, 401, 403, 404 `fichier-introuvable` (aussi sous un autre candidat) | 1.7 |
+| `DELETE /api/candidats/:id/fichiers/:fid` | oui | recruteur, admin | — | 204 | 400, 401, 403, 404 `fichier-introuvable`, 503 | 1.7 |
 | `GET /api/options-disponibilite` | oui | tous | — | 200 `["…"]` (ajouts, ordre `rowid`) | 401, 403 | 1.2 |
 | `POST /api/options-disponibilite` | oui | recruteur, admin | `{libelle}` (1 à 60 caractères, espaces normalisés) | 201 ajouté, 200 doublon ou option de `DISPOS` ; corps : la liste | 400, 401, 403, 413, 415, 503 | 1.2 |
 | `* /api/*` (autre) | oui | tous | — | — | 404 « Route inconnue. » (après l'autorisation) | 1.2 |
@@ -62,7 +67,7 @@ Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISP
 | Équipe | `onRequest` | `SELECT … FROM equipe WHERE email = ?` à chaque requête ; absent ou `actif = 0` → 403 `hors-equipe` |
 | Rôle | `onRequest` | `lecture` : `GET` et `HEAD` seulement (Fastify crée `HEAD` pour chaque `GET`), sinon 403 `lecture-seule` |
 | Corps | analyseur | seul `application/json` (`getDefaultJsonParser("error","error")` : `__proto__`, `constructor.prototype` refusés) ; corps vide → `undefined` ; `bodyLimit` 1 048 576 |
-| Type | `preValidation` | PUT et POST sans `Content-Type: application/json` → 415 ; toute méthode avec un corps d'un autre type → 415 (aucun autre analyseur) |
+| Type | `preValidation` | PUT et POST sans `Content-Type: application/json` → 415, sauf `POST /api/candidats/:id/fichiers` (1.7), dont le contexte encapsulé a seul l'analyseur `parseAs: "buffer"` des trois types de fichier ; toute autre méthode avec un corps d'un autre type → 415 |
 | Cache | `onSend` | `Cache-Control: no-store` sauf route statique `/*` |
 | Erreurs | `setErrorHandler` | `ErreurHttp` tel quel ; `FST_ERR_CTP_BODY_TOO_LARGE` → 413, `FST_ERR_CTP_INVALID_JSON_BODY` → 400, `FST_ERR_CTP_INVALID_MEDIA_TYPE` → 415, `SQLITE_BUSY*` → 503, autre 4xx → « Requête invalide. », sinon 500 journalisé sans message (type, code, pile sans 1re ligne) |
 | Introuvable | `setNotFoundHandler` | 404 « Route inconnue. » |
@@ -75,6 +80,7 @@ Routeur : `maxParamLength` 200 (un `:id` plus long → 404 de route inconnue).
 | `candidats` | `id` (clé), `data` (JSON), `version` (≥ 1), `modifie_le`, `modifie_par` | aucune colonne tirée du JSON | PUT, DELETE |
 | `journal` | `id`, `candidat_id`, `action` (`creation`, `modification`, `suppression`), `etape` (une des 12 `ETAPES` ou `null`), `par`, `le` | jamais de contenu du dossier ; purgé à la suppression du dossier, une ligne `suppression` gardée | PUT, DELETE |
 | `options_disponibilite` | `libelle` (clé), `ajoute_le` | seulement les ajouts | POST |
+| `fichiers` (1.7, `user_version` 2) | `id` (`fic-` + 18 hexadécimaux), `candidat_id`, `champ` (`cv`/`portfolio`), `nom` (nettoyé, 1 à 120), `type` (pdf/png/jpeg), `taille`, `contenu` (BLOB), `depose_le`, `depose_par` | index sur `candidat_id` ; supprimés avec le dossier dans la transaction du `DELETE` ; jamais de colonne lue par le journal | POST, DELETE (fichier ou dossier) |
 
 | Réglage | Valeur | Raison |
 |---|---|---|
@@ -82,7 +88,7 @@ Routeur : `maxParamLength` 200 (un `:id` plus long → 404 de route inconnue).
 | `journal_mode` | `WAL` (hors transaction) | lectures non bloquées par l'écriture |
 | `busy_timeout` | 5000 ms (100 ms le temps d'un point de contrôle) | attendre un écrivain ; ne pas geler sur un lecteur |
 | `secure_delete` | `ON` | contenu effacé, pas seulement libéré |
-| `user_version` | 1 | 0 → schéma créé (sans `IF NOT EXISTS`) dans une transaction immédiate qui relit `user_version` ; > 1 → refus |
+| `user_version` | 2 (1.7) | 0 → schéma créé (sans `IF NOT EXISTS`) puis migrations ; 1 → `MIGRATIONS[2]` (table `fichiers`) ; dans une transaction immédiate qui relit `user_version` ; > 2 → refus |
 Écritures : toutes en `transaction(...).immediate()` (API et `equipe.js`). Après chaque écriture sur `candidats` : `wal_checkpoint(TRUNCATE)` ; s'il est gêné par un lecteur, avertissement « Point de contrôle incomplet » au journal du serveur.
 
 ## Configuration (`api/src/config.js`)
@@ -103,7 +109,7 @@ Variable vide = absente. Toute erreur → `ErreurConfig` → code 1 et une ligne
 Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue, hôte, adresse distante, statut, durée. Démarrage : `hote`, `port`, `base`, `user_version`, `node_env`, `dev_email`, `dev_static`. Avertissements : exposition (`HOST` non local), mode local, point de contrôle incomplet.
 
 ## Tests
-`cd api && npm test` (`node --test "test/*.test.js"`), 52 tests (~20 s), 7 fichiers dans `api/test/` : `config`, `base`, `api` (autorisation, erreurs, options), `candidats`, `serveur` et `equipe` (processus fils), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
+`cd api && npm test` (`node --test "test/*.test.js"`), 60 tests (~30 s), 8 fichiers dans `api/test/` (dont `fichiers` depuis la 1.7) : `config`, `base`, `api` (autorisation, erreurs, options), `candidats`, `serveur` et `equipe` (processus fils), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
 
 ## Consommateurs (v1.3)
 | Consommateur | Routes | Fichier |
@@ -111,6 +117,7 @@ Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue
 | Démarrage des pages | `GET /api/moi`, `GET /api/equipe`, `GET /api/options-disponibilite` | `assets/demarrage.js` |
 | Options ajoutées | `POST /api/options-disponibilite` | `assets/demarrage.js` (`STORE.sourceDispos`) |
 | Dossiers | `GET /api/candidats`, `GET`/`PUT`/`DELETE /api/candidats/:id` | `assets/adapter-serveur.js` |
+| Fichiers (1.7) | `POST`, `GET`, `DELETE /api/candidats/:id/fichiers…` | `assets/adapter-serveur.js` (`deposer`, `fichierUrl`, `retirerFichier`), utilisés par `candidatures/menu-candidat.js` |
 | Sonde de santé | `GET /api/sante` (dans le conteneur, pas au travers d'oauth2-proxy, où elle exige une session) | `docker/api.Dockerfile` |
 Les réponses d'oauth2-proxy (401 `{}`, 502 HTML, 302) sont classées par `AdaptateurServeur.lire` ([Mode serveur](mode-serveur.md)).
 
@@ -126,3 +133,4 @@ Les réponses d'oauth2-proxy (401 `{}`, 502 HTML, 302) sont classées par `Adapt
 |---|---|
 | 1.2 | Création : routes, autorisation, base, configuration, `equipe.js` |
 | 1.3 | Dans Docker derrière oauth2-proxy ; consommateurs (pages) ; aucun changement du code de l'API |
+| 1.7 | Fichiers des candidats : table `fichiers` (`user_version` 2), 4 routes, 10 Mo, PDF/PNG/JPG vérifiés aux premiers octets, noms nettoyés, effacés avec le dossier. Derrière un nginx existant (cas A), régler `client_max_body_size 10m` (défaut nginx : 1 Mo) ; oauth2-proxy et Caddy ne limitent pas la taille |

@@ -59,6 +59,8 @@ function emptyIdentite(){
   return {personne: "", job: "PM / PO", xp: null, disponibilite: "", dateDisponibilite: "", dateDebutProcess: "",
     provenances: [], provenanceDetail: "", recruteurs: [],
     email: "", telephone: "", adresse: "", linkedin: "", portfolio: "", cv: "", references: "", syntheseEC: "",
+    /* Fichiers déposés (1.7) : {id, nom, type, taille, le, par} ou null ; le contenu est gardé par l'API. cv et portfolio gardent le lien. */
+    fichiers: {cv: null, portfolio: null},
     prenom: "", nom: "", poste: "PM"};
 }
 /* Les questions de l'appel de découverte (base Notion, section « Appel de Découverte »).
