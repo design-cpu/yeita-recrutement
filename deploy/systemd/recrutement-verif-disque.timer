@@ -1,0 +1,10 @@
+# Vérification des disques toutes les heures ; rattrapée au démarrage si le serveur était éteint.
+[Unit]
+Description=Vérification horaire de l'occupation des disques (recrutement)
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -28,10 +28,14 @@ CLE="$1"
 for outil in docker git flock ss ip curl ssh-keygen useradd runuser getent stat; do
   command -v "$outil" >/dev/null 2>&1 || arret "« $outil » est absent. Installez-le vous-même ; ce script n'installe rien."
 done
+# Sauvegardes (deploy/backup.sh) : chiffrement et envoi hors du serveur.
+for outil in age rclone; do
+  command -v "$outil" >/dev/null 2>&1 || arret "« $outil » est absent. Installez-le vous-même (apt install age rclone) ; ce script n'installe rien."
+done
 docker compose version >/dev/null 2>&1 || arret "le plugin Docker Compose est absent (« docker compose version » échoue)."
 docker info >/dev/null 2>&1 || arret "Docker ne répond pas (« docker info » échoue)."
 getent group docker >/dev/null || arret "le groupe « docker » n'existe pas."
-info "Outils présents : docker, docker compose, git, flock, ss, ip, curl, ssh-keygen, useradd, runuser."
+info "Outils présents : docker, docker compose, git, flock, ss, ip, curl, ssh-keygen, useradd, runuser, age, rclone."
 
 # --- 2. Clé SSH ---
 case "$CLE" in *$'\n'*) arret "la clé doit tenir sur une seule ligne." ;; esac

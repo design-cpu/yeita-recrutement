@@ -1,0 +1,20 @@
+# Sauvegarde de la base des candidatures (deploy/backup.sh). Lancée par recrutement-backup.timer.
+# Installation et mise à jour : deploy/README.md, « Sauvegardes ».
+[Unit]
+Description=Sauvegarde chiffrée de la base des candidatures
+Wants=docker.service network-online.target
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+UMask=0077
+WorkingDirectory=/opt/recrutement
+ExecStart=/opt/recrutement/deploy/backup.sh
+# Après tout arrêt, même forcé : aucune copie en clair ne reste sur l'hôte. Rien n'est touché si une autre sauvegarde
+# (lancée à la main) tient le verrou : ce sont ses fichiers.
+ExecStopPost=-/usr/bin/flock -n /var/backups/recrutement/.backup.lock /usr/bin/find /var/backups/recrutement -maxdepth 1 -type f ( -name recrutement-*.db -o -name recrutement-*.db.age.tmp ) -delete
+TimeoutStartSec=1h
+# Le temps de nettoyer et de signaler l'échec (3 essais de 10 s) après SIGTERM.
+TimeoutStopSec=90

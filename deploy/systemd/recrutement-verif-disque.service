@@ -1,0 +1,16 @@
+# Occupation des disques (deploy/verif-disque.sh). Lancée par recrutement-verif-disque.timer.
+# Installation et mise à jour : deploy/README.md, « Sauvegardes ».
+[Unit]
+Description=Vérification de l'occupation des disques (recrutement)
+Wants=docker.service network-online.target
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+UMask=0077
+WorkingDirectory=/opt/recrutement
+ExecStart=/opt/recrutement/deploy/verif-disque.sh
+TimeoutStartSec=5min
+TimeoutStopSec=90
