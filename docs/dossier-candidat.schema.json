@@ -402,7 +402,7 @@
     },
     "notesLibres": {
       "type": "object",
-      "description": "Hors MVP : une note libre par étape (PARCOURS.FEATURES.notesLibres)",
+      "description": "Panneau Notes (1.6) : une note libre par étape, notesLibres[étape], non communiquée au candidat. Reprend à la lecture ec2.notesLibres et ec3.notes.",
       "additionalProperties": {
         "type": "string"
       }

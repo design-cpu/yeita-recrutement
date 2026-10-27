@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Ton parcours chez Yeita</title>
+<title>Les étapes de ton recrutement chez Yeita</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -131,6 +131,7 @@ body{background:#efecf3}
   .prep{font-size:8.6pt; gap:1mm; margin-top:1.5mm}
   .foot-s{padding:3mm 12mm 5mm; font-size:8.5pt}
 }
+.foot-s .rgpd{flex-basis:100%; order:3; margin:0; font-size:13px; line-height:1.4; color:#625b6f}
 </style>
 </head>
 <body>
@@ -143,7 +144,7 @@ body{background:#efecf3}
 
 <article class="sheet" aria-labelledby="t-h">
   <header class="head">
-    <div class="row"><span id="logo"></span><span>Ton parcours chez Yeita</span></div>
+    <div class="row"><span id="logo"></span><span>Les étapes de ton recrutement chez Yeita</span></div>
     <h1 id="t-h">Quatre rendez-vous au plus, et toujours une carte d'identité</h1>
     <p>On recrute peu, et on prend le temps de se connaître pour de vrai. Voici ce qui t'attend, avec qui, combien de temps, et ce que tu emportes à chaque étape.</p>
   </header>
@@ -233,7 +234,9 @@ body{background:#efecf3}
     </div>
   </div>
 
-  <footer class="foot-s"><span>Le parcours Yeita, version octobre 2026</span><span id="flogo"></span></footer>
+  <!-- Mention RGPD. Page publique : elle ne peut pas lire assets/config.js (réservé à l'équipe connectée).
+       La durée et le contact recopient config.rgpd ; tools/test-store.js vérifie qu'ils restent identiques. -->
+  <footer class="foot-s"><span>Le parcours Yeita, version octobre 2026</span><span id="flogo"></span><p class="rgpd" id="rgpd" data-duree-mois="6" data-contact="[adresse de contact RGPD à définir]">Yeita garde tes informations 6 mois après la fin de ton recrutement, pour le suivre et te recontacter. Pour les consulter, les corriger ou les faire effacer : [adresse de contact RGPD à définir].</p></footer>
 </article>
 
 <script src="assets/yeita.js"></script>

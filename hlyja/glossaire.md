@@ -1,6 +1,6 @@
 ---
 type: glossaire
-maj: 1.4
+maj: 1.6
 ---
 
 # Glossaire
@@ -59,6 +59,10 @@ Aussi : image, image front.
 La liste, tenue par l'API, de qui a créé, modifié ou supprimé quel dossier, quand, et à quelle étape. Il ne contient jamais le contenu des dossiers. À ne pas confondre avec le journal du serveur, qui note les demandes reçues.
 Aussi : journal des actions.
 
+## Menu ⋯
+Le bouton à trois points sur chaque candidat (carte du tableau, ligne de la liste, en-tête de son parcours). Il ouvre la fiche du candidat, son historique, copie le lien de sa candidature, ou la supprime après confirmation. Chacun s'ouvre dans une fenêtre, sans quitter la page.
+Aussi : menu trois points, plus d'actions.
+
 ## Mode bloqué
 Ce qui arrive quand le site de production ne peut pas joindre la base, ou que le compte n'est pas dans l'équipe : la page n'affiche ni n'enregistre aucune candidature, et le bandeau dit pourquoi. Elle ne bascule jamais en silence dans le navigateur.
 
@@ -84,6 +88,15 @@ Aussi : front.
 ## Page publique
 Une page accessible sans connexion, par exemple celle envoyée aux candidats. La liste est fermée : une nouvelle page est protégée tant qu'on ne l'y ajoute pas.
 Aussi : pages publiques, liste publique.
+
+## Palier suggéré
+En EC2, le palier visé est rempli d'office à partir du souhait de rémunération noté à l'appel, placé dans la grille de salaire. Il est marqué « suggéré » tant que personne ne l'a changé. Si le souhait ne donne pas de montant lisible, le palier reste vide.
+Aussi : suggéré.
+
+## Panneau Notes
+Le panneau qui s'ouvre à droite avec le bouton « Notes », à tout moment, sans perdre l'endroit où on était dans la page. On y écrit en vrac pendant l'entretien, une note par étape ; rien ne part chez le candidat. Les notes des autres étapes s'y relisent.
+Aussi : Notes, notes libres.
+
 
 ## Profil Compose
 Un interrupteur dans Docker Compose qui active des conteneurs optionnels. Le profil `caddy` allume le Caddy du projet (cas B) ; laissé vide, seul le site tourne (cas A).

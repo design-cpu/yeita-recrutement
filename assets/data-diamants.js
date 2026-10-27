@@ -9,7 +9,7 @@ var D = [
   {n:"03", name:"Solution",  jalon:"Go Dev",    goal:"Choisir une solution, l'organiser, la préparer.", hint:"Idéation, priorisation, co-construction avec le design et la tech", steps:["Décider","Co-construire","Valider"]},
   {n:"04", name:"Produit",   jalon:"Impact",    goal:"Délivrer la valeur et vérifier l'impact réel.", hint:"Backlog, delivery, rituels, mise en production", steps:["Produire","Standardiser","Impacter"]}
 ];
-var TIERS = ["Je fais","J'apporte de la valeur","Je diffuse et j'accompagne","Je transforme"];
+var TIERS = ["Je fais","J'apporte de l'impact","Je structure et j'accompagne","Je transforme"];
 var TIER_XP = ["1-3 ans","4-7 ans","8-10 ans","10 ans et +"];
 /* Ordre des 12 étapes : 01 Expliciter/Opérationnaliser/Prioriser · 02 Découvrir/Qualifier/Industrialiser
                          03 Décider/Co-construire/Valider · 04 Produire/Standardiser/Impacter */

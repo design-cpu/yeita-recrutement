@@ -94,6 +94,13 @@
 .palier p{font-size:14px; color:#3d3549}
 .foot-card{border-top:1px solid #e4dfe8; padding:14px 30px 16px; display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px 20px; font-size:14px; color:#625b6f}
 .foot-card .ylogo{color:#160f20}
+.foot-card .rgpd{flex-basis:100%; order:3; margin:0; font-size:12.5px; line-height:1.4; color:#625b6f; max-width:none}
+/* Dans une étape (Bilans, EC3) : la carte seule, en pleine largeur (carte.html?seule=1) */
+body.seule{background:transparent}
+body.seule .wrap{max-width:none; padding:0}
+body.seule .wrap > :not(.stage){display:none !important}
+body.seule .stage{margin:0}
+body.seule .card{max-width:none; box-shadow:none; border:1px solid #e4dfe8}
 @media (max-width:860px){
   .halves{grid-template-columns:1fr}
   .half.left{border-right:0; border-bottom:1px solid #e4dfe8}
@@ -194,6 +201,7 @@ details.interne > summary .ic{font-size:14px; font-weight:600; color:var(--muted
   .palier b{font-size:12pt}
   .palier p{font-size:8.5pt}
   .foot-card{padding:3mm 11mm 4mm; font-size:9pt}
+  .foot-card .rgpd{font-size:6.5pt}
 }
 </style>
 </head>
@@ -261,7 +269,7 @@ details.interne > summary .ic{font-size:14px; font-weight:600; color:var(--muted
         <section class="half left" id="left" aria-label="Ce qu'on a perçu de toi"></section>
         <section class="half right" id="right" aria-label="La suite de ta carte"></section>
       </div>
-      <footer class="foot-card"><span id="fline">Ni note, ni verdict sur toi : une lecture à un instant T, dont on a parlé ensemble au téléphone.</span><span id="flogo"></span></footer>
+      <footer class="foot-card"><span id="fline">Ni note, ni verdict sur toi : une lecture à un instant T, dont on a parlé ensemble au téléphone.</span><span id="flogo"></span><p class="rgpd" id="rgpd"></p></footer>
     </article>
   </div>
 
@@ -344,7 +352,7 @@ var DEMO = {schema: DOSSIER.SCHEMA, version: DOSSIER.VERSION, id: "__demo", demo
     exemples: ["", "Roadmap trimestrielle tenue face à deux sponsors.", "", "Douze interviews avant de toucher au parcours d'inscription.", "", "", "", "", "", "", "", ""],
     lecture: "Très solide sur le problème, à l'aise sur la solution. La stratégie reste à travailler : plus par manque d'occasion que d'envie.",
     aspirations: "Veut se former au cadrage stratégique. Préfère un binôme les premières semaines. Aucun frein sur le présentiel.",
-    suspens: {palier: "J'apporte de la valeur, Product Manager.", solides: "Problème et Solution : des exemples précis, chiffrés.",
+    suspens: {palier: "J'apporte de l'impact, Product Manager.", solides: "Problème et Solution : des exemples précis, chiffrés.",
       creux: "Stratégie : manque d'expérience plus que d'intérêt.", questions: "Son appétence réelle pour le cadrage : y aller, ou rester près de l'équipe ?",
       contestation: "Se voit plus avancée sur la stratégie que ce que la fiche #2 montre.", conditions: "Disponible sous un mois. Prétentions dans la fourchette du palier."}}),
   restitution: {etat: st.demoEtat || "ec2"}, meta: {}};
@@ -569,6 +577,10 @@ function migrateCodes(){
 /* Adresses : carte.html?id=<identifiant> (la carte du candidat), &imprimer=1 (lance l'impression ou le PDF),
    carte.html?exemple=ec1|ec2|embauche (l'exemple fictif dans un état ; les anciens #ec1, #ec2, #embauche marchent aussi), #interne. */
 var Q = new URLSearchParams(location.search), qId = Q.get("id"), hs = (location.hash||"").replace("#","");
+if(Q.get("seule") === "1") document.body.classList.add("seule");
+/* Mention RGPD, sur la carte et dans le PDF : durée et contact dans assets/config.js (rgpd). */
+(function(){ var R = (window.YEITA_CONFIG && YEITA_CONFIG.rgpd) || {}, m = R.dureeMois || 6;
+  document.getElementById("rgpd").textContent = UI.t("rgpd.mention", {duree: m + " mois", contact: R.contact || ""}); })();
 var ex = Q.get("exemple") || hs;
 var exState = ex === "ec1" || ex === "ec2" ? ex : (ex === "embauche" ? "hire" : null);
 if(exState) DEMO.restitution.etat = exState;

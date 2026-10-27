@@ -76,7 +76,7 @@ async def main():
         check("réponses de l'appel enregistrées, une par question", lena["appel"]["reponses"]["recherche"].startswith("Un rôle") and "synthèses" in lena["appel"]["reponses"]["ia"])
         check("disponibilité et lieu alimentent la fiche", lena["identite"]["disponibilite"] == "Immédiatement" and lena["identite"]["adresse"] == "Lyon" and await pg.locator("#i-disponibilite").input_value() == "Immédiatement" and await pg.locator("#i-adresse").input_value() == "Lyon")
         await pg.fill("#i-email", "pas-un-mail"); await pg.wait_for_timeout(200)
-        check("Infos : e-mail invalide signalé, rien d'écrasé", await pg.locator("#inf-err").is_visible() and (await by_name(pg, "GARNIER Léna"))["identite"]["email"] == "lena.garnier@example.com")
+        check("Infos : e-mail invalide signalé, rien d'écrasé", await pg.locator("#i-err").is_visible() and (await by_name(pg, "GARNIER Léna"))["identite"]["email"] == "lena.garnier@example.com")
         await pg.fill("#i-email", "lena.garnier@example.com"); await pg.wait_for_timeout(500)
 
         # One-pager, passage en EC1
@@ -91,10 +91,24 @@ async def main():
         check("passage à l'EC1 : la fiche en pleine page, focus sur le nom", await pg.locator("#sheet").is_visible() and await pg.evaluate("document.activeElement.id") == "c-name" and "Appel de découverte" in await pg.locator("#notice").inner_text())
         check("EC1 : pas de Non retenu, une seule action principale", await pg.locator("#refuse").count() == 0 and await pg.locator(".exits .btn.primary").count() == 1)
         await pg.click('#steps button[data-step="appel"]'); await pg.wait_for_url("**/candidat.html?id=*etape=appel"); await pg.wait_for_timeout(300)
-        check("étape passée : en lecture, Infos repliées en bas", await pg.locator("#q-recherche").is_disabled() and await pg.locator("#fiche-b").is_visible())
+        check("étape passée : en lecture, la fiche dans le menu ⋯", await pg.locator("#q-recherche").is_disabled() and await pg.locator("#c-side .morebtn").is_visible() and await pg.locator("#panel .infos").count() == 0)
+        check("fin de page : plus d'Historique, de Fiche ni de Supprimer dépliants (1.6)", await pg.locator("#hist, #fiche-b, #danger").count() == 0)
+
+        # Menu ⋯ : Historique et Fiche du candidat en fenêtre, au clavier
+        await pg.click("#c-side .morebtn"); await pg.wait_for_timeout(150)
+        items = await pg.locator(".mcmenu [role=menuitem]").all_inner_texts()
+        check("menu ⋯ : Fiche du candidat, Historique, Copier le lien, Supprimer ; focus sur la première entrée", items == ["Fiche du candidat", "Historique", "Copier le lien", "Supprimer"] and await pg.evaluate("document.activeElement.dataset.mc") == "fiche", str(items))
+        await pg.keyboard.press("ArrowDown"); await pg.keyboard.press("Enter"); await pg.wait_for_timeout(300)
+        check("Historique : fenêtre modale, entrée et passage à l'EC1", await pg.locator("dialog.mdlg[open] .histlist li").count() >= 2 and "Appel de découverte → EC1" in await pg.locator("dialog.mdlg").inner_text())
+        await pg.keyboard.press("Escape"); await pg.wait_for_timeout(200)
+        check("Échap ferme la fenêtre, le focus revient sur ⋯", await pg.locator("dialog.mdlg").count() == 0 and await pg.evaluate("document.activeElement.classList.contains('morebtn')"))
+        await pg.click("#c-side .morebtn"); await pg.click("[data-mc=fiche]"); await pg.wait_for_timeout(300)
+        await pg.fill("#mf-telephone", "01 99 00 66 66"); await pg.wait_for_timeout(700)
+        await pg.click(".mdlg-a [data-mc-close]"); await pg.wait_for_timeout(400)
+        check("Fiche du candidat en fenêtre : modifiée, enregistrée", (await by_name(pg, "GARNIER Léna"))["identite"]["telephone"] == "01 99 00 66 66" and await pg.locator("dialog.mdlg").count() == 0)
 
         # Copier le lien d'une étape, et l'ouvrir
-        await pg.click("#c-side [data-copy]"); await pg.wait_for_timeout(200)
+        await pg.click("#c-side .morebtn"); await pg.click("[data-mc=lien]"); await pg.wait_for_timeout(200)
         link = await pg.evaluate("navigator.clipboard.readText()")
         check("Copier le lien : adresse unique, sans le nom", "candidat.html?id=cand-" in link and "etape=appel" in link and "GARNIER" not in link and "L%C3%A9na" not in link, link)
         p2 = await ctx.new_page(); await p2.goto(link, wait_until="networkidle"); await p2.wait_for_timeout(300)
@@ -105,7 +119,7 @@ async def main():
         await pg.goto(C, wait_until="networkidle"); await pg.wait_for_timeout(300)
         card = pg.locator('.kcol:has(h2#col-ec1) .kc')
         txt = await card.inner_text()
-        check("carte : Nom, Job · XP, Disponibilité, État, Recruteurs", "GARNIER Léna" in txt and "PM / PO · 4 ans" in txt and "Immédiatement" in txt and "À planifier" in txt and await card.locator(".ini span[aria-hidden]").count() == 2)
+        check("carte : Nom, Job · XP, Disponibilité, État, Recruteurs", "GARNIER Léna" in txt and "PM / PO · 4 ans" in txt and "Immédiatement" in txt and "À planifier" in txt and "Thélo, Andrea" in txt)
         await card.locator(".etat").click(); await pg.wait_for_timeout(150)
         check("menu de l'État : 7 états, focus sur l'état actuel", await pg.locator(".menu [role=menuitemradio]").count() == 7 and await pg.evaluate("document.activeElement.getAttribute('aria-checked')") == "true")
         await pg.keyboard.press("ArrowDown"); await pg.keyboard.press("Enter"); await pg.wait_for_timeout(300)
@@ -115,6 +129,14 @@ async def main():
         box = await card.bounding_box()
         await pg.mouse.move(box["x"] + 60, box["y"] + 60); await pg.mouse.down(); await pg.mouse.move(box["x"] + 400, box["y"] + 80, steps=8); await pg.mouse.up(); await pg.wait_for_timeout(200)
         check("glisser une carte : bloqué, avec une explication", await pg.locator("#floattip").is_visible() and "actions de son étape" in await pg.locator("#floattip").inner_text())
+
+        await card.locator(".morebtn").click(); await pg.wait_for_timeout(150)
+        check("carte : menu ⋯ (4 entrées)", await pg.locator(".mcmenu [role=menuitem]").count() == 4)
+        await pg.keyboard.press("Escape"); await pg.wait_for_timeout(100)
+        check("menu ⋯ : Échap le ferme, focus sur ⋯", await pg.locator(".mcmenu").count() == 0 and await pg.evaluate("document.activeElement.classList.contains('morebtn')"))
+        await card.click(position={"x": 30, "y": 62}); await pg.wait_for_load_state("networkidle")
+        check("toute la carte ouvre la candidature", "id=" + lena["id"] in pg.url, pg.url)
+        await pg.goto(C, wait_until="networkidle"); await pg.wait_for_timeout(300)
 
         # Enregistrer et revenir à la liste
         await pg.click("#add-open"); await pg.fill("#a-personne", "Noé Faure"); await pg.click("#add-form button[value=liste]"); await pg.wait_for_timeout(400)
@@ -150,7 +172,9 @@ async def main():
         # Suppression
         noe = await by_name(pg, "Noé Faure")
         await pg.goto(C + "candidat.html?id=" + noe["id"], wait_until="networkidle"); await pg.wait_for_timeout(300)
-        await pg.click("#danger > summary"); await pg.click("#del"); await pg.click("#del-yes"); await pg.wait_for_load_state("networkidle"); await pg.wait_for_timeout(300)
+        await pg.click("#c-side .morebtn"); await pg.click("[data-mc=supprimer]"); await pg.wait_for_timeout(200)
+        check("Supprimer : confirmation en fenêtre, focus sur Garder", "Supprimer Noé Faure ?" in await pg.locator("dialog.mdlg").inner_text() and await pg.evaluate("document.activeElement.textContent") == "Garder")
+        await pg.click("[data-mc-del]"); await pg.wait_for_url("**/candidatures/index.html"); await pg.wait_for_load_state("networkidle"); await pg.wait_for_timeout(500)
         check("suppression d'un candidat", len([c for c in await cands(pg) if c["candidat"]["nom"] == "Noé Faure"]) == 0)
 
         # Téléphone

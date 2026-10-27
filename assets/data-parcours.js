@@ -29,7 +29,7 @@ var YM = {
 };
 
 /* Hors MVP : emplacements prêts, désactivés. */
-var FEATURES = {notesLibres: false, reeditionProfil: false, sourcing: false};
+var FEATURES = {notesLibres: true, reeditionProfil: false, sourcing: false};
 
 function etape(id){
   var e = ETAPES.concat(SORTIES).filter(function(x){ return x.id === id; })[0];

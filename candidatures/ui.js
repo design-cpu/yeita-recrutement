@@ -46,11 +46,12 @@ function initiales(nom){
   var m = D.decoupe(nom); var a = (m.prenom || "").charAt(0), b = (m.nom || "").charAt(0);
   return ((a + b) || String(nom || "?").slice(0, 2)).toUpperCase();
 }
+/* Les recruteurs, par leur prénom : « Pauline, Andrea ». */
+function prenom(n){ var m = D.decoupe(n); return m.prenom || String(n || ""); }
 function recruteursHTML(list){
   list = list || [];
   if(!list.length) return '<span class="ini none">' + E(t("tableau.recruteursVide")) + '</span>';
-  return '<span class="ini" title="' + E(list.join(", ")) + '">' + list.map(function(n){ return '<span aria-hidden="true">' + E(initiales(n)) + '</span>'; }).join("")
-    + '<span class="sr-only">' + E(t("tableau.colonnes.recruteurs") + " : " + list.join(", ")) + '</span></span>';
+  return '<span class="ini" title="' + E(list.join(", ")) + '"><span class="sr-only">' + E(t("tableau.colonnes.recruteurs")) + ' : </span>' + E(list.map(prenom).join(", ")) + '</span>';
 }
 function etatHTML(c, interactive){
   var e = c.etat || "a-planifier";
@@ -187,6 +188,6 @@ function init(opts){
 
 window.UI = {t: t, etapeLabel: etapeLabel, etatLabel: etatLabel, fmtDay: fmtDay, fmtWhen: fmtWhen, heure: heure,
   urlCandidat: urlCandidat, absolu: absolu, param: param, copier: copier, lienHTML: lienHTML,
-  jobXp: jobXp, initiales: initiales, recruteursHTML: recruteursHTML, etatHTML: etatHTML, tip: tip, floatTip: floatTip,
+  jobXp: jobXp, initiales: initiales, prenom: prenom, recruteursHTML: recruteursHTML, etatHTML: etatHTML, tip: tip, floatTip: floatTip,
   tagsHTML: tagsHTML, tagsValues: tagsValues, tagsAdd: tagsAdd, dispoHTML: dispoHTML, init: init, closeMenu: closeMenu};
 })();

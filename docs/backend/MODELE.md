@@ -113,12 +113,12 @@ Les règles de passage sont dans `assets/store.js` :
 | `ec1`, `ec2` | objet ou `null` | la lecture des fiches EC1 et EC2 (voir `docs/dossier-candidat.schema.json`). `ec1.match.source` vaut `saisie`, `decompte`, `jeu-en-ligne` ou `externe` ; `ec2.notesLibres` (texte) est nouveau en v3 |
 | `fiches` | objet | brouillons d'écran : `ec1`, `ec2` (pour rouvrir les fiches telles qu'on les a laissées) et `decompte` (la feuille de décompte du candidat : `answers`, `notes`, `tb`, `f`, `fmt`) |
 | `bilans.ec1`, `bilans.ec2` | objet ou `null` | `faitLe`, `par`, `mode` (`appel` \| `asynchrone`), `issue` (`continuer`, `retour-a-faire`, `non-retenu`) |
-| `ec3` | objet | `notes`, `par`, `le` |
+| `ec3` | objet | `notes`, `par`, `le`. Depuis la 1.6, plus saisis : les notes de l'EC3 vivent dans `notesLibres.ec3` (ancien texte repris à la lecture, le champ reste) |
 | `decision` | objet | `choix` (`proposition`, `go-mission`, `vivier`, `non-retenu` ou `null`), `commentaire` (obligatoire pour décider), `le`, `par`, `appelFaitLe` |
 | `arrivee` | objet | `confirmeeLe`, `par` |
 | `restitution.etat` | texte | état de la carte d'identité : `ec1`, `ec2`, `hire` |
 | `historique` | liste | `{type, de, vers, le, par, motif, etatAvant, annulation}`. `type` vaut `passage`, `etat`, `decision` ou `refus`. `de` est `null` à l'entrée. Une annulation ajoute une ligne, elle n'efface rien |
-| `notesLibres` | objet | hors MVP, désactivé |
+| `notesLibres` | objet | le panneau Notes (1.6) : une note libre par étape, `notesLibres[étape]` (texte), non communiquée au candidat. À la lecture, `ec2.notesLibres` et `ec3.notes` y sont recopiés une fois si l'étape n'a pas encore de note ; les anciens champs restent |
 | `meta` | objet | `creeLe`, `modifieLe`, `demo` (exemple fictif), `origine` (`module` \| `fiche`), `migreV3Le` |
 
 ## Le résultat de Yeita Match : le point d'entrée pour la session en ligne
@@ -131,6 +131,13 @@ FICHE_EC1.setYeitaMatch({dominante: "explorateur", seconde: "collectif", source:
 
 - **Aujourd'hui** : la saisie à la main, l'import du fichier JSON exporté par le jeu, et la feuille de décompte du candidat. La feuille dépose `{candId, dominant, second, fmt, obs, date}` sous la clé `yeita-match-resultat`, puis ouvre `ec1.html?id=<candId>` ; la fiche ne reprend que le résultat de son propre candidat.
 - **Demain** (session Yeita Match liée au candidat) : le serveur écrit `ec1.match` et `fiches.ec1` (`dom`, `sec`, `source`), ou la page appelle `FICHE_EC1.setYeitaMatch` quand la session se termine. Rien d'autre à changer dans la fiche.
+
+## Version 1.6 (sans changement de version du dossier, rien n'est supprimé)
+- `notesLibres` est activé (`PARCOURS.FEATURES.notesLibres`) : voir le tableau plus haut. La reprise des anciennes notes se fait dans `DOSSIER.upgrade` (`versNotes`), à chaque lecture, et ne réécrit jamais une note existante, même vide.
+- `fiches.ec2.ts` (booléen) : le palier de la fiche EC2 a été suggéré depuis `appel.reponses.remuneration` (`STORE.palierSuggere`, fourchettes dans `config.paliersSalaire`) et pas encore changé à la main. `fiches.ec2.t` et `ec2.palier` peuvent être `null` quand le souhait est illisible (la carte prend alors le palier 2 pour son radar).
+- `ec2.role` suit le Job de la fiche (`identite.poste`), en lecture seule dans la fiche EC2 ; `ec2.lecture` n'est plus écrit (le « point d'appui » a disparu).
+- `decision.appelFaitLe` se coche désormais à l'étape Proposition ; le champ ne change pas.
+- Pas de changement côté API ni SQLite : le dossier reste un JSON opaque pour `candidats.data`.
 
 ## Migration v2 → v3 (faite à la lecture, rien n'est supprimé)
 | v2 | v3 |

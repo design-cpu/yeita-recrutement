@@ -197,6 +197,52 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
 .panel.bias p b{color:var(--ink)}
 .never{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; padding:0; list-style:none}
 .never li{font-size:14px; border-radius:999px; padding:4px 12px; background:var(--surface-2); color:var(--ink-2); text-decoration:line-through; text-decoration-color:var(--stop); text-decoration-thickness:2px}
+.vcols{display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:12px}
+.vcol{border-radius:12px; background:var(--vt); padding:14px 16px; display:grid; gap:10px; align-content:start}
+.vcol .vn{display:flex; align-items:center; gap:7px; font-weight:700; color:var(--vc); font-size:16.5px}
+.vcol ul{margin:0; padding:0; list-style:none; display:grid; gap:9px}
+.vcol li b{display:block; font-size:15px}
+.vcol li span{font-size:14px; color:var(--ink-2)}
+.vcol li small{display:block; font-family:var(--f-mono); font-size:12px; color:var(--ink-2); margin-top:2px}
+.shapes{display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:12px}
+.shape{border-radius:12px; background:var(--surface-2); padding:14px 16px; display:grid; gap:6px}
+.shape .ex{font-style:italic; color:var(--ink)}
+.shape p{font-size:14.5px; color:var(--ink-2)}
+.rules{margin:0; padding-left:20px; display:grid; gap:8px; color:var(--ink-2)}
+.rules b{color:var(--ink)}
+.axes{display:grid; gap:12px}
+.axe{border:1px solid var(--line); border-radius:12px; padding:14px 16px; display:grid; gap:8px}
+.axe .cols{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+@media (max-width:640px){ .axe .cols{grid-template-columns:1fr} }
+.axe ul{margin:0; padding-left:18px; font-size:14.5px; color:var(--ink-2); display:grid; gap:3px}
+.axe .g b{color:var(--go)} .axe .r b{color:var(--stop)}
+.elim{border-radius:12px; background:var(--stop-tint); padding:14px 16px}
+.elim b{color:var(--stop)}
+.elim ul{margin:6px 0 0; padding-left:18px; columns:2; column-gap:24px; font-size:14.5px}
+@media (max-width:640px){ .elim ul{columns:1} }
+.pitch{border-left:4px solid var(--yellow); padding:6px 0 6px 16px; font-size:18px; font-weight:500; max-width:64ch}
+/* Repères des fiches, rangés dans le guide de l'étape (1.6) */
+.reperes{display:grid; gap:10px; margin-top:22px}
+.reperes > h4{font-size:17px}
+.reperes details.other .in{gap:14px}
+.trame{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:10px; margin-top:4px; padding:0; list-style:none; counter-reset:t}
+.trame li{counter-increment:t; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px; display:grid; gap:4px}
+.trame li b{display:flex; justify-content:space-between; gap:8px}
+.trame li b::before{content:counter(t); font-family:var(--f-mono); font-weight:500; color:var(--muted); margin-right:6px}
+.trame li b span{font-family:var(--f-mono); font-weight:400; font-size:13px; color:var(--muted); margin-left:auto}
+.trame li p{font-size:14.5px; color:var(--ink-2)}
+.levels{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:14.5px; color:var(--ink-2)}
+.levels b{color:var(--ink)}
+.tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:var(--surface)}
+.matrix table{border-collapse:collapse; width:100%; min-width:760px; font-size:14px}
+.matrix th, .matrix td{padding:9px 7px; text-align:center; border-bottom:1px solid var(--line)}
+.matrix thead th{font-size:13px; font-weight:650; color:var(--ink-2); background:var(--surface-2)}
+.matrix th.k, .matrix td.k{text-align:left}
+.matrix td.k{font-weight:650; white-space:nowrap}
+.matrix td.k small{display:block; font-family:var(--f-mono); font-weight:400; color:var(--muted)}
+.matrix .first{border-left:2px solid var(--line-strong)}
+.cell{display:inline-grid; place-items:center; width:30px; height:28px; border-radius:7px; font-family:var(--f-mono); background:var(--surface-2); color:var(--ink-2)}
+.cell.l3, .cell.l4{background:var(--ink); color:var(--paper)}
 </style>
 
 <div id="live" aria-live="polite"></div>
@@ -368,7 +414,7 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
                         <dt>Dominante, seconde</dt><dd>Les deux valeurs les plus choisies pendant la partie de Yeita Match, dans cet ordre. C'est tout le résultat du jeu : pas de nom de profil.</dd>
             <dt>Lecture partielle</dt><dd>Quand on n'a pas assez vu pour lire une dominante. On le dit, plutôt que forcer une lecture.</dd>
             <dt>Diamant, étape</dt><dd>Quatre diamants (Stratégie, Problème, Solution, Produit), trois étapes chacun : douze étapes notées de 0 à 4.</dd>
-            <dt>Palier</dt><dd>Je fais, J'apporte de la valeur, Je diffuse et j'accompagne, Je transforme. Il porte l'attendu et la grille de salaire.</dd>
+            <dt>Palier</dt><dd>Je fais, J'apporte de l'impact, Je structure et j'accompagne, Je transforme. Il porte l'attendu et la grille de salaire.</dd>
             <dt>Report vers la carte</dt><dd>Dans Candidatures, il est automatique : les fiches EC1 et EC2 remplissent la carte d'identité du candidat à chaque saisie.</dd>
             <dt>Code EC1, code EC2</dt><dd>L'ancien moyen de passer une fiche d'un ordinateur à l'autre. Il disparaît avec le stockage partagé de Candidatures.</dd>
             <dt>Trous dans la raquette</dt><dd>Ce qu'un entretien n'a pas pu voir, transmis au suivant. Après l'EC1 : les questions à creuser en EC2, en tête de la fiche #2. Après l'EC2 : les points en suspens pour l'EC3, en tête de la partie interne de la carte.</dd>
@@ -403,6 +449,7 @@ dd{margin:2px 0 0; color:var(--ink-2); font-size:15px}
 
 <script src="assets/yeita.js"></script>
 <script src="assets/data-yeita-match.js"></script>
+<script src="assets/data-diamants.js"></script>
 <script>
 (function(){
 "use strict";
@@ -672,6 +719,44 @@ function renderSteps(){
       + '<span class="num">'+st.n+'</span><span>'+E(st.short)+'</span></button></li>';
   }).join("");
 }
+/* ---------- Repères des fiches EC1 et EC2, rangés ici depuis la 1.6 : les fiches ne gardent que ce qu'on remplit ---------- */
+var P = function(id, s){ return YEITA.picto(id, s); }, Y = YEITA_MATCH;
+function vcolsHTML(){ return Y.VALUES.map(function(v){
+  return '<div class="vcol" data-v="'+v.id+'"><span class="vn">'+P(v.id,18)+E(v.label)+'</span><ul>'
+    + v.behaviors.map(function(b){ return '<li><b>'+E(b.label)+'</b><span>'+E(b.description)+'</span><small>'+E(b.softSkills)+'</small></li>'; }).join("") + '</ul></div>';
+}).join(""); }
+var AXES = [
+  {t:"Cohérence du parcours, du CV et de la posture",
+   g:["Pour chaque expérience : le contexte, l'équipe, son rôle exact, un résultat concret","Ce qu'elle raconte correspond au CV","Des projets longs, 1,5 an en moyenne","Un pitch clair et structuré, des exemples chiffrés","Un anglais suffisant, une posture qui inspire confiance sans ego"],
+   r:["Parle au « on » sans distinguer sa contribution","Aucun résultat à citer, pas d'autonomie","Un rôle flou : PO, BA ou chef de projet ?","Des raisons de départ floues","Des projets qui s'enchaînent très vite"]},
+  {t:"Adéquation à nos missions et à nos rôles",
+   g:["Son rôle et son niveau correspondent aux missions qu'on a","Ses secteurs et contextes sont recherchés par nos clients"],
+   r:["Décalage entre le niveau annoncé et le niveau démontré","N'a jamais travaillé directement avec une équipe de dev","Pas de méthode connue ou appliquée, décide à l'instinct","Premier poste de PM ou PrD sans mentor ni formation"]},
+  {t:"Souhaits de projets",
+   g:["Ouverte à plusieurs secteurs et contextes, grand compte comme scale-up","Des no-go peu nombreux et argumentés"],
+   r:["N'accepte qu'un seul secteur ou un seul type de rôle","Veut uniquement du full remote : le présentiel projet est à trois jours par semaine","Pas de pied-à-terre à Paris"]}
+];
+function axesHTML(){ return AXES.map(function(a, i){
+  return '<div class="axe"><b>Axe '+(i+1)+' · '+E(a.t)+'</b><div class="cols"><div class="g"><b>Green flags</b><ul>'+a.g.map(function(x){ return '<li>'+E(x)+'</li>'; }).join("")+'</ul></div>'
+    + '<div class="r"><b>Red flags</b><ul>'+a.r.map(function(x){ return '<li>'+E(x)+'</li>'; }).join("")+'</ul></div></div></div>';
+}).join(""); }
+function elimHTML(){ return ["Prétentions hors grille, sans marge de discussion","Pas de pied-à-terre à Paris","Cherche un statut freelance","N'est pas intéressé par Yeita","Ego, individualisme","Cherche un salaire, pas un projet","Ne parle pas anglais","Parle plus de process que d'impact","Rejette la faute sur les autres","Des réponses théoriques, sans exemple concret","Rigidité face au changement"].map(function(x){ return '<li>'+E(x)+'</li>'; }).join(""); }
+function matrixHTML(){
+  var Dm = DIAMANTS, names = Dm.stepNames();
+  var m = '<table><thead><tr><th class="k" scope="col">Palier</th>'+names.map(function(n,i){ return '<th scope="col"'+(i%3===0?' class="first"':'')+'>'+E(n)+'</th>'; }).join("")+'</tr></thead><tbody>';
+  Dm.TIER_EXP.forEach(function(row,t){ m += '<tr><td class="k">'+E(Dm.TIERS[t])+'<small>'+Dm.TIER_XP[t]+'</small></td>'+row.map(function(x,i){ return '<td'+(i%3===0?' class="first"':'')+'><span class="cell l'+x+'">'+x+'</span></td>'; }).join("")+'</tr>'; });
+  return m + '</tbody></table>';
+}
+function rep(titre, corps){ return '<details class="other"><summary>'+E(titre)+'</summary><div class="in">'+corps+'</div></details>'; }
+var REPERES = {
+  ec1: function(){ return rep("Les quatre valeurs et leurs douze comportements", '<p class="note">Les onze soft skills de référence, réécrites dans la langue de Yeita, plus une ligne sur l\'apprentissage de soi. Ce sont les comportements derrière les cartes de Yeita Match.</p>\n      ' + '<div class="vcols">'+vcolsHTML()+'</div>')
+    + rep("Comment on écrit, surtout quand c'est non", '<div class="shapes">\n        <div class="shape"><b>Le fait</b><p class="ex">« Sur Jouer collectif, voici ce qu\'on a vu : tes trois exemples portaient sur des décisions prises seul. »</p><p>Ce qui s\'est passé pendant l\'heure. Un fait se conteste avec un contre-exemple.</p></div>\n        <div class="shape"><b>Le manque</b><p class="ex">« Ce qu\'on n\'a pas vu, et qu\'on cherche ici : un moment où tu as changé d\'avis parce qu\'on t\'a contredit. »</p><p>Le vide nommé, pas déguisé en défaut. Une carte à moitié vide est une carte honnête.</p></div>\n        <div class="shape"><b>La distance</b><p class="ex">« Chez Yeita, on attend que tu dises les choses sans emballage ; aujourd\'hui tu es ailleurs. »</p><p>L\'écart se formule par rapport à Yeita, jamais par rapport à une norme.</p></div>\n      </div>\n      <ol class="rules">\n        <li><b>On écrit ce qu\'on a vu, jamais ce qu\'on en conclut.</b> « Aucun exemple où tu as changé d\'avis » s\'écrit. « Tu es rigide » ne s\'écrit pas.</li>\n        <li><b>Quand le signal est trop pauvre, on ne tranche pas.</b> On choisit « Lecture partielle » et on dit pourquoi.</li>\n        <li><b>Rien n\'est écrit qui n\'ait d\'abord été dit.</b> Le débrief téléphonique passe toujours avant l\'envoi.</li>\n        <li><b>Un signal franchement négatif : un seul, cité, factuel.</b></li>\n        <li><b>Rien qui ne soit pas relié au travail.</b> Ni l\'allure, ni l\'accent, ni la vie personnelle, ni l\'âge, ni l\'origine, ni la santé.</li>\n        <li><b>Le non se dit d\'abord au téléphone.</b> La carte le reprend ensuite par mail, avec ses raisons : « pas aujourd\'hui, parce que… ».</li>\n        <li><b>Quatre yeux avant envoi.</b> Est-ce que je pourrais dire ça à cette personne, calmement, en la regardant ?</li>\n      </ol>\n      <p class="pitch">« On ne note pas des gens, on mesure une distance entre deux endroits. On écrit ce qu\'on a vu, jamais ce qu\'on en conclut. Ce qu\'on n\'a pas vu est écrit comme tel. Et rien n\'est écrit qui n\'ait d\'abord été dit au téléphone. »</p>')
+    + rep("L'employabilité : trois axes, une conclusion", '<p class="note">Lue de manière induite tout au long de l\'heure. On note l\'exercice, pas la personne : l\'aisance en entretien n\'est pas la compétence en mission. Quand la lecture est basse, on va chercher la preuve ailleurs : portfolio, références, EC2 avec un pair.</p>\n      @@AXES@@\n      <div class="elim"><b>Critères éliminatoires</b>@@ELIM@@</div>\n      <p><a href="https://app.notion.com/p/Employabilit-3e64bfab7816801592f4cfdf068968b6" target="_blank" rel="noopener">La fiche Employabilité complète, dans Notion</a></p>'.replace("@@AXES@@", '<div class="axes">'+axesHTML()+'</div>').replace("@@ELIM@@", '<ul>'+elimHTML()+'</ul>')); },
+  ec2: function(){ return rep("La trame, 1 h 30", '<p class="note">Le même ordre à chaque fois. On ne note que pendant les mises en perspective.</p>\n    <ol class="trame">\n      <li><b>Accueil<span>5 min</span></b><p>Se présenter, Yeita en deux phrases, le cadre de l\'heure et demie. Pas de pitch.</p></li>\n      <li><b>Pour démarrer<span>15 min</span></b><p>Son objectif, son contexte, les décisions clés récentes. Sert à choisir le premier use case.</p></li>\n      <li><b>Mises en perspective<span>50 min</span></b><p>Les quatre use cases, un par diamant. Douze notes, une toutes les quatre minutes.</p></li>\n      <li><b>Aspirations<span>15 min</span></b><p>Formations en tête, autonomie ou accompagnement, freins à rejoindre Yeita. Non noté.</p></li>\n    </ol>')
+    + rep("Le barème : on note l'étape, pas le critère", '<p class="note">Les critères rangés sous chaque étape servent à placer la note. Ils resservent au bilan annuel. Pas de note sans fait rapporté.</p><p class="levels"><span><b>Junior, 0 à 1</b> : connaît, a vu faire, a été accompagné.</span><span><b>Intermédiaire, 2 à 3</b> : a fait, commence à décider seul.</span><span><b>Senior, 3 à 4</b> : décide, adapte, fait monter les autres.</span></p><p class="note">Une étape non abordée compte 0 et tire la moyenne vers le bas : une fiche partielle doit se voir.</p>')
+    + rep("L'attendu Yeita, palier par palier", '<p class="note">L\'attendu se répartit étape par étape. Le plancher est à 1 et jamais à 0 : un 0 veut dire « pas vu », pas « pas attendu ». Le pointillé du radar est cet attendu : une référence de discussion, pas un seuil d\'admission. Ces quarante-huit valeurs sont une hypothèse de travail, à arbitrer avec la grille de salaire 2026.</p><div class="tablewrap matrix">'+matrixHTML()+'</div>'); }
+};
+function reperesHTML(id){ return REPERES[id] ? '<section class="reperes" aria-label="Repères de la fiche"><h4>Repères de la fiche</h4>'+REPERES[id]()+'</section>' : ''; }
 function renderStep(){
   var st = STEPS[curStep], t = TYPE[st.type], prev = STEPS[curStep-1], next = STEPS[curStep+1];
   var panel = document.getElementById("steppanel");
@@ -685,6 +770,7 @@ function renderStep(){
     + '<section class="bloc pendant"><h4><span class="bi" aria-hidden="true"></span>Pendant</h4>'+pendant(st.pendant)+'</section>'
     + '<section class="bloc sort"><h4><span class="bi" aria-hidden="true"></span>Ce qui sort</h4>'+sortie(st.sort)+'</section>'
     + '</div>'
+    + reperesHTML(st.id)
     + '<nav class="s-nav" aria-label="Étape précédente ou suivante">'
     + (prev ? '<button type="button" class="btn quiet small" data-go="'+(curStep-1)+'">Étape '+prev.n+' : '+E(prev.short)+'</button>' : '<span></span>')
     + (next ? '<button type="button" class="btn small" data-go="'+(curStep+1)+'">Étape '+next.n+' : '+E(next.short)+'</button>' : '<span></span>')
