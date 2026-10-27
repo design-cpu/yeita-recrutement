@@ -39,7 +39,7 @@ Commits : `180b3aa` feat(finitions-mode-serveur): tâche 02 – pas d'exemples f
 | CA3, CA4 | ok (5 vérifications e2e) |
 | `node tools/test-store.js` | « TOUT OK » |
 | `node tools/test-serveur.js` | « TOUT OK (87 vérifications) » |
-| `cd api && npm test` | non relancé : aucun fichier de `api/` touché (référence V6 : 52/52) |
+| `cd api && npm test` | « ℹ tests 52 / ℹ pass 52 / ℹ fail 0 » (relancé après la revue de code, constat 3) |
 | `python3 tools/e2e-candidatures.py` | « ALL OK » |
 | `python3 tools/e2e-parcours.py` | « ALL OK » |
 | `python3 tools/e2e-liens.py` | « ALL OK » |
