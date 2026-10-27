@@ -7,13 +7,13 @@ branche: version/1.4-finitions-mode-serveur
 base: main
 mode: standard
 type_version: livrable
-statut: en-cours
+statut: terminee
 date: 2026-10-27
 ---
 
 # Version 1.4 — Textes justes en mode serveur, exemples hors de la base partagée, ancien modèle retiré
 
-> **Statut** : en cours · **Branche** : `version/1.4-finitions-mode-serveur`
+> **Statut** : terminée · **Branche** : `version/1.4-finitions-mode-serveur`
 > Objectif : en mode serveur, le bandeau jaune dit où sont vraiment les candidatures et le tableau ne propose plus de charger des exemples fictifs dans la base partagée ; l'ancien modèle de données v2 est supprimé.
 
 ## Objectif
