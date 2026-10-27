@@ -2,7 +2,9 @@
 # Installation et mise à jour : deploy/README.md, « Sauvegardes ».
 [Unit]
 Description=Sauvegarde chiffrée de la base des candidatures
-Wants=docker.service network-online.target
+# Après Docker s'il démarre, sans jamais le démarrer : un Docker arrêté pour une maintenance du serveur partagé
+# n'est pas relancé par une sauvegarde ou une vérification (qui échoue alors et le signale).
+Wants=network-online.target
 After=docker.service network-online.target
 
 [Service]

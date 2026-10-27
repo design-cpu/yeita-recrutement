@@ -4,7 +4,7 @@ page: deploiement-ovh
 titre: Déployer sur OVH et tester avec Google, pas à pas
 maj: 1.7
 commit: 26c1d9f
-sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js, deploy/README.md, deploy/backup.sh, deploy/verif-disque.sh
+sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js, deploy/README.md, deploy/backup.sh, deploy/verif-disque.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, deploy/RESTAURER.md
 date: 2026-10-27
 ---
 
@@ -17,7 +17,7 @@ date: 2026-10-27
 |---|---|---|---|
 | 1 | espace client OVH | entrée **A** `recrutement` → `51.75.252.121` ; supprimer les entrées `recrutement` existantes ; pas d'AAAA | `dig +short recrutement.yeita.fr` = IP |
 | 2 | serveur, `ubuntu` | `apt install docker.io docker-compose-v2 certbot python3-certbot-nginx tmux age rclone` (v1.7 : `age` et `rclone`, exigés par `prepare-serveur.sh` à l'étape 3) (paquets Ubuntu, vérifiés par `apt-cache policy` avant) | `docker version`, `docker compose version`, `certbot --version` ; pm2 et nginx toujours actifs |
-| 3 | poste + serveur, `ubuntu` | `pbcopy` de la clé ; `read CLE` sur une ligne seule (un `read` dans un collage multiligne lirait la ligne suivante) ; clone dans `mktemp -d` ; `sudo prepare-serveur.sh "$CLE"` | `Serveur prêt.` (prepare-serveur.sh l. 163) ; `ssh deploy@… whoami` → `deploy` |
+| 3 | poste + serveur, `ubuntu` | `pbcopy` de la clé ; `read CLE` sur une ligne seule (un `read` dans un collage multiligne lirait la ligne suivante) ; clone dans `mktemp -d` ; `sudo prepare-serveur.sh "$CLE"` | `Serveur prêt.` (prepare-serveur.sh l. 167) ; `ssh deploy@… whoami` → `deploy` |
 | 4 | console Google Cloud | client existant : URI `https://recrutement.yeita.fr/oauth2/callback`, audience **Interne** | |
 | 5 | serveur, `deploy` | `.env` écrit par heredoc (6 variables de `.env.example`, `COMPOSE_PROFILES=` vide, cookie secret généré), ID et secret remplacés à la main dans `nano` | contrôlé par `deploy.sh` l. 35-52 |
 | 6 | serveur, `ubuntu` | copie de `/etc/nginx` ; relevé des autres `server_name` (awk sur `nginx -T`) ; `certbot certonly --nginx` ; site écrit par `tee` (exemple nginx de `deploy/README.md` § 7, identique) ; `nginx -t` ; `reload` ; `diff` du relevé | `Successfully received certificate.`, `test is successful`, relevé identique |

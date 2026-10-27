@@ -20,8 +20,10 @@ flowchart LR
   P -->|réseau back, X-Forwarded-Email| A[API Fastify\n0.0.0.0:8000 dans le conteneur]
   A --> D[(SQLite\nDB_PATH, WAL)]
   C[node api/equipe.js] --> D
+  S[node api/sauvegarde.js, v1.7] -->|lecture seule, db.backup| D
+  S --> B[(sauvegardes/\nrecrutement-AAAA-MM-JJ.db)]
 ```
-Un processus, une connexion better-sqlite3 (synchrone). `equipe.js` ouvre sa propre connexion sur la même base.
+Un processus, une connexion better-sqlite3 (synchrone). `equipe.js` ouvre sa propre connexion sur la même base ; `sauvegarde.js` aussi, en lecture seule, le temps de la copie.
 
 ## Fichiers
 | Fichier | Rôle | Exporte |
