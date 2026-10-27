@@ -145,6 +145,8 @@ test("ligne de démarrage du mode local : DEV_EMAIL en forme, DEV_STATIC en chem
   const ligne = JSON.parse(l.sortie().split("\n").find(x => x.includes("API démarrée")));
   assert.deepEqual([ligne.hote, ligne.port, ligne.base, ligne.user_version, ligne.node_env, ligne.dev_email, ligne.dev_static],
     ["localhost", port, path.join(racine, "r.sqlite"), 1, "development", "dev@yeita.fr", site]);
+  /* Les avertissements suivent la ligne « API démarrée » : on leur laisse le temps d'arriver (test instable sinon). */
+  for (let i = 0; i < 40 && !/Mode local : DEV_STATIC=/.test(l.sortie()); i++) await new Promise(r => setTimeout(r, 25));
   assert.match(l.sortie(), /Mode local : DEV_STATIC=/);
   assert.ok(!l.sortie().includes("joignable que par oauth2-proxy"), "localhost est une adresse locale");
 });

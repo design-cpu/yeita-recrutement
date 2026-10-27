@@ -72,7 +72,7 @@ const rejects = async (p, m, re) => { try{ await p; ok(false, m, "(n'a pas écho
   c = await S.moveStep(c.id, {par: "Thélo"});
   ok(c.parcours.etape === "bilan-ec1", "EC1 → Bilan EC1");
   c = await S.bilanRetour(c.id, {par: "Thélo", mode: "appel"});
-  ok(c.parcours.etape === "bilan-ec1" && c.etat === "retour-a-faire" && c.bilans.ec1.issue === "retour-a-faire", "Bilan : En réflexion → Retour à faire, la carte reste");
+  ok(c.parcours.etape === "bilan-ec1" && c.etat === "retour-a-faire" && c.bilans.ec1.issue === "retour-a-faire", "Bilan : Mettre en attente → Retour à faire, la carte reste");
   c = await S.moveStep(c.id, {par: "Thélo", mode: "asynchrone"});
   ok(c.parcours.etape === "ec2" && c.bilans.ec1.issue === "continuer" && c.bilans.ec1.mode === "asynchrone", "Bilan : Continuer → EC2");
   c = await S.undoLast(c.id, "Thélo");
@@ -114,5 +114,31 @@ const rejects = async (p, m, re) => { try{ await p; ok(false, m, "(n'a pas écho
   ok(demo.every(x => /@example\.com$/.test(x.identite.email)), "exemples : adresses fictives");
   await S.clearDemo(); ok((await S.listCandidates()).every(x => !x.meta.demo), "retirer les exemples");
   refuse = true; await S.createCandidate({personne: "Test Mémoire"}); ok(S.volatile(), "navigateur qui refuse : repli en mémoire signalé"); refuse = false;
+
+  /* 1.6 : palier suggéré depuis le souhait de rémunération (grille 2026, config.paliersSalaire) */
+  const pal = t => { const r = S.palierSuggere(t); return r ? r.palier : null; };
+  ok(pal("55 k€") === 2 && pal("55k") === 2 && pal("55 000 €") === 2 && pal("55000") === 2, "palier suggéré : 55 k€ → J'apporte (2)");
+  ok(pal("38k") === 1 && pal("40 000 € brut") === 1 && pal("64 k€") === 3 && pal("75k") === 4 && pal("90 k€") === 4 && pal("30k") === 1, "palier suggéré : chaque fourchette, et au-delà");
+  ok(pal("entre 50 et 55k") === 2 && pal("60-65 k€") === 3, "palier suggéré : fourchette → milieu");
+  ok(pal("48k") === 2 && pal("46k") === 1 && pal("59 k€") === 2 && pal("68k") === 3, "palier suggéré : entre deux fourchettes, la plus proche");
+  ok(pal("4 500 €/mois") === 2 && pal("3500 brut mensuel") === 1, "palier suggéré : mensuel × 12");
+  ok(pal("") === null && pal("à discuter") === null && pal("pas défini, selon le poste") === null, "palier suggéré : illisible → vide");
+
+  /* 1.6 : le panneau Notes reprend les anciennes notes éparses, sans rien perdre */
+  const vieux = await S.createCandidate({personne: "Notes Anciennes"});
+  vieux.ec2 = Object.assign(D.emptyEC2(), {notesLibres: "Piste de mission santé."}); vieux.ec3 = {notes: "Corrige la carte sur l'anglais.", par: "", le: null}; vieux.notesLibres = {};
+  delete vieux.notesLibres; await S.saveCandidate(vieux);
+  const lu = await S.getCandidate(vieux.id);
+  ok(lu.notesLibres.ec2 === "Piste de mission santé." && lu.notesLibres.ec3 === "Corrige la carte sur l'anglais.", "notes : ec2.notesLibres et ec3.notes rejoignent le panneau");
+  ok(lu.ec2.notesLibres === "Piste de mission santé." && lu.ec3.notes === "Corrige la carte sur l'anglais.", "notes : les anciens champs restent");
+  lu.notesLibres.ec2 = ""; await S.saveCandidate(lu);
+  ok((await S.getCandidate(vieux.id)).notesLibres.ec2 === "", "notes : une note vidée dans le panneau ne revient pas");
+
+  /* 1.6 : la mention RGPD de la page publique recopie la config (la page publique ne lit pas assets/config.js) */
+  const op = fs.readFileSync(path.join(root, "one-pager.html"), "utf8"), R = ctx.YEITA_CONFIG.rgpd;
+  ok(op.includes('data-duree-mois="' + R.dureeMois + '"') && op.includes('data-contact="' + R.contact + '"') && op.includes(R.dureeMois + " mois"), "RGPD : la page des étapes reprend la durée et le contact de config.rgpd");
+  const W = fs.readFileSync(path.join(root, "assets/wording.fr.js"), "utf8");
+  ok(!/No go/i.test(W) && !/réflexion/.test(W), "textes : plus de « No go » ni d'« En réflexion »");
+
   console.log(fails ? fails + " ÉCHEC(S)" : "TOUT OK"); process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

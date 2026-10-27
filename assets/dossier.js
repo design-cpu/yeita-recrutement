@@ -128,13 +128,23 @@ function syncNom(d){
 /* Migration à la lecture : v1 → v2 (identité, parcours), puis v2 → v3 (champs Notion, bilans, décision). Rien n'est supprimé. */
 function upgrade(d){
   if(!d || typeof d !== "object") return d;
-  if(d.version === VERSION && d.identite && d.parcours){ fill(d, model()); syncNom(d); return d; }
+  if(d.version === VERSION && d.identite && d.parcours){ fill(d, model()); syncNom(d); versNotes(d); return d; }
   var v1 = !d.identite, v2 = d.version === 2 && !v1;
   if(v1 || v2) versV3(d, v1);
   fill(d, model());
   d.schema = SCHEMA; d.version = VERSION;
   syncNom(d);
+  versNotes(d);
   return d;
+}
+/* Le panneau Notes (1.6) : une note libre par étape, dans notesLibres[étape]. Les anciennes notes éparses (« Notes libres » de la
+   fiche EC2, bloc-notes de l'EC3) y sont recopiées une fois, si l'étape n'a pas encore de note. Les anciens champs restent. */
+function versNotes(d){
+  var n = d.notesLibres;
+  if(!n || typeof n !== "object" || Array.isArray(n)) n = d.notesLibres = {};
+  var e2 = d.ec2 && String(d.ec2.notesLibres || "").trim(), e3 = d.ec3 && String(d.ec3.notes || "").trim();
+  if(e2 && n.ec2 === undefined) n.ec2 = d.ec2.notesLibres;
+  if(e3 && n.ec3 === undefined) n.ec3 = d.ec3.notes;
 }
 function renomme(e){ return RENOMMAGE[e] || e; }
 function versV3(d, v1){

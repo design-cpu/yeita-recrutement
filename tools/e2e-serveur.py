@@ -50,6 +50,12 @@ async def contexte(b, email):
     await ctx.route("https://fonts.googleapis.com/**", lambda r: r.fulfill(body="", content_type="text/css"))
     return ctx
 
+# Fiche du candidat : en haut de l'appel en cours, sinon dans la fenêtre du menu ⋯ (1.6)
+async def tel(pg, v):
+    if await pg.locator("#i-telephone").count(): await pg.locator("#i-telephone").first.fill(v); return
+    await pg.click("#c-side .morebtn"); await pg.click("[data-mc=fiche]"); await pg.wait_for_timeout(300)
+    await pg.fill("#mf-telephone", v)
+
 async def ouvrir(ctx, url):
     pg = await ctx.new_page()
     pg.erreurs = []
@@ -206,9 +212,9 @@ async def principal():
             await p1.close(); await p2.close()
             # Deux onglets EC2 : même partie changée ailleurs → refus
             e1 = await ouvrir(alice, C + "ec2.html?id=" + cid); e2 = await ouvrir(bob, C + "ec2.html?id=" + cid)
-            await e1.fill("#f-libres", "Notes EC2 d'Alice"); await e1.wait_for_timeout(800)
+            await e1.fill("#f-asp", "Notes EC2 d'Alice"); await e1.wait_for_timeout(800)
             puts = []; e2.on("request", lambda r: puts.append(r) if r.method == "PUT" else None)
-            await e2.fill("#f-libres", "Notes EC2 périmées"); await e2.wait_for_timeout(800)
+            await e2.fill("#f-asp", "Notes EC2 périmées"); await e2.wait_for_timeout(800)
             st, d = api("alice@yeita.fr", "GET", "candidats/" + cid)
             check("deux onglets EC2 : refus avec bandeau, aucun PUT du second, notes du premier en base (CA7)",
                   "modifiée par quelqu'un d'autre" in await bandeau(e2) and not puts and "Notes EC2 d'Alice" in json.dumps(d["data"]["fiches"].get("ec2"), ensure_ascii=False))
@@ -217,7 +223,7 @@ async def principal():
 
             # --- Rôle lecture (CA9) ---
             pl2 = await ouvrir(lea, C + "candidat.html?id=" + cid)
-            await pl2.locator("#i-telephone").first.fill("0100000000"); await pl2.wait_for_timeout(900)
+            await tel(pl2, "0100000000"); await pl2.wait_for_timeout(900)
             txt = await bandeau(pl2)
             check("lecteur : écriture refusée, « Lecture seule », sans bouton", "Lecture seule : tu ne peux pas modifier." in txt and await pl2.locator(".demarrage-bandeau button").count() == 0, txt)
             await pl2.close()
@@ -226,9 +232,9 @@ async def principal():
             st, d = api("alice@yeita.fr", "GET", "candidats/" + cid)
             bc = await ouvrir(bob, C + "candidat.html?id=" + cid); be = await ouvrir(bob, C + "ec1.html?id=" + cid)
             pa = await ouvrir(alice, C + "candidat.html?id=" + cid)
-            await pa.click("#danger summary"); await pa.click("#del"); await pa.click("#del-yes"); await pa.wait_for_timeout(800)
+            await pa.click("#c-side .morebtn"); await pa.click("[data-mc=supprimer]"); await pa.click("[data-mc-del]"); await pa.wait_for_timeout(800)
             check("suppression : DELETE, plus dans l'API", api("alice@yeita.fr", "GET", "candidats/" + cid)[0] == 404)
-            await bc.locator("#i-telephone").first.fill("0655555555"); await be.fill("#f-def", "Après suppression"); await bc.wait_for_timeout(1000)
+            await tel(bc, "0655555555"); await be.fill("#f-def", "Après suppression"); await bc.wait_for_timeout(1000)
             check("suppression : saisie chez Bob → aucune recréation, bandeau", api("bob@yeita.fr", "GET", "candidats/" + cid)[0] == 404 and "modifiée" in await bandeau(bc) and "modifiée" in await bandeau(be))
             tb = await ouvrir(bob, C)
             check("suppression : au tableau de Bob, la candidature a disparu", await tb.locator(".kc", has_text="Repère Zéphyrin").count() == 0)

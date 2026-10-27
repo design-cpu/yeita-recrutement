@@ -59,6 +59,7 @@ Les listes du modèle (Job, Disponibilité, Provenance, États, étapes) sont da
 | `candidatures/carte.html?id=…` | la carte d'identité d'un candidat (`&imprimer=1` pour le PDF) |
 | `candidatures/decompte.html?id=…` | la feuille de décompte Yeita Match d'un candidat (`?vierge=1` à imprimer) |
 | `candidatures/ui.js`, `parcours-ui.js`, `style.css` | l'interface commune, l'en-tête d'un candidat, les styles de l'espace |
+| `candidatures/menu-candidat.js`, `notes.js` | le menu ⋯ d'un candidat (Fiche, Historique, Copier le lien, Supprimer) et le panneau Notes |
 | `assets/qui.js` | « Qui es-tu ? », isolé pour être remplacé par l'identité Google |
 | `assets/store.js` | les règles du parcours (passages, refus, décision, État) |
 | `assets/dossier.js` | le dossier v3, la migration, l'adaptateur de stockage |

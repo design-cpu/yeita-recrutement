@@ -120,6 +120,7 @@
 <script src="../assets/demarrage.js"></script>
 <script src="../assets/data-parcours.js"></script>
 <script src="ui.js"></script>
+<script src="menu-candidat.js"></script>
 <script>
 (function(){
 "use strict";
@@ -146,14 +147,21 @@ UI.init({onEtat: function(id, etat){
   });
 }});
 
+/* ---------- Menu ⋯ des cartes et des lignes ---------- */
+MC.init({
+  apres: function(){ return load(); },
+  supprime: function(id, nom){ say(t("infos.supprime", {nom: nom})); load().then(function(){ var b = document.getElementById("add-open"); if(b) b.focus(); }); }
+});
+try{ var supp = sessionStorage.getItem("yeita-supprime"); if(supp){ sessionStorage.removeItem("yeita-supprime"); setTimeout(function(){ say(t("infos.supprime", {nom: supp})); }, 300); } }catch(x){}
+
 /* ---------- Tableau ---------- */
 function visible(c){ return ui.plus || S.COLONNES_MASQUEES.indexOf(c.parcours.etape) < 0; }
 function match(c){ return !q || D.norm(c.candidat.nom + " " + c.identite.email).indexOf(D.norm(q)) >= 0; }
 function cardHTML(c){
   var i = c.identite;
+  /* Toute la carte ouvre la candidature (le lien du nom couvre la carte) ; l'État et le menu ⋯ restent cliquables par-dessus. */
   return '<article class="kc" data-id="' + E(c.id) + '" draggable="true">'
-    + '<div class="khead"><h3><a href="' + E(UI.urlCandidat(c.id)) + '">' + E(c.candidat.nom) + '</a></h3>'
-    + '<button type="button" class="iconbtn" data-copy="' + E(UI.urlCandidat(c.id)) + '" aria-label="' + E(t("tableau.copierLien") + " : " + c.candidat.nom) + '" aria-describedby="aide-lien" title="' + E(t("tableau.copierLien")) + '">' + YEITA.icon("Link", 16, 2.2) + '</button></div>'
+    + '<div class="khead"><h3><a href="' + E(UI.urlCandidat(c.id)) + '">' + E(c.candidat.nom) + '</a></h3>' + MC.bouton(c) + '</div>'
     + '<p class="kline"><b>' + E(UI.jobXp(c)) + '</b>' + (c.meta.demo ? '<span class="chip demo">' + E(t("commun.exemple")) + '</span>' : '') + '</p>'
     + '<p class="kline">' + E(i.disponibilite || t("tableau.dispoVide")) + '</p>'
     + '<div class="kfoot">' + UI.etatHTML(c, true) + UI.recruteursHTML(i.recruteurs) + '</div>'
@@ -211,7 +219,7 @@ function renderBoard(){
       + '<td data-l="' + E(t("tableau.colonnes.recruteurs")) + '">' + UI.recruteursHTML(i.recruteurs) + '</td>'
       + '<td data-l="' + E(t("tableau.colonnes.etape")) + '"><span class="chip step">' + E(UI.etapeLabel(c.parcours.etape, true)) + '</span></td>'
       + '<td class="when" data-l="' + E(t("tableau.colonnes.debut")) + '">' + E(UI.fmtDay(i.dateDebutProcess)) + '</td>'
-      + '<td><button type="button" class="iconbtn" data-copy="' + E(UI.urlCandidat(c.id)) + '" aria-label="' + E(t("tableau.copierLien") + " : " + c.candidat.nom) + '" aria-describedby="aide-lien">' + YEITA.icon("Link", 16, 2.2) + '</button></td></tr>';
+      + '<td>' + MC.bouton(c) + '</td></tr>';
   }).join("") : '<tr><td colspan="9">«&nbsp;' + E(q) + '&nbsp;» : aucun candidat.</td></tr>';
   var le = S.lastExport();
   /* En mode serveur, la base est sur le serveur : l'export n'est plus une sauvegarde, c'est une copie. */

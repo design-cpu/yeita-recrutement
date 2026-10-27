@@ -184,7 +184,7 @@ function moveStep(id, opts){
     return D.save(c);
   });
 }
-/* Bilan : « En réflexion, retour à faire ». La carte reste dans sa colonne, l'État passe à « Retour à faire ». */
+/* Bilan : « Mettre en attente (retour à faire) ». La carte reste dans sa colonne, l'État passe à « Retour à faire ». */
 function bilanRetour(id, opts){
   opts = opts || {};
   return D.get(id).then(function(c){
@@ -194,7 +194,7 @@ function bilanRetour(id, opts){
     var k = e === "bilan-ec1" ? "ec1" : "ec2";
     c.bilans[k] = Object.assign({}, c.bilans[k] || {}, {issue: "retour-a-faire", par: opts.par || me(), le: D.now()});
     if(opts.mode) c.bilans[k].mode = opts.mode;
-    c.historique.push({type: "etat", de: c.etat, vers: "retour-a-faire", le: D.now(), par: opts.par || me(), motif: "En réflexion au bilan"});
+    c.historique.push({type: "etat", de: c.etat, vers: "retour-a-faire", le: D.now(), par: opts.par || me(), motif: "Mis en attente au bilan"});
     c.etat = "retour-a-faire";
     return D.save(c);
   });
@@ -369,6 +369,29 @@ function clearDemo(){
   return D.list().then(function(all){ return Promise.all(all.filter(function(c){ return c.meta && c.meta.demo; }).map(function(c){ return D.remove(c.id); })); });
 }
 
+/* ---------- Palier suggéré en EC2, depuis le souhait de rémunération noté à l'appel (texte libre) ----------
+   « 55 k€ », « 55 000 € », « entre 50 et 55k » (milieu de la fourchette), « 4 500 €/mois » (× 12). Le montant est placé dans la
+   fourchette d'un palier (config.paliersSalaire) ; entre deux fourchettes, le palier le plus proche. Illisible : null. */
+function montantSouhaite(texte){
+  var s = String(texte || "").toLowerCase().replace(/(\d)[\s\u00a0\u202f.](?=\d{3}(?!\d))/g, "$1");
+  var mois = /mois|mensuel|\/m\b/.test(s), k = /\d\s*k/.test(s), vals = [], re = /(\d+(?:,\d+)?)\s*(k)?/g, m;
+  while((m = re.exec(s))){
+    var v = parseFloat(m[1].replace(",", "."));
+    if(m[2] || (k && v < 1000) || (!mois && v >= 20 && v < 1000)) v *= 1000;
+    if(mois && v < 15000) v *= 12;
+    if(v >= 15000 && v <= 300000) vals.push(v);
+  }
+  if(!vals.length) return null;
+  return vals.length > 1 ? Math.round((vals[0] + vals[1]) / 2) : vals[0];
+}
+function palierSuggere(texte){
+  var montant = montantSouhaite(texte), P = (window.YEITA_CONFIG && YEITA_CONFIG.paliersSalaire) || [];
+  if(montant === null || !P.length) return null;
+  var best = null, dist = Infinity;
+  P.forEach(function(p){ var d = montant < p.min ? p.min - montant : (montant > p.max ? montant - p.max : 0); if(d < dist){ dist = d; best = p; } });
+  return {palier: best.palier, montant: montant};
+}
+
 window.STORE = {
   ETAPES: ETAPES, NON_RETENU: NON_RETENU, VIVIER: VIVIER, COLONNES: COLONNES, COLONNES_MASQUEES: COLONNES_MASQUEES,
   SUIVANTE: SUIVANTE, REFUS_DEPUIS: REFUS_DEPUIS, DECISIONS: DECISIONS, MOTIFS: MOTIFS,
@@ -378,6 +401,7 @@ window.STORE = {
   startStep: startStep, started: started, blocker: blocker, moveStep: moveStep, bilanRetour: bilanRetour, decide: decide,
   closeCandidate: closeCandidate, undoLast: undoLast, waiting: waiting, joursOuvres: joursOuvres,
   exportAll: exportAll, importAll: importAll, lastExport: lastExport, loadDemo: loadDemo, clearDemo: clearDemo,
+  palierSuggere: palierSuggere, montantSouhaite: montantSouhaite,
   volatile: function(){ return !!D.adapter().volatile; }
 };
 })();

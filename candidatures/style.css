@@ -99,7 +99,6 @@
 .steps li.future .num{border-style:dashed}
 .steps li.stop button{color:var(--stop)}
 .steps li.stop .num{border-color:var(--stop); color:var(--stop)}
-.steps li.endchip span{display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:650; border-radius:999px; padding:6px 12px; border:1.5px dashed var(--stop); color:var(--stop); white-space:nowrap}
 .guide-link{font-weight:600; font-size:14.5px; white-space:nowrap}
 
 .steppanel{display:grid; gap:20px; padding-block:22px 10px}
@@ -168,17 +167,13 @@ fieldset.plain{border:0; padding:0; margin:0; min-width:0}
 .refus .rappel{display:flex; gap:10px; align-items:flex-start; font-size:15.5px; background:var(--stop-tint); border-radius:10px; padding:10px 12px}
 .refus .rappel svg{flex:none; margin-top:2px}
 
-.hist{margin-top:26px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface)}
-.hist > summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:650; display:flex; justify-content:space-between; gap:12px; min-height:48px; align-items:center}
-.hist > summary::-webkit-details-marker{display:none}
-.hist > summary::after{content:"Afficher"; font-weight:600; font-size:14px; color:var(--violet)}
-.hist[open] > summary::after{content:"Masquer"}
-.hist ol{list-style:none; margin:0; padding:0 18px 18px; display:grid; gap:8px}
-.hist li{display:grid; grid-template-columns:minmax(0,12em) minmax(0,1fr); gap:2px 14px; font-size:14.5px; border-top:1px solid var(--line); padding-top:8px}
-.hist li .d{font-family:var(--f-mono); font-size:13px; color:var(--muted)}
-.hist li .m{color:var(--ink-2)}
-@media (max-width:560px){ .hist li{grid-template-columns:1fr} }
-.danger{margin-top:18px; display:grid; gap:10px}
+/* L'historique, dans la fenêtre du menu ⋯ */
+.histlist{list-style:none; margin:0; padding:0; display:grid; gap:8px}
+.histlist li{display:grid; grid-template-columns:minmax(0,12em) minmax(0,1fr); gap:2px 14px; font-size:14.5px; border-top:1px solid var(--line); padding-top:8px}
+.histlist li:first-child{border-top:0; padding-top:0}
+.histlist li .d{font-family:var(--f-mono); font-size:13px; color:var(--muted)}
+.histlist li .m{color:var(--ink-2)}
+@media (max-width:560px){ .histlist li{grid-template-columns:1fr} }
 
 /* ===================== v3 ===================== */
 /* L'État : une pastille de couleur et toujours son libellé. La couleur aide, le texte porte le sens. */
@@ -234,17 +229,77 @@ button.etat::after{content:""; width:7px; height:7px; border-right:1.5px solid c
 .kc .kline{display:flex; flex-wrap:wrap; gap:4px 8px; align-items:center; font-size:14px; color:var(--ink-2)}
 .kc .kline b{font-weight:650; color:var(--ink)}
 .kc .khead{display:flex; justify-content:space-between; align-items:flex-start; gap:6px}
-.kc .khead .iconbtn{margin:-4px -4px 0 0; padding:4px}
+.kc .khead .iconbtn{margin:-6px -6px 0 0}
+/* Toute la carte ouvre la candidature : le lien du nom la couvre ; l'État et le menu ⋯ passent par-dessus */
+.kc{position:relative}
+.kc h3 a::after{content:""; position:absolute; inset:0; border-radius:12px}
+.kc h3 a:focus-visible{outline:none}
+.kc:has(h3 a:focus-visible){outline:3px solid var(--violet); outline-offset:2px}
+.kc:hover{border-color:var(--line-strong)}
+.kc .etat, .kc .morebtn{position:relative; z-index:1}
 .kc .kfoot{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap}
 .kc[draggable="true"]{cursor:grab}
-.ini{display:inline-flex; gap:3px}
-.ini span{width:26px; height:26px; border-radius:50%; display:inline-grid; place-items:center; font-size:11.5px; font-weight:700; background:var(--surface-2); color:var(--ink-2); border:1px solid var(--line)}
-.ini.none{font-size:13px; color:var(--muted)}
+.ini{font-size:13.5px; font-weight:600; color:var(--ink-2)}
+.ini.none{font-weight:500; color:var(--muted)}
 .iconbtn{appearance:none; display:inline-flex; align-items:center; gap:6px; border:0; background:none; color:var(--violet); font:inherit; font-size:13.5px; font-weight:650; cursor:pointer; padding:4px 2px; min-height:32px}
 .iconbtn:hover{text-decoration:underline; text-underline-offset:3px}
 .colhead{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
 .more-cols{margin:0 0 12px}
 .kcol.hidden-col{background:transparent; border:1.5px dashed var(--line-strong)}
+
+/* Le menu ⋯ d'un candidat (menu-candidat.js) */
+.morebtn{justify-content:center; min-width:40px; min-height:40px; border-radius:10px; color:var(--ink-2); font-size:20px; line-height:1; padding:0 6px}
+.morebtn:hover, .morebtn[aria-expanded="true"]{background:var(--surface-2); text-decoration:none; color:var(--ink)}
+.menu [role="menuitem"]{appearance:none; display:flex; align-items:center; gap:8px; border:0; background:none; font:inherit; font-size:14.5px; text-align:left; padding:8px 10px; border-radius:8px; color:var(--ink); cursor:pointer; min-height:40px}
+.menu [role="menuitem"]:hover, .menu [role="menuitem"]:focus-visible{background:var(--surface-2); outline:none}
+.menu [role="menuitem"].danger{color:var(--stop)}
+/* Les fenêtres du menu ⋯ : Fiche du candidat, Historique, Supprimer */
+.mdlg{border:1.5px solid var(--ink); border-radius:18px; padding:0; width:min(760px, calc(100vw - 32px)); max-height:min(86vh, 900px); background:var(--paper); color:var(--ink); box-shadow:0 30px 80px rgba(22,15,32,.3)}
+.mdlg::backdrop{background:rgba(22,15,32,.42)}
+.mdlg-h{position:sticky; top:0; z-index:1; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px 20px; background:var(--paper); border-bottom:1px solid var(--line)}
+.mdlg-h h2{font-size:20px}
+.mdlg-x{font-size:24px; min-width:40px; min-height:40px; justify-content:center; color:var(--ink-2)}
+.mdlg-b{padding:16px 20px; display:grid; gap:12px}
+.mdlg-a{position:sticky; bottom:0; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end; padding:14px 20px; background:var(--paper); border-top:1px solid var(--line)}
+.mdlg-a .saved{margin-right:auto}
+.infos.plain{border:0; padding:0; background:none}
+.infos .leg, .mdlg .leg{font-weight:650; font-size:13px; color:var(--ink-2); margin-bottom:6px}
+
+/* Le panneau Notes (notes.js) : un onglet fixe à droite, le panneau glisse par-dessus sans bouger la page */
+.np-toggle{position:fixed; z-index:20; right:0; top:50%; transform:translateY(-50%); writing-mode:vertical-rl; appearance:none; border:1.5px solid var(--ink); border-right:0; border-radius:12px 0 0 12px; background:var(--ink); color:var(--paper); font:inherit; font-weight:650; font-size:14.5px; padding:14px 9px; cursor:pointer; min-width:40px}
+.np-toggle.has::before{content:""; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--yellow); margin-bottom:8px}
+.np-toggle:hover{background:var(--violet); border-color:var(--violet)}
+body.np-on .np-toggle{right:min(420px, 100vw)}
+.np{position:fixed; z-index:19; top:0; right:0; bottom:0; width:min(420px, 100vw); background:var(--paper); border-left:1.5px solid var(--ink); box-shadow:-20px 0 50px -30px rgba(22,15,32,.4); display:flex; flex-direction:column; gap:10px; padding:18px 18px calc(18px + env(safe-area-inset-bottom, 0px)); overflow-y:auto}
+.np[hidden]{display:none}
+.np-h{display:flex; justify-content:space-between; align-items:flex-start; gap:10px}
+.np-h h2{font-size:19px}
+.np-sub{font-size:13.5px; color:var(--muted); margin-top:2px}
+.np-x{font-size:24px; min-width:40px; min-height:40px; justify-content:center; color:var(--ink-2)}
+.np textarea{flex:1 1 auto; min-height:40vh; resize:vertical}
+.np-autres section{display:grid; gap:4px; border-top:1px solid var(--line); padding-top:8px}
+.np-autres h3{font-size:14.5px}
+.np-autres p{font-size:14.5px; color:var(--ink-2); white-space:pre-line}
+@media (max-width:640px){ body.np-on .np-toggle{display:none} .np-toggle{padding:10px 6px; font-size:13px; min-width:32px} }
+/* Sur grand écran, la page se décale au lieu d'être recouverte : l'action principale reste visible pendant qu'on écrit */
+@media (min-width:1100px){ body.np-on{padding-right:min(420px, 100vw)} }
+@media print{ .np, .np-toggle{display:none !important} }
+
+/* La carte d'identité dans une étape (Bilans, EC3), et Imprimer */
+.carte-in{display:grid; gap:10px}
+.ci-h{display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; justify-content:space-between}
+.ci-h h3{font-size:18px}
+.carte-frame{width:100%; min-height:320px; border:0; display:block; background:transparent}
+.btn.print{display:inline-flex; align-items:center; gap:8px}
+
+/* Fin du recrutement (Onboarding) */
+.fin{border:2px solid var(--go); background:var(--go-tint); border-radius:var(--radius); padding:clamp(18px,3vw,30px); display:grid; gap:12px; justify-items:start; max-width:760px}
+.fin-ok{width:44px; height:44px; border-radius:50%; background:var(--go); color:var(--paper); display:grid; place-items:center; font-size:22px; font-weight:700}
+.fin h3{font-size:clamp(22px,3vw,28px)}
+.fin h4{font-size:15px; margin-top:4px}
+.fin-steps{list-style:none; margin:0; padding:0; display:grid; gap:2px; width:100%; max-width:440px}
+.fin-steps li{display:flex; justify-content:space-between; gap:12px; font-size:15px; border-top:1px solid color-mix(in srgb, var(--go) 25%, transparent); padding-block:5px}
+.fin-steps .d{font-family:var(--f-mono); font-size:13px; color:var(--ink-2)}
 
 /* Liste : tri par colonne */
 .list th button{appearance:none; border:0; background:none; font:inherit; font-weight:inherit; color:inherit; cursor:pointer; padding:0; display:inline-flex; gap:5px; align-items:center}
@@ -274,7 +329,7 @@ button.etat::after{content:""; width:7px; height:7px; border-right:1.5px solid c
 .infos .wide{grid-column:1 / -1}
 
 /* En-tête du candidat */
-.cmeta .jx{font-weight:650}
+.cmeta{font-size:15px; color:var(--ink-2)}
 .chead .side{display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; justify-content:flex-end}
 @media (max-width:700px){ .chead .side{justify-content:flex-start} }
 .qlist{display:grid; gap:12px}

@@ -17,6 +17,9 @@ window.WORDING = {
     annuler: "Annuler",
     fermer: "Fermer",
     aide: "Aide",
+    nonCommunique: "Non communiqué au candidat",
+    surCarte: "Visible sur la carte du candidat",
+    imprimer: "Imprimer",
     exemple: "Exemple",
     introuvable: "Cette candidature n'existe pas dans ce navigateur. Tant que le stockage est local, un lien ne marche que là où la candidature a été saisie.",
     sansId: "Ouvre une candidature depuis le tableau : cette page n'affiche aucun candidat sans son lien."
@@ -54,7 +57,7 @@ window.WORDING = {
   etapes: {
     "appel":       {label: "Appel de découverte", court: "Appel", objectif: "Comprendre ce que la personne cherche, et décider s'il y a un EC1."},
     "ec1":         {label: "EC1", court: "EC1", objectif: "Lire comment la personne fonctionne dans nos quatre valeurs, avec Yeita Match."},
-    "bilan-ec1":   {label: "Bilan EC1", court: "Bilan EC1", objectif: "Croiser les lectures, puis décider : on continue, on réfléchit, ou on s'arrête."},
+    "bilan-ec1":   {label: "Bilan EC1", court: "Bilan EC1", objectif: "Croiser les lectures, puis décider : on continue, on met en attente, ou on s'arrête."},
     "ec2":         {label: "EC2", court: "EC2", objectif: "Lire le métier sur les quatre diamants, avec des faits, et placer le palier."},
     "bilan-ec2":   {label: "Bilan EC2", court: "Bilan EC2", objectif: "Réunir ce qui reste ouvert pour l'EC3, puis décider de la suite."},
     "ec3":         {label: "EC3", court: "EC3", objectif: "Lever les dernières zones d'ombre et corriger la carte d'identité avec la personne."},
@@ -112,7 +115,7 @@ window.WORDING = {
       texteServeur: "Ajoute la première personne avec qui tu as un appel de découverte.",
       exemples: "Charger des exemples"
     },
-    colonnes: {candidat: "Candidat", job: "Job", xp: "XP", dispo: "Disponibilité", etat: "État", recruteurs: "Recruteurs", etape: "Étape", debut: "Début du process", lien: "Lien"},
+    colonnes: {candidat: "Candidat", job: "Job", xp: "XP", dispo: "Disponibilité", etat: "État", recruteurs: "Recruteurs", etape: "Étape", debut: "Début du process", lien: "Actions"},
     trierPar: "Trier par {col}",
     sauvegarde: {
       titre: "Sauvegarde et exemples",
@@ -154,7 +157,7 @@ window.WORDING = {
     cvAide: "Un lien pour l'instant. Le dépôt de fichier viendra avec le stockage sécurisé.",
     references: "Références",
     recruteurs: "Recruteurs",
-    ouvrirAppel: "Ouvrir l'appel de découverte",
+    ouvrirAppel: "Démarrer l'appel maintenant",
     enregistrer: "Enregistrer et revenir à la liste",
     ajoute: "{nom} ajouté·e à l'appel de découverte"
   },
@@ -175,10 +178,31 @@ window.WORDING = {
     autreDispo: "Autre…",
     autreDispoLabel: "Nouvelle option de disponibilité",
     supprimer: "Supprimer ce candidat",
-    supprimerAide: "Supprimer efface le candidat, sa carte et son historique de ce navigateur. C'est aussi la réponse à une demande d'effacement.",
-    supprimerConfirme: "Supprimer {nom} ? La candidature, sa carte d'identité et son historique disparaissent de ce navigateur. Un export JSON fait avant permet de la retrouver.",
+    supprimerTitre: "Supprimer {nom} ?",
+    supprimerConfirme: "La candidature, sa carte d'identité et son historique disparaissent. C'est aussi la réponse à une demande d'effacement.",
     supprimerOui: "Supprimer", supprimerNon: "Garder",
     supprime: "{nom} supprimé·e"
+  },
+
+  /* ---------- Le menu ⋯ d'un candidat (tableau, liste, en-tête du parcours) ---------- */
+  menu: {
+    bouton: "Plus d'actions pour {nom}",
+    fiche: "Fiche du candidat",
+    historique: "Historique",
+    copierLien: "Copier le lien",
+    supprimer: "Supprimer",
+    fermer: "Fermer"
+  },
+
+  /* ---------- Le panneau Notes : les notes libres de l'entretien, une par étape ---------- */
+  notes: {
+    bouton: "Notes",
+    titre: "Notes",
+    etape: "Notes · {etape}",
+    placeholder: "Ce qui se dit, en vrac.",
+    autres: "Les autres étapes",
+    fermer: "Fermer les notes",
+    ecrites: "notes déjà écrites pour cette étape"
   },
 
   /* ---------- La fiche candidat : en-tête, étapes, sorties communes ---------- */
@@ -192,11 +216,10 @@ window.WORDING = {
     enCours: "Étape en cours",
     passee: "Étape passée, en lecture",
     historique: "Historique",
-    afficher: "Afficher", masquer: "Masquer",
     entree: "Entrée : {etape}",
     etatChange: "État : {etat}",
     annulerPassage: "Annuler ce passage",
-    passageFait: "Étape « {de} » terminée. {nom} passe à : {vers}.",
+    passageFait: "{de} validé → {vers}",
     passageAnnule: "Passage annulé : retour à {etape}.",
     sorties: "Sorties de l'étape"
   },
@@ -205,10 +228,17 @@ window.WORDING = {
   ec: {
     titre1: "Fiche de l'EC1 · Yeita Match et valeurs",
     titre2: "Fiche de l'EC2 · Scorecard",
-    aide1: "À remplir juste après l'EC1, avec les notes de l'observateur. Elle s'enregistre seule et nourrit la carte d'identité.",
-    aide2: "À remplir pendant ou juste après l'EC2. Les repères Junior, Intermédiaire et Senior restent neutres : on note ce qu'on a vu.",
     liens: "Liens et outils",
-    methode: "Rappel de méthode",
+    masquerCarte: "Masquer sur la carte",
+    echange: "Échange libre",
+    pitch: "Pitch Yeita",
+    recit: "Son parcours, raconté",
+    prendreNotes: "Prendre des notes",
+    role: "Rôle",
+    roleJob: "Repris du Job de la fiche candidat",
+    palier: "Palier visé",
+    suggere: "suggéré",
+    suggereDepuis: "Suggéré depuis le souhait de rémunération : {texte}",
     copierNotion: "Copier pour Notion",
     vider: "Vider la fiche",
     viderQuestion: "Vider la fiche de {nom} ?",
@@ -225,9 +255,6 @@ window.WORDING = {
     carte: "Carte d'identité",
     scorecard: "Scorecard (référentiel)",
     grille: "Grille de salaire",
-    notesLibres: "Notes libres",
-    notesLibresAide: "Tout ce qui ne rentre pas dans la scorecard : une anecdote, une question restée ouverte, une piste de mission.",
-    notesLibresPlaceholder: "Ce que tu veux garder de l'entretien",
     carteRetour: "Retour au parcours",
     imprimer: "Imprimer pour l'EC3",
     decompteSans: "Ouverte seule, la feuille compte les jetons mais ne reporte rien : ouvre-la depuis la fiche EC1 d'un candidat pour reporter son résultat.",
@@ -247,11 +274,10 @@ window.WORDING = {
       "proposition": "Arrivée confirmée",
       "go-mission": "Arrivée confirmée"
     },
-    noGo: "No go",
     nonRetenu: "Non retenu",
-    reflexion: "En réflexion, retour à faire",
-    reflexionFait: "Noté : retour à faire. La carte reste dans sa colonne.",
-    pasDeRefusEC3: "Pas de No go en EC3 : la décision tranche.",
+    reflexion: "Mettre en attente (retour à faire)",
+    reflexionFait: "Mis en attente : retour à faire. La carte reste dans sa colonne.",
+    pasDeRefusEC3: "Pas de refus en EC3 : la décision tranche.",
     ficheVide: "La fiche est encore vide.",
     seDecideAuBilan: "Le non se décide au bilan."
   },
@@ -262,7 +288,7 @@ window.WORDING = {
     forme: "Forme du débrief",
     enAppel: "En appel, 15 min",
     enAsync: "En asynchrone",
-    carteBref: "La carte d'identité, en bref",
+    carteBref: "La carte d'identité",
     lignes: {
       percu: "Ce qu'on a perçu", match: "Yeita Match", partielle: "Lecture partielle", employabilite: "Employabilité",
       vigilance: "Signaux de vigilance", creuserEC2: "À creuser en EC2", creuserEC3: "À creuser en EC3", palier: "Palier", creux: "Diamants creux"
@@ -278,16 +304,19 @@ window.WORDING = {
     aCreuser: "À creuser en EC3",
     aucuneQuestion: "Aucune question ouverte : l'EC3 confirme la carte avec la personne.",
     carteComplete: "La carte complète",
-    blocNotes: "Bloc-notes de l'EC3",
+    blocNotes: "L'entretien",
     date: "Date de l'EC3",
     par: "Mené par",
-    notes: "Notes",
-    notesPlaceholder: "Ce qui se dit, ce qui se corrige sur la carte, ce qui reste à confirmer."
+    notes: "Notes de l'EC3"
   },
 
   /* ---------- Onboarding (candidat.html?etape=onboarding) ---------- */
   onboarding: {
-    carte: "La carte d'identité, point de départ avec sa Nanny"
+    carte: "La carte d'identité, point de départ avec sa Nanny",
+    finTitre: "{prenom} rejoint Yeita",
+    finTexte: "Le recrutement est terminé. Sa carte d'identité devient son point de départ, avec sa Nanny.",
+    finParcours: "Son parcours",
+    finRetour: "Retour aux candidatures"
   },
 
   /* ---------- Le one-pager, à la fin de l'appel ---------- */
@@ -299,17 +328,17 @@ window.WORDING = {
     envoyerSr: "(ouvre Gmail dans un nouvel onglet)",
     coche: "One-pager envoyé",
     envoyeLe: "One-pager envoyé le {quand} par {qui}",
-    objet: "Ton parcours chez Yeita",
+    objet: "Yeita : la suite de ton recrutement",
     corps: "Bonjour {prenom},\n\nMerci pour notre échange. Comme promis, voici de quoi découvrir Yeita et la suite de ton parcours.\n\n{pages}{infos}\nÀ très vite,\n{moi}",
-    pageDecouvrir: "Pour nous découvrir : {url}",
-    pageParcours: "Ton parcours chez Yeita : {url}",
+    pageDecouvrir: "Découvrir Yeita en une page : {url}",
+    pageParcours: "Les étapes de ton recrutement : {url}",
     infosTitre: "Infos pratiques",
     infosAdresse: "Adresse : {v}",
     infosAcces: "Accès : {v}",
     infosCode: "Code d'entrée : {v}"
   },
 
-  /* ---------- L'appel de refus (No go, Non retenu) ---------- */
+  /* ---------- L'appel de refus (Non retenu) ---------- */
   refus: {
     titre: "Appel de refus",
     rappel: "Le refus se fait par téléphone d'abord : « pas aujourd'hui, parce que… ».",
@@ -352,6 +381,11 @@ window.WORDING = {
     palier: "Palier proposé",
     conditions: "À confirmer avant la proposition",
     notesEC3: "Notes de l'EC3"
+  },
+
+  /* ---------- Mention RGPD : carte d'identité (écran et PDF), page des étapes. Durée et contact : assets/config.js ---------- */
+  rgpd: {
+    mention: "Yeita garde ces informations {duree} après la fin de ton recrutement, pour le suivre et te recontacter. Pour les consulter, les corriger ou les faire effacer : {contact}."
   },
 
   /* ---------- L'appel de découverte : les questions de la base Notion, une par champ ---------- */

@@ -1,5 +1,5 @@
 /* L'en-tête commun d'un candidat, sur toutes les pages de son parcours (candidat.html, ec1.html, ec2.html) :
-   nom, Job · XP, disponibilité, État, recruteurs, Copier le lien, puis les étapes.
+   nom, Job · XP · disponibilité, État, recruteurs, menu ⋯ (Fiche, Historique, Copier le lien, Supprimer), puis les étapes et le guide de l'étape.
    Les étapes EC1 et EC2 sont des pages à part (la fiche en pleine page) ; les autres vivent dans candidat.html. */
 (function(){
 "use strict";
@@ -36,13 +36,10 @@ function headHTML(){
 function renderHead(c){
   var i = c.identite;
   document.getElementById("c-name").textContent = c.candidat.nom;
-  document.getElementById("c-meta").innerHTML = '<span class="chip jx">' + E(UI.jobXp(c)) + '</span>'
-    + (i.disponibilite ? '<span class="chip">' + E(i.disponibilite) + '</span>' : '')
-    + (i.provenances || []).map(function(p){ return '<span class="chip">' + E(p) + '</span>'; }).join("")
-    + (c.meta.demo ? '<span class="chip demo">' + E(t("commun.exemple")) + '</span>' : '');
+  document.getElementById("c-meta").textContent = [UI.jobXp(c), i.disponibilite, c.meta.demo ? t("commun.exemple") : ""].filter(Boolean).join(" · ");
 }
 function renderSide(c, viewing){
-  document.getElementById("c-side").innerHTML = UI.etatHTML(c, true) + UI.recruteursHTML(c.identite.recruteurs) + UI.lienHTML(c.id, viewing);
+  document.getElementById("c-side").innerHTML = UI.etatHTML(c, true) + UI.recruteursHTML(c.identite.recruteurs) + (window.MC ? MC.bouton(c) : UI.lienHTML(c.id, viewing));
 }
 /* inPage(etape) : vrai si l'étape s'affiche sans changer de page (candidat.html). */
 function renderSteps(c, viewing){
@@ -52,11 +49,11 @@ function renderSteps(c, viewing){
     var tip = s === "future" ? t("fiche.futur") : (s === "done" ? t("fiche.passee") : (s === "stop" ? t("fiche.arrete") : t("fiche.enCours")));
     return '<li class="' + s + (v ? ' viewing' : '') + '"><button type="button" data-step="' + id + '"' + (s === "cur" ? ' aria-current="step"' : '') + ' aria-pressed="' + v + '"' + (s === "future" ? ' disabled aria-disabled="true"' : '') + ' title="' + E(tip) + '">'
       + '<span class="num" aria-hidden="true">' + (s === "done" ? "✓" : (n + 1)) + '</span>' + E(UI.etapeLabel(id, true)) + '<span class="sr-only">, ' + E(tip) + '</span></button></li>';
-  }).join("") + (arret(c) ? '<li class="endchip"><span>' + E(UI.etapeLabel(c.parcours.etape)) + '</span></li>' : '');
+  }).join("");
   var ol = document.getElementById("steps"), vb = ol.querySelector("li.viewing");
   if(vb && ol.scrollWidth > ol.clientWidth) ol.scrollLeft = Math.max(0, vb.offsetLeft - (ol.clientWidth - vb.offsetWidth) / 2);
-  var g = document.getElementById("c-guide"), e = PARCOURS.etape(viewing);
-  g.href = PARCOURS.guideHref(viewing); g.textContent = t("commun.guideEtape") + (e ? ", " + e.n : "");
+  var g = document.getElementById("c-guide");
+  g.href = PARCOURS.guideHref(viewing); g.target = "_blank"; g.rel = "noopener"; g.textContent = t("commun.guideEtape");
 }
 function render(c, viewing){ document.title = c.candidat.nom + " · " + UI.etapeLabel(viewing) + " · Yeita"; renderHead(c); renderSide(c, viewing); renderSteps(c, viewing); }
 /* Un clic sur une étape : sur la même page si elle y vit, sinon on change de page. */

@@ -103,6 +103,8 @@ Tout rejet (hors 401) appelle `surErreur(e)` puis rejette ; `e.ecriture` vaut `t
 | `candidat.html` | `DEMARRAGE.pret.then(load)` | relit si `peutRelire()` (ni enregistrement en attente, en cours ou refusé, ni formulaire de refus ouvert, ni champ actif dans `#body`), revérifié à la réponse ; redessine si `meta.modifieLe` change ; retire le bandeau | dossier entier ; « Non enregistré » dans `#saved` sur refus ; `pagehide` → `D.partir(cur)` |
 | `ec1.html`, `ec2.html` | `DEMARRAGE.pret.then(get)` | `ec2` : `renderFrom1()` | `ecrirePartie` : `{fiches.ec1, ec1}` / `{fiches.ec2, ec2}` ; « Non enregistré » dans `renderExits` des deux pages (EC2 corrigée à la relecture de la doc) ; `pagehide` → `partirPartie(cand, …)` |
 | `decompte.html` | `DEMARRAGE.pret.then(get)` (avec `?id=`) | — | `ecrirePartie` : `fiches.decompte` ; `pagehide` → `partirPartie` |
+| panneau Notes (`candidatures/notes.js`, 1.6) | le dossier de la page | — | sur `ec1.html` et `ec2.html` : `ecrirePartie` : `notesLibres[étape]`, avec sa propre base (le dernier dossier écrit par le panneau) ; `pagehide` → `partirPartie`. Sur `candidat.html` : la note est posée sur le dossier de la page, enregistré comme le reste |
+| menu ⋯ (`candidatures/menu-candidat.js`, 1.6) | `STORE.getCandidate` à l'ouverture | — | Fiche du candidat : `saveCandidate` de sa copie, la page reprend le dossier à la fermeture ; Supprimer : `removeCandidate` |
 | `carte.html` | `pret`, puis `migrateCodes()` seulement hors mode serveur, puis `refresh` | relit, redessine si `meta.modifieLe` change | `store.js`, `setRestitution` |
 Les écoutes `storage` existantes restent (mode navigateur).
 
@@ -126,3 +128,4 @@ Rien n'est écrit dans `yeita-dossiers`, `yeita-equipe-ajouts`, `yeita-recruteur
 |---|---|
 | 1.3 | Création : démarrage, adaptateur serveur, identité et options en mode serveur, écriture des fiches par partie |
 | 1.4 | Bandeau jaune en mode serveur (`commun.serveur`) ; boutons d'exemples de `index.html` selon le mode |
+| 1.6 | Deux écrivains de plus : le panneau Notes (`notesLibres[étape]`, par partie) et la fenêtre Fiche du candidat du menu ⋯ ; les fiches EC1 et EC2 travaillent sur une copie de leur partie |
