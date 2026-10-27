@@ -56,15 +56,15 @@ Branche `feat/allegement-ux-test-lise` → `main`. **Ne pas merger avant relectu
 - Vérifié aussi : Notes, menu ⋯ au clavier, PDF avec la mention RGPD, téléphone sans défilement horizontal.
 - **À lancer par Léo :** `docker compose up -d --build`, puis `tools/check-site.sh https://localhost`.
 
+## Décisions de Léo
+- **Titre de la page parcours :** « Les étapes de ton recrutement chez Yeita », validé.
+- **Noms des paliers :** ceux de la grille de salaire 2026 partout (« J'apporte de l'impact », « Je structure et j'accompagne »). Backlog 1.6-1 fait.
+- **Critères de l'EC2 :** les 48 critères restent repliables sous chaque étape.
+
 ## Points ouverts
-1. **Titre de la page parcours et objet du mail.** En place : « Les étapes de ton recrutement chez Yeita » et « Yeita : la suite de ton recrutement ». Autres propositions :
-   - titre : « Ton recrutement chez Yeita, étape par étape » ou « Ce qui t'attend chez Yeita, de l'appel à l'arrivée » ;
-   - objet : « Suite à notre appel : les étapes chez Yeita » ou « Ton recrutement chez Yeita, ce qui t'attend ».
-2. **RGPD (backlog 1.6-2).** La durée (6 mois) et le contact (provisoire) sont à valider avant tout envoi réel. La page publique ne peut pas lire la config : les valeurs y sont recopiées, et un test vérifie qu'elles restent identiques.
-3. **Noms des paliers (backlog 1.6-1).** La scorecard et la grille Figma ne nomment pas les paliers 2 et 3 de la même façon.
-4. **One-pager hébergé (backlog 1.6-3).** Il suffira de remplacer l'adresse Notion dans `config.pagesCandidat.pourNousDecouvrir`.
-5. **Palier vide (backlog 1.6-4).** Si le souhait de rémunération est illisible, le palier reste vide. Piste : un champ de montant structuré.
-6. **Critères de la scorecard EC2.** Les 48 critères restent repliables (avec un chevron) sous chaque étape, comme aide pour noter. On peut les retirer aussi si tu préfères.
+1. **Mention RGPD (backlog 1.6-2).** La durée (6 mois) et le contact sont à valider avant tout envoi réel. La page publique ne peut pas lire la config : les valeurs y sont recopiées, et un test vérifie qu'elles restent identiques.
+2. **One-pager hébergé (backlog 1.6-3).** Il suffira de remplacer l'adresse Notion dans `config.pagesCandidat.pourNousDecouvrir`.
+3. **Palier vide (backlog 1.6-4).** Si le souhait de rémunération est illisible, le palier reste vide. Piste : un champ de montant structuré.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
