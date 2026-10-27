@@ -39,6 +39,7 @@ Décisions de l'utilisateur (2026-10-27) :
 - Niveau complexe (recommandé).
 - Rétention distante : règle de cycle de vie du bucket OVH (30 jours), documentée ; le serveur n'efface rien à distance.
 - Unités nommées `recrutement-backup.service`/`.timer` et `recrutement-verif-disque.service`/`.timer` (serveur partagé).
+- Après le tour 1 : un second utilisateur S3 en lecture seule, rangé au coffre avec la clé privée, sert à restaurer depuis un poste.
 
 ## Niveau
 Complexe, recommandé et confirmé : données personnelles des candidats copiées hors du serveur, chiffrement, deux outils système nouveaux (age, rclone), un service tiers (healthchecks.io), restauration à prouver.

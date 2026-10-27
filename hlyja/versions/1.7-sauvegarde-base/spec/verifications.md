@@ -1,8 +1,8 @@
 ---
 type: verifications
 version: 1.7
-total: 16
-ecarts: 4
+total: 20
+ecarts: 6
 date: 2026-10-27
 ---
 
@@ -29,6 +29,10 @@ date: 2026-10-27
 | V14 | Occupation des disques visés | banc : `runuser -u deploy -- docker info -f '{{.DockerRootDir}}'` ; `df --output=pcent,target / /var/lib/docker` | `/var/lib/docker` ; `deploy` (groupe docker) peut le lire ; `df` rend `6% /` et `6% /var/lib/docker` | R11 : seuil sur la valeur entière de `pcent` |
 | V15 | Calendriers systemd | banc : `systemd-analyze calendar "*-*-* 03:00:00" --iterations=2`, `systemd-analyze calendar hourly` | `*-*-* 03:00:00` : prochains passages 03:00 chaque jour ; `hourly` = `*-*-* *:00:00` | R14 |
 | V16 | Serveur réel : système et partage | `hlyja/technique/deploiement-ovh.md` (relevé du 2026-10-27) | Ubuntu 26.04, nginx (cas A), apps pm2 `yeita-agents` et `mamie-discord` : serveur partagé | Noms d'unités préfixés `recrutement-` (décision de l'utilisateur, cadrage) |
+| V17 | Outils de l'image `api` | banc : `docker compose exec -T api sh -c "command -v sqlite3; command -v sha256sum; id"` | **`sqlite3` absent** ; `sha256sum` présent ; `uid=1000(node)` | Contrôles et comptes dans le conteneur par `node` (better-sqlite3), jamais `sqlite3` (après tour 1, Rs6) |
+| V18 | `age -r <clé> -o /dev/null` comme essai de destinataire | banc : clé `age-keygen` valide, `age1abc`, clé publique SSH `ssh-ed25519` | valide : code 0 ; `age1abc` : code 1 ; **écart** : clé SSH acceptée (code 0) | R6 : `AGE_RECIPIENT` doit être une seule clé `age1…` (après tour 1, S11, T18) |
+| V19 | Adresse de ping hors des arguments de `curl` | banc : `curl -K <(printf 'url = "%s"\n' "$U") --data-binary @-` lancé en arrière-plan, puis `/proc/<pid>/cmdline` de chaque `curl` | `curl -sS -o /dev/null --max-time 5 -K /dev/fd/63 --data-binary @-` : l'adresse n'apparaît pas ; le corps passe toujours par l'entrée standard | R10 : adresse par `-K` sur un descripteur, corps sur l'entrée standard (après tour 1, E5, S6) |
+| V20 | Droits d'un utilisateur S3 OVH | doc OVHcloud « Object Storage - Identity and access management » (lue le 2026-10-27) | politique JSON importée par utilisateur (onglet utilisateurs S3) ; refus explicite prioritaire ; **le refus implicite ne vaut pas pour le propriétaire du bucket** | R18 : bucket créé par un autre utilisateur que celui du serveur ; politique de l'utilisateur du serveur sans `s3:DeleteObject` ; effet vérifié au guide humain (H3) (après tour 1, S1) |
 
 ## Détail
 - Script V1 à V4 : `scratchpad/v/v1.mjs` (hors dépôt). Banc : image `banc-1.7` (`ubuntu:26.04` + `docker.io docker-compose-v2 age rclone curl sqlite3 git iproute2 python3 util-linux sudo`), conteneur `banc17` `--privileged`, volume `banc17-docker` sur `/var/lib/docker`, dépôt monté en lecture seule et cloné.
