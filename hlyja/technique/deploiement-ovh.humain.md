@@ -76,6 +76,10 @@ apt-cache policy docker.io docker-compose-v2 certbot python3-certbot-nginx | gre
 sudo apt update && sudo apt install -y docker.io docker-compose-v2 certbot python3-certbot-nginx tmux
 ```
 
+- [ ] **Tu dois voir** l'installation défiler, puis le retour à l'invite `ubuntu@vps-b800c3bb:~$`. Certains logiciels (comme certbot) sont peut-être déjà installés : `est déjà la version la plus récente` (ou `is already the newest version`) est normal.
+
+**Sinon** (`Could not get lock` ou `Impossible d'obtenir le verrou`) : Ubuntu fait ses mises à jour automatiques en arrière-plan. Attends 3 minutes et relance la même commande. Ne supprime jamais de fichier de verrou.
+
 - [ ] Vérifie que tout est installé :
 
 ```bash

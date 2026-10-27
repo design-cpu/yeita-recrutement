@@ -31,6 +31,7 @@ date: 2026-10-27
 |---|---|
 | Premier déploiement sur serveur neuf | le clone est déjà sur un `main` qui contient l'API : `deploy.sh` attend lui-même `healthy` (l. 120-132) ; la mise en garde « premier déploiement lancé par une version sans API » de `deploy/README.md` § 9b ne s'applique pas |
 | Cas B | non traité par la vue humaine : le serveur réel est en cas A (nginx) |
+| Serveur relevé le 2026-10-27 | un seul site nginx (`mamie.yeita.fr` → `localhost:3000`, plus `default`), pm2 `yeita-agents` (`yeita-web-backend/server.js`, port 3000) et `mamie-discord` (`bot-discord.js`) ; certbot déjà installé (timer actif) ; mises à jour automatiques actives (`apt` peut trouver le verrou pris pendant l'étape 2 : attendre et relancer) |
 | Redémarrage en attente | le serveur affiche « System restart required » : non fait, pas nécessaire au déploiement (couperait les apps pm2) |
 | Secret client Google | affiché une seule fois à la création dans la console actuelle |
 | Libellés cités | `Connecté·e : ` et `Tu ne fais pas partie de l'équipe.` (`assets/wording.fr.js` l. 36, 42) ; `/api/moi` (`api/src/app.js` l. 77) |
