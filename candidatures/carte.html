@@ -101,6 +101,10 @@ body.seule .wrap{max-width:none; padding:0}
 body.seule .wrap > :not(.stage){display:none !important}
 body.seule .stage{margin:0}
 body.seule .card{max-width:none; box-shadow:none; border:1px solid #e4dfe8}
+/* Bilans : la partie interne, en lecture sous la carte (carte.html?seule=1&interne=1) */
+body.seule.avec-interne #interne{display:block !important; margin-top:16px}
+body.seule.avec-interne #interne > summary{pointer-events:none; grid-template-columns:minmax(0,1fr) auto}
+body.seule.avec-interne #interne > summary .chev{display:none}
 @media (max-width:860px){
   .halves{grid-template-columns:1fr}
   .half.left{border-right:0; border-bottom:1px solid #e4dfe8}
@@ -578,6 +582,7 @@ function migrateCodes(){
    carte.html?exemple=ec1|ec2|embauche (l'exemple fictif dans un état ; les anciens #ec1, #ec2, #embauche marchent aussi), #interne. */
 var Q = new URLSearchParams(location.search), qId = Q.get("id"), hs = (location.hash||"").replace("#","");
 if(Q.get("seule") === "1") document.body.classList.add("seule");
+if(Q.get("seule") === "1" && Q.get("interne") === "1"){ document.body.classList.add("avec-interne"); intEl.open = true; }
 /* Mention RGPD, sur la carte et dans le PDF : durée et contact dans assets/config.js (rgpd). */
 (function(){ var R = (window.YEITA_CONFIG && YEITA_CONFIG.rgpd) || {}, m = R.dureeMois || 6;
   document.getElementById("rgpd").textContent = UI.t("rgpd.mention", {duree: m + " mois", contact: R.contact || ""}); })();

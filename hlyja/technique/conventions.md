@@ -27,6 +27,12 @@ date: 2026-10-28
 | `admin/` | pages d'administration (v1.7 : `sauvegardes.html` ; v1.9 : `deploiement.html`), protégées par oauth2-proxy, sans lien depuis Candidatures |
 | `hlyja/` | trace Hlýja, exclue de la publication (`SKIP` de `tools/build.py`) |
 
+## Mise en page des étapes (1.7)
+- **Une seule largeur** pour toutes les étapes d'un candidat (appel, EC1, bilans, EC2, EC3, décision, proposition, onboarding) : `<div class="wrap etape">`, soit 1120 px au plus (`--etape-max`, `candidatures/style.css`). Toute nouvelle page d'étape la reprend.
+- **Pourquoi 1120 px :** la scorecard EC2 (sélecteur de palier sur une ligne, 4 tuiles, radar) et la carte d'identité y tiennent sans défilement ; avec le panneau Notes ouvert (420 px), il reste au moins 900 px de contenu dès 1360 px d'écran.
+- **Panneau Notes :** à côté du contenu dès 1360 px (`body.np-on` décale la page) ; en dessous, par-dessus.
+- **Fiche du candidat :** un seul composant (`MC.infosHTML`, `candidatures/menu-candidat.js`), 4 groupes, grille de 3 colonnes (2 sous 760 px, 1 sous 480 px), dans l'appel comme dans la fenêtre.
+
 ## Publication
 `python3 tools/build.py [dossier]` copie la racine sauf `SKIP` (`.git`, `.github`, `.agents`, `docs`, `tools`, `_site`, `dist`, `renders`, `README.md`, `STORAGE.md`, `.gitignore`, `hlyja`, `docker`, `deploy`, `compose.yaml`, `.dockerignore`, `api` (v1.2), et tout nom commençant par `.env`) et enveloppe `index.html`. Tout `assets/` est publié. Depuis v1.1, le site est servi par l'image `front` sur le serveur OVH, déployé à la main par `deploy/deploy.sh` ([Architecture](architecture.md)) ; GitHub Pages n'est plus utilisé.
 
@@ -74,3 +80,4 @@ Une branche par sujet (`feat/…`, `fix/…`, `version/<x.y>-<slug>` pour Hlýja
 | 1.4 | Ancien modèle v2 de `docs/` supprimé ; `e2e-candidatures` couvre le bandeau et les boutons d'exemples du mode navigateur ; compteurs de `test-serveur` et `e2e-serveur` |
 | 1.7 | `admin/`, `deploy/systemd/`, `deploy/RESTAURER.md`, `CLE-SAUVEGARDE.md`, `METTRE-A-JOUR.md` ; `npm test` à 58 tests ; `tools/test-sauvegarde.sh` ; banc `ubuntu:26.04` avec systemd ; shellcheck avec `LC_ALL=C.UTF-8` |
 | 1.9 | `tools/test-auto-deploy.sh` (niveaux A et B), `npm test` à 65 tests, `e2e-serveur` vérifie `admin/deploiement.html` ; shellcheck en format `gcc` |
+| 1.10 | Mise en page des étapes : largeur commune, panneau Notes, composant unique de la fiche du candidat ; tests de l'API : `fichiers` |

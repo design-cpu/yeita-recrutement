@@ -75,7 +75,7 @@ test("démarrage : valeurs résolues journalisées, écoute sur 127.0.0.1 par d�
   const relatif = path.relative(path.dirname(SERVEUR), attendu);
   const l = await demarrer(t, { PORT: String(port), DB_PATH: relatif }, d);
   const ligne = JSON.parse(l.sortie().split("\n").find(x => x.includes("API démarrée")));
-  assert.deepEqual([ligne.hote, ligne.port, ligne.base, ligne.user_version], ["127.0.0.1", port, attendu, 1]);
+  assert.deepEqual([ligne.hote, ligne.port, ligne.base, ligne.user_version], ["127.0.0.1", port, attendu, 2]);
   assert.ok(!l.sortie().includes("joignable que par oauth2-proxy"));
   const r = await fetch(`http://127.0.0.1:${port}/api/sante`);
   assert.deepEqual(await r.json(), { ok: true });
@@ -144,7 +144,7 @@ test("ligne de démarrage du mode local : DEV_EMAIL en forme, DEV_STATIC en chem
   const l = await demarrer(t, { PORT: String(port), HOST: "localhost", NODE_ENV: "development", DB_PATH: path.join(racine, "r.sqlite"), DEV_EMAIL: " Dev@Yeita.FR ", DEV_STATIC: relatif }, os.tmpdir());
   const ligne = JSON.parse(l.sortie().split("\n").find(x => x.includes("API démarrée")));
   assert.deepEqual([ligne.hote, ligne.port, ligne.base, ligne.user_version, ligne.node_env, ligne.dev_email, ligne.dev_static],
-    ["localhost", port, path.join(racine, "r.sqlite"), 1, "development", "dev@yeita.fr", site]);
+    ["localhost", port, path.join(racine, "r.sqlite"), 2, "development", "dev@yeita.fr", site]);
   /* Les avertissements suivent la ligne « API démarrée » : on leur laisse le temps d'arriver (test instable sinon). */
   for (let i = 0; i < 40 && !/Mode local : DEV_STATIC=/.test(l.sortie()); i++) await new Promise(r => setTimeout(r, 25));
   assert.match(l.sortie(), /Mode local : DEV_STATIC=/);

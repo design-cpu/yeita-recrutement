@@ -141,6 +141,23 @@ function AdaptateurServeur(opts){
         return r.type === "ok" ? d : null;
       });
     },
+    /* Fichiers d'un candidat (1.7) : envoi brut (type du fichier, nom dans X-Nom-Fichier), adresse de lecture, retrait. */
+    deposer: function(id, champ, fichier){
+      if(!MOTIF_ID.test(String(id || ""))) return echec(erreur("identifiant", texte("identifiant", {nom: id || ""})), true);
+      var o = {method: "POST", cache: "no-store", credentials: "same-origin", body: fichier,
+        headers: {"Accept": "application/json", "Content-Type": fichier.type || "application/octet-stream", "X-Nom-Fichier": encodeURIComponent(fichier.name || "")}};
+      return faire(adresse(id) + "/fichiers?champ=" + encodeURIComponent(champ), o).then(lire, function(){ return {type: "erreur", erreur: erreur("reseau", texte("reseau"))}; })
+        .then(function(r){ var s = suite(r, function(r){ return r.json; }); return s || Promise.reject(r.erreur); });
+    },
+    fichierUrl: function(id, fid){ return adresse(id) + "/fichiers/" + encodeURIComponent(fid); },
+    retirerFichier: function(id, fid){
+      return envoyer("DELETE", adresse(id) + "/fichiers/" + encodeURIComponent(fid)).then(function(r){
+        var s = suite(r, function(){ return undefined; });
+        if(s !== null) return s;
+        if(r.erreur.code === "fichier-introuvable") return undefined;
+        return Promise.reject(r.erreur);
+      });
+    },
     /* L'objet du PUT en cours pour cet identifiant, ou null (départ des fiches : leur partie se pose dessus). */
     enVol: function(id){ return enCours[id] ? enCours[id].objet : null; },
     /* Version gardée pour un objet (tests). */

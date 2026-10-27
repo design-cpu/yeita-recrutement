@@ -15,12 +15,12 @@ test("base neuve : schéma, réglages, droits", t => {
   const { db, creee, userVersion } = ouvrirBase(chemin);
   t.after(() => db.close());
   assert.equal(creee, true);
-  assert.equal(userVersion, 1);
+  assert.equal(userVersion, 2);
   assert.equal(db.pragma("journal_mode", { simple: true }), "wal");
   assert.equal(db.pragma("secure_delete", { simple: true }), 1);
   assert.equal(db.pragma("busy_timeout", { simple: true }), 5000);
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map(r => r.name);
-  assert.deepEqual(tables, ["candidats", "equipe", "journal", "options_disponibilite"]);
+  assert.deepEqual(tables, ["candidats", "equipe", "fichiers", "journal", "options_disponibilite"]);
   db.prepare("INSERT INTO options_disponibilite VALUES ('x', 'le')").run();
   assert.equal(mode(d), "700");
   for (const s of ["", "-wal", "-shm"]) assert.equal(mode(chemin + s), "600", `mode de ${s || "la base"}`);
@@ -39,8 +39,8 @@ test("réouverture : rien n'est recréé, données gardées", t => {
 
 test("base d'une version plus récente : refus", t => {
   const chemin = path.join(dossierTemporaire(t), "r.sqlite");
-  const x = new Database(chemin); x.pragma("user_version = 2"); x.close();
-  assert.throws(() => ouvrirBase(chemin), e => e instanceof ErreurBase && /version plus récente \(user_version 2\) : .*r\.sqlite\.$/.test(e.message));
+  const x = new Database(chemin); x.pragma("user_version = 3"); x.close();
+  assert.throws(() => ouvrirBase(chemin), e => e instanceof ErreurBase && /version plus récente \(user_version 3\) : .*r\.sqlite\.$/.test(e.message));
 });
 
 test("échec provoqué pendant le schéma puis relance (règle 2)", t => {
@@ -54,7 +54,18 @@ test("échec provoqué pendant le schéma puis relance (règle 2)", t => {
   y.exec("DROP TABLE journal"); y.close();
   const { db, userVersion } = ouvrirBase(chemin);
   t.after(() => db.close());
-  assert.equal(userVersion, 1);
+  assert.equal(userVersion, 2);
+});
+
+test("base en version 1 (avant les fichiers) : migrée en 2, dossiers gardés (1.7)", t => {
+  const chemin = path.join(dossierTemporaire(t), "r.sqlite");
+  const x = new Database(chemin); x.exec(SCHEMA); x.pragma("user_version = 1");
+  x.prepare("INSERT INTO candidats VALUES ('cand-a-b', '{}', 1, 'le', 'par')").run(); x.close();
+  const { db, userVersion } = ouvrirBase(chemin);
+  t.after(() => db.close());
+  assert.equal(userVersion, 2);
+  assert.equal(db.prepare("SELECT count(*) n FROM candidats").get().n, 1);
+  assert.deepEqual(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'fichiers'").all().map(r => r.name), ["fichiers"]);
 });
 
 test("deux ouvertures concurrentes d'une base neuve : la seconde attend puis réussit", { timeout: 20000 }, async t => {
@@ -73,5 +84,5 @@ test("deux ouvertures concurrentes d'une base neuve : la seconde attend puis ré
   a.exec("COMMIT"); a.close();
   const code = await new Promise(r => fils.on("exit", r));
   assert.equal(code, 0, sortie);
-  assert.match(sortie, /^ok 1/);
+  assert.match(sortie, /^ok 2/);
 });

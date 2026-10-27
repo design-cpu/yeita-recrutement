@@ -153,11 +153,10 @@ window.WORDING = {
     ville: "Ville",
     linkedin: "LinkedIn",
     portfolio: "Portfolio",
-    cv: "CV (lien)",
-    cvAide: "Un lien pour l'instant. Le dépôt de fichier viendra avec le stockage sécurisé.",
+    cv: "CV",
     references: "Références",
     recruteurs: "Recruteurs",
-    ouvrirAppel: "Démarrer l'appel maintenant",
+    ouvrirAppel: "Passer à l'appel de découverte",
     enregistrer: "Enregistrer et revenir à la liste",
     ajoute: "{nom} ajouté·e à l'appel de découverte"
   },
@@ -180,8 +179,32 @@ window.WORDING = {
     supprimer: "Supprimer ce candidat",
     supprimerTitre: "Supprimer {nom} ?",
     supprimerConfirme: "La candidature, sa carte d'identité et son historique disparaissent. C'est aussi la réponse à une demande d'effacement.",
+    supprimerFichiers: "Son CV et son portfolio déposés sont effacés avec elle.",
+    groupes: {identite: "Identité", contact: "Contact", documents: "Documents", suivi: "Suivi"},
     supprimerOui: "Supprimer", supprimerNon: "Garder",
     supprime: "{nom} supprimé·e"
+  },
+
+  /* ---------- CV et Portfolio : un fichier déposé ou un lien (fiche du candidat) ---------- */
+  docs: {
+    fichier: "Déposer un fichier",
+    lien: "Coller un lien",
+    glisser: "ou glisse-le ici · PDF, PNG, JPG, 10 Mo",
+    ouvrir: "Ouvrir",
+    modifier: "Modifier",
+    retirer: "Retirer",
+    ok: "Valider",
+    nouvelOnglet: "nouvel onglet",
+    lienDe: "Lien du {champ}",
+    envoi: "Envoi de {nom}…",
+    depose: "{champ} déposé",
+    retire: "{champ} retiré",
+    indispo: "Le dépôt de fichier se fait sur le site de l'équipe. Ici, colle un lien.",
+    erreurType: "Ce fichier n'est pas accepté. Choisis un PDF, un PNG ou un JPG.",
+    erreurTaille: "Ce fichier dépasse 10 Mo. Compresse-le ou colle plutôt un lien.",
+    erreurVide: "Ce fichier est vide.",
+    erreurLien: "Ce lien n'est pas valide. Colle une adresse qui commence par https://.",
+    histo: {depot: "{champ} déposé : {nom}", retrait: "{champ} retiré : {nom}", lien: "{champ} : lien ajouté ({nom})", retraitLien: "{champ} : lien retiré"}
   },
 
   /* ---------- Le menu ⋯ d'un candidat (tableau, liste, en-tête du parcours) ---------- */
@@ -230,6 +253,9 @@ window.WORDING = {
     titre2: "Fiche de l'EC2 · Scorecard",
     liens: "Liens et outils",
     masquerCarte: "Masquer sur la carte",
+    ouvrirJeu: "Ouvrir Yeita Match en ligne",
+    grilleOuvrir: "Ouvrir la grille de salaire dans un nouvel onglet",
+    seniorite: "Junior 0 à 1 · Intermédiaire 2 à 3 · Senior 3 à 4",
     echange: "Échange libre",
     pitch: "Pitch Yeita",
     recit: "Son parcours, raconté",
@@ -289,6 +315,7 @@ window.WORDING = {
     enAppel: "En appel, 15 min",
     enAsync: "En asynchrone",
     carteBref: "La carte d'identité",
+    interneTitre: "Pour le bilan : ce qui n'est pas communiqué au candidat",
     lignes: {
       percu: "Ce qu'on a perçu", match: "Yeita Match", partielle: "Lecture partielle", employabilite: "Employabilité",
       vigilance: "Signaux de vigilance", creuserEC2: "À creuser en EC2", creuserEC3: "À creuser en EC3", palier: "Palier", creux: "Diamants creux"

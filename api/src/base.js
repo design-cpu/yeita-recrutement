@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
 
-export const VERSION_SCHEMA = 1;
+export const VERSION_SCHEMA = 2;
 export const ATTENTE_MS = 5000;
 
 export const SCHEMA = `
@@ -35,6 +35,24 @@ CREATE TABLE options_disponibilite (
   libelle   TEXT PRIMARY KEY,
   ajoute_le TEXT NOT NULL
 );`;
+
+/* Les évolutions du schéma, appliquées dans l'ordre à partir de la version de la base (1.7 : fichiers des candidats).
+   Les fichiers (CV, portfolio) sont dans la base, avec le dossier : même accès réservé à l'équipe, même effacement réel. */
+export const MIGRATIONS = {
+  2: `
+CREATE TABLE fichiers (
+  id          TEXT PRIMARY KEY,
+  candidat_id TEXT NOT NULL REFERENCES candidats (id) ON DELETE CASCADE,
+  champ       TEXT NOT NULL CHECK (champ IN ('cv','portfolio')),
+  nom         TEXT NOT NULL CHECK (length(nom) BETWEEN 1 AND 120),
+  type        TEXT NOT NULL CHECK (type IN ('application/pdf','image/png','image/jpeg')),
+  taille      INTEGER NOT NULL CHECK (taille > 0),
+  contenu     BLOB NOT NULL,
+  depose_le   TEXT NOT NULL,
+  depose_par  TEXT NOT NULL
+);
+CREATE INDEX fichiers_candidat ON fichiers (candidat_id);`
+};
 
 export class ErreurBase extends Error {}
 
@@ -76,8 +94,10 @@ function appliquerSchema(db) {
   if (v > VERSION_SCHEMA) throw new ErreurBase(`Base d'une version plus récente (user_version ${v}).`);
   if (v === VERSION_SCHEMA) return;
   db.transaction(() => {
-    if (lue() !== 0) return;
-    db.exec(SCHEMA);
+    let w = lue();
+    if (w === VERSION_SCHEMA) return;
+    if (w === 0) { db.exec(SCHEMA); w = 1; }
+    for (let n = w + 1; n <= VERSION_SCHEMA; n++) db.exec(MIGRATIONS[n]);
     db.pragma(`user_version = ${VERSION_SCHEMA}`);
   }).immediate();
 }

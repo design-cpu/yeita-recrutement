@@ -301,14 +301,38 @@ async def principal():
                   and await pg.locator('input[name="imp-mode"][value="fusion"]').count() == 1)
 
             # --- Création puis rechargement (CA4) ---
-            await pg.click("#add-open"); await pg.fill("#a-personne", "Repère Zéphyrin")
-            await pg.click('#add-form button[value="liste"]'); await pg.wait_for_timeout(600)
+            await pg.click("#add-open"); await pg.fill("#mf-personne", "Repère Zéphyrin")
+            await pg.click('[data-mc-creer="liste"]'); await pg.wait_for_timeout(600)
             await pg.reload(wait_until="networkidle")
             check("création puis rechargement : la candidature est là", await pg.locator(".kc", has_text="Repère Zéphyrin").count() == 1)
             st, liste = api("alice@yeita.fr", "GET", "candidats")
             cible = [x for x in liste if x["data"]["candidat"]["nom"] == "Repère Zéphyrin"]
             check("création : lue depuis l'API, au nom d'Alice dans l'historique (CA10)", st == 200 and len(cible) == 1 and cible[0]["data"]["historique"][0]["par"] == "Alice")
             cid = cible[0]["id"] if cible else ""
+
+            # --- CV en fichier, portfolio en lien (1.7) ---
+            pf = await ouvrir(alice, C + "candidat.html?id=" + cid + "&etape=appel")
+            if not await pf.locator('#panel [data-doc="cv"]').count():
+                await pf.click("#c-side .morebtn"); await pf.click("[data-mc=fiche]"); await pf.wait_for_timeout(300)
+            zone = '[data-doc="cv"]'
+            check("dépôt : « Déposer un fichier » et « Coller un lien » dans le champ CV", await pf.locator(zone + ' [data-doc-act="fichier"]').first.is_visible() and await pf.locator(zone + ' [data-doc-act="lien"]').first.is_visible())
+            dpdf = tempfile.mkdtemp(); fpdf = os.path.join(dpdf, "CV Zéphyrin <final>.pdf"); open(fpdf, "wb").write(b"%PDF-1.4\nMARQUEUR-CV-ZEPHYRIN " + b"x" * 5000)
+            await pf.locator(zone + " [data-doc-file]").first.set_input_files(fpdf); await pf.wait_for_timeout(1200)
+            st, fl = api("alice@yeita.fr", "GET", "candidats/" + cid + "/fichiers")
+            txt = await pf.locator(zone).first.inner_text()
+            check("dépôt du CV : dans l'API (nom nettoyé), affiché avec son nom, sa taille, Ouvrir et Retirer", st == 200 and len(fl) == 1 and fl[0]["nom"] == "CV Zéphyrin final.pdf" and "CV Zéphyrin final.pdf" in txt and "Ko" in txt and "Ouvrir" in txt and "Retirer" in txt, str(fl))
+            href = await pf.locator(zone + " a.btn").first.get_attribute("href")
+            ouvert = await pf.evaluate("u => fetch(u).then(r => [r.status, r.headers.get('content-type'), r.headers.get('x-content-type-options')])", href)
+            check("Ouvrir : le fichier est servi par l'API, en PDF, nosniff", ouvert == [200, "application/pdf", "nosniff"], str(ouvert))
+            st, d = api("alice@yeita.fr", "GET", "candidats/" + cid)
+            check("dépôt : tracé dans l'historique du dossier, fichier noté sur la fiche", d["data"]["identite"]["fichiers"]["cv"]["nom"] == "CV Zéphyrin final.pdf" and any(h.get("type") == "fichier" and h.get("action") == "depot" for h in d["data"]["historique"]))
+            await pf.locator('[data-doc="portfolio"] [data-doc-act="lien"]').first.click(); await pf.locator('[data-doc="portfolio"] [data-doc-url]').fill("https://zephyrin.design")
+            await pf.keyboard.press("Enter"); await pf.wait_for_timeout(900)
+            if await pf.locator("dialog.mdlg").count(): await pf.click(".mdlg-a [data-mc-close]"); await pf.wait_for_timeout(600)
+            st, d = api("alice@yeita.fr", "GET", "candidats/" + cid)
+            check("portfolio en lien : enregistré, tracé", d["data"]["identite"]["portfolio"] == "https://zephyrin.design" and any(h.get("action") == "lien" for h in d["data"]["historique"]))
+            await pf.close()
+            await pg.reload(wait_until="networkidle")
             check("import en mode serveur : texte d'export « copie » (CA14)", "Un export est une copie" in (await pg.locator("#lastexp").text_content() or ""))
             check("création : rien dans yeita-dossiers", await pg.evaluate("localStorage.getItem('yeita-dossiers')") is None)
             options = await pg.evaluate("QUI.equipe()")
@@ -407,6 +431,7 @@ async def principal():
             pa = await ouvrir(alice, C + "candidat.html?id=" + cid)
             await pa.click("#c-side .morebtn"); await pa.click("[data-mc=supprimer]"); await pa.click("[data-mc-del]"); await pa.wait_for_timeout(800)
             check("suppression : DELETE, plus dans l'API", api("alice@yeita.fr", "GET", "candidats/" + cid)[0] == 404)
+            check("suppression : ses fichiers partent avec lui (1.7)", api("alice@yeita.fr", "GET", "candidats/" + cid + "/fichiers")[0] == 404)
             await tel(bc, "0655555555"); await be.fill("#f-def", "Après suppression"); await bc.wait_for_timeout(1000)
             check("suppression : saisie chez Bob → aucune recréation, bandeau", api("bob@yeita.fr", "GET", "candidats/" + cid)[0] == 404 and "modifiée" in await bandeau(bc) and "modifiée" in await bandeau(be))
             tb = await ouvrir(bob, C)
@@ -416,7 +441,7 @@ async def principal():
             journal = open(os.path.join(base, "api.log")).read()
             check("suppression : le repère n'est pas dans le journal de l'API", "Zéphyrin" not in journal and "Perçu repère" not in journal)
             bruts = b"".join(open(os.path.join(base, f), "rb").read() for f in os.listdir(base) if f.startswith("e2e.sqlite"))
-            check("suppression : le repère n'est plus dans les fichiers de la base (sans VACUUM)", "Zéphyrin".encode() not in bruts and b"Perc" not in bruts)
+            check("suppression : le repère n'est plus dans les fichiers de la base (sans VACUUM)", "Zéphyrin".encode() not in bruts and b"Perc" not in bruts and b"MARQUEUR-CV-ZEPHYRIN" not in bruts)
 
             # --- Bandeau jaune des autres pages, sur un dossier existant (1.4, CA1) ---
             ti = await ouvrir(alice, C)
@@ -454,7 +479,8 @@ async def principal():
                 ctx, pg, req = await demarrage(fn)
                 check("démarrage %s : bandeau, aucune lecture" % nom, attendu in await bandeau(pg) and not any("/api/candidats" in u for u in req) and await pg.evaluate("DEMARRAGE.mode()") == "bloque")
                 if nom == "502 HTML":
-                    await pg.click("#add-open"); await pg.fill("#a-personne", "Pendant Panne"); await pg.click('#add-form button[value="liste"]'); await pg.wait_for_timeout(500)
+                    await pg.click("#add-open"); await pg.wait_for_timeout(200)
+                    if await pg.locator("#mf-personne").count(): await pg.fill("#mf-personne", "Pendant Panne"); await pg.click('[data-mc-creer="liste"]'); await pg.wait_for_timeout(500)
                     check("mode bloqué : « Nouvelle candidature » n'écrit rien, ni API ni yeita-dossiers (CA3)",
                           await pg.evaluate("localStorage.getItem('yeita-dossiers')") is None and not any(x["data"]["candidat"]["nom"] == "Pendant Panne" for x in api("alice@yeita.fr", "GET", "candidats")[1]))
                     await pg.evaluate("document.getElementById('demo-load').click(); document.getElementById('empty-demo').click()"); await pg.wait_for_timeout(800)

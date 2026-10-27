@@ -102,7 +102,7 @@
 </head>
 <body>
 <div id="live" aria-live="polite"></div>
-<div class="wrap narrow">
+<div class="wrap etape">
   <header class="topbar">
     <a href="../index.html#guide" aria-label="Retour au hub Expérience collaborateur" style="padding:0" id="logo"></a>
     <span class="where" data-t="commun.espace">Candidatures</span>
@@ -115,15 +115,9 @@
   <div id="pu"></div>
   <div class="fiche-bar">
     <h2 class="fiche-t"><span data-t="ec.titre1"></span></h2>
-    <details class="other liens-fiche" id="liens"><summary data-t="ec.liens"></summary><div class="in"><div class="links" id="liens-in"></div>
-      <div class="actions"><button type="button" class="btn quiet small" id="toggle-all">Tout déplier</button><button type="button" class="btn quiet small" id="copy-notion" data-t="ec.copierNotion"></button><button type="button" class="btn quiet small" id="clear" data-t="ec.vider"></button></div></div></details>
   </div>
   <div class="candbar" id="candbar" hidden role="status"></div>
   <div class="toolbar" hidden><button type="button" class="btn quiet small" id="demo">Charger un exemple</button></div>
-  <div class="callout" id="confirm" hidden role="alertdialog" aria-labelledby="cf-t" style="margin-bottom:16px">
-    <p id="cf-t"><b>Vider la fiche ?</b> Tout ce qui est écrit ici sera effacé de ce navigateur. Ce qui a déjà été reporté vers la carte d'identité y reste.</p>
-    <div class="actions" style="margin-top:10px"><button type="button" class="btn small" id="cf-yes">Vider</button><button type="button" class="btn quiet small" id="cf-no">Garder</button></div>
-  </div>
 
   <form class="sheet" id="sheet" autocomplete="off" onsubmit="return false">
 
@@ -141,7 +135,7 @@
     </details>
 
     <details class="sec" id="yeita-match">
-      <summary><span class="chev" aria-hidden="true"></span><span class="sn">2</span><span class="stt">Le résultat de Yeita Match <span class="tag carte">Visible sur la carte du candidat</span></span></summary>
+      <summary><span class="chev" aria-hidden="true"></span><span class="sn">2</span><span class="stt">Yeita Match <span class="tag carte">Visible sur la carte du candidat</span></span></summary>
       <div class="in">
         <div id="from"></div>
         <div class="importer">
@@ -522,6 +516,7 @@ function notionText(){
 /* ---------- Sections dépliantes ---------- */
 function applyOpen(){ SECS.forEach(function(id){ document.getElementById(id).open = !!st.open[id]; }); syncToggleAll(); }
 function syncToggleAll(){
+  if(!document.getElementById("toggle-all")) return;
   var all = SECS.every(function(id){ return document.getElementById(id).open; });
   document.getElementById("toggle-all").textContent = all ? "Tout replier" : "Tout déplier";
 }
@@ -594,23 +589,7 @@ document.addEventListener("click", function(e){
     changed(); fill(); renderPicker(); save(); renderFrom(); YEITA.flash(null, "Résultat repris"); return;
   }
   if(e.target.id === "report"){ doReport(e.target); return; }
-  if(e.target.id === "copy-notion"){ var b1 = e.target; YEITA.copy(notionText(), function(ok){ YEITA.flash(b1, ok ? "Copié pour Notion" : "Copie refusée : sélectionne le texte à la main"); }); return; }
   if(e.target.id === "copy-code"){ var b2 = e.target; if(!hasContent()){ YEITA.flash(b2, "La fiche est vide"); return; } YEITA.copy(codeNow(), function(ok){ YEITA.flash(b2, ok ? "Code EC1 copié" : "Copie refusée : sélectionne le code à la main"); }); return; }
-  if(e.target.id === "toggle-all"){
-    var open = !SECS.every(function(id){ return document.getElementById(id).open; });
-    SECS.forEach(function(id){ document.getElementById(id).open = open; st.open[id] = open; });
-    persist(); syncToggleAll(); return;
-  }
-  if(e.target.id === "clear"){ document.getElementById("confirm").hidden = false; document.getElementById("cf-yes").focus(); return; }
-  if(e.target.id === "cf-no"){ document.getElementById("confirm").hidden = true; document.getElementById("clear").focus(); return; }
-  if(e.target.id === "cf-yes"){
-    var keepOpen = st.open;
-    st = fresh(true); st.open = keepOpen; reportError = "";
-    if(cand){ st.f["f-nom"] = cand.candidat.nom; st.dossierId = cand.id; st.dossierNom = cand.candidat.nom; }
-    document.querySelectorAll("#sheet textarea").forEach(function(t){ t.style.height = ""; });
-    fill(); renderPicker(); renderDiam(); renderCrits(); save(); renderFrom();
-    document.getElementById("confirm").hidden = true; YEITA.flash(null, "Fiche vidée"); document.getElementById("clear").focus(); return;
-  }
   if(e.target.id === "demo"){
     st = fresh(true);
     st.dom = "explorateur"; st.sec = "collectif"; st.start = "binome"; st.source = "decompte";
@@ -661,7 +640,8 @@ function formatYM(){
   sel.closest(".field").hidden = true;
   document.querySelectorAll("#sheet > .sec .sn").forEach(function(n, i){ n.textContent = i + 1; });
   sec.querySelector(".in").insertAdjacentHTML("afterbegin", '<fieldset class="plain ym-fmt"><legend>' + E(UI.t("ec.ymPasse")) + '</legend><div class="radios-inline">'
-    + '<label><input type="radio" name="ym-fmt" value="presentiel">' + E(UI.t("ec.presentiel")) + '</label><label><input type="radio" name="ym-fmt" value="visio">' + E(UI.t("ec.visio")) + '</label></div></fieldset>');
+    + '<label><input type="radio" name="ym-fmt" value="presentiel">' + E(UI.t("ec.presentiel")) + '</label><label><input type="radio" name="ym-fmt" value="visio">' + E(UI.t("ec.visio")) + '</label>'
+    + '<a class="btn small" id="ym-en-ligne" href="' + E((YEITA_MATCH && YEITA_MATCH.GAME_URL) || "") + '" target="_blank" rel="noopener" hidden>' + E(UI.t("ec.ouvrirJeu")) + YEITA.icon("ExternalLink", 15, 2.2) + '<span class="sr-only"> (' + E(UI.t("docs.nouvelOnglet")) + ')</span></a></div></fieldset>');
   syncFormatYM();
 }
 function syncFormatYM(){
@@ -669,6 +649,8 @@ function syncFormatYM(){
   document.querySelectorAll("input[name=ym-fmt]").forEach(function(r){ r.checked = r.value === v; });
   /* L'import du jeu en ligne ne sert qu'en visio ; en présentiel, la feuille de décompte reporte le résultat. */
   if(imp) imp.hidden = v !== "visio";
+  /* En visio, le jeu en ligne s'ouvre d'ici, juste à côté du choix ; en présentiel, rien. */
+  var en = document.getElementById("ym-en-ligne"); if(en) en.hidden = v !== "visio" || !en.getAttribute("href");
 }
 document.addEventListener("change", function(e){
   if(e.target.name !== "ym-fmt") return;
@@ -706,6 +688,7 @@ function renderExits(){
   el.innerHTML = '<div class="exits" role="group" aria-label="' + E(UI.t("fiche.sorties")) + '"><div class="l">' + saved + '</div><div class="r">' + right + '</div></div>';
 }
 function liens(){
+  if(!document.getElementById("liens-in")) return;
   var C = YEITA_CONFIG.liens || {}, G = (YEITA_MATCH && YEITA_MATCH.GAME_URL) || "";
   var l = [[UI.t("ec.decompte"), "decompte.html?id=" + encodeURIComponent(cand.id)], [UI.t("ec.jeuEnLigne"), G, true], [UI.t("ec.kit"), "../yeita-match-kit.html", true], [UI.t("commun.guideEtape"), PARCOURS.guideHref("ec1"), true], [UI.t("ec.carte"), "carte.html?id=" + encodeURIComponent(cand.id)]];
   document.getElementById("liens-in").innerHTML = l.filter(function(x){ return x[1]; }).map(function(x){ return '<a href="' + E(x[1]) + '"' + (x[2] ? ' target="_blank" rel="noopener"' : '') + '>' + E(x[0]) + '</a>'; }).join("");
@@ -742,10 +725,10 @@ else DEMARRAGE.pret.then(function(){ return DOSSIER.get(candId); }).then(functio
   st = (c.fiches && c.fiches.ec1) ? Object.assign(fresh(true), JSON.parse(JSON.stringify(c.fiches.ec1))) : fromEC1(c);
   st.passationDone = true; st.dossierId = c.id; st.dossierNom = c.candidat.nom;
   st.f["f-nom"] = c.candidat.nom;
-  if(!st.f["f-par"]) st.f["f-par"] = STORE.me() || "";
+  if(!st.f["f-par"]) st.f["f-par"] = UI.nomComplet(STORE.me()) || "";
   if(!st.f["f-date"]) st.f["f-date"] = new Date().toISOString().slice(0,10);
   var nomEl = document.getElementById("f-nom"); nomEl.readOnly = true; nomEl.closest(".field").hidden = true;
-  document.getElementById("cf-t").innerHTML = "<b>" + E(UI.t("ec.viderQuestion", {nom: c.candidat.nom})) + "</b> " + E(UI.t("ec.viderTexte"));
+  if(document.getElementById("cf-t")) document.getElementById("cf-t").innerHTML = "<b>" + E(UI.t("ec.viderQuestion", {nom: c.candidat.nom})) + "</b> " + E(UI.t("ec.viderTexte"));
   document.getElementById("body").hidden = false;
   PU.render(c, "ec1");
   try{ var n = JSON.parse(sessionStorage.getItem("yeita-notice") || "null"); if(n && n.id === c.id){ document.getElementById("notice").innerHTML = '<div class="notice" role="status"><span>' + E(n.msg) + '</span></div>'; } sessionStorage.removeItem("yeita-notice"); }catch(x){}
