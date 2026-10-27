@@ -3,211 +3,273 @@ type: technique
 vue: humaine
 page: deploiement-ovh
 titre: Déployer sur OVH et tester avec Google, pas à pas
-maj: 1.5
-commit: ea25fd3
+maj: 1.6
+commit: 4b98c3a
 sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js
 date: 2026-10-27
 ---
 
 # Déployer sur OVH et tester avec Google, pas à pas
 
-> Coche chaque case dans l'ordre (tes coches restent enregistrées dans ce navigateur). Chaque étape dit quoi taper, ce que tu dois voir, et quoi faire sinon. Compte une heure, plus l'attente du DNS.
+> Fais une case à la fois, de haut en bas. Chaque commande se copie-colle telle quelle. Après chaque commande, une case « Tu dois voir » te dit si c'est bon. Si ce n'est pas bon, lis le **Sinon** juste en dessous et ne passe pas à la suite. Tes coches restent enregistrées dans ce navigateur : tu peux t'arrêter et reprendre plus tard.
 
-À la fin, `https://recrutement.yeita.fr` est en ligne : les pages candidats sont publiques, l'espace Candidatures demande un compte Google @yeita.fr, et tu es le premier admin.
+Ce guide est écrit pour **ton** serveur OVH :
 
----
+| | |
+|---|---|
+| Adresse du serveur | `51.75.252.121` |
+| Système | Ubuntu 26.04 |
+| Ce qui tourne déjà | nginx (sites web) et pm2 (`yeita-agents`, `mamie-discord`) : on n'y touche pas |
+| Adresse finale du site | `https://recrutement.yeita.fr` |
 
-## Étape 0 — Rassembler ce qu'il faut
+Tu vas utiliser **deux comptes** sur le serveur. Chaque étape dit lequel.
 
-- [ ] J'ai un accès SSH **administrateur** (sudo) au serveur OVH.
-- [ ] J'ai noté l'adresse IP du serveur : espace client OVH › **Bare Metal Cloud** › **VPS** (ou Serveurs dédiés) › ton serveur › **IPv4**. On l'appelle `IP_SERVEUR` plus bas.
-- [ ] J'ai accès à la zone DNS de `yeita.fr` dans l'espace client OVH.
-- [ ] J'ai un compte Google **administrateur** de yeita.fr (pour la console Google Cloud).
-- [ ] J'ai le dépôt cloné sur mon poste (pour le contrôle final).
+| Compte | Pour quoi | Commande pour se connecter (depuis ton Mac) |
+|---|---|---|
+| `ubuntu` | installer, régler nginx | `ssh -i ~/.ssh/id_ed25519 ubuntu@51.75.252.121` |
+| `deploy` | le site lui-même (créé à l'étape 3) | `ssh -i ~/.ssh/id_ed25519 deploy@51.75.252.121` |
 
----
-
-## Étape 1 — Ta clé SSH (sur ton poste)
-
-- [ ] Affiche ta clé publique :
-
-```bash
-cat ~/.ssh/id_ed25519.pub
-```
-
-- [ ] **Tu dois voir** une ligne qui commence par `ssh-ed25519 AAAA…`. Copie-la en entier : c'est `TA_CLE` plus bas.
-
-**Sinon** (« No such file »), crée-la, appuie sur Entrée à chaque question, puis relance la commande du dessus :
-
-```bash
-ssh-keygen -t ed25519 -C "prenom.nom@yeita.fr"
-```
+Pour quitter le serveur et revenir sur ton Mac : tape `exit`.
 
 ---
 
-## Étape 2 — Le DNS chez OVH
+## Étape 1 — Le DNS (dans le navigateur, espace client OVH)
 
-- [ ] Espace client OVH › **Web Cloud** › **Noms de domaine** › `yeita.fr` › onglet **Zone DNS**.
-- [ ] Cherche `recrutement` dans la liste. S'il existe déjà une ligne `recrutement` de type **A**, **AAAA** ou **CNAME**, supprime-la (crayon › Supprimer).
-- [ ] **Ajouter une entrée** › **A** › Sous-domaine : `recrutement` › Cible : `IP_SERVEUR` › Suivant › Valider.
-- [ ] Attends 5 minutes, puis sur ton poste :
+- [ ] Ouvre l'espace client OVH › **Web Cloud** › **Noms de domaine** › `yeita.fr` › onglet **Zone DNS**.
+- [ ] Dans la recherche du tableau, tape `recrutement`.
+- [ ] S'il y a déjà une ou plusieurs lignes `recrutement`, supprime-les (bouton `…` › Supprimer l'entrée).
+- [ ] Clique **Ajouter une entrée** › **A**.
+- [ ] Sous-domaine : `recrutement`. Cible : `51.75.252.121`. Clique **Suivant**, puis **Valider**.
+- [ ] Attends 5 minutes, puis, dans le Terminal de ton Mac :
 
 ```bash
 dig +short recrutement.yeita.fr
 ```
 
-- [ ] **Tu dois voir** `IP_SERVEUR`, seule.
+- [ ] **Tu dois voir** `51.75.252.121`, et rien d'autre.
 
-**Sinon** (rien ou une autre adresse) : attends encore (jusqu'à quelques heures) et relance la commande. Tu peux faire les étapes 3 à 6 en attendant, mais **pas l'étape 6 bis ni l'étape 7**.
+**Sinon** (rien ne s'affiche) : c'est normal au début. Continue les étapes 2 à 5, et refais cette commande au début de l'étape 6.
 
 ---
 
-## Étape 3 — Vérifier le serveur
+## Étape 2 — Installer Docker et certbot (compte `ubuntu`)
 
 - [ ] Connecte-toi :
 
 ```bash
-ssh TON_COMPTE_ADMIN@IP_SERVEUR
+ssh -i ~/.ssh/id_ed25519 ubuntu@51.75.252.121
 ```
 
-- [ ] Vérifie Docker :
+- [ ] Vérifie qu'Ubuntu propose bien les logiciels :
 
 ```bash
-docker version --format '{{.Server.Version}}' && docker compose version
+apt-cache policy docker.io docker-compose-v2 certbot python3-certbot-nginx | grep -E '^[a-z]|Candidate|Candidat'
 ```
 
-- [ ] **Tu dois voir** un numéro (par exemple `29.9.2`), puis `Docker Compose version v…`.
+- [ ] **Tu dois voir** quatre noms (`docker.io:`, `docker-compose-v2:`, `certbot:`, `python3-certbot-nginx:`), chacun suivi d'une ligne `Candidate:` avec un numéro de version.
 
-**Sinon** : Docker n'est pas installé ou ne tourne pas. Ne l'installe pas au hasard sur un serveur partagé : demande au responsable du serveur.
+**Sinon** (une ligne dit `Candidate: (none)`) : arrête-toi ici et envoie la sortie à l'équipe technique.
 
-- [ ] Regarde qui tient les ports web :
+- [ ] Installe-les (une à deux minutes) :
 
 ```bash
-sudo ss -ltnp '( sport = :80 or sport = :443 )'
+sudo apt update && sudo apt install -y docker.io docker-compose-v2 certbot python3-certbot-nginx tmux
 ```
 
-- [ ] **Note ton cas** :
+- [ ] Vérifie que tout est installé :
 
-| Ce que tu vois dans la colonne de droite | Ton cas |
-|---|---|
-| Aucune ligne sous l'en-tête | **Cas B** (le projet fait lui-même le HTTPS) |
-| `nginx` | **Cas A** (on ajoute le site au nginx existant) |
-| Autre chose (`docker-proxy`, `traefik`, `apache2`, `caddy`…) | **Stop** : ne touche à rien, envoie cette sortie au responsable du serveur |
+```bash
+sudo docker version --format 'Docker {{.Server.Version}}' && sudo docker compose version && certbot --version
+```
+
+- [ ] **Tu dois voir** trois lignes : `Docker …`, `Docker Compose version …`, `certbot …`.
+
+**Sinon** : arrête-toi ici et envoie la sortie à l'équipe technique.
+
+- [ ] Vérifie que tes autres services tournent toujours :
+
+```bash
+pm2 list && systemctl is-active nginx
+```
+
+- [ ] **Tu dois voir** `yeita-agents` et `mamie-discord` en `online`, puis le mot `active`.
+
+**Sinon** : `pm2 resurrect` relance tes apps, `sudo systemctl start nginx` relance nginx.
+
+- [ ] Quitte le serveur :
+
+```bash
+exit
+```
 
 ---
 
-## Étape 4 — Préparer le serveur (une seule fois)
+## Étape 3 — Préparer le serveur (compte `ubuntu`, une seule fois)
 
-- [ ] Toujours connecté en admin, colle ces trois lignes en remplaçant `TA_CLE` par la ligne copiée à l'étape 1 (garde les guillemets) :
+Ce script crée le compte `deploy`, lui donne accès avec ta clé SSH, et télécharge le projet dans `/opt/recrutement`. Il ne touche ni à nginx, ni à pm2, ni au pare-feu.
+
+- [ ] Sur ton Mac, copie ta clé SSH (rien ne s'affiche, c'est normal) :
+
+```bash
+pbcopy < ~/.ssh/id_ed25519.pub
+```
+
+- [ ] Connecte-toi en `ubuntu` :
+
+```bash
+ssh -i ~/.ssh/id_ed25519 ubuntu@51.75.252.121
+```
+
+- [ ] Copie-colle cette ligne, puis `Entrée` :
+
+```bash
+read -r -p "Colle ta clé puis Entrée : " CLE
+```
+
+- [ ] Le serveur affiche `Colle ta clé puis Entrée :`. Fais `Cmd+V`, puis `Entrée`.
+- [ ] Copie-colle ces trois lignes d'un coup :
 
 ```bash
 d=$(mktemp -d)
 git clone https://github.com/design-cpu/yeita-recrutement.git "$d/recrutement"
-sudo "$d/recrutement/deploy/prepare-serveur.sh" "TA_CLE"
+sudo "$d/recrutement/deploy/prepare-serveur.sh" "$CLE"
 ```
 
-- [ ] **Tu dois voir** des lignes `· …` puis, à la fin : `Serveur prêt.`
+- [ ] **Tu dois voir** plusieurs lignes qui commencent par `·`, et à la fin : `Serveur prêt.`
 
-**Sinon** : une ligne `ARRÊT : …` dit ce qui bloque, suivie de `Rien n'a été modifié.` Corrige ce qu'elle dit et relance les trois mêmes lignes (c'est sans risque).
+**Sinon** :
+- `ARRÊT : la clé SSH donnée n'est pas une clé publique valide.` : refais les trois cases précédentes (la ligne `read`, `Cmd+V`, les trois lignes).
+- une autre ligne `ARRÊT : …`, suivie de `Rien n'a été modifié.` : envoie ces lignes à l'équipe technique. Une fois le problème réglé, tu peux relancer sans risque.
 
-- [ ] Déconnecte-toi : `exit`.
-
----
-
-## Étape 5 — Créer le client Google (dans le navigateur)
-
-Avec ton compte admin @yeita.fr, sur `https://console.cloud.google.com` :
-
-- [ ] En haut, sélecteur de projet › **Nouveau projet** › nom `recrutement-yeita` › Organisation `yeita.fr` › Créer. Sélectionne-le.
-- [ ] Menu ☰ › **API et services** › **Écran de consentement OAuth** (ou **Google Auth Platform**) › Commencer.
-- [ ] Nom de l'application : `Yeita Recrutement` ; e-mail d'assistance : le tien.
-- [ ] Audience : **Interne** (c'est ce qui réserve la connexion aux comptes yeita.fr).
-- [ ] Coordonnées : ton e-mail › Accepter › Créer.
-- [ ] **Clients** › **Créer un client** › Type : **Application Web** › nom : `recrutement`.
-- [ ] **URI de redirection autorisés** › Ajouter : `https://recrutement.yeita.fr/oauth2/callback` (exactement, sans `/` à la fin) › Créer.
-- [ ] **Tu dois voir** une fenêtre avec l'**ID client** (finit par `.apps.googleusercontent.com`) et le **Code secret du client**.
-- [ ] J'ai copié les deux dans un endroit sûr (gestionnaire de mots de passe) : Google ne remontrera plus le secret.
-
-**Sinon** (l'option **Interne** est grisée) : ton compte n'est pas dans l'organisation yeita.fr, ou le projet n'y est pas rattaché. Recrée le projet en choisissant l'organisation `yeita.fr`.
-
----
-
-## Étape 6 — Le fichier de réglages `.env` (sur le serveur, compte `deploy`)
-
-- [ ] Connecte-toi avec le compte créé à l'étape 4 :
+- [ ] Quitte le serveur :
 
 ```bash
-ssh deploy@IP_SERVEUR
+exit
 ```
 
-- [ ] Crée le fichier et un secret de cookies :
+- [ ] Depuis ton Mac, vérifie que le compte `deploy` te laisse entrer :
+
+```bash
+ssh -i ~/.ssh/id_ed25519 deploy@51.75.252.121 whoami
+```
+
+- [ ] **Tu dois voir** `deploy`.
+
+**Sinon** (`Permission denied`) : la clé collée n'était pas la bonne. Refais l'étape 3 depuis le début.
+
+---
+
+## Étape 4 — Vérifier le client Google (dans le navigateur)
+
+Tu as déjà l'**ID client** et le **Code secret du client**. Il reste deux réglages à vérifier.
+
+- [ ] Ouvre `https://console.cloud.google.com` › menu ☰ › **API et services** › **Identifiants** (ou **Google Auth Platform** › **Clients**) › clique sur ton client.
+- [ ] Dans **URI de redirection autorisés**, il doit y avoir exactement : `https://recrutement.yeita.fr/oauth2/callback`
+- [ ] S'il n'y est pas : **Ajouter un URI**, colle-le, puis **Enregistrer**.
+- [ ] Menu ☰ › **API et services** › **Écran de consentement OAuth** (ou **Google Auth Platform** › **Audience**) : le type d'utilisateur doit être **Interne**.
+
+**Sinon** (il est « Externe ») : passe-le en **Interne** sur cette même page. C'est ce qui empêche les comptes Gmail d'entrer.
+
+---
+
+## Étape 5 — Les réglages du site (compte `deploy`)
+
+- [ ] Connecte-toi en `deploy` :
+
+```bash
+ssh -i ~/.ssh/id_ed25519 deploy@51.75.252.121
+```
+
+- [ ] Crée le fichier de réglages (copie-colle tout le bloc d'un coup) :
 
 ```bash
 cd /opt/recrutement
-cp .env.example .env && chmod 600 .env
-echo "SECRET COOKIES : $(openssl rand -base64 32 | tr -- '+/' '-_')"
-```
-
-- [ ] Copie la valeur affichée après `SECRET COOKIES :`.
-- [ ] Ouvre le fichier avec `nano .env` et remplace ces lignes (garde les autres) :
-
-```
+touch .env && chmod 600 .env
+cat > .env <<EOF
 DOMAIN=recrutement.yeita.fr
-OAUTH2_PROXY_CLIENT_ID=<ID client de l'étape 5>
-OAUTH2_PROXY_CLIENT_SECRET=<code secret de l'étape 5>
+OAUTH2_PROXY_CLIENT_ID=A_REMPLACER
+OAUTH2_PROXY_CLIENT_SECRET=A_REMPLACER
 OAUTH2_PROXY_REDIRECT_URL=https://recrutement.yeita.fr/oauth2/callback
-OAUTH2_PROXY_COOKIE_SECRET=<secret cookies copié juste avant>
-COMPOSE_PROFILES=caddy
+OAUTH2_PROXY_COOKIE_SECRET=$(openssl rand -base64 32 | tr -- '+/' '-_')
+COMPOSE_PROFILES=
+EOF
 ```
 
-- [ ] **Cas A seulement** : la dernière ligne devient `COMPOSE_PROFILES=` (rien après le `=`).
-- [ ] Enregistre : `Ctrl+O`, Entrée, puis `Ctrl+X`.
+- [ ] Ouvre le fichier :
+
+```bash
+nano .env
+```
+
+- [ ] Sur la ligne `OAUTH2_PROXY_CLIENT_ID=`, efface `A_REMPLACER` et colle ton **ID client** Google.
+- [ ] Sur la ligne `OAUTH2_PROXY_CLIENT_SECRET=`, efface `A_REMPLACER` et colle ton **Code secret du client**.
+- [ ] Ne touche pas aux autres lignes. Enregistre et ferme : `Ctrl+O`, puis `Entrée`, puis `Ctrl+X`.
 - [ ] Vérifie :
 
 ```bash
-grep -E '^(DOMAIN|OAUTH2_PROXY_REDIRECT_URL|COMPOSE_PROFILES)=' .env
+grep -q A_REMPLACER .env && echo "PROBLÈME : il reste A_REMPLACER dans .env" || echo "OK : .env rempli"
 ```
 
-- [ ] **Tu dois voir** les trois lignes avec `recrutement.yeita.fr`, l'adresse `/oauth2/callback`, et `caddy` (cas B) ou rien (cas A).
+- [ ] **Tu dois voir** `OK : .env rempli`.
 
-**Sinon** : `nano .env` et corrige.
+**Sinon** : refais `nano .env` et remplace ce qui reste.
+
+- [ ] Quitte le serveur :
+
+```bash
+exit
+```
 
 ---
 
-## Étape 6 bis — Cas A seulement : brancher nginx
+## Étape 6 — Brancher le site dans nginx (compte `ubuntu`)
 
-Saute cette étape en cas B. Connecté en **admin** (pas `deploy`) :
+Le DNS doit être prêt, sinon le certificat HTTPS sera refusé.
 
-- [ ] Le DNS de l'étape 2 répond bien (`dig +short recrutement.yeita.fr` → `IP_SERVEUR`) : sans lui, pas de certificat.
-- [ ] Sauvegarde la configuration actuelle :
+- [ ] Sur ton Mac :
+
+```bash
+dig +short recrutement.yeita.fr
+```
+
+- [ ] **Tu dois voir** `51.75.252.121`.
+
+**Sinon** : attends et réessaie plus tard. Ne fais pas la suite tant que ce n'est pas bon.
+
+- [ ] Connecte-toi en `ubuntu` :
+
+```bash
+ssh -i ~/.ssh/id_ed25519 ubuntu@51.75.252.121
+```
+
+- [ ] Fais une copie de secours de nginx :
 
 ```bash
 sudo cp -a /etc/nginx ~/nginx-avant-recrutement
 ```
 
-- [ ] Liste les autres sites servis :
+- [ ] Note l'état de tes autres sites, pour comparer à la fin :
 
 ```bash
-sudo nginx -T 2>/dev/null | grep -E '^\s*server_name' | sort -u
+for s in $(sudo nginx -T 2>/dev/null | awk '$1=="server_name"{for(i=2;i<=NF;i++){gsub(";","",$i); print $i}}' | grep -v -e '^_$' -e '\*' -e '^recrutement\.yeita\.fr$' | sort -u); do printf '%s %s\n' "$s" "$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$s/")"; done | tee ~/sites-avant.txt
 ```
 
-- [ ] Note leur état, en remplaçant `site1.example site2.example` par les noms affichés :
-
-```bash
-for s in site1.example site2.example; do printf '%s %s\n' "$s" "$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$s/")"; done | tee ~/sites-avant.txt
-```
-
-- [ ] Demande le certificat :
+- [ ] **Tu dois voir** une ligne par site, avec un nombre à côté (par exemple `200` ou `301`). C'est noté, rien d'autre à faire.
+- [ ] Demande le certificat HTTPS :
 
 ```bash
 sudo certbot certonly --nginx -d recrutement.yeita.fr
 ```
 
-**Sinon** (`certbot: command not found`) : stop, demande au responsable du serveur.
+- [ ] Si certbot pose des questions : donne ton e-mail, tape `Y` pour accepter les conditions, puis `N` pour la lettre d'information.
+- [ ] **Tu dois voir** `Successfully received certificate.`
 
-- [ ] Crée le site avec `sudo nano /etc/nginx/sites-available/recrutement.yeita.fr`, colle ceci, enregistre :
+**Sinon** : refais la première case de cette étape (DNS), puis réessaie. Si ça échoue encore, envoie la sortie à l'équipe technique.
 
-```nginx
+- [ ] Crée le fichier du site (copie-colle tout le bloc d'un coup) :
+
+```bash
+sudo tee /etc/nginx/sites-available/recrutement.yeita.fr > /dev/null <<'EOF'
 server {
     listen 80;
     listen [::]:80;
@@ -237,64 +299,88 @@ server {
         proxy_busy_buffers_size 256k;
     }
 }
+EOF
 ```
 
-- [ ] Active et teste :
+- [ ] Active-le et fais vérifier la configuration par nginx :
 
 ```bash
 sudo ln -s ../sites-available/recrutement.yeita.fr /etc/nginx/sites-enabled/ && sudo nginx -t
 ```
 
-- [ ] **Tu dois voir** `syntax is ok` et `test is successful`. Alors recharge : `sudo systemctl reload nginx`.
+- [ ] **Tu dois voir** `syntax is ok` et `test is successful`.
 
-**Sinon** : ne recharge pas. Retire le lien : `sudo rm /etc/nginx/sites-enabled/recrutement.yeita.fr`.
-
-- [ ] Revérifie les autres sites (même boucle que plus haut, en remplaçant `sites-avant.txt` par `sites-apres.txt`), puis compare :
+**Sinon** : ne va pas plus loin. Retire le site (tes autres sites n'ont pas encore été touchés) et envoie la sortie à l'équipe technique :
 
 ```bash
-diff ~/sites-avant.txt ~/sites-apres.txt
+sudo rm /etc/nginx/sites-enabled/recrutement.yeita.fr
 ```
 
-- [ ] **Tu dois voir** : rien.
+- [ ] Applique la configuration (sans couper les autres sites) :
 
-**Sinon** : retire le site tout de suite :
+```bash
+sudo systemctl reload nginx
+```
+
+- [ ] Vérifie que tes autres sites n'ont pas bougé :
+
+```bash
+for s in $(sudo nginx -T 2>/dev/null | awk '$1=="server_name"{for(i=2;i<=NF;i++){gsub(";","",$i); print $i}}' | grep -v -e '^_$' -e '\*' -e '^recrutement\.yeita\.fr$' | sort -u); do printf '%s %s\n' "$s" "$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$s/")"; done > ~/sites-apres.txt; diff ~/sites-avant.txt ~/sites-apres.txt && echo "OK : les autres sites n'ont pas changé"
+```
+
+- [ ] **Tu dois voir** `OK : les autres sites n'ont pas changé`.
+
+**Sinon** (des lignes avec `<` et `>`) : retire le site tout de suite, puis envoie la sortie à l'équipe technique :
 
 ```bash
 sudo rm /etc/nginx/sites-enabled/recrutement.yeita.fr && sudo nginx -t && sudo systemctl reload nginx
 ```
 
-Tant que l'étape 7 n'est pas faite, `https://recrutement.yeita.fr` répond 502 : c'est normal.
+- [ ] Quitte le serveur :
+
+```bash
+exit
+```
+
+À ce moment, `https://recrutement.yeita.fr` affiche une erreur `502` : c'est normal, le site n'est pas encore lancé.
 
 ---
 
-## Étape 7 — Déployer (compte `deploy`)
+## Étape 7 — Lancer le site (compte `deploy`)
 
-- [ ] Le DNS de l'étape 2 répond bien (`dig +short recrutement.yeita.fr` → `IP_SERVEUR`).
-- [ ] Connecté en `deploy`, ouvre une session qui survit à une coupure, puis déploie :
+- [ ] Connecte-toi en `deploy` :
+
+```bash
+ssh -i ~/.ssh/id_ed25519 deploy@51.75.252.121
+```
+
+- [ ] Ouvre une session protégée (si ta connexion coupe, le lancement continue) :
 
 ```bash
 tmux new -s deploy
+```
+
+- [ ] Lance le site (la première fois, compte 3 à 5 minutes) :
+
+```bash
 /opt/recrutement/deploy/deploy.sh
 ```
 
-- [ ] **Tu dois voir**, après quelques minutes : `· API saine.`, six lignes `OK`, `Tout est OK sur https://recrutement.yeita.fr`, puis `Déploiement réussi : …`.
+- [ ] **Tu dois voir**, à la fin : `· API saine.`, six lignes qui commencent par `OK`, `Tout est OK sur https://recrutement.yeita.fr`, puis `Déploiement réussi : …`.
 
 **Sinon** :
+- une ligne `ARRÊT : …` : rien n'a bougé ; fais ce qu'elle dit (souvent une ligne de `.env`, étape 5), puis relance `/opt/recrutement/deploy/deploy.sh`.
+- une ligne `ÉCHEC : …` suivie de `Pour revenir … : deploy/deploy.sh <code>` : copie-colle cette commande de retour tout de suite, puis envoie toute la sortie à l'équipe technique.
 
-| Tu vois | Fais |
-|---|---|
-| `ARRÊT : …` | Rien n'a bougé. Fais ce que dit la ligne (souvent une valeur de `.env`), puis relance `deploy.sh`. |
-| `ÉCHEC : …` puis `Pour revenir … : deploy/deploy.sh <commit>` | Copie et lance tout de suite cette commande de retour, puis envoie la sortie à l'équipe technique. |
-| `FAIL … reçu aucune réponse` (cas B) | Ports 80/443 fermés par un pare-feu. `sudo ufw status` : si `active`, `sudo ufw allow 80,443/tcp`. Vérifie aussi le pare-feu réseau dans l'espace client OVH (IP › Firewall). Puis relance `deploy.sh`. |
-| `FAIL … reçu 502` (cas A) | `docker compose ps` dans `/opt/recrutement` ; si `front` redémarre en boucle : `docker compose logs --tail 50 front`. |
-
-- [ ] Quitte tmux sans l'arrêter : `Ctrl+B` puis `D`.
+- [ ] Sors de la session protégée sans l'arrêter : appuie sur `Ctrl+B`, lâche, puis appuie sur `D`.
 
 ---
 
-## Étape 8 — Contrôle de sécurité de l'API (une fois, avant d'ajouter qui que ce soit)
+## Étape 8 — Contrôle de sécurité (compte `deploy`, obligatoire)
 
-- [ ] Connecté en `deploy`, copie **tout** le bloc, colle-le, Entrée. Il ne modifie rien.
+Ce contrôle vérifie qu'aucun autre programme du serveur ne peut lire les candidatures. Il ne modifie rien.
+
+- [ ] Toujours connecté en `deploy`, copie-colle **tout** le bloc d'un coup, puis `Entrée` :
 
 ```bash
 cd /opt/recrutement && (
@@ -327,95 +413,85 @@ fi
 )
 ```
 
-- [ ] **Tu dois voir** sept lignes `OK` puis `VERDICT : tout est bon.`
+- [ ] **Tu dois voir** sept lignes `OK`, puis `VERDICT : tout est bon.`
 
-**Sinon** : fais ce que dit le verdict, et arrête-toi là.
+**Sinon** : fais exactement ce que dit le verdict, et arrête-toi là.
 
 ---
 
-## Étape 9 — Te mettre admin (compte `deploy`)
+## Étape 9 — Te donner l'accès (compte `deploy`)
 
-- [ ] Ajoute-toi en remplaçant l'e-mail et le prénom, puis affiche la liste :
+- [ ] Ajoute-toi comme admin, en remplaçant l'e-mail et le prénom par les tiens :
 
 ```bash
 cd /opt/recrutement && docker compose exec api node api/equipe.js add prenom.nom@yeita.fr Prénom admin
+```
+
+- [ ] Affiche l'équipe :
+
+```bash
 docker compose exec api node api/equipe.js list
 ```
 
-- [ ] **Tu dois voir** ton e-mail, ton prénom et `admin` dans la liste.
-- [ ] Ajoute chaque collègue (rôle `recruteur`, `admin` ou `lecture`) :
+- [ ] **Tu dois voir** ton e-mail, ton prénom et `admin`.
+- [ ] Pour chaque collègue, même commande avec `recruteur` (peut modifier) ou `lecture` (peut seulement lire) à la place de `admin` :
 
 ```bash
 docker compose exec api node api/equipe.js add prenom.nom@yeita.fr Prénom recruteur
+```
+
+- [ ] Quitte le serveur :
+
+```bash
+exit
 ```
 
 ---
 
 ## Étape 10 — Tester avec Google (dans le navigateur)
 
-**Page publique**
-
-- [ ] Fenêtre de navigation privée › `https://recrutement.yeita.fr/`.
-- [ ] **Tu dois voir** le guide, cadenas fermé, **sans** demande de connexion.
-
-**Connexion**
-
-- [ ] Même fenêtre › `https://recrutement.yeita.fr/candidatures/`.
+- [ ] Ouvre une **fenêtre de navigation privée** et va sur `https://recrutement.yeita.fr/`
+- [ ] **Tu dois voir** le guide Yeita, avec le cadenas, **sans** qu'on te demande de te connecter.
+- [ ] Dans la même fenêtre, va sur `https://recrutement.yeita.fr/candidatures/`
 - [ ] **Tu dois voir** la page de connexion Google. Choisis ton compte @yeita.fr.
 - [ ] **Tu dois voir** l'espace Candidatures, avec en haut `Connecté·e : <ton prénom>`.
 
 **Sinon** :
+- `Erreur 400 : redirect_uri_mismatch` : refais l'étape 4 (adresse de retour), attends 5 minutes, réessaie.
+- `Erreur 401 : invalid_client` : l'ID ou le secret est mal recopié. Refais l'étape 5 à partir de `nano .env`, puis, toujours en `deploy`, relance `/opt/recrutement/deploy/deploy.sh`.
+- `Tu ne fais pas partie de l'équipe.` : refais l'étape 9 avec **exactement** l'e-mail du compte Google choisi.
 
-| Tu vois | Fais |
-|---|---|
-| `Erreur 400 : redirect_uri_mismatch` | Dans Google Cloud (Clients › recrutement), l'URI doit être exactement `https://recrutement.yeita.fr/oauth2/callback`. Corrige, attends 5 minutes, réessaie. |
-| `Erreur 401 : invalid_client` | L'ID ou le secret dans `.env` est faux : corrige-le (étape 6), puis relance `/opt/recrutement/deploy/deploy.sh`. |
-| `Tu ne fais pas partie de l'équipe.` | Refais l'étape 9 avec **exactement** l'e-mail du compte choisi. |
+- [ ] Dans la même fenêtre, va sur `https://recrutement.yeita.fr/api/moi`
+- [ ] **Tu dois voir** une ligne comme `{"email":"prenom.nom@yeita.fr","prenom":"Prénom","role":"admin"}`.
+- [ ] Ouvre une **nouvelle** fenêtre privée, va sur `https://recrutement.yeita.fr/candidatures/` et essaie de te connecter avec un compte **@gmail.com**.
+- [ ] **Tu dois voir** un refus de Google (accès bloqué, application réservée à l'organisation).
 
-**Identité vue par l'API**
+**Sinon** (tu entres) : l'écran de consentement n'est pas **Interne** : refais la dernière case de l'étape 4.
 
-- [ ] Même fenêtre › `https://recrutement.yeita.fr/api/moi`.
-- [ ] **Tu dois voir** `{"email":"…@yeita.fr","prenom":"…","role":"admin"}`.
-
-**Sinon** (erreur 401 alors que tu es connecté) : sur le serveur, `cd /opt/recrutement && docker compose stop api`, et préviens l'équipe technique.
-
-**Compte extérieur refusé**
-
-- [ ] Nouvelle fenêtre privée › `https://recrutement.yeita.fr/candidatures/` › connecte-toi avec un compte **@gmail.com**.
-- [ ] **Tu dois voir** un refus de Google (« Accès bloqué » / application réservée à l'organisation).
-
-**Sinon** (tu entres) : l'audience n'est pas **Interne** ; corrige-la dans Google Cloud (étape 5).
-
-**Enregistrement partagé**
-
-- [ ] Connecté, crée un dossier de test dans Candidatures.
-- [ ] Ouvre le site sur un autre appareil (ou demande à un collègue ajouté à l'étape 9).
+- [ ] Connecté avec ton compte @yeita.fr, crée un dossier de test dans Candidatures.
+- [ ] Ouvre le site sur ton téléphone (ou demande à un collègue ajouté à l'étape 9).
 - [ ] **Tu dois voir** le même dossier. Supprime-le ensuite.
-
-**Contrôle depuis ton poste**
-
-- [ ] À la racine du dépôt cloné sur ton poste :
+- [ ] Dernier contrôle, dans le Terminal de ton Mac :
 
 ```bash
-tools/check-site.sh https://recrutement.yeita.fr
+cd ~/Documents/Yeita/Projects/Github/yeita-recrutement && tools/check-site.sh https://recrutement.yeita.fr
 ```
 
-- [ ] **Tu dois voir** six `OK` et `Tout est OK sur https://recrutement.yeita.fr`.
+- [ ] **Tu dois voir** six lignes `OK`, puis `Tout est OK sur https://recrutement.yeita.fr`.
 
-**Sinon** : une ligne `FAIL /candidatures/ … reçu 200` ou `FAIL /api/moi … reçu 200` veut dire que des données sont lisibles sans connexion. Sur le serveur, `cd /opt/recrutement && docker compose stop api`, et préviens l'équipe technique immédiatement.
+**Sinon** : si une ligne dit `FAIL /candidatures/ … reçu 200` ou `FAIL /api/moi … reçu 200`, des candidatures sont visibles sans connexion. Connecte-toi en `deploy`, tape `cd /opt/recrutement && docker compose stop api`, et préviens l'équipe technique tout de suite.
 
 C'est en ligne. 🎉
 
 ---
 
-## Aide-mémoire (compte `deploy`, dans `/opt/recrutement`)
+## Pour plus tard (compte `deploy`, dans `/opt/recrutement`)
 
-| Besoin | Commande |
+| Tu veux | Tape |
 |---|---|
-| Mettre en ligne la dernière version de `main` | `/opt/recrutement/deploy/deploy.sh` (coupe l'API ~15 s : pas pendant un entretien) |
-| Revenir à une version précédente | `/opt/recrutement/deploy/deploy.sh <commit>` |
-| Voir l'état | `docker compose ps` |
-| Lire les journaux | `docker compose logs --tail 100 front` ou `api` |
+| Mettre en ligne la dernière version | `/opt/recrutement/deploy/deploy.sh` (le site est coupé ~15 secondes : pas pendant un entretien) |
+| Revenir à la version d'avant | `/opt/recrutement/deploy/deploy.sh <code>` (le code est affiché en cas d'échec) |
+| Voir si tout tourne | `docker compose ps` |
 | Retirer l'accès à quelqu'un | `docker compose exec api node api/equipe.js disable prenom.nom@yeita.fr` |
 
-**À ne jamais taper sur le serveur** : `docker compose down -v` et `docker volume prune`. Elles effacent la base des candidatures, qui n'a pas d'autre copie.
+**Ne tape jamais** `docker compose down -v` ni `docker volume prune` sur le serveur : ces commandes effacent toutes les candidatures, et il n'y en a pas d'autre copie.
