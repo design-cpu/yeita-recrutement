@@ -18,7 +18,7 @@ date: 2026-10-26
 | racine | pages HTML (`index.html` est un fragment enveloppé à la publication) ; `fiche-ec1.html`, `fiche-ec2.html`, `carte-identite.html`, `yeita-match-decompte.html`, `candidatures.html` sont des relais vers `candidatures/` |
 | `candidatures/` | l'espace Candidatures |
 | `assets/` | code et données partagés ; `dossier.js` (modèle, adaptateur), `store.js` (règles du parcours), `wording.fr.js` (textes), `demarrage.js` et `adapter-serveur.js` (mode serveur, v1.3) |
-| `docs/` | `backend/MODELE.md` (modèle v3, fait foi), `dossier-candidat.schema.json` (v1.4 : `modele-de-donnees.md`, ancien modèle v2, supprimé) |
+| `docs/` | `backend/MODELE.md` (modèle v3, fait foi), `dossier-candidat.schema.json` |
 | `tools/` | construction du site, tests, `check-site.sh` (contrôle d'un site déployé) |
 | `docker/` | `front.Dockerfile` (v1.1), `api.Dockerfile` (v1.3) |
 | `deploy/` | configuration et scripts du serveur, `README.md` (mode d'emploi) (v1.1) |
