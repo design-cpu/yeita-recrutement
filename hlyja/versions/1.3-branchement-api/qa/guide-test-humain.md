@@ -18,7 +18,7 @@ date: 2026-10-27
 ## Préparer (une fois)
 Il te faut Node 22 ou plus récent, Python 3, et un navigateur (Chrome ou Firefox).
 
-**Terminal 1** — copie tout le bloc, puis Entrée. Il prépare une base d'essai à part (dans `/tmp/essai-13`, rien d'autre n'est touché) et lance l'API avec le site :
+- [ ] **Terminal 1** — copie tout le bloc, puis Entrée. Il prépare une base d'essai à part (dans `/tmp/essai-13`, rien d'autre n'est touché) et lance l'API avec le site :
 ```bash
 cd ~/Documents/Yeita/Projects/Github/yeita-recrutement
 git switch version/1.3-branchement-api
@@ -31,7 +31,7 @@ DEV_EMAIL=moi@yeita.fr DEV_STATIC=../_site npm start
 - [ ] Tu dois voir, à la fin : une ligne qui contient `"msg":"API démarrée"`. Laisse ce terminal ouvert pendant toute la partie A.
 Sinon : si un message dit que le port 8000 est déjà utilisé, ferme le programme qui l'occupe, ou relance la dernière ligne précédée de `PORT=8001` et remplace `8000` par `8001` dans toutes les adresses de ce guide.
 
-**Terminal 2** — il servira à changer ton rôle pendant les essais. Copie ces deux lignes :
+- [ ] **Terminal 2** — il servira à changer ton rôle pendant les essais. Copie ces deux lignes :
 ```bash
 cd ~/Documents/Yeita/Projects/Github/yeita-recrutement/api
 export DB_PATH=/tmp/essai-13/recrutement.sqlite
@@ -211,7 +211,7 @@ docker compose exec api node api/equipe.js add prenom.nom@yeita.fr Prénom admin
 
 - [ ] Tu dois voir : une page d'erreur 401 (ou `{}`), **pas** la page de connexion Google, et aucune donnée.
 
-Sinon (étape 3 ou 4 différente) :
+Sinon (si `/api/moi` ne montre pas **ton** email, ou si la fenêtre privée montre des données ou la page Google) :
 ```bash
 docker compose stop api
 ```
