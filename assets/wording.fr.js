@@ -109,6 +109,7 @@ window.WORDING = {
     vide: {
       titre: "Aucune candidature pour l'instant",
       texte: "Ajoute la première personne avec qui tu as un appel de découverte. Pour une démo, charge des exemples fictifs.",
+      texteServeur: "Ajoute la première personne avec qui tu as un appel de découverte.",
       exemples: "Charger des exemples"
     },
     colonnes: {candidat: "Candidat", job: "Job", xp: "XP", dispo: "Disponibilité", etat: "État", recruteurs: "Recruteurs", etape: "Étape", debut: "Début du process", lien: "Lien"},

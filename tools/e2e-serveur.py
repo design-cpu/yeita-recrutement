@@ -97,6 +97,23 @@ async def principal():
             f = await pg.locator(".fict").inner_text()
             check("bandeau jaune index.html : texte du serveur de l'équipe, « Connecté·e : Alice » gardé, plus « Tout reste dans ce navigateur » (1.4, CA1)",
                   SERVEUR in f and "Connecté·e : Alice" in f and "Tout reste dans ce navigateur" not in f, f)
+            # --- Exemples hors de la base partagée, base vide (1.4, CA3) ---
+            vide = await pg.locator("#empty p").inner_text()
+            check("exemples, base vide : ni « Charger des exemples » ni bouton du tableau vide, texte sans exemples, « Retirer les exemples » caché (1.4, CA3)",
+                  await pg.locator("#demo-load").count() == 0 and await pg.locator("#empty-demo").count() == 0
+                  and vide == "Ajoute la première personne avec qui tu as un appel de découverte." and await pg.evaluate("document.getElementById('demo-clear').hidden"), vide)
+            pd = await alice.new_page()
+            async def equipe_lente(route):
+                await asyncio.sleep(2); await route.continue_()
+            await pd.route("**/api/equipe", equipe_lente)
+            await pd.goto(C, wait_until="domcontentloaded")
+            pendant = await pd.evaluate("(function(){ var m = DEMARRAGE.mode(); document.getElementById('demo-load').click(); document.getElementById('empty-demo').click(); return m; })()")
+            await pd.wait_for_timeout(3500)
+            st, liste = api("alice@yeita.fr", "GET", "candidats")
+            check("exemples : clic sur « Charger des exemples » pendant l'attente du démarrage → rien dans la base (1.4, CA3)",
+                  pendant == "attente" and st == 200 and not any(x["data"]["meta"].get("demo") for x in liste) and await pd.evaluate("DEMARRAGE.mode()") == "serveur",
+                  "mode au clic : %s · dossiers : %d" % (pendant, len(liste)))
+            await pd.close()
             pl = await ouvrir(lea, C)
             check("lecteur : « Connecté·e : Léa · lecture seule »", "Connecté·e : Léa · lecture seule" in await pl.locator("#qui").inner_text())
             check("import en mode serveur : pas d'option « Remplacer tout » (CA14)", await pg.locator('input[name="imp-mode"][value="remplacement"]').count() == 0
@@ -229,6 +246,16 @@ async def principal():
                 check("bandeau jaune %s.html : texte du serveur de l'équipe, plus « Tout reste dans ce navigateur » (1.4, CA1)" % nom,
                       SERVEUR in f and "Tout reste dans ce navigateur" not in f and await pj.evaluate("DEMARRAGE.mode()") == "serveur", f)
                 await pj.close()
+            # --- Retirer les exemples déjà dans la base (1.4, CA4) ---
+            check("exemples : un dossier ordinaire seul → « Retirer les exemples » caché (1.4, CA4)", await ti.evaluate("document.getElementById('demo-clear').hidden"))
+            await ti.evaluate("(function(){ var c = DOSSIER.blank('Exemple Ancien'); c.meta.demo = true; return DOSSIER.save(c); })()")
+            await ti.reload(wait_until="networkidle")
+            check("exemples : un exemple dans la base → « Retirer les exemples » visible (1.4, CA4)", not await ti.evaluate("document.getElementById('demo-clear').hidden"))
+            await ti.click("#save > summary"); await ti.click("#demo-clear"); await ti.wait_for_timeout(800)
+            st, liste = api("alice@yeita.fr", "GET", "candidats")
+            check("exemples : clic → l'exemple n'est plus dans l'API, le dossier ordinaire reste, bouton caché (1.4, CA4)",
+                  st == 200 and not any(x["data"]["meta"].get("demo") for x in liste) and any(x["id"] == bid for x in liste) and await ti.evaluate("document.getElementById('demo-clear').hidden"),
+                  "dossiers : %d" % len(liste))
             await ti.close()
 
             # --- Réponses simulées au démarrage (CA2, CA3) ---
