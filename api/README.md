@@ -1,6 +1,6 @@
 # API de l'espace Candidatures
 
-Le serveur qui garde les dossiers candidat dans une base SQLite. Il remplace le stockage du navigateur (`localStorage`) et sera placé derrière oauth2-proxy, qui authentifie les comptes Google @yeita.fr. Les pages ne l'utilisent pas encore : l'adaptateur navigateur viendra à la version suivante.
+Le serveur qui garde les dossiers candidat dans une base SQLite. Il remplace le stockage du navigateur (`localStorage`) ; il est placé derrière oauth2-proxy, qui authentifie les comptes Google @yeita.fr. Depuis la v1.3, les pages l'utilisent quand il répond (`assets/demarrage.js`, `assets/adapter-serveur.js`), et il tourne dans Docker (service `api`, `docker/api.Dockerfile`, mode d'emploi : `deploy/README.md`).
 
 Node.js 22, Fastify 5.12.7, better-sqlite3 13.0.3, @fastify/static 10.1.6 (mode local seulement), versions figées par `package-lock.json`.
 
@@ -57,7 +57,7 @@ node equipe.js add moi@yeita.fr Moi admin
 DEV_EMAIL=moi@yeita.fr npm start
 ```
 
-Pour servir aussi le site construit à la même adresse (version suivante) :
+Pour servir aussi le site construit à la même adresse (les pages passent alors en mode serveur) :
 
 ```bash
 python3 tools/build.py _site

@@ -116,6 +116,8 @@
 <script src="../assets/dossier.js"></script>
 <script src="../assets/qui.js"></script>
 <script src="../assets/store.js"></script>
+<script src="../assets/adapter-serveur.js"></script>
+<script src="../assets/demarrage.js"></script>
 <script src="../assets/data-parcours.js"></script>
 <script src="ui.js"></script>
 <script>
@@ -210,7 +212,9 @@ function renderBoard(){
       + '<td><button type="button" class="iconbtn" data-copy="' + E(UI.urlCandidat(c.id)) + '" aria-label="' + E(t("tableau.copierLien") + " : " + c.candidat.nom) + '" aria-describedby="aide-lien">' + YEITA.icon("Link", 16, 2.2) + '</button></td></tr>';
   }).join("") : '<tr><td colspan="9">«&nbsp;' + E(q) + '&nbsp;» : aucun candidat.</td></tr>';
   var le = S.lastExport();
-  document.getElementById("lastexp").textContent = le ? t("tableau.sauvegarde.dernierExport", {quand: UI.fmtWhen(le)}) : t("tableau.sauvegarde.jamais");
+  /* En mode serveur, la base est sur le serveur : l'export n'est plus une sauvegarde, c'est une copie. */
+  document.getElementById("lastexp").textContent = DEMARRAGE.mode() === "serveur" ? t("serveur.exportTexte")
+    : (le ? t("tableau.sauvegarde.dernierExport", {quand: UI.fmtWhen(le)}) : t("tableau.sauvegarde.jamais"));
 }
 function load(){
   document.getElementById("volatile").hidden = !S.volatile();
@@ -305,8 +309,15 @@ document.addEventListener("keydown", function(e){
 });
 document.getElementById("q").addEventListener("input", function(e){ q = e.target.value; renderBoard(); });
 window.addEventListener("storage", function(e){ if(e.key === D.KEY) load(); });
+/* Mode serveur : au retour sur l'onglet, le tableau se redessine seulement si un dossier a changé. */
+function signature(l){ return l.map(function(c){ return c.id + "@" + (c.meta && c.meta.modifieLe); }).join("|"); }
+DEMARRAGE.auRetour(function(){ S.listCandidates().then(function(list){ if(signature(list) !== signature(all)){ all = list; renderBoard(); } }); });
 QUI.onChange(function(){});
-load();
+DEMARRAGE.pret.then(function(){
+  /* « Remplacer tout » supprimerait les dossiers de toute l'équipe absents du fichier : seule la fusion reste. */
+  if(DEMARRAGE.mode() === "serveur"){ var rp = document.querySelector('input[name="imp-mode"][value="remplacement"]'); if(rp) rp.closest("label").remove(); }
+  return load();
+});
 })();
 </script>
 </body>

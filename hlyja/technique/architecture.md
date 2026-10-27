@@ -2,16 +2,16 @@
 type: technique
 page: architecture
 titre: Architecture et déploiement
-maj: 1.2
-commit: 2497be9
-sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
+maj: 1.3
+commit: 3b314a9
+sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, docker/api.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
 date: 2026-10-26
 ---
 
 # Architecture et déploiement
 
-> Le site statique est construit par `tools/build.py` et servi par oauth2-proxy dans Docker, sur le serveur OVH partagé de Yeita ; une liste fermée de pages est publique, le reste exige un compte Google @yeita.fr. Les données restent dans le navigateur.
-> v1.2 : l'API de stockage (`api/`, Node.js, SQLite) existe et se lance seule ; elle n'est encore ni dans Docker ni branchée aux pages ([API de stockage](api.md)).
+> Le site statique est construit par `tools/build.py` et servi par oauth2-proxy dans Docker, sur le serveur OVH partagé de Yeita ; une liste fermée de pages est publique, le reste exige un compte Google @yeita.fr.
+> v1.3 : l'API de stockage (`api/`, Node.js, SQLite) tourne dans Docker (service `api`), jointe par oauth2-proxy seul sous `/api/`, sur un réseau interne sans adresse côté hôte ; les pages l'utilisent quand elle répond ([Mode serveur](mode-serveur.md), [API de stockage](api.md)).
 
 ## Vue d'ensemble
 ```mermaid
@@ -19,7 +19,9 @@ flowchart LR
   N[Navigateur] -->|HTTPS| P{Proxy de l'hôte, cas A\nou service caddy, cas B}
   P -->|127.0.0.1:4180 ou front:4180| F[front : oauth2-proxy v7.15.5]
   F -->|chemin public ou session @yeita.fr| S[/srv/site, fichiers statiques]
-  F -->|sinon : 302| G[accounts.google.com]
+  F -->|/api/ avec session : X-Forwarded-Email| A[api : Node 22, réseau back]
+  A --> V[(volume recrutement_data)]
+  F -->|sinon : 302, /api/ sans session : 401| G[accounts.google.com]
 ```
 
 ## Stack
@@ -33,26 +35,39 @@ flowchart LR
 | `fastify` | `5.12.7` | serveur HTTP de l'API | 1.2 |
 | `better-sqlite3` | `13.0.3` | base SQLite de l'API (binaires fournis, `api/.npmrc` `ignore-scripts=true`) | 1.2 |
 | `@fastify/static` | `10.1.6` | site construit servi par l'API en mode local (`DEV_STATIC`) | 1.2 |
+| `node:22.23.4-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d` | figée par le digest de l'index multi-architecture (exception à l'âge de 14 jours, décision de l'utilisateur) | image `api` | 1.3 |
 
 ## Image `front` (`docker/front.Dockerfile`)
 | Étape | Base | Contenu |
 |---|---|---|
-| `build` | `python:3.12-slim` | `COPY . .` (contexte filtré par `.dockerignore` : `.git`, `hlyja`, `_site`, `.env*`, `*.swp`, `*~`), `python3 tools/build.py /site` |
+| `build` | `python:3.12-slim` | `COPY . .` (contexte filtré par `.dockerignore` : `.git`, `hlyja`, `_site`, `.env*`, `*.swp`, `*~` ; v1.3 : `api/node_modules`, `api/data`, `**/*.sqlite`, `**/*.sqlite-wal`, `**/*.sqlite-shm`), `python3 tools/build.py /site` |
 | finale | `quay.io/oauth2-proxy/oauth2-proxy:v7.15.5` | `LABEL fr.yeita.projet=recrutement`, `COPY --from=build /site /srv/site` ; image sans shell (distroless) |
 Construite depuis la racine (`build.context: .`), nommée `recrutement-front`.
+
+## Image `api` (`docker/api.Dockerfile`, v1.3)
+| Élément | Valeur |
+|---|---|
+| Base | `node:22.23.4-slim@sha256:de170b…`, `LABEL fr.yeita.projet=recrutement` |
+| Installation | `WORKDIR /app/api`, copie de `package.json`, `package-lock.json`, `.npmrc` (`ignore-scripts=true`), `npm ci --omit=dev`, puis copie de `api/` |
+| Données | `/data` propriétaire `node`, mode 700 ; base en 600 |
+| Exécution | `USER node`, `WORKDIR /app`, `ENV NODE_ENV=production HOST=0.0.0.0 PORT=8000 DB_PATH=/data/recrutement.sqlite`, `CMD ["node", "api/server.js"]` |
+| Santé | `HEALTHCHECK` 30 s / 5 s / 10 s de démarrage / 3 essais, en Node : `/data` inscriptible (`fs.accessSync('/data', W_OK)` ; un volume en lecture seule laisserait lire et rendrait 500 à chaque écriture, QA v1.3 B2) puis `fetch('http://127.0.0.1:8000/api/sante', {signal: AbortSignal.timeout(4000)})`, sain seulement sur 200 |
+Gestion de l'équipe : `docker compose exec api node api/equipe.js …` (même `DB_PATH`). Poids : ~418 Mo.
 
 ## Services Compose (`compose.yaml`, `name: recrutement`)
 | Service | Image | Ports de l'hôte | Variables (`.env`) | Volumes | Profil |
 |---|---|---|---|---|---|
 | `front` | `recrutement-front` | `127.0.0.1:4180:4180` seulement | `OAUTH2_PROXY_CLIENT_ID`, `_CLIENT_SECRET`, `_COOKIE_SECRET`, `_REDIRECT_URL` (obligatoires, `${VAR:?}`) | `./deploy/oauth2-proxy.cfg` → `/etc/oauth2-proxy/oauth2-proxy.cfg` (lecture seule) | — |
+| `api` (v1.3) | `recrutement-api` | **aucun** | aucune (`environment` absent ; `DEV_EMAIL` et `DEV_STATIC` jamais) | `data` → `/data` (volume nommé `recrutement_data`, étiquette `fr.yeita.projet=recrutement`) | — |
 | `caddy` | `caddy:2.11.7` | `80`, `443`, `443/udp` | `DOMAIN` (obligatoire) | `./deploy/Caddyfile` (lecture seule), `caddy_data`, `caddy_config` | `caddy` |
-Communs : réseau `edge` (bridge `recrutement_edge`, 172.30.0.0/24), `restart: unless-stopped`, journaux `json-file` 10 Mo × 3. `COMPOSE_PROFILES=caddy` dans `.env` active le cas B.
+Réseaux : `front` sur `edge` et `back`, `api` sur `back` seul, `caddy` sur `edge` seul. `edge` : bridge `recrutement_edge`, 172.30.0.0/24. `back` (v1.3) : `internal: true` (aucune sortie), `enable_ipv6: false`, `driver_opts` `com.docker.network.bridge.inhibit_ipv4: "true"` (pont sans adresse côté hôte : sans cela, sur Linux, l'hôte et tout conteneur en réseau hôte joignent l'api par son adresse ; vérifié v1.3, V30, V31, V39, V40). La route par défaut de `front` passe par `edge` (V38). Communs : `restart: unless-stopped`, journaux `json-file` 10 Mo × 3. `COMPOSE_PROFILES=caddy` dans `.env` active le cas B.
 
 ## oauth2-proxy (`deploy/oauth2-proxy.cfg`)
 | Réglage | Valeur | Raison |
 |---|---|---|
 | `http_address` | `0.0.0.0:4180` | défaut `127.0.0.1:4180` injoignable hors du conteneur (V19) |
-| `upstreams` | `file:///srv/site/#/`, `file:///srv/site/#/index.html` | le second sert `/index.html` en 200 (le serveur de fichiers de Go redirigerait vers `/`) |
+| `upstreams` | `file:///srv/site/#/`, `file:///srv/site/#/index.html`, `http://api:8000/api/` (v1.3) | le second sert `/index.html` en 200 (le serveur de fichiers de Go redirigerait vers `/`) ; le troisième envoie `/api/` à l'api avec `X-Forwarded-Email` tiré de la session (un en-tête forgé est écrasé, V7) |
+| `api_routes` (v1.3) | `["^/api/"]` | sans session : 401 JSON `{}` au lieu d'une redirection (V5, V9) ; formes non reconnues (`/%61pi/moi`, `/API/moi`) : 302 vers Google |
 | `provider`, `email_domains` | `google`, `["yeita.fr"]` | |
 | `skip_provider_button` | `true` | redirection directe vers Google |
 | `reverse_proxy` | **`false`** | avec `true`, un `X-Forwarded-Uri` forgé depuis une adresse de confiance ouvre une page protégée (vérifié, v1.1) ; conséquence : les journaux ne montrent pas l'adresse du visiteur |
@@ -74,8 +89,8 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 | Script | Lancé par | Rôle | Garde-fous |
 |---|---|---|---|
 | `deploy/prepare-serveur.sh "<clé>"` | root, une fois | utilisateur `deploy` (groupe `docker`), clé SSH, clone dans `/opt/recrutement` (par `deploy`), `/var/backups/recrutement` (700) | n'installe rien ; vérifie outils, port 4180, sous-réseau 172.30.0.0/24 (réseaux Docker et routes), conteneurs `recrutement` d'un autre dossier, `deploy` existant hors groupe `docker`, groupe `deploy` orphelin, origine du dépôt — avant toute modification ; idempotent ; reprend un dossier vide laissé par un clone en échec ; `RECRUTEMENT_REPO` pour les essais |
-| `deploy/deploy.sh [commit]` | `deploy` | `git` (main ou commit de main), `build --pull`, `up -d --remove-orphans --force-recreate`, `image prune --filter label=fr.yeita.projet=recrutement`, attente de `/ping`, `check-site.sh` | réglages lus par `docker compose config --environment` (comme Compose les utilise) et cas B par `config --services` ; verrou `flock` (`~/.recrutement-deploy.lock`), refuse root, `.env` d'exemple (identifiant, secret client, cookie secret), incohérent ou avec une valeur vide suivie d'un commentaire, dépôt modifié ou avec un fichier non suivi (une copie de `.env` serait publiée), conteneurs d'un autre dossier, 80/443 pris en cas B, commit hors `main` ou antérieur à 1.1 ; retire `caddy` sans profil ; commande de retour si `build`, `up` ou le contrôle échouent ; corps dans `main` (lu en entier) |
-| `tools/check-site.sh BASE_URL` | tous | 5 contrôles : `/one-pager.html` 200, `/index.html` 200, `/candidatures/` et `/assets/data-diamants.js` 302 vers `https://accounts.google.com/`, `/ping` 200 | codes 0/1/2, `--max-time 10`, certificat non vérifié pour `localhost` et `*.localhost` |
+| `deploy/deploy.sh [commit]` | `deploy` | `git` (main ou commit de main), `build --pull`, `up -d --remove-orphans --force-recreate`, `image prune --filter label=fr.yeita.projet=recrutement`, attente de `/ping`, puis (v1.3) attente de `api` `healthy` (60 s) si `docker compose config --services`, lu après le changement de commit, contient `api`, `check-site.sh` | réglages lus par `docker compose config --environment` (comme Compose les utilise) et cas B par `config --services` ; verrou `flock` (`~/.recrutement-deploy.lock`), refuse root, `.env` d'exemple (identifiant, secret client, cookie secret), incohérent ou avec une valeur vide suivie d'un commentaire, dépôt modifié ou avec un fichier non suivi (une copie de `.env` serait publiée), conteneurs d'un autre dossier, 80/443 pris en cas B, commit hors `main` ou antérieur à 1.1 ; retire `caddy` sans profil ; commande de retour si `build`, `up` ou le contrôle échouent ; corps dans `main` (lu en entier) |
+| `tools/check-site.sh BASE_URL` | tous | 6 contrôles : `/one-pager.html` 200, `/index.html` 200, `/candidatures/` et `/assets/data-diamants.js` 302 vers `https://accounts.google.com/`, `/ping` 200, `/api/moi` 401 (v1.3 ; vient d'oauth2-proxy, ne prouve pas que l'api est saine) | codes 0/1/2, `--max-time 10`, certificat non vérifié pour `localhost` et `*.localhost` |
 
 ## Environnements
 | Environnement | Commande | Adresse |
@@ -84,9 +99,12 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 | Poste, cas A | `COMPOSE_PROFILES=` vide, `docker compose up -d` | `http://127.0.0.1:4180` |
 | Poste, sans Docker | `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site` | `http://localhost:8765` (pas d'authentification ; tests de navigateur) |
 | Serveur OVH | `deploy/deploy.sh` | `https://recrutement.yeita.fr` |
+| Poste, pile Docker avec l'API (v1.3) | `docker compose up -d --build` (`.env` d'exemple) | l'api n'a aucun port : la joindre par `front` (`/api/…`, 401 sans session) ([Lancer le site avec Docker](docker-local.md)) |
+| Poste, API et site en mode serveur (v1.3) | `python3 tools/build.py _site && cd api && DEV_EMAIL=moi@yeita.fr DEV_STATIC=../_site npm start` | `http://127.0.0.1:8000/candidatures/` (pages en mode serveur, identité `DEV_EMAIL`) |
 | Poste, API seule (v1.2) | `cd api && npm ci && DEV_EMAIL=moi@yeita.fr npm start` (après `node equipe.js add moi@yeita.fr Moi admin`) | `http://127.0.0.1:8000/api/…` ; avec `DEV_STATIC=../_site`, le site à `/` |
 
 ## Voir aussi
+- [Mode serveur des pages](mode-serveur.md)
 - [API de stockage](api.md)
 - [Décisions](decisions.md)
 - [Conventions et tests](conventions.md)
@@ -98,3 +116,4 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 |---|---|
 | 1.1 | Création : image `front`, Compose, cas A et B, scripts de préparation, de déploiement et de contrôle |
 | 1.2 | API de stockage `api/` (Node.js, Fastify, SQLite), hors Docker : pile et environnement local |
+| 1.3 | Image et service `api`, réseau `back` interne sans adresse hôte, volume `recrutement_data`, upstream et `api_routes` d'oauth2-proxy, attente de l'api dans `deploy.sh`, 6e contrôle de `check-site.sh` |

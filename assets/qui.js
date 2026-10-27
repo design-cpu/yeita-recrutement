@@ -1,9 +1,9 @@
 /* « Qui es-tu ? » : le prénom de la personne qui agit, noté dans l'historique à chaque action.
-   Ce module est le seul à remplacer quand l'identité Google sera en place (chantier de Sacha) :
-   il suffira que QUI.moi() rende le prénom du compte connecté et que QUI.monter() affiche ce prénom sans liste.
-
-   La liste vient de assets/config.js (equipe) ; un nom ajouté depuis l'interface est gardé dans ce navigateur
-   et proposé partout (« Qui es-tu ? » et champ Recruteurs). */
+   Mode navigateur : la liste vient de assets/config.js (equipe) ; un nom ajouté depuis l'interface est gardé dans ce
+   navigateur et proposé partout (« Qui es-tu ? » et champ Recruteurs).
+   Mode serveur (assets/demarrage.js, QUI.compte) : QUI.moi() rend le prénom du compte Google, QUI.equipe() l'équipe de
+   l'API, QUI.monter() affiche « Connecté·e : <prénom> » sans liste ; un nom ajouté ne vaut que pour la page.
+   Tant que le démarrage n'a pas choisi (QUI.attente), moi() est vide et monter() n'affiche rien. */
 (function(){
 "use strict";
 var MOI = "yeita-recruteur", AJOUTS = "yeita-equipe-ajouts";
@@ -11,19 +11,27 @@ function get(k, d){ return window.YEITA ? YEITA.store.get(k, d) : d; }
 function set(k, v){ if(window.YEITA) YEITA.store.set(k, v); }
 function propre(n){ return String(n || "").trim().replace(/\s+/g, " "); }
 
+/* etat : "local" (par défaut, comme avant), "attente" ou "compte". */
+var etat = "local", compteMoi = null, compteEquipe = [], ajoutsPage = [];
+
 function equipe(){
-  var base = (window.YEITA_CONFIG && YEITA_CONFIG.equipe) || [];
+  var base = etat === "local" ? ((window.YEITA_CONFIG && YEITA_CONFIG.equipe) || []).concat(get(AJOUTS, [])) : compteEquipe.concat(ajoutsPage);
   var out = [];
-  base.concat(get(AJOUTS, [])).forEach(function(n){ n = propre(n); if(n && out.indexOf(n) < 0) out.push(n); });
+  base.forEach(function(n){ n = propre(n); if(n && out.indexOf(n) < 0) out.push(n); });
   return out;
 }
 function ajouter(nom){
   nom = propre(nom); if(!nom) return equipe();
-  if(equipe().indexOf(nom) < 0){ var a = get(AJOUTS, []); a.push(nom); set(AJOUTS, a); }
+  if(equipe().indexOf(nom) < 0){
+    if(etat === "local"){ var a = get(AJOUTS, []); a.push(nom); set(AJOUTS, a); } else ajoutsPage.push(nom);
+  }
   return equipe();
 }
-function moi(){ return propre(get(MOI, "")); }
-function choisir(nom){ nom = propre(nom); if(nom) ajouter(nom); set(MOI, nom); emit(); return nom; }
+function moi(){ return etat === "compte" ? propre(compteMoi.prenom) : (etat === "attente" ? "" : propre(get(MOI, ""))); }
+function choisir(nom){ if(etat !== "local") return moi(); nom = propre(nom); if(nom) ajouter(nom); set(MOI, nom); emit(); return nom; }
+function attente(){ etat = "attente"; emit(); }
+function local(){ etat = "local"; emit(); }
+function compte(m, liste){ compteMoi = m || {}; compteEquipe = (liste || []).slice(); etat = "compte"; emit(); }
 
 var abonnes = [];
 function onChange(fn){ abonnes.push(fn); }
@@ -34,6 +42,12 @@ function monter(el, W){
   W = W || (window.WORDING && WORDING.qui) || {};
   var E = YEITA.esc;
   function rendu(){
+    if(etat === "attente"){ el.innerHTML = ""; return; }
+    if(etat === "compte"){
+      el.innerHTML = '<span class="qui-compte">' + E((W.connecte || "Connecté·e : ") + moi())
+        + (compteMoi.role === "lecture" ? E(W.lectureSeule || " · lecture seule") : "") + '</span>';
+      return;
+    }
     var m = moi(), liste = equipe();
     el.innerHTML = '<label for="qui-sel">' + E(W.label || "Qui es-tu ?") + '</label>'
       + '<select id="qui-sel"><option value="">' + E(W.choisir || "Choisis ton prénom") + '</option>'
@@ -53,8 +67,9 @@ function monter(el, W){
   el.addEventListener("click", function(e){ if(e.target.id === "qui-ok") valider(); });
   el.addEventListener("keydown", function(e){ if(e.target.id === "qui-nouveau" && e.key === "Enter"){ e.preventDefault(); valider(); } if(e.target.id === "qui-nouveau" && e.key === "Escape"){ rendu(); el.querySelector("#qui-sel").focus(); } });
   onChange(function(){ if(!el.contains(document.activeElement)) rendu(); });
-  return {focus: function(){ el.querySelector("#qui-sel").focus(); }};
+  return {focus: function(){ var s = el.querySelector("#qui-sel"); if(s) s.focus(); }};
 }
 
-window.QUI = {equipe: equipe, ajouter: ajouter, moi: moi, choisir: choisir, onChange: onChange, monter: monter};
+window.QUI = {equipe: equipe, ajouter: ajouter, moi: moi, choisir: choisir, onChange: onChange, monter: monter,
+  attente: attente, local: local, compte: compte};
 })();

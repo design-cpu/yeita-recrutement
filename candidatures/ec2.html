@@ -298,6 +298,8 @@ details.more > .in{padding:0 18px 18px}
 <script src="../assets/wording.fr.js"></script>
 <script src="../assets/qui.js"></script>
 <script src="../assets/store.js"></script>
+<script src="../assets/adapter-serveur.js"></script>
+<script src="../assets/demarrage.js"></script>
 <script src="../assets/data-yeita-match.js"></script>
 <script src="../assets/data-parcours.js"></script>
 <script src="ui.js"></script>
@@ -572,20 +574,26 @@ var SUS = ["palier","solides","creux","questions","contestation","conditions"];
 var IDF = ["f-nom","f-date","f-par","f-asp","f-libres"].concat(SUS.map(function(k){ return "p-"+k; }));
 function sid(di,si){ return di+"-"+si; }
 /* La fiche est l'étape EC2 du candidat : ec2.html?id=<identifiant>. Sans identifiant, elle n'affiche rien. */
-var candId = UI.param("id"), cand = null, candT = null, savedAt = null;
+var candId = UI.param("id"), cand = null, candT = null, savedAt = null, refuse = false;
 function persistAll(){
   if(!cand){ YEITA.store.set(KEY, {s:scores, n:notes, t:tier, f:f, rep:rep}); return; }
-  clearTimeout(candT); candT = setTimeout(saveCand, 350);
+  clearTimeout(candT); candT = setTimeout(function(){ var p = saveCand(); if(p) p.catch(function(){}); }, 350);
 }
 function hasData(){ return steps().some(function(v){ return v != null; }) || IDF.some(function(id){ return id !== "f-nom" && id !== "f-date" && id !== "f-par" && gv(id); }) || Object.keys(notes).some(function(k){ return (notes[k]||"").trim(); }); }
+/* La fiche n'écrit que sa partie (fiches.ec2 et la lecture ec2), sur le dossier relu ; refusé si la même partie a changé
+   ailleurs (DOSSIER.ecrirePartie). */
+var PARTIE = {lire: function(x){ return {f: x.fiches && x.fiches.ec2, l: x.ec2}; }};
+function poserPartie(){
+  var fiche = JSON.parse(JSON.stringify({s:scores, n:notes, t:tier, f:f})), lecture = hasData() ? Object.assign(ec2Data(), {reporteLe: DOSSIER.now()}) : null;
+  return function(x){ x.fiches = x.fiches || {}; x.fiches.ec2 = fiche; x.ec2 = lecture && Object.assign({}, lecture, {role: (x.identite && x.identite.poste) || "PM"}); };
+}
 function saveCand(){
   if(!cand) return;
-  cand.fiches = cand.fiches || {};
-  cand.fiches.ec2 = JSON.parse(JSON.stringify({s:scores, n:notes, t:tier, f:f}));
-  cand.ec2 = hasData() ? Object.assign(ec2Data(), {reporteLe: DOSSIER.now()}) : null;
-  if(cand.ec2) cand.ec2.role = (cand.identite && cand.identite.poste) || "PM";
-  return DOSSIER.save(cand).then(function(c){ cand = c; savedAt = new Date(); renderExits(); });
+  return DOSSIER.ecrirePartie(cand, {lire: PARTIE.lire, poser: poserPartie()})
+    .then(function(c){ cand = c; savedAt = new Date(); refuse = false; renderExits(); }, function(x){ refuse = true; renderExits(); throw x; });
 }
+/* Départ de la page : sans relecture, envoyée aussitôt. */
+function partirCand(){ DOSSIER.partirPartie(cand, poserPartie()); }
 /* Une candidature qui n'a qu'une lecture EC2 (code collé, ancien report) : on reconstruit l'écran depuis cette lecture. */
 function applyCand(c){
   var fe = c.fiches && c.fiches.ec2;
@@ -839,7 +847,7 @@ function aidesEnInfobulle(){
 function renderExits(){
   var el = document.getElementById("exits"); if(!cand) return;
   var state = PU.stepState(cand, "ec2"), cur = PU.current(cand);
-  var saved = '<span class="saved" aria-live="polite">' + (savedAt ? E(UI.t("commun.enregistreA", {heure: savedAt.toLocaleTimeString("fr-FR", {hour: "2-digit", minute: "2-digit"})})) : E(UI.t("ec.autoSave"))) + '</span>';
+  var saved = '<span class="saved" aria-live="polite">' + (refuse ? E(UI.t("serveur.nonEnregistre")) : (savedAt ? E(UI.t("commun.enregistreA", {heure: savedAt.toLocaleTimeString("fr-FR", {hour: "2-digit", minute: "2-digit"})})) : E(UI.t("ec.autoSave")))) + '</span>';
   var right = state === "cur" ? '<span class="why">' + (hasData() ? "" : E(UI.t("sorties.ficheVide"))) + '</span><button type="button" class="btn primary" id="next">' + E(UI.t("sorties.suivant.ec2")) + '</button>'
     : '<a class="btn" href="' + E(UI.urlCandidat(cand.id, cur)) + '">' + E(UI.t("ec.retourParcours", {etape: UI.etapeLabel(cur)})) + '</a>';
   el.innerHTML = '<div class="exits" role="group" aria-label="' + E(UI.t("fiche.sorties")) + '"><div class="l">' + saved + '</div><div class="r">' + right + '</div></div>';
@@ -865,7 +873,7 @@ document.addEventListener("click", function(e){
   }).catch(function(x){ YEITA.flash(null, x.message); });
 });
 if(!candId) missing(UI.t("commun.sansId"));
-else DOSSIER.get(candId).then(function(c){
+else DEMARRAGE.pret.then(function(){ return DOSSIER.get(candId); }).then(function(c){
   if(!c){ missing(UI.t("commun.introuvable")); return; }
   cand = c; applyCand(c);
   document.getElementById("f-nom").readOnly = true; document.getElementById("f-nom").closest(".field").hidden = true;
@@ -876,9 +884,10 @@ else DOSSIER.get(candId).then(function(c){
   liens(); aidesEnInfobulle(); boot(); renderExits();
   document.getElementById("c-name").focus({preventScroll: true});
 });
-window.addEventListener("pagehide", function(){ if(cand && candT){ clearTimeout(candT); candT = null; saveCand(); } });
+window.addEventListener("pagehide", function(){ if(cand && candT){ clearTimeout(candT); candT = null; partirCand(); } });
 /* Une fiche #1 reportée dans un autre onglet apparaît ici aussitôt. */
 window.addEventListener("storage", function(e){ if(e.key === "yeita-dossiers") renderFrom1(); });
+DEMARRAGE.auRetour(function(){ if(cand) renderFrom1(); });
 })();
 </script>
 </body>

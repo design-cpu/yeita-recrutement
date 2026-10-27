@@ -168,7 +168,7 @@
       <button type="button" class="btn quiet small" id="demo">Charger un exemple</button>
       <button type="button" class="btn quiet small" id="reset">Vider la feuille</button>
       <button type="button" class="btn small" id="print-blank" data-print data-print-own>Imprimer la feuille vierge</button>
-      <span class="print-note" data-print-note hidden>Pour imprimer, ouvre cette page depuis le site GitHub du recrutement, ou utilise le PDF du kit.</span>
+      <span class="print-note" data-print-note hidden>Pour imprimer, ouvre cette page dans un onglet du site du recrutement, ou utilise le PDF du kit.</span>
     </div>
     <div class="callout" id="confirm" hidden role="alertdialog" aria-labelledby="cf-t">
       <p id="cf-t"><b>Vider la feuille ?</b> Les cases cochées, les notes et l'identité seront effacées de ce navigateur.</p>
@@ -230,6 +230,8 @@
 <script src="../assets/wording.fr.js"></script>
 <script src="../assets/qui.js"></script>
 <script src="../assets/store.js"></script>
+<script src="../assets/adapter-serveur.js"></script>
+<script src="../assets/demarrage.js"></script>
 <script src="../assets/data-parcours.js"></script>
 <script src="ui.js"></script>
 <script>
@@ -245,11 +247,12 @@ document.getElementById("legend").innerHTML = Y.VALUES.map(function(v){ return '
 var Q = new URLSearchParams(location.search), candId = Q.get("id"), cand = null, candT = null;
 var st = {answers:{}, notes:{}, tb:[], f:{}, fmt:"presentiel"};
 YEITA.store.del(KEY); /* l'ancienne feuille, commune à tous les candidats, n'est plus gardée */
-function save(){ if(kept || !cand) return; clearTimeout(candT); candT = setTimeout(saveCand, 300); }
+function save(){ if(kept || !cand) return; clearTimeout(candT); candT = setTimeout(function(){ saveCand().catch(function(){}); }, 300); }
+/* La feuille n'écrit que sa partie (fiches.decompte), sur le dossier relu : la fiche EC1 peut écrire la sienne en même temps. */
+function poserPartie(){ var feuille = JSON.parse(JSON.stringify(st)); return function(x){ x.fiches = x.fiches || {}; x.fiches.decompte = feuille; }; }
 function saveCand(){
   candT = null; if(!cand) return Promise.resolve();
-  cand.fiches = cand.fiches || {}; cand.fiches.decompte = JSON.parse(JSON.stringify(st));
-  return DOSSIER.save(cand).then(function(c){ cand = c; });
+  return DOSSIER.ecrirePartie(cand, {lire: function(x){ return x.fiches && x.fiches.decompte; }, poser: poserPartie()}).then(function(c){ cand = c; });
 }
 
 function renderRounds(){
@@ -440,9 +443,9 @@ window.addEventListener("afterprint", restore);
 document.getElementById("print-blank").addEventListener("click", function(){ if(!YEITA.inFrame()) printBlank(); });
 
 document.querySelectorAll("[data-t]").forEach(function(el){ el.textContent = UI.t(el.dataset.t); });
-window.addEventListener("pagehide", function(){ if(cand && candT){ clearTimeout(candT); saveCand(); } });
+window.addEventListener("pagehide", function(){ if(cand && candT){ clearTimeout(candT); candT = null; DOSSIER.partirPartie(cand, poserPartie()); } });
 if(!candId){ document.getElementById("sans-cand").hidden = false; fillIdent(); renderAll(); }
-else DOSSIER.get(candId).then(function(c){
+else DEMARRAGE.pret.then(function(){ return DOSSIER.get(candId); }).then(function(c){
   if(!c){
     document.getElementById("missing").hidden = false; document.getElementById("missing-t").textContent = UI.t("commun.introuvable");
     document.querySelectorAll(".page-head, .ident, #legend, ol.how, section, footer.foot").forEach(function(x){ x.hidden = true; }); return;

@@ -1,6 +1,6 @@
 ---
 type: glossaire
-maj: 1.2
+maj: 1.3
 ---
 
 # Glossaire
@@ -10,6 +10,10 @@ maj: 1.2
 ## API
 Un programme qui ne montre pas de pages : il répond aux demandes d'autres programmes, comme les pages du site. Celle du projet garde les dossiers candidat dans une base partagée et dit qui a le droit de les lire ou de les modifier.
 Aussi : API de stockage.
+
+## Bandeau d'erreur
+Le message rouge qui s'affiche en haut de la page quand la base refuse ou ne répond pas : quelqu'un a modifié le dossier entre-temps, la connexion est coupée, ou le compte n'a pas le droit d'écrire. Il reste visible même en bas d'une longue fiche et propose de recharger la page.
+Aussi : bandeau.
 
 ## Caddy
 Un logiciel qui reçoit les visites d'un site web et obtient tout seul le certificat HTTPS. Le projet en lance un dans le cas B, quand le serveur n'a pas déjà de proxy.
@@ -51,9 +55,19 @@ Aussi : image, image front.
 La liste, tenue par l'API, de qui a créé, modifié ou supprimé quel dossier, quand, et à quelle étape. Il ne contient jamais le contenu des dossiers. À ne pas confondre avec le journal du serveur, qui note les demandes reçues.
 Aussi : journal des actions.
 
+## Mode bloqué
+Ce qui arrive quand le site de production ne peut pas joindre la base, ou que le compte n'est pas dans l'équipe : la page n'affiche ni n'enregistre aucune candidature, et le bandeau dit pourquoi. Elle ne bascule jamais en silence dans le navigateur.
+
 ## Mode local
 Une façon de lancer l'API sur son propre poste, sans oauth2-proxy : on lui indique quel membre de l'équipe on est, et elle peut aussi servir le site. Il est refusé sur le serveur.
 Aussi : DEV_EMAIL, DEV_STATIC.
+
+## Mode navigateur
+La façon de travailler quand il n'y a pas de base sur le site (poste local, tests, aperçu) : les candidatures restent dans le navigateur, comme avant la v1.3, et chacun choisit son prénom dans la liste « Qui es-tu ? ».
+
+## Mode serveur
+La façon de travailler sur le site de production : les candidatures sont enregistrées dans la base partagée de l'équipe, chacun sous son compte Google. En haut de page s'affiche « Connecté·e : » suivi du prénom.
+Voir : [Mode serveur des pages](technique/mode-serveur.md)
 
 ## Node.js
 Le logiciel qui fait tourner du JavaScript en dehors du navigateur. L'API du projet est écrite pour Node.js, version 22 ou plus récente.
@@ -75,6 +89,10 @@ Aussi : profil caddy, COMPOSE_PROFILES.
 Le programme qui reçoit les visites sur l'adresse publique et les transmet au bon service du serveur. C'est souvent lui qui gère le HTTPS.
 Aussi : reverse proxy, proxy de l'hôte, proxy existant.
 
+## Réseau interne
+Un réseau Docker sans sortie vers Internet ni adresse sur le serveur lui-même. L'API n'est reliée qu'à celui-là, avec oauth2-proxy : personne d'autre, même sur le serveur, ne peut lui parler.
+Aussi : réseau back.
+
 ## Serveur partagé
 Le serveur OVH de Yeita, qui fait tourner d'autres services que le projet ne connaît pas. D'où la règle : ne toucher qu'à ce qui appartient au projet.
 Aussi : serveur OVH.
@@ -82,3 +100,7 @@ Aussi : serveur OVH.
 ## SQLite
 Une base de données tenue dans un simple fichier, sans serveur de base à installer. L'API y range les dossiers candidat, l'équipe et le journal.
 Aussi : base SQLite.
+
+## Volume
+Un dossier géré par Docker, qui survit à l'arrêt et à la recréation des conteneurs. Le volume `recrutement_data` contient la base des candidatures : c'est la seule copie, à ne jamais supprimer.
+Aussi : volume Docker, recrutement_data.
