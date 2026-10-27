@@ -210,6 +210,13 @@ for cas in "api non saine:FAUX_SANTE=starting" "copie dans le conteneur api:FAUX
   verifie "CA5 $var : rien ne fuit" rien_ne_fuit
 done
 verifie "CA5 FAUX_AGE=clair : rien envoyé" [ -z "$(ls "$T/distant")" ]
+reinitialiser; chmod 750 "$COPIES"
+lancer backup.sh
+verifie "CA5 dossier des copies en 750 : /fail, aucune copie lancée" bash -c '[ "$1" -ne 0 ] && grep -q "pas en 700" "$2" && [ ! -s "$3" ]' _ "$CODE" "$T/sortie" "$T/journal/docker.log"
+chmod 700 "$COPIES"
+reinitialiser
+lancer backup.sh RECRUTEMENT_ATTENTE_API=1
+verifie "CA7 durée d'attente invalide : refus" bash -c '[ "$1" -eq 1 ] && grep -q "durée d.attente invalide" "$2"' _ "$CODE" "$T/sortie"
 
 echo "== CA6 : réglages refusés (docker compose config réel) =="
 refus() { # refus <nom> <motif attendu dans le message> [VAR=val (env)] -- [lignes .env]
@@ -230,6 +237,7 @@ refus "variable exportée dans le shell (valeur d'exemple)" AGE_RECIPIENT "AGE_R
 refus "http://" "HEALTHCHECK_SAUVEGARDE_URL doit être une adresse https://" -- "HEALTHCHECK_SAUVEGARDE_URL=http://localhost:8443/$UUID_S"
 refus "adresses égales" HEALTHCHECK_DISQUE_URL -- "HEALTHCHECK_DISQUE_URL=$HC_S"
 refus "RCLONE_DEST sans :" RCLONE_DEST -- "RCLONE_DEST=bucket/recrutement"
+refus "RCLONE_DEST en option" "RCLONE_DEST doit être de la forme" -- "RCLONE_DEST=--config=/tmp/x:bucket"
 refus "clé SSH" "pas une clé SSH" -- "AGE_RECIPIENT=ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
 refus "age1abc" AGE_RECIPIENT -- "AGE_RECIPIENT=age1abc"
 reinitialiser; ecrire_env "AGE_RECIPIENT=$CLE_PUB   # clé du coffre" "RCLONE_DEST=\"test:bucket/recrutement\""

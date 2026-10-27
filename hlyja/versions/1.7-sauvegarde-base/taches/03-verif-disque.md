@@ -21,3 +21,5 @@ Section CA9 de `tools/test-sauvegarde.sh` (vrai `df`, faux `df` 80/81 sur `/` et
 |---|---|---|---|
 | B9 | `-gt` → `-ge` | détectée | `CA9 df 80,80 : code 0` |
 | B15 | repli quand `df` échoue retiré | détectée | `CA9 df en échec : /fail` |
+
+Ligne de verdict : `TOUT OK` (`tools/test-sauvegarde.sh`, 119 vérifications après la revue).

@@ -17,3 +17,11 @@ date: 2026-10-27
 
 ## Tests
 Essais sur le banc systemd à la tâche 05 (CA11, CA13, CA14, CA15).
+
+## Mutations (après la revue de code)
+| # | Garde cassée | Classement | Ce qui échoue |
+|---|---|---|---|
+| B20 | `ExecStopPost` sans `flock -n` | détectée | banc systemd, CA11/E14 : la sauvegarde manuelle perd son clair et s'arrête « ÉCHEC (chiffrement (age)) » (à l'origine : aboutie) |
+| B21 | boucle `age rclone` retirée de `prepare-serveur.sh` | détectée | CA14 : sans `rclone`, le script finit « Serveur prêt. » au lieu de « « rclone » est absent » |
+
+Ligne de verdict : essais manuels sur le banc (tableau de la fiche 05), `systemd-analyze verify` sans sortie.

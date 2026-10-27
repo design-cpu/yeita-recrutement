@@ -26,8 +26,10 @@ umask 077; d=$(mktemp -d); cd "$d"; echo "$d"
 Coller la clé privée du coffre (la ligne `AGE-SECRET-KEY-…`) dans un fichier de ce dossier, puis la contrôler : la clé publique affichée doit être exactement `AGE_RECIPIENT` du `.env` du serveur.
 
 ```bash
-pbpaste > "$d/cle.txt"; age-keygen -y "$d/cle.txt"
+pbpaste > "$d/cle.txt"; pbcopy </dev/null; age-keygen -y "$d/cle.txt"
 ```
+
+(`pbcopy </dev/null` vide le presse-papiers : la clé n'y reste pas. Désactiver aussi tout historique du presse-papiers pendant la procédure.)
 
 Identifiants « restauration » (rien n'est écrit sur le disque ; `read -s` ne les affiche pas) :
 
@@ -152,7 +154,7 @@ EOF
    ```bash
    ssh deploy@SERVEUR 'cd /opt/recrutement && docker compose exec -T -e FICHIER=/data/recrutement.sqlite api node --input-type=module' < "$d/controle.mjs"
    tools/check-site.sh https://DOMAINE
-   IDS=$(cut -d' ' -f1 "$d/suppressions.txt" | tr '\n' ' ')
+   IDS=$(cut -d' ' -f1 "$d/suppressions.txt" | grep -E '^cand-[a-z0-9]{1,16}-[a-z0-9]{1,16}$' | tr '\n' ' ')
    ssh deploy@SERVEUR "cd /opt/recrutement && docker compose exec -T -e IDS='$IDS' -e DOMAINE=DOMAINE api node --input-type=module" < "$d/suppressions.mjs"
    ```
 
@@ -163,7 +165,7 @@ EOF
 9. **Effacer le poste** : copie, clé, identifiants.
 
    ```bash
-   cd / && rm -rf "$d"; unset RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY EMPREINTE
+   cd / && rm -rf "$d"; pbcopy </dev/null; unset RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY EMPREINTE
    ```
 
 ## Serveur perdu

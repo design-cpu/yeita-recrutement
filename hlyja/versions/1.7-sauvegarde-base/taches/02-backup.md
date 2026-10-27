@@ -38,3 +38,6 @@ Copie du dépôt dans le banc, une garde cassée à la fois, lanceur complet (du
 | B14 | clé `age1…` seule | détectée | `CA6 clé SSH : code 1` |
 | B16 | verrou de déploiement | détectée | `CA7 déploiement en cours : /fail` |
 (B9 et B15 : tâche 03.) Aucune « bloque », aucun « plantage ». Retour à l'état d'origine : `TOUT OK`.
+
+## Après la revue de code
+`RCLONE_DEST` commençant par `-` refusée (B17), dossier pas en 700 testé (B18), durées d'attente validées (B19) : 119 vérifications, ligne de verdict **`TOUT OK`**.

@@ -22,3 +22,5 @@ Banc `banc-1.7-systemd`, `scratchpad/banc/banc-restaurer.sh` : les trois program
 | Étape 9 | dossier du poste effacé |
 Un contrôle « repère absent hors du volume » a échoué au passage : le dossier « poste » du banc était sous `/tmp` du même conteneur et contenait la copie déchiffrée. Après l'étape 9, le repère n'est plus nulle part dans `/var/backups`, `/tmp`, `/home/deploy`, `/opt/recrutement` (vérifié).
 `readonly` sur la base arrêtée (`suppressions.mjs`) : fonctionne (V5 confirmé).
+
+Ligne de verdict : 26 `OK` du banc (`banc-restaurer.sh`), 1 faux positif expliqué ci-dessus.

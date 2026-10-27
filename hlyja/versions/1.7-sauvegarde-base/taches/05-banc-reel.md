@@ -32,3 +32,5 @@ Conteneur `banc-1.7-systemd` : `ubuntu:26.04` (26.04.1) avec systemd en PID 1, `
 | CA15 | `prepare-serveur.sh` avec les deux outils, puis relancé | `Serveur prêt.` les deux fois ; ligne « Outils présents : …, age, rclone. » |
 | CA15 | `.env` sans les 4 variables | `docker compose config --environment` (lecture de `deploy.sh`) : code 0 ; `deploy/deploy.sh` inchangé et ne cite aucune des 4 variables. **Écart** : `deploy.sh` n'a pas été lancé de bout en bout (son contrôle final demande un domaine en HTTPS) |
 Faux négatifs du banc, rejoués à la main : comparaison des corps JSON échappés (`réussie`) ; fonctions shell non exportées dans `bash -c` (`pings`, `as`) — les pings attendus sont affichés dans la sortie du banc.
+
+Ligne de verdict : pas de lanceur unique (scripts de banc hors dépôt) ; chaque ligne du tableau ci-dessus est un `OK` du banc, faux négatifs rejoués notés.

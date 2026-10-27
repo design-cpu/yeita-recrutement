@@ -18,6 +18,9 @@ MOTIF_COPIE='^/data/sauvegardes/recrutement-[0-9]{4}-[0-9]{2}-[0-9]{2}\.db$'
 
 arret() { echo "ARRÊT : $*" >&2; exit 1; }
 info() { echo "· $*"; }
+for attente in "$ATTENTE_DEPLOIEMENT" "$ATTENTE_API"; do
+  { [[ "$attente" =~ ^[0-9]+$ ]] && [ "$attente" -ge 2 ]; } || arret "durée d'attente invalide : « $attente » (entier ≥ 2 attendu)."
+done
 
 # shellcheck source=deploy/healthchecks.sh
 . "$(dirname "$0")/healthchecks.sh"
@@ -67,7 +70,8 @@ main() {
   destination=$(reglage_valide RCLONE_DEST) || echec "RCLONE_DEST refusée."
   [[ "$destinataire" =~ ^age1[a-z0-9]+$ ]] || echec "AGE_RECIPIENT doit être une seule clé publique age (age1…), pas une clé SSH."
   age -r "$destinataire" -o /dev/null </dev/null 2>/dev/null || echec "AGE_RECIPIENT n'est pas une clé publique age valide."
-  case "$destination" in *:*) ;; *) echec "RCLONE_DEST doit être de la forme <remote>:<chemin> (deploy/README.md)." ;; esac
+  # Jamais en tête « - » : rclone la lirait comme une option.
+  [[ "$destination" == *:* && "$destination" != -* ]] || echec "RCLONE_DEST doit être de la forme <remote>:<chemin> (deploy/README.md)."
 
   # --- Dossier des copies (verrou tenu) : jamais de clair laissé par une coupure ---
   [ "$(stat -c %a "$DOSSIER_COPIES")" = 700 ] || echec "$DOSSIER_COPIES n'est pas en 700."

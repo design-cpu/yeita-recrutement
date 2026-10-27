@@ -377,10 +377,12 @@ aws s3api get-bucket-versioning --bucket BUCKET --endpoint-url https://s3.gra.io
 
 Limite connue : l'utilisateur serveur peut remplacer un objet du même nom. Chaque sauvegarde a un nom à la seconde près (`recrutement-AAAA-MM-JJTHHMMSSZ.db.age`) : cela n'arrive pas en usage normal.
 
-**3. Remote rclone, sur le serveur, en tant que `deploy`** (identifiants de l'utilisateur **serveur** ; `read -s` ne les affiche pas) :
+**3. Remote rclone, sur le serveur, en tant que `deploy`** (identifiants de l'utilisateur **serveur** ; `read -s` ne les affiche pas). Tout le bloc est entre parenthèses : le masque 077 ne reste pas dans le shell (un `deploy.sh` lancé ensuite créerait sinon des fichiers illisibles par les images). Il refuse d'écraser une configuration rclone existante : dans ce cas, ajouter le remote `ovh` avec `rclone config`.
 
 ```bash
+(
 umask 077; mkdir -p ~/.config/rclone
+[ ! -e ~/.config/rclone/rclone.conf ] || { echo "rclone.conf existe déjà : ajouter le remote ovh avec « rclone config »."; exit 1; }
 read -r -p "Clé d'accès S3 (serveur) : " K; read -r -s -p "Secret S3 : " S; echo
 cat > ~/.config/rclone/rclone.conf <<EOF
 [ovh]
@@ -393,7 +395,8 @@ secret_access_key = $S
 acl = private
 no_check_bucket = true
 EOF
-unset K S; rclone lsd ovh:BUCKET && echo "Remote ovh prêt."
+rclone lsd ovh:BUCKET && echo "Remote ovh prêt."
+)
 ```
 
 **4. healthchecks.io** : deux contrôles **distincts**, notification par email à l'équipe :
