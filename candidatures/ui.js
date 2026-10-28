@@ -47,7 +47,7 @@ function initiales(nom){
   return ((a + b) || String(nom || "?").slice(0, 2)).toUpperCase();
 }
 /* Le nom complet d'un membre de l'équipe, d'après config.equipeNoms (« Pauline » → « Pauline … ») ; sinon le nom tel quel. */
-function nomComplet(n){ n = String(n || "").trim(); var M = (window.YEITA_CONFIG && YEITA_CONFIG.equipeNoms) || {}; return M[n] || n; }
+function nomComplet(n){ n = String(n || "").trim(); var M = (window.YEITA_CONFIG && YEITA_CONFIG.equipeNoms) || {}; return Object.prototype.hasOwnProperty.call(M, n) && M[n] ? M[n] : n; }
 function prenom(n){ var m = D.decoupe(n); return m.prenom || String(n || ""); }
 /* Les recruteurs : par leurs initiales sur la carte du kanban (initiales = true), par leur nom complet partout ailleurs. */
 function recruteursHTML(list, initiales_){

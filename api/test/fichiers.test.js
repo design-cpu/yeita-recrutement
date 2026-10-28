@@ -30,6 +30,7 @@ test("envoi d'un PDF : 201, métadonnées, relu tel quel avec son type et nosnif
   assert.equal(g.headers["content-type"], "application/pdf");
   assert.equal(g.headers["x-content-type-options"], "nosniff");
   assert.equal(g.headers["cache-control"], "no-store");
+  assert.equal(g.headers["content-disposition"], "inline; filename*=UTF-8''" + encodeURIComponent("CV Léna.pdf"));
   assert.ok(g.rawPayload.equals(PDF));
   const l = await requete(app, "rec@yeita.fr", { method: "GET", url: `/api/candidats/${ID}/fichiers` });
   assert.deepEqual(json(l).map(x => x.id), [m.id]);
@@ -177,4 +178,21 @@ test("limites et accès (CA9) : 10 Mo pile acceptés ; lecture : HEAD 200, POST 
   assert.equal((await requete(app, "lec@yeita.fr", { method: "HEAD", url: `/api/candidats/${ID}/fichiers/${json(m).id}` })).statusCode, 200);
   const enc = await requete(app, "lec@yeita.fr", { method: "POST", url: `/api/candidats/${ID}/%66ichiers?champ=cv`, payload: PDF, headers: { "content-type": "application/pdf" } });
   assert.equal(enc.statusCode, 403);
+});
+
+test("R6 : un fichier encore cité par le dossier enregistré ne se retire pas (409 fichier-cite) ; après l'enregistrement sans lui, oui", async t => {
+  const { app } = await avecCandidat(t);
+  const cv = json(await envoyer(app, PDF));
+  assert.equal((await enregistrer(app, await lire(app), { cv: ref(cv) })).statusCode, 200);
+  const r = await requete(app, "rec@yeita.fr", { method: "DELETE", url: `/api/candidats/${ID}/fichiers/${cv.id}` });
+  assert.equal(r.statusCode, 409);
+  assert.deepEqual(json(r), { erreur: "Ce fichier est encore sur la fiche. Recharge la page.", code: "fichier-cite" });
+  assert.equal((await requete(app, "rec@yeita.fr", { method: "GET", url: `/api/candidats/${ID}/fichiers/${cv.id}` })).statusCode, 200);
+  /* Même règle pour le portfolio. */
+  const pf = json(await envoyer(app, PNG, { type: "image/png", champ: "portfolio" }));
+  assert.equal((await enregistrer(app, await lire(app), { cv: ref(cv), portfolio: ref(pf) })).statusCode, 200);
+  assert.equal((await requete(app, "rec@yeita.fr", { method: "DELETE", url: `/api/candidats/${ID}/fichiers/${pf.id}` })).statusCode, 409);
+  /* Enregistré sans eux, ils se retirent. */
+  assert.equal((await enregistrer(app, await lire(app), {})).statusCode, 200);
+  for (const f of [cv, pf]) assert.equal((await requete(app, "rec@yeita.fr", { method: "DELETE", url: `/api/candidats/${ID}/fichiers/${f.id}` })).statusCode, 204);
 });

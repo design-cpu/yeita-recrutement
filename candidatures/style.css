@@ -26,8 +26,6 @@
 .imp-msg{font-size:14px; font-weight:600}
 .imp-msg.good{color:var(--go)} .imp-msg.bad{color:var(--stop)}
 
-.addp{display:grid; gap:14px; margin-bottom:18px; border:1.5px solid var(--ink)}
-.addp h2{font-size:21px}
 .prov{display:flex; flex-wrap:wrap; gap:8px}
 .prov label{display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--line-strong); border-radius:999px; padding:6px 14px; cursor:pointer; min-height:40px; font-weight:600; font-size:14.5px}
 .prov input{accent-color:var(--violet); width:16px; height:16px; margin:0}
@@ -317,7 +315,6 @@ body.np-on .np-toggle{right:min(420px, 100vw)}
 .chips-check label{display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--line-strong); border-radius:999px; padding:6px 13px; cursor:pointer; min-height:38px; font-weight:600; font-size:14.5px}
 .chips-check input{accent-color:var(--violet); width:16px; height:16px; margin:0}
 .chips-check label:has(input:checked){border-color:var(--ink); background:var(--surface-2)}
-.add-actions{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:16px}
 .field .hint{font-size:13px; color:var(--muted)}
 .tags{display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1.5px solid var(--line-strong); border-radius:var(--radius-s); padding:5px 8px; background:var(--surface); min-height:44px}
 .tags:focus-within{outline:3px solid var(--violet); outline-offset:1px; border-color:var(--violet)}
@@ -370,16 +367,10 @@ body.np-on .np-toggle{right:min(420px, 100vw)}
 /* ---------- Fiches EC1 et EC2 en pleine page ---------- */
 .fiche-bar{display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; justify-content:space-between; padding-block:18px 10px; border-top:1.5px solid var(--line)}
 .fiche-t{font-size:clamp(20px,2.4vw,24px); display:flex; align-items:center; gap:8px; margin:0}
-.liens-fiche{flex:0 1 auto; min-width:0}
-.liens-fiche > summary{font-size:14.5px}
-.liens-fiche[open]{flex-basis:100%}
-.liens-fiche .in{display:grid; gap:12px; padding-top:10px}
-.liens-fiche .actions{display:flex; flex-wrap:wrap; gap:8px}
 .ym-fmt{border:0; padding:0; margin:0 0 14px}
 .ym-fmt legend{font-weight:650; font-size:15px; margin-bottom:8px; padding:0}
 #sheet .sec-aide{display:flex; justify-content:flex-end; align-items:center; gap:6px; font-size:13.5px; color:var(--muted); margin-bottom:-4px}
-details.liens-fiche{border-top:0; padding-top:0}
-.carte-h{display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; justify-content:space-between}
+details.carte-h{display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; justify-content:space-between}
 .carte-h h1{margin:0}
 
 /* Récap de la carte (Bilans, EC3, Décision) */

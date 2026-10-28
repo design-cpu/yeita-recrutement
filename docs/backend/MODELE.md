@@ -135,7 +135,7 @@ FICHE_EC1.setYeitaMatch({dominante: "explorateur", seconde: "collectif", source:
 
 ## Version 1.10 (sans changement de version du dossier, rien n'est supprimé)
 - `identite.fichiers` (voir la fiche) et les lignes `fichier` de l'historique. Un dossier plus ancien reçoit `fichiers: {cv: null, portfolio: null}` à la lecture.
-- Côté API, la base passe en `user_version` 2 : table `fichiers` (contenu des documents), effacée avec le dossier. Contrat : `hlyja/technique/api.md`.
+- Côté API, la table `fichiers` (contenu des documents) s'ajoute à la base **sans changer `user_version`** (reste 1), pour que la 1.9 relise la base ; effacée avec le dossier ; un dossier enregistré ne référence jamais un fichier absent. Contrat : `hlyja/technique/api.md`.
 - Mention RGPD : durée de conservation `config.rgpd.dureeMois` = 22 mois.
 
 ## Version 1.6 (sans changement de version du dossier, rien n'est supprimé)

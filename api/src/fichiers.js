@@ -11,6 +11,8 @@ export const ROUTE_ENVOI = "/api/candidats/:id/fichiers";
 
 const INTROUVABLE = () => new ErreurHttp(404, "Candidature introuvable.", "introuvable");
 const FICHIER_INTROUVABLE = () => new ErreurHttp(404, "Fichier introuvable.", "fichier-introuvable");
+/* Spec 1.10 R6 : un fichier cité par le dossier enregistré ne se retire pas (le dossier s'enregistre d'abord sans lui, R5). */
+const FICHIER_CITE = () => new ErreurHttp(409, "Ce fichier est encore sur la fiche. Recharge la page.", "fichier-cite");
 
 /* Signatures des trois types acceptés. */
 const SIGNATURES = {
@@ -43,7 +45,9 @@ export function routesFichiers(app, db, pointDeControle) {
     liste: db.prepare("SELECT id, champ, nom, type, taille, depose_le, depose_par FROM fichiers WHERE candidat_id = ? ORDER BY depose_le"),
     un: db.prepare("SELECT id, champ, nom, type, taille, contenu, depose_le, depose_par FROM fichiers WHERE id = ? AND candidat_id = ?"),
     ajouter: db.prepare("INSERT INTO fichiers (id, candidat_id, champ, nom, type, taille, contenu, depose_le, depose_par) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"),
-    retirer: db.prepare("DELETE FROM fichiers WHERE id = ? AND candidat_id = ?")
+    retirer: db.prepare("DELETE FROM fichiers WHERE id = ? AND candidat_id = ?"),
+    cite: db.prepare(`SELECT 1 FROM candidats WHERE id = ?
+      AND (json_extract(data, '$.identite.fichiers.cv.id') = ? OR json_extract(data, '$.identite.fichiers.portfolio.id') = ?)`)
   };
 
   /* L'analyseur des fichiers n'existe que pour la route d'envoi (contexte encapsulé). */
@@ -84,7 +88,10 @@ export function routesFichiers(app, db, pointDeControle) {
 
   app.delete("/api/candidats/:id/fichiers/:fid", async (req, rep) => {
     const fid = idValide(req.params.fid, MOTIF_FICHIER), id = idValide(req.params.id);
-    db.transaction(() => { if (q.retirer.run(fid, id).changes === 0) throw FICHIER_INTROUVABLE(); }).immediate();
+    db.transaction(() => {
+      if (q.cite.get(id, fid, fid)) throw FICHIER_CITE();
+      if (q.retirer.run(fid, id).changes === 0) throw FICHIER_INTROUVABLE();
+    }).immediate();
     pointDeControle(req.log);
     return rep.code(204).send();
   });

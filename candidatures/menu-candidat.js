@@ -194,6 +194,7 @@ function piedActif(oui){ if(dlg) dlg.querySelectorAll("[data-mc-creer], [data-mc
    Rend {c, echecs: {champ: message}} ; un fichier envoyé sort de l'attente, un échec y reste. */
 function enregistrerCreation(){
   var f = Object.assign({}, copie.identite); delete f.fichiers;
+  if(cree) Object.assign(copie.identite, S.normFiche(f));
   var p = cree ? S.saveCandidate(copie) : S.createCandidate(f, S.me()).then(function(n){ cree = n; copie = n; return n; });
   return p.then(function(n){
     var echecs = {};
@@ -274,7 +275,8 @@ function redessinerChamp(h, ctx, champ){
   var el = champDe(ctx, champ), c = h.get(); if(el && c) el.outerHTML = docHTML(c, champ, false, h.p, ctx);
   return champDe(ctx, champ);
 }
-function message(champEl, m){ var x = champEl && champEl.querySelector(".docmsg"); if(x) x.textContent = m || ""; }
+/* Le message est écrit au tour suivant : une zone aria-live recréée et remplie dans le même tour n'est souvent pas annoncée. */
+function message(champEl, m){ var x = champEl && champEl.querySelector(".docmsg"); if(x) requestAnimationFrame(function(){ x.textContent = m || ""; }); }
 function focusChamp(champEl){ var n = champEl && champEl.querySelector(".docbox a, .docbox button"); if(n) n.focus(); }
 function controle(file){
   if(TYPES.indexOf(file.type) < 0) return t("docs.erreurType");
