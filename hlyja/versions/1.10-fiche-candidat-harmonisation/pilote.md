@@ -1,7 +1,7 @@
 ---
 type: pilote
 version: 1.10
-points: 3
+points: 4
 dernier: ajuster
 date: 2026-10-28
 ---
@@ -31,3 +31,7 @@ Actions : question à l'utilisateur sur R1b → « une ligne de doc » (R1b ré�
 | Spec v2 visée | 170 lignes au plus, 18 CA au plus | — |
 Constats : rendement faible sur la dimension concurrence ; la matrice des pannes (C7) et les deux acteurs (C9) feraient gonfler la version ; la spec nomme des fonctions et des variables.
 Actions appliquées : une règle par décision ou défaut (R19 pour C1, R6 réécrite, R3 réécrite) ; chemin « remplacer » retiré (U1) ; matrice des pannes ramenée à CA6 et CA7, le reste en scénarios QA ; un seul CA à deux acteurs (CA5) ; Ops en corrections du guide et de `RESTAURER.md` ; aucun nom de fonction dans la spec ; aucune modification de `auto-deploy.sh` (O9 en ligne de guide). Si la concurrence reste sous 60 au tour 2, tour 3 ciblé sur elle seule.
+
+## P3 — après le découpage · ajuster
+Constats : 7 tâches (plan : 6 à 9), ordre justifié, chaque R et CA rattaché ; R14 en double (05 et 07) ; fichiers de test non fixés ; la tâche 06 a déjà été jouée une fois (V20), un outil dans `tools/` serait faux après le merge.
+Actions appliquées : tâche 06 sans outil, essai de QA documenté dans sa fiche ; R14 seulement en tâche 05 ; tests de l'API dans les fichiers existants de `api/test/` (`base.test.js`, `fichiers.test.js`), e2e existants complétés (`e2e-serveur.py`, `e2e-candidatures.py`, `e2e-parcours.py`), aucun nouveau fichier de test.
