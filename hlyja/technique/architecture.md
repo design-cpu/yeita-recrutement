@@ -114,6 +114,8 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 - [Décisions](decisions.md)
 - [Conventions et tests](conventions.md)
 - [Lancer le site avec Docker sur un poste](docker-local.md)
+- [Mettre à jour le site en production](mise-a-jour-production.md)
+- [La clé des sauvegardes](cle-sauvegarde.md)
 - Mode d'emploi du serveur : `deploy/README.md`
 
 ## Historique

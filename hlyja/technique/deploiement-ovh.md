@@ -39,6 +39,10 @@ date: 2026-10-28
 | Interdit sur le serveur | `docker compose down -v`, `docker volume prune` (volume `recrutement_data`) |
 | Sauvegardes (v1.7) | à mettre en place avant de vraies candidatures : jusque-là, le volume est la seule copie ; restaurer : `deploy/RESTAURER.md` |
 
+## Voir aussi
+- [Mettre à jour le site en production](mise-a-jour-production.md) : après la première mise en ligne, chaque mise à jour
+- [La clé des sauvegardes](cle-sauvegarde.md)
+
 ## Historique
 | Version | Changement |
 |---|---|
