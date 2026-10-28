@@ -70,8 +70,7 @@ document.getElementById("pu").innerHTML = PU.headHTML();
 document.querySelectorAll("#pu [data-t]").forEach(function(el){ el.textContent = t(el.dataset.t); });
 
 /* ---------- Enregistrement : tout passe par le candidat en mémoire, enregistré après une courte pause ---------- */
-/* Pendant une opération sur un CV ou un portfolio (menu-candidat.js), l'enregistrement attend sa fin (spec 1.10 R19). */
-function schedule(){ clearTimeout(saveT); saveT = setTimeout(function(){ if(MC.occupe()){ schedule(); return; } saveNow().catch(function(){}); }, 400); }
+function schedule(){ clearTimeout(saveT); saveT = setTimeout(function(){ saveNow().catch(function(){}); }, 400); }
 function saveNow(){
   clearTimeout(saveT); saveT = null; enCours++;
   return S.saveCandidate(cur).then(function(c){ enCours--; refuse = false; cur = c; var s = document.getElementById("saved"); if(s) s.textContent = t("commun.enregistreA", {heure: UI.heure()}); return c; },

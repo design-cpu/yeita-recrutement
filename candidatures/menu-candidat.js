@@ -150,7 +150,7 @@ function enregistrer(){
   return S.saveCandidate(c).then(function(x){ enCours = x; if(copie) copie = x; var s = document.getElementById("mf-saved"); if(s) s.textContent = t("commun.enregistreA", {heure: UI.heure()}); return x; },
     function(e){ var s = document.getElementById("mf-saved"); if(s) s.textContent = t("serveur.nonEnregistre"); throw e; });
 }
-function plusTard(){ if(mode === "creation") return; clearTimeout(saveT); saveT = setTimeout(function(){ if(operation){ plusTard(); return; } enregistrer().catch(function(){}); }, 400); }
+function plusTard(){ if(mode === "creation") return; clearTimeout(saveT); saveT = setTimeout(function(){ enregistrer().catch(function(){}); }, 400); }
 
 function ficheHTML(c){ return '<div class="infos plain">' + infosHTML(c, false, {id: "mf-", a: "mfiche"}, "modal") + '</div>'; }
 function lire(id){ return Promise.resolve(opts.avant ? opts.avant() : null).then(function(){ return S.getCandidate(id); }); }
@@ -254,11 +254,11 @@ function bandeau(m){
 }
 
 /* ---------- CV et Portfolio : déposer, coller un lien, retirer (spec 1.10 R4, R5, R7, R19) ----------
-   Une opération de fichier à la fois : pendant qu'elle tourne, les commandes du champ sont désactivées et les
-   enregistrements différés de la page attendent (MC.occupe()) ; ils partent ensuite avec les saisies faites entre-temps.
-   Un échec remet le champ (référence, lien, ligne d'historique) dans son état d'avant. */
+   Une opération de fichier à la fois : pendant qu'elle tourne, les commandes du champ sont désactivées et la fenêtre
+   ne se ferme pas. Un échec remet le champ (référence, lien, ligne d'historique) dans son état d'avant, avant tout autre
+   enregistrement : l'adaptateur enchaîne les enregistrements d'un dossier un par un, et le suivant ne part qu'après
+   la réaction à l'échec de celui-ci (les saisies faites pendant l'opération partent ensuite, sans conflit). */
 var operation = null;
-function occupe(){ return !!operation; }
 function hote(el){
   var ctx = el.closest("[data-doc-ctx]").dataset.docCtx;
   if(ctx === "modal") return {get: function(){ return copie; }, changer: plusTard, redessiner: redessinerModal, p: {id: "mf-", a: "mfiche"}};
@@ -457,5 +457,5 @@ function init(o){
   window.addEventListener("pagehide", function(){ if(saveT && copie && mode !== "creation"){ clearTimeout(saveT); saveT = null; D.partir(copie); } });
 }
 
-window.MC = {occupe: occupe, bouton: bouton, init: init, creer: creer, infosHTML: infosHTML, appliquer: appliquer, histHTML: histHTML, docHTML: docHTML, fermerMenu: fermerMenu};
+window.MC = {bouton: bouton, init: init, creer: creer, infosHTML: infosHTML, appliquer: appliquer, histHTML: histHTML, docHTML: docHTML, fermerMenu: fermerMenu};
 })();
