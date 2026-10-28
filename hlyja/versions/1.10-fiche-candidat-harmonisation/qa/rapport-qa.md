@@ -11,7 +11,7 @@ date: 2026-10-28
 
 # Rapport QA — Fiche du candidat, dépôt de fichiers et harmonisation des étapes
 
-> **Taux de réussite : 96 %** (24/25 ; 1 échec mineur, B1) · 1 à vérifier à la main (mise en production sur le serveur, VoiceOver)
+> **Taux de réussite : 96 %** (24/25 ; 1 échec mineur, B1, corrigé ensuite : 100 % à la revérification) · 1 à vérifier à la main (mise en production sur le serveur, VoiceOver)
 > Régressions : aucune (le seul `FAIL` de `e2e-serveur`, 1.10-3, sort à l'identique sur `main`) · Bugs trouvés : 1 (mineur, affichage pour le rôle lecture) · Tests ajoutés : 3 tests de l'API, 15 contrôles e2e, tous verts, mis à l'épreuve par 3 mutations (toutes détectées ; M1 survivait aux tests des tâches)
 
 QA indépendante ([plan](plan-de-test.md)). Version testée : `c8d9684`. Aucun fichier de production modifié ; rien commité. Fichiers du projet modifiés : `api/test/fichiers.test.js` (3 tests « QA … »), `tools/e2e-serveur.py` (fonctions `relancer_api` et `qa_110`, appelée après `fichiers_110`). Les bancs nginx et aller-retour restent hors du dépôt (ils demandent Docker, un second conteneur et le code de `main`) : `scratchpad/qa/banc-nginx/` (`site.conf`, `sonde.py`) et `scratchpad/qa/banc-ar/s/` (`banc.sh`, `req.mjs`, `dossier.mjs`), sorties dans `scratchpad/qa/out/`.
@@ -141,3 +141,9 @@ Aucune. Le seul `FAIL` de `e2e-serveur` (1.10-3, « départ de la page (candidat
 - **Après le déploiement** : déposer un vrai CV PDF de 2 à 8 Mo depuis la fiche d'un candidat de test, l'ouvrir, le retirer ; le lendemain, la page des sauvegardes est verte (copie plus grosse, R14).
 - **VoiceOver** (facultatif) : dépôt et retrait au clavier, écoute du message du champ (`aria-live`) et du bandeau de la liste.
 - **B1** : décider entre cacher les actions au rôle lecture et corriger la spec.
+
+## Correction après la QA (orchestrateur)
+| Bug | Correction | Revérification |
+|---|---|---|
+| B1 | `QUI.lectureSeule()` (`assets/qui.js`) ; `docHTML` rend les documents en lecture pour ce rôle (`candidatures/menu-candidat.js`) — `08ae3e2` | contrôle « QA 1.10, rôle lecture » réécrit (aucune action ; DELETE direct → 403) : `FAIL` sans la correction, `OK` avec ; `e2e-serveur` : 134 `OK`, seul `FAIL` 1.10-3, verdict `ÉCHECS` ; `cd api && npm test` : `ℹ tests 85 · ℹ pass 85 · ℹ fail 0` |
+Taux après correction : 100 % (25/25), hors 1.10-3 (préexistant, aussi sur `main`) et le scénario manuel.
