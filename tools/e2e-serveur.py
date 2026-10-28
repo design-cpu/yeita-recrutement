@@ -75,6 +75,131 @@ def derniers_put(base, n=4):
 async def stockage(pg):
     return await pg.evaluate("JSON.stringify(Object.assign({}, localStorage)) + JSON.stringify(Object.assign({}, sessionStorage))")
 
+# --- Page /admin/deploiement.html (1.9, CA13) : un état d'exemple par cas du verdict, au format de deploy/auto-deploy.sh ---
+def iso(minutes=0):
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - minutes * 60))
+
+def commit(h, msg="feat: un commit", auteur="Banc"):
+    return {"commit": h * 40, "court": h * 7, "message": msg, "auteur": auteur}
+
+def passage(id_, h, resultat, statuts, motif="", sortie="TOUT OK", msg="feat: un commit"):
+    noms = ["test-store", "npm-test", "build", "deploy"]
+    return {"id": id_, "debut": iso(30), "fin": iso(29), "declencheur": {"type": "automatique", "par": ""}, "commit": commit(h, msg),
+            "branche": "main", "resultat": resultat, "motif": motif,
+            "etapes": [{"nom": n, "statut": st, "duree_s": 3, "sortie": sortie if st != "non-lancee" else ""} for n, st in zip(noms, statuts)]}
+
+def etat_deploiement(**k):
+    e = {"maj": iso(), "dernier_controle": {"le": iso(), "fetch": "ok"}, "en_ligne": commit("a"), "incertain": False, "dernier_main": commit("a"),
+         "pause": None, "echec": None, "retour_ko": None, "en_cours": None,
+         "passages": [passage("20261028T120000.000000001Z-1", "a", "deploye", ["ok"] * 4),
+                      passage("20261028T110000.000000001Z-1", "b", "deploye", ["ok"] * 4, msg="feat: un ancien commit")]}
+    e.update(k)
+    return e
+
+async def deploiement(b, base, env):
+    subprocess.run(["node", os.path.join(RACINE, "api", "equipe.js"), "add", "adm@yeita.fr", "Sacha", "admin"], env=env, check=True, capture_output=True)
+    dossier = os.path.join(base, "etat"); os.makedirs(dossier, exist_ok=True)
+    fichier, demandes = os.path.join(dossier, "deploiement.json"), os.path.join(base, "demandes", "deploiement.demande")
+    def ecrire(e):
+        if e is None:
+            if os.path.exists(fichier): os.remove(fichier)
+        else: open(fichier, "w").write(e if isinstance(e, str) else json.dumps(e))
+    adm = await contexte(b, "adm@yeita.fr")
+    async def page(e):
+        ecrire(e); pg = await ouvrir(adm, B + "admin/deploiement.html"); await pg.wait_for_selector("#verdict h2:not(:text('Chargement'))")
+        return pg
+    async def verdict(pg):
+        return (await pg.locator("#verdict").get_attribute("class")).replace("verdict ", ""), await pg.locator("#verdict h2").inner_text()
+    hostile = "ligne 1\n\"guillemets\" \\ </pre><b>x</b><img src=x onerror=alert(1)>"
+    cas = [
+        ("absent", None, "neutre", "Aucun passage enregistré"),
+        ("illisible", "{ pas du JSON", "neutre", "L'état du déploiement est illisible."),
+        ("à jour", etat_deploiement(), "vert", "À jour : le dernier commit de main est en ligne."),
+        ("main a avancé", etat_deploiement(dernier_main=commit("c")), "neutre", "main a avancé : test au prochain passage (10 min au plus)."),
+        ("en pause", etat_deploiement(pause={"depuis": iso(60), "par": "adm@yeita.fr", "commit": "bbbbbbb"}), "neutre", "En pause : les nouveaux commits de main ne sont pas mis en ligne."),
+        ("dernier de main en échec", etat_deploiement(dernier_main=commit("c"), echec=commit("c"), passages=[passage("20261028T130000.000000001Z-1", "c", "tests-ko", ["ok", "ko", "non-lancee", "non-lancee"], sortie=hostile)] + etat_deploiement()["passages"]),
+         "rouge", "Le dernier commit de main a échoué (Tests en échec : pas mis en ligne) : il ne sera pas mis en ligne tant que main n'avance pas."),
+        ("ne vérifie plus", etat_deploiement(dernier_controle={"le": iso(30), "fetch": "ok"}), "rouge", "Le serveur ne vérifie plus main (dernière vérification il y a 30 min)"),
+        ("passage en cours depuis 40 min", etat_deploiement(dernier_controle={"le": iso(30), "fetch": "ok"}, dernier_main=commit("c"),
+         en_cours={"depuis": iso(40), "etape": "npm-test", "etape_depuis": iso(10), "commit": commit("c"), "declencheur": {"type": "automatique", "par": ""}}), "neutre", "Passage en cours."),
+        ("GitHub injoignable", etat_deploiement(dernier_controle={"le": iso(), "fetch": "echec"}), "rouge", "Le serveur ne joint pas GitHub"),
+        ("retour raté", etat_deploiement(incertain=True, retour_ko={"type": "retour-ko", "le": iso(), "etape": "retour", "commit": commit("c"), "avant": commit("a")}),
+         "rouge", "Retour arrière raté : le site est peut-être hors service. En SSH : deploy/deploy.sh aaaaaaa"),
+        ("interrompu", etat_deploiement(incertain=True, retour_ko={"type": "interrompu", "le": iso(), "etape": "deploy", "commit": commit("c"), "avant": commit("a")}),
+         "rouge", "Mise en ligne interrompue pendant mise en ligne : le site est peut-être hors service. En SSH : deploy/deploy.sh aaaaaaa"),
+        ("incertain", etat_deploiement(incertain=True), "rouge", "Commit en ligne : incertain (une mise en ligne n'a pas abouti)."),
+    ]
+    for nom, e, classe, titre in cas:
+        pg = await page(e); v = await verdict(pg)
+        check("page déploiement, %s : verdict %s « %s »" % (nom, classe, titre[:50]), v[0] == classe and v[1].startswith(titre), str(v))
+        if nom == "en pause":
+            check("page déploiement, en pause : « Reprendre » visible ; actif : caché", await pg.locator("#reprendre").is_visible())
+        if nom == "à jour":
+            check("page déploiement, actif : « Reprendre » caché, « Déployer maintenant » visible", not await pg.locator("#reprendre").is_visible() and await pg.locator("#maintenant").is_visible())
+            n = await pg.locator("#passages button:text('Déployer ce commit')").count()
+            check("« Déployer ce commit » : sur le passage aux tests OK qui n'est pas en ligne, pas sur le commit en ligne", n == 1, str(n))
+        if nom == "dernier de main en échec":
+            ouverts = await pg.evaluate("[...document.querySelectorAll('#passages details.etape[open] summary')].map(s => s.textContent)")
+            check("passage en échec : ouvert, étape KO ouverte par défaut, elle seule", ouverts == ["Tests de l'API : en échec · 3 s"], str(ouverts))
+            texte = await pg.locator("#passages details.etape[open] pre.sortie").first.text_content()
+            check("sortie hostile affichée comme texte (aucun élément créé)", "<b>x</b>" in texte and await pg.locator("#passages b, #passages img").count() == 0, texte[-40:])
+            n = await pg.locator("#passages details.passage").first.locator("button").count()
+            check("« Déployer ce commit » absent d'un passage aux tests KO", n == 0)
+        if nom == "passage en cours depuis 40 min":
+            t = await pg.locator("#bandeaux").inner_text()
+            check("passage en cours : bandeau « … — Tests de l'API (2/4) »", "ccccccc — Tests de l'API (2/4)" in t, t)
+        await pg.close()
+
+    # Demande en attente : neutre récente, rouge au-delà de 5 min sans passage, neutre pendant un passage.
+    os.makedirs(os.path.dirname(demandes), exist_ok=True)
+    for nom, minutes, en_cours, rouge, attendu in [("récente", 1, None, False, "Demande en attente : déployer le dernier commit de main par adm2@yeita.fr"),
+                                                  ("de 6 min sans passage", 6, None, True, "La demande n'a pas été prise en charge : sudo systemctl status recrutement-deploy.path"),
+                                                  ("de 6 min pendant un passage", 6, {"depuis": iso(8), "etape": "build", "etape_depuis": iso(1), "commit": commit("c"), "declencheur": {"type": "automatique"}}, False, "Elle sera traitée à la fin du passage en cours.")]:
+        open(demandes, "w").write("action=deployer\ncommit=main\npar=adm2@yeita.fr\nle=%s\n" % iso(minutes))
+        pg = await page(etat_deploiement(en_cours=en_cours))
+        b0 = pg.locator("#bandeaux .bandeau").first
+        check("demande %s : bandeau %s" % (nom, "rouge" if rouge else "neutre"), attendu in await b0.inner_text() and ("rouge" in await b0.get_attribute("class")) == rouge, await b0.inner_text())
+        await pg.close()
+
+    # Confirmations exactes, annulation sans envoi, envoi, double clic pendant un POST ralenti.
+    open(demandes, "w").write("action=deployer\ncommit=main\npar=adm2@yeita.fr\nle=%s\n" % iso(1))
+    pg = await page(etat_deploiement(pause={"depuis": iso(60), "par": "adm@yeita.fr", "commit": "bbbbbbb"}, echec=commit("a")))
+    messages, posts = [], []
+    reponse = {"accepter": False}
+    async def dialogue(d):
+        messages.append(d.message)
+        await (d.accept() if reponse["accepter"] else d.dismiss())
+    pg.on("dialog", lambda d: asyncio.ensure_future(dialogue(d)))
+    pg.on("request", lambda r: posts.append(r.url) if r.method == "POST" else None)
+    await pg.click("#maintenant"); await pg.wait_for_timeout(300)
+    check("confirmation « Déployer maintenant » : texte exact (déjà en ligne, échec, pause, demande remplacée)", messages[-1:] == [
+        "Le dernier commit de main (aaaaaaa feat: un commit) sera testé puis mis en ligne.\nIl est déjà en ligne : il sera retesté et redéployé.\nIl a échoué la dernière fois.\n"
+        "L'automatisme reste en pause : utilisez Reprendre pour le relancer.\nRemplace la demande de adm2@yeita.fr."], str(messages[-1:]))
+    check("annulée : aucune requête envoyée", posts == [], str(posts))
+    await pg.click("#reprendre"); await pg.wait_for_timeout(300)
+    check("confirmation « Reprendre » : texte exact", messages[-1] == "L'automatisme reprend : le dernier commit de main (aaaaaaa) sera testé puis mis en ligne s'il ne l'est pas déjà.\nRemplace la demande de adm2@yeita.fr.", messages[-1])
+    await pg.locator("#passages details.passage").nth(1).locator(":scope > summary").click()
+    await pg.click("#passages button:text('Déployer ce commit')"); await pg.wait_for_timeout(300)
+    check("confirmation « Déployer ce commit » (pas le dernier de main) : texte exact", messages[-1] == "Les tests seront relancés.\nL'automatisme sera mis en pause.\nRemplace la demande de adm2@yeita.fr.", messages[-1])
+    async def lent(route):
+        await asyncio.sleep(1.5); await route.continue_()
+    await pg.route("**/api/deploiement/demande", lent)
+    reponse["accepter"] = True
+    await pg.click("#passages button:text('Déployer ce commit')")
+    await pg.wait_for_timeout(200)
+    desactive = await pg.locator("#maintenant").is_disabled()
+    await pg.evaluate("document.querySelector('#passages button[data-demande]').click(); document.getElementById('maintenant').click()")
+    await pg.wait_for_selector("#retour:not([hidden])")
+    check("pendant l'envoi : boutons désactivés ; double clic → une seule demande", desactive and len(posts) == 1, "posts : %s" % posts)
+    check("réponse 202 : « Demande envoyée … »", await pg.locator("#retour").inner_text() == "Demande envoyée : le serveur la prend en charge dans quelques secondes.")
+    contenu = open(demandes).read()
+    check("demande écrite par l'API : commit du passage, par l'admin connecté", contenu.startswith("action=deployer\ncommit=" + "b" * 40 + "\npar=adm@yeita.fr\n"), contenu)
+    await pg.close()
+    lec = await contexte(b, "lea@yeita.fr")
+    pg = await ouvrir(lec, B + "admin/deploiement.html"); await pg.wait_for_timeout(500)
+    check("page déploiement, rôle lecture : « Réservé aux admins de l'équipe. », aucun bouton", (await verdict(pg))[1] == "Réservé aux admins de l'équipe." and not await pg.locator("#maintenant").is_visible())
+    await lec.close(); await adm.close()
+
 async def principal():
     base = tempfile.mkdtemp(prefix="e2e-serveur-")
     proc = lancer_api(base)
@@ -296,6 +421,8 @@ async def principal():
             n_moi = len([u for u in req if u.endswith("/api/moi")])
             check("démarrage 401 : un rechargement, puis bandeau de session sans nouveau rechargement", n_moi == 2 and "Ta session n'a pas pu être vérifiée" in await bandeau(pg), "appels /api/moi : %d" % n_moi)
             await ctx.close()
+
+            await deploiement(b, base, dict(os.environ, DB_PATH=os.path.join(base, "e2e.sqlite")))
 
             for x in (alice, bob, lea): await x.close()
             await b.close()
