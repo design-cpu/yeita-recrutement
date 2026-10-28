@@ -27,7 +27,7 @@ date: 2026-10-28
 | `admin/` | pages d'administration (v1.7 : `sauvegardes.html` ; v1.9 : `deploiement.html`), protégées par oauth2-proxy, sans lien depuis Candidatures |
 | `hlyja/` | trace Hlýja, exclue de la publication (`SKIP` de `tools/build.py`) |
 
-## Mise en page des étapes (1.7)
+## Mise en page des étapes (1.10)
 - **Une seule largeur** pour toutes les étapes d'un candidat (appel, EC1, bilans, EC2, EC3, décision, proposition, onboarding) : `<div class="wrap etape">`, soit 1120 px au plus (`--etape-max`, `candidatures/style.css`). Toute nouvelle page d'étape la reprend.
 - **Pourquoi 1120 px :** la scorecard EC2 (sélecteur de palier sur une ligne, 4 tuiles, radar) et la carte d'identité y tiennent sans défilement ; avec le panneau Notes ouvert (420 px), il reste au moins 900 px de contenu dès 1360 px d'écran.
 - **Panneau Notes :** à côté du contenu dès 1360 px (`body.np-on` décale la page) ; en dessous, par-dessus.

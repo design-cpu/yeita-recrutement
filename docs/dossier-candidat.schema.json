@@ -48,7 +48,7 @@
       "properties": {
         "fichiers": {
           "type": "object",
-          "description": "1.7 : documents déposés (le contenu est gardé par l'API, table fichiers). null, ou {id, nom, type, taille, le, par}.",
+          "description": "1.10 : documents déposés (le contenu est gardé par l'API, table fichiers). null, ou {id, nom, type, taille, le, par}.",
           "properties": {
             "cv": {"type": ["object", "null"]},
             "portfolio": {"type": ["object", "null"]}

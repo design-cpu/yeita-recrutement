@@ -49,7 +49,7 @@ async def main():
         check("Qui es-tu : un nom libre s'ajoute à la liste", await pg.locator("#qui-sel").input_value() == "Samia")
         await pg.select_option("#qui-sel", "Thélo"); await pg.wait_for_timeout(100)
 
-        # Ajout : la fenêtre « Fiche du candidat », en création (1.7)
+        # Ajout : la fenêtre « Fiche du candidat », en création (1.10)
         await pg.click("#add-open"); await pg.wait_for_timeout(200)
         legendes = await pg.locator("dialog.mdlg .igroup > legend").all_inner_texts()
         check("ajout : la fenêtre Fiche du candidat, 4 groupes, deux actions en pied", await pg.locator("dialog.mdlg[open]").count() == 1 and legendes == ["Identité", "Contact", "Documents", "Suivi"]

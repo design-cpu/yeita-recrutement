@@ -75,7 +75,7 @@ Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISP
 | Équipe | `onRequest` | `SELECT … FROM equipe WHERE email = ?` à chaque requête ; absent ou `actif = 0` → 403 `hors-equipe` |
 | Rôle | `onRequest` | `lecture` : `GET` et `HEAD` seulement (Fastify crée `HEAD` pour chaque `GET`), sinon 403 `lecture-seule` |
 | Corps | analyseur | seul `application/json` (`getDefaultJsonParser("error","error")` : `__proto__`, `constructor.prototype` refusés) ; corps vide → `undefined` ; `bodyLimit` 1 048 576 |
-| Type | `preValidation` | PUT et POST sans `Content-Type: application/json` → 415, sauf `POST /api/candidats/:id/fichiers` (1.7), dont le contexte encapsulé a seul l'analyseur `parseAs: "buffer"` des trois types de fichier ; toute autre méthode avec un corps d'un autre type → 415 |
+| Type | `preValidation` | PUT et POST sans `Content-Type: application/json` → 415, sauf `POST /api/candidats/:id/fichiers` (1.10), dont le contexte encapsulé a seul l'analyseur `parseAs: "buffer"` des trois types de fichier ; toute autre méthode avec un corps d'un autre type → 415 |
 | Cache | `onSend` | `Cache-Control: no-store` sauf route statique `/*` |
 | Erreurs | `setErrorHandler` | `ErreurHttp` tel quel ; `FST_ERR_CTP_BODY_TOO_LARGE` → 413, `FST_ERR_CTP_INVALID_JSON_BODY` → 400, `FST_ERR_CTP_INVALID_MEDIA_TYPE` → 415, `SQLITE_BUSY*` → 503, autre 4xx → « Requête invalide. », sinon 500 journalisé sans message (type, code, pile sans 1re ligne) |
 | Introuvable | `setNotFoundHandler` | 404 « Route inconnue. » |
@@ -88,7 +88,7 @@ Routeur : `maxParamLength` 200 (un `:id` plus long → 404 de route inconnue).
 | `candidats` | `id` (clé), `data` (JSON), `version` (≥ 1), `modifie_le`, `modifie_par` | aucune colonne tirée du JSON | PUT, DELETE |
 | `journal` | `id`, `candidat_id`, `action` (`creation`, `modification`, `suppression`), `etape` (une des 12 `ETAPES` ou `null`), `par`, `le` | jamais de contenu du dossier ; purgé à la suppression du dossier, une ligne `suppression` gardée | PUT, DELETE |
 | `options_disponibilite` | `libelle` (clé), `ajoute_le` | seulement les ajouts | POST |
-| `fichiers` (1.7, `user_version` 2) | `id` (`fic-` + 18 hexadécimaux), `candidat_id`, `champ` (`cv`/`portfolio`), `nom` (nettoyé, 1 à 120), `type` (pdf/png/jpeg), `taille`, `contenu` (BLOB), `depose_le`, `depose_par` | index sur `candidat_id` ; supprimés avec le dossier dans la transaction du `DELETE` ; jamais de colonne lue par le journal | POST, DELETE (fichier ou dossier) |
+| `fichiers` (1.10, `user_version` 2) | `id` (`fic-` + 18 hexadécimaux), `candidat_id`, `champ` (`cv`/`portfolio`), `nom` (nettoyé, 1 à 120), `type` (pdf/png/jpeg), `taille`, `contenu` (BLOB), `depose_le`, `depose_par` | index sur `candidat_id` ; supprimés avec le dossier dans la transaction du `DELETE` ; jamais de colonne lue par le journal | POST, DELETE (fichier ou dossier) |
 
 | Réglage | Valeur | Raison |
 |---|---|---|
@@ -96,7 +96,7 @@ Routeur : `maxParamLength` 200 (un `:id` plus long → 404 de route inconnue).
 | `journal_mode` | `WAL` (hors transaction) | lectures non bloquées par l'écriture |
 | `busy_timeout` | 5000 ms (100 ms le temps d'un point de contrôle) | attendre un écrivain ; ne pas geler sur un lecteur |
 | `secure_delete` | `ON` | contenu effacé, pas seulement libéré |
-| `user_version` | 2 (1.7) | 0 → schéma créé (sans `IF NOT EXISTS`) puis migrations ; 1 → `MIGRATIONS[2]` (table `fichiers`) ; dans une transaction immédiate qui relit `user_version` ; > 2 → refus |
+| `user_version` | 2 (1.10) | 0 → schéma créé (sans `IF NOT EXISTS`) puis migrations ; 1 → `MIGRATIONS[2]` (table `fichiers`) ; dans une transaction immédiate qui relit `user_version` ; > 2 → refus |
 Écritures : toutes en `transaction(...).immediate()` (API et `equipe.js`). Après chaque écriture sur `candidats` : `wal_checkpoint(TRUNCATE)` ; s'il est gêné par un lecteur, avertissement « Point de contrôle incomplet » au journal du serveur.
 
 ## Configuration (`api/src/config.js`)
@@ -125,7 +125,7 @@ Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue
 | Démarrage des pages | `GET /api/moi`, `GET /api/equipe`, `GET /api/options-disponibilite` | `assets/demarrage.js` |
 | Options ajoutées | `POST /api/options-disponibilite` | `assets/demarrage.js` (`STORE.sourceDispos`) |
 | Dossiers | `GET /api/candidats`, `GET`/`PUT`/`DELETE /api/candidats/:id` | `assets/adapter-serveur.js` |
-| Fichiers (1.7) | `POST`, `GET`, `DELETE /api/candidats/:id/fichiers…` | `assets/adapter-serveur.js` (`deposer`, `fichierUrl`, `retirerFichier`), utilisés par `candidatures/menu-candidat.js` |
+| Fichiers (1.10) | `POST`, `GET`, `DELETE /api/candidats/:id/fichiers…` | `assets/adapter-serveur.js` (`deposer`, `fichierUrl`, `retirerFichier`), utilisés par `candidatures/menu-candidat.js` |
 | Sonde de santé | `GET /api/sante` (dans le conteneur, pas au travers d'oauth2-proxy, où elle exige une session) | `docker/api.Dockerfile` |
 Les réponses d'oauth2-proxy (401 `{}`, 502 HTML, 302) sont classées par `AdaptateurServeur.lire` ([Mode serveur](mode-serveur.md)).
 

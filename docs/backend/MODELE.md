@@ -81,8 +81,8 @@ Pour Sacha : ce que l'espace Candidatures enregistre, et comment le passer en SQ
 | `email` | texte | vide, ou `x@y.z` | Email Address |
 | `telephone` | texte | aucun format imposé | Phone Number |
 | `adresse` | texte | en pratique la ville | Adresse |
-| `linkedin`, `portfolio`, `cv` | URL ou `""` | facultatives ; `cv` et `portfolio` gardent le lien quand le document est un lien (1.7) | Linkedin, Portfolio, CV |
-| `fichiers` | objet `{cv, portfolio}` | 1.7 : chaque entrée vaut `null` ou `{id, nom, type, taille, le, par}`, le document déposé ; le contenu est gardé par l'API (table `fichiers`), jamais dans le dossier. Un document est soit un fichier, soit un lien | — |
+| `linkedin`, `portfolio`, `cv` | URL ou `""` | facultatives ; `cv` et `portfolio` gardent le lien quand le document est un lien (1.10) | Linkedin, Portfolio, CV |
+| `fichiers` | objet `{cv, portfolio}` | 1.10 : chaque entrée vaut `null` ou `{id, nom, type, taille, le, par}`, le document déposé ; le contenu est gardé par l'API (table `fichiers`), jamais dans le dossier. Un document est soit un fichier, soit un lien | — |
 | `references` | texte | facultatif | Références |
 | `syntheseEC` | texte | facultatif | Synthese EC |
 | `prenom`, `nom`, `poste` | texte | **calculés** (ne pas stocker en colonnes) : prénom pour saluer, nom, rôle | — |
@@ -118,7 +118,7 @@ Les règles de passage sont dans `assets/store.js` :
 | `decision` | objet | `choix` (`proposition`, `go-mission`, `vivier`, `non-retenu` ou `null`), `commentaire` (obligatoire pour décider), `le`, `par`, `appelFaitLe` |
 | `arrivee` | objet | `confirmeeLe`, `par` |
 | `restitution.etat` | texte | état de la carte d'identité : `ec1`, `ec2`, `hire` |
-| `historique` | liste | `{type, de, vers, le, par, motif, etatAvant, annulation}`. `type` vaut `passage`, `etat`, `decision`, `refus` ou, depuis la 1.7, `fichier` (`action` : `depot`, `retrait`, `lien`, `retraitLien` ; `champ` : `cv` ou `portfolio` ; `nom`). Seules les lignes qui ne sont ni `etat` ni `fichier` comptent comme passages (annulation, date d'entrée dans l'étape). `de` est `null` à l'entrée. Une annulation ajoute une ligne, elle n'efface rien |
+| `historique` | liste | `{type, de, vers, le, par, motif, etatAvant, annulation}`. `type` vaut `passage`, `etat`, `decision`, `refus` ou, depuis la 1.10, `fichier` (`action` : `depot`, `retrait`, `lien`, `retraitLien` ; `champ` : `cv` ou `portfolio` ; `nom`). Seules les lignes qui ne sont ni `etat` ni `fichier` comptent comme passages (annulation, date d'entrée dans l'étape). `de` est `null` à l'entrée. Une annulation ajoute une ligne, elle n'efface rien |
 | `notesLibres` | objet | le panneau Notes (1.6) : une note libre par étape, `notesLibres[étape]` (texte), non communiquée au candidat. À la lecture, `ec2.notesLibres` et `ec3.notes` y sont recopiés une fois si l'étape n'a pas encore de note ; les anciens champs restent |
 | `meta` | objet | `creeLe`, `modifieLe`, `demo` (exemple fictif), `origine` (`module` \| `fiche`), `migreV3Le` |
 
@@ -133,7 +133,7 @@ FICHE_EC1.setYeitaMatch({dominante: "explorateur", seconde: "collectif", source:
 - **Aujourd'hui** : la saisie à la main, l'import du fichier JSON exporté par le jeu, et la feuille de décompte du candidat. La feuille dépose `{candId, dominant, second, fmt, obs, date}` sous la clé `yeita-match-resultat`, puis ouvre `ec1.html?id=<candId>` ; la fiche ne reprend que le résultat de son propre candidat.
 - **Demain** (session Yeita Match liée au candidat) : le serveur écrit `ec1.match` et `fiches.ec1` (`dom`, `sec`, `source`), ou la page appelle `FICHE_EC1.setYeitaMatch` quand la session se termine. Rien d'autre à changer dans la fiche.
 
-## Version 1.7 (sans changement de version du dossier, rien n'est supprimé)
+## Version 1.10 (sans changement de version du dossier, rien n'est supprimé)
 - `identite.fichiers` (voir la fiche) et les lignes `fichier` de l'historique. Un dossier plus ancien reçoit `fichiers: {cv: null, portfolio: null}` à la lecture.
 - Côté API, la base passe en `user_version` 2 : table `fichiers` (contenu des documents), effacée avec le dossier. Contrat : `hlyja/technique/api.md`.
 - Mention RGPD : durée de conservation `config.rgpd.dureeMois` = 22 mois.

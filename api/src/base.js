@@ -36,7 +36,7 @@ CREATE TABLE options_disponibilite (
   ajoute_le TEXT NOT NULL
 );`;
 
-/* Les évolutions du schéma, appliquées dans l'ordre à partir de la version de la base (1.7 : fichiers des candidats).
+/* Les évolutions du schéma, appliquées dans l'ordre à partir de la version de la base (1.10 : fichiers des candidats).
    Les fichiers (CV, portfolio) sont dans la base, avec le dossier : même accès réservé à l'équipe, même effacement réel. */
 export const MIGRATIONS = {
   2: `

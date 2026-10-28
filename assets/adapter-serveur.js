@@ -141,7 +141,7 @@ function AdaptateurServeur(opts){
         return r.type === "ok" ? d : null;
       });
     },
-    /* Fichiers d'un candidat (1.7) : envoi brut (type du fichier, nom dans X-Nom-Fichier), adresse de lecture, retrait. */
+    /* Fichiers d'un candidat (1.10) : envoi brut (type du fichier, nom dans X-Nom-Fichier), adresse de lecture, retrait. */
     deposer: function(id, champ, fichier){
       if(!MOTIF_ID.test(String(id || ""))) return echec(erreur("identifiant", texte("identifiant", {nom: id || ""})), true);
       var o = {method: "POST", cache: "no-store", credentials: "same-origin", body: fichier,

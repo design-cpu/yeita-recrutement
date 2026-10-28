@@ -1,6 +1,6 @@
 /* Espace Candidatures : styles communes aux pages du dossier candidatures/ (tableau, parcours, fiches). S'appuie sur assets/yeita.css. */
 .wrap.wide{max-width:1400px}
-/* Une seule largeur pour toutes les étapes d'un candidat (appel, EC1, bilans, EC2, EC3, décision, proposition), 1.7.
+/* Une seule largeur pour toutes les étapes d'un candidat (appel, EC1, bilans, EC2, EC3, décision, proposition), 1.10.
    1120 px : la scorecard EC2 (sélecteur de palier sur une ligne, 4 tuiles, radar) et la carte d'identité y tiennent ;
    avec le panneau Notes (420 px) ouvert à côté, il reste au moins 900 px de contenu dès 1360 px d'écran. Voir hlyja (conventions). */
 .wrap.etape{max-width:var(--etape-max, 1120px)}

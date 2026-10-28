@@ -310,7 +310,7 @@ async def principal():
             check("création : lue depuis l'API, au nom d'Alice dans l'historique (CA10)", st == 200 and len(cible) == 1 and cible[0]["data"]["historique"][0]["par"] == "Alice")
             cid = cible[0]["id"] if cible else ""
 
-            # --- CV en fichier, portfolio en lien (1.7) ---
+            # --- CV en fichier, portfolio en lien (1.10) ---
             pf = await ouvrir(alice, C + "candidat.html?id=" + cid + "&etape=appel")
             if not await pf.locator('#panel [data-doc="cv"]').count():
                 await pf.click("#c-side .morebtn"); await pf.click("[data-mc=fiche]"); await pf.wait_for_timeout(300)
@@ -431,7 +431,7 @@ async def principal():
             pa = await ouvrir(alice, C + "candidat.html?id=" + cid)
             await pa.click("#c-side .morebtn"); await pa.click("[data-mc=supprimer]"); await pa.click("[data-mc-del]"); await pa.wait_for_timeout(800)
             check("suppression : DELETE, plus dans l'API", api("alice@yeita.fr", "GET", "candidats/" + cid)[0] == 404)
-            check("suppression : ses fichiers partent avec lui (1.7)", api("alice@yeita.fr", "GET", "candidats/" + cid + "/fichiers")[0] == 404)
+            check("suppression : ses fichiers partent avec lui (1.10)", api("alice@yeita.fr", "GET", "candidats/" + cid + "/fichiers")[0] == 404)
             await tel(bc, "0655555555"); await be.fill("#f-def", "Après suppression"); await bc.wait_for_timeout(1000)
             check("suppression : saisie chez Bob → aucune recréation, bandeau", api("bob@yeita.fr", "GET", "candidats/" + cid)[0] == 404 and "modifiée" in await bandeau(bc) and "modifiée" in await bandeau(be))
             tb = await ouvrir(bob, C)

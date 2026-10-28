@@ -98,7 +98,7 @@ export function routesCandidats(app, db) {
       if (q.supprimer.run(id).changes === 0) throw INTROUVABLE();
       /* Demande d'effacement : le parcours ne reste pas au journal, seule la suppression y est notée (arbitrage de l'utilisateur). */
       q.purger.run(id);
-      /* Ses fichiers (CV, portfolio) partent avec lui, dans la même transaction (1.7). */
+      /* Ses fichiers (CV, portfolio) partent avec lui, dans la même transaction (1.10). */
       q.fichiers.run(id);
       q.journal.run(id, "suppression", null, req.membre.email, new Date().toISOString());
     });

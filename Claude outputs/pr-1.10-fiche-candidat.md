@@ -1,4 +1,4 @@
-# 1.7 — Fiche du candidat, dépôt de fichiers et harmonisation des étapes
+# 1.10 — Fiche du candidat, dépôt de fichiers et harmonisation des étapes
 
 Branche `feat/fiche-candidat-harmonisation` → `main`. **À tester en local avant merge.**
 
@@ -41,7 +41,7 @@ Branche `feat/fiche-candidat-harmonisation` → `main`. **À tester en local ava
 - `node tools/test-store.js` : TOUT OK.
 - `node tools/test-serveur.js` : TOUT OK (87).
 - `e2e-candidatures`, `e2e-parcours`, `e2e-liens`, `e2e-pdf` : ALL OK.
-- `e2e-serveur` : TOUT OK, hors les contrôles « départ de la page ». Ils échouent par intermittence aussi sur `main` (backlog 1.7-3).
+- `e2e-serveur` : TOUT OK, hors les contrôles « départ de la page ». Ils échouent par intermittence aussi sur `main` (backlog 1.10-3).
 - Scénarios fictifs vérifiés :
   - une création puis « Passer à l'appel », avec un CV PDF déposé dès la création ;
   - une création puis « Enregistrer et revenir à la liste » ;
@@ -62,10 +62,10 @@ DEV_EMAIL=moi@yeita.fr DEV_STATIC=../_site npm start
 Ouvre ensuite http://127.0.0.1:8000/candidatures/. Au premier démarrage, la base passe d'elle-même en version 2.
 
 ## Points ouverts
-1. **Noms complets de l'équipe (backlog 1.7-5).** Ils sont lus dans `config.equipeNoms` ; seul « Léo Fuster » est renseigné.
-2. **Feuille de décompte (backlog 1.7-4).** Elle n'a plus d'accès depuis l'EC1. Proposition : un bouton en présentiel, symétrique de celui du visio.
-3. **Purge à 22 mois (backlog 1.7-2, à discuter).** Aucune purge automatique n'existe aujourd'hui ; la suppression reste manuelle.
-4. **Onboarding hors du funnel de candidature (backlog 1.7-1, à discuter).**
+1. **Noms complets de l'équipe (backlog 1.10-5).** Ils sont lus dans `config.equipeNoms` ; seul « Léo Fuster » est renseigné.
+2. **Feuille de décompte (backlog 1.10-4).** Elle n'a plus d'accès depuis l'EC1. Proposition : un bouton en présentiel, symétrique de celui du visio.
+3. **Purge à 22 mois (backlog 1.10-2, à discuter).** Aucune purge automatique n'existe aujourd'hui ; la suppression reste manuelle.
+4. **Onboarding hors du funnel de candidature (backlog 1.10-1, à discuter).**
 5. **Contact RGPD.** Il est toujours provisoire (backlog 1.6-2).
 6. **Déploiement.** Si un nginx existant est devant le site (cas A), il faut régler `client_max_body_size 10m`, sinon les fichiers de plus de 1 Mo sont refusés.
 

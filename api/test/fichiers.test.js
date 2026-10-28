@@ -1,4 +1,4 @@
-/* Les fichiers des candidats (1.7) : envoi, types, taille, nom nettoyé, accès, lecture, retrait, suppression avec le dossier. */
+/* Les fichiers des candidats (1.10) : envoi, types, taille, nom nettoyé, accès, lecture, retrait, suppression avec le dossier. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { creerApp, requete, dossier, fichiersContiennent } from "./aide.js";

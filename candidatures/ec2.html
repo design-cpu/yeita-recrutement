@@ -801,7 +801,7 @@ function renderExits(){
 }
 function liens(){
   var C = YEITA_CONFIG.liens || {};
-  /* La grille de salaire : une icône seule, à côté du palier (1.7). */
+  /* La grille de salaire : une icône seule, à côté du palier (1.10). */
   var gl = document.getElementById("grille"), lab = UI.t("ec.grilleOuvrir");
   gl.innerHTML = YEITA.icon("ExternalLink", 20, 2.2); gl.setAttribute("aria-label", lab); gl.title = lab;
   if(C.grilleSalaire) gl.href = C.grilleSalaire;

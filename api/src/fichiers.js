@@ -1,4 +1,4 @@
-/* Les fichiers d'un candidat (CV, portfolio), depuis la 1.7 : gardés dans la base, à côté du dossier.
+/* Les fichiers d'un candidat (CV, portfolio), depuis la 1.10 : gardés dans la base, à côté du dossier.
    Même accès que les dossiers (onRequest : équipe, lecture seule pour les GET), jamais servis comme fichiers du site.
    Envoi : POST /api/candidats/:id/fichiers?champ=cv|portfolio, le fichier brut en corps (Content-Type du fichier),
    son nom dans l'en-tête X-Nom-Fichier (encodeURIComponent). Types : PDF, PNG, JPG, reconnus à leurs premiers octets.

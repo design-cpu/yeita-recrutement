@@ -6,7 +6,7 @@ import fastifyStatic from "@fastify/static";
 import { LIMITE_CORPS, emailValide } from "./valeurs.js";
 import { estOccupee } from "./base.js";
 
-/* La route d'envoi des fichiers (1.7) : corps brut PDF, PNG ou JPG au lieu de JSON. Voir fichiers.js. */
+/* La route d'envoi des fichiers (1.10) : corps brut PDF, PNG ou JPG au lieu de JSON. Voir fichiers.js. */
 const ROUTE_FICHIERS = "/api/candidats/:id/fichiers";
 
 const LECTURE = ["GET", "HEAD"];

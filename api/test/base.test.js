@@ -57,7 +57,7 @@ test("échec provoqué pendant le schéma puis relance (règle 2)", t => {
   assert.equal(userVersion, 2);
 });
 
-test("base en version 1 (avant les fichiers) : migrée en 2, dossiers gardés (1.7)", t => {
+test("base en version 1 (avant les fichiers) : migrée en 2, dossiers gardés (1.10)", t => {
   const chemin = path.join(dossierTemporaire(t), "r.sqlite");
   const x = new Database(chemin); x.exec(SCHEMA); x.pragma("user_version = 1");
   x.prepare("INSERT INTO candidats VALUES ('cand-a-b', '{}', 1, 'le', 'par')").run(); x.close();

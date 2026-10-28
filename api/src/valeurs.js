@@ -19,7 +19,7 @@ export const HOTES_LOCAUX = ["127.0.0.1", "::1", "localhost"];
 
 export const LIMITE_CORPS = 1048576;
 
-/* Fichiers des candidats (1.7) : 10 Mo au plus (un portfolio PDF exporté de Figma pèse souvent 3 à 8 Mo). */
+/* Fichiers des candidats (1.10) : 10 Mo au plus (un portfolio PDF exporté de Figma pèse souvent 3 à 8 Mo). */
 export const LIMITE_FICHIER = 10 * 1048576;
 export const TYPES_FICHIER = ["application/pdf", "image/png", "image/jpeg"];
 export const CHAMPS_FICHIER = ["cv", "portfolio"];

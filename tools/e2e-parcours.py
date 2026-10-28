@@ -146,7 +146,7 @@ async def main():
         hugo = await pg.evaluate(NOUVEAU, ["Hugo Lenoir", "PrD", "ec1"])
         lena = await pg.evaluate(NOUVEAU, ["GARNIER Léna", "PrD", "ec1"])
         await pg.goto(C + "ec1.html?id=" + hugo, wait_until="networkidle"); await pg.wait_for_timeout(300)
-        check("EC1 : plus d'encart « Liens et outils », ni « Tout déplier », « Copier pour Notion », « Vider la fiche » (1.7)", await pg.locator("#liens, #toggle-all, #copy-notion, #clear, #confirm").count() == 0)
+        check("EC1 : plus d'encart « Liens et outils », ni « Tout déplier », « Copier pour Notion », « Vider la fiche » (1.10)", await pg.locator("#liens, #toggle-all, #copy-notion, #clear, #confirm").count() == 0)
         check("EC1 : section « Yeita Match », en-tête « Guide de l'étape » gardé", "Yeita Match" == (await pg.locator("#yeita-match .stt").inner_text()).split("\n")[0].replace("Visible sur la carte du candidat", "").strip() and await pg.locator("#c-guide").count() == 1)
         check("EC1 en présentiel : « Ouvrir la feuille de décompte » à côté du choix, pas de bouton du jeu en ligne", not await pg.locator("#ym-en-ligne").is_visible()
               and await pg.locator("#ym-decompte").is_visible() and await pg.locator("#ym-decompte").get_attribute("href") == "decompte.html?id=" + hugo)
