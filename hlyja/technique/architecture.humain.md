@@ -3,15 +3,15 @@ type: technique
 vue: humaine
 page: architecture
 titre: Architecture et déploiement
-maj: 1.3
-commit: 6cd5776
-sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, docker/api.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
-date: 2026-10-26
+maj: 1.7
+commit: 8db372f
+sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, docker/api.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/backup.sh, deploy/verif-disque.sh, deploy/commun.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, tools/check-site.sh, tools/build.py, .env.example, .dockerignore, admin/sauvegardes.html, api/src/sauvegardes.js
+date: 2026-10-28
 ---
 
 # Architecture et déploiement
 
-> Le site tourne dans Docker sur le serveur OVH de Yeita, derrière une connexion Google @yeita.fr. Depuis la v1.3, l'API de stockage tourne à côté, dans son propre conteneur, et seul oauth2-proxy peut lui parler.
+> Le site tourne dans Docker sur le serveur OVH de Yeita, derrière une connexion Google @yeita.fr. L'API de stockage tourne à côté, dans son propre conteneur, et seul oauth2-proxy peut lui parler. Depuis la v1.7, la base est sauvegardée chaque nuit, chiffrée, **sur le serveur lui-même**, et une page réservée aux admins dit si tout va bien.
 
 ## En un coup d'œil
 
@@ -25,7 +25,7 @@ flowchart LR
   F -->|sinon| G[Connexion Google]
 ```
 
-Le visiteur arrive en HTTPS sur `recrutement.yeita.fr`. oauth2-proxy joue le gardien : il sert les pages, ou envoie se connecter chez Google. Pour une adresse en `/api/`, il transmet la demande à l'API avec l'email du compte. Sans session, il répond un refus au lieu d'une redirection.
+Le visiteur arrive en HTTPS sur `recrutement.yeita.fr`. oauth2-proxy joue le gardien : il sert les pages, ou envoie se connecter chez Google. Pour une adresse en `/api/`, il transmet la demande à l'API avec l'email du compte ; sans session, il répond un refus au lieu d'une redirection.
 
 ## Les éléments principaux
 
@@ -35,7 +35,7 @@ Le visiteur arrive en HTTPS sur `recrutement.yeita.fr`. oauth2-proxy joue le gar
 | Site (`front`) | le site construit par Python, servi par oauth2-proxy lui-même | v1.1 |
 | API (`api`) | l'API en Node.js 22, sur une image figée à une version précise | v1.3 |
 
-L'image de l'API ne tourne pas en administrateur. Elle se dit saine seulement si la base répond et si son dossier de données accepte l'écriture. Sinon, Docker la signale malade et le déploiement s'arrête.
+L'image de l'API ne tourne pas en administrateur. Elle se dit saine seulement si la base répond et si son dossier de données accepte l'écriture.
 
 ### Trois conteneurs, deux réseaux
 | Conteneur | Réseaux | Ports sur le serveur |
@@ -44,12 +44,36 @@ L'image de l'API ne tourne pas en administrateur. Elle se dit saine seulement si
 | API | interne seul | aucun |
 | Caddy (cas B) | public seul | 80 et 443 |
 
-Le réseau interne n'a ni sortie vers Internet, ni adresse sur le serveur lui-même. Même un programme du serveur ne peut pas joindre l'API directement. C'est essentiel : l'API croit l'email que lui transmet oauth2-proxy.
+Le réseau interne n'a ni sortie vers Internet, ni adresse sur le serveur. Même un programme du serveur ne peut pas joindre l'API directement. C'est essentiel : l'API croit l'email que lui transmet oauth2-proxy.
 
 ### La base dans un volume
-La base SQLite vit dans le volume `recrutement_data`. Il survit aux arrêts, aux mises à jour et aux retours en arrière. C'est la seule copie des candidatures.
+La base SQLite vit dans le volume `recrutement_data`. Il survit aux arrêts, aux mises à jour et aux retours en arrière. Depuis la v1.7, il contient aussi la copie de travail de la nuit et l'état des sauvegardes.
 
 > Jamais `docker compose down -v` ni `docker volume prune` sur le serveur : la base partirait avec.
+
+### La sauvegarde de chaque nuit (v1.7)
+
+```mermaid
+flowchart LR
+  T[Timer, vers 3 h] --> C[Copie vérifiée dans le conteneur]
+  C --> R[Récupérée sur le serveur]
+  R --> K[Chiffrée avec age]
+  K --> G[Gardée 30 jours sur le serveur]
+  G --> E[État des sauvegardes]
+  H[Timer, chaque heure] --> D[Mesure des disques] --> E
+  E --> A[Route de l'API, admins] --> P[Page d'état]
+```
+
+Un timer systemd lance la sauvegarde entre 3 h et 3 h 15, sous le compte `deploy`. La copie en clair est supprimée dès qu'elle est chiffrée, et aussi en cas d'échec ou d'arrêt forcé. Le serveur ne connaît que la clé publique : il peut chiffrer, pas relire.
+
+| Où | Ce qui est gardé | Combien de temps |
+|---|---|---|
+| Dans le volume, à côté de la base | la copie de travail, en clair | 2 jours (3 au plus) |
+| Sur le serveur (`/var/backups/recrutement`) | les copies chiffrées | 30 jours, effacées seulement après une sauvegarde réussie |
+
+> Les copies restent **sur le serveur** (reprise de la v1.7 : plus d'envoi chez OVH Object Storage). Si le serveur est perdu, les sauvegardes le sont aussi.
+
+Chaque passage écrit son résultat dans l'état des sauvegardes, trois petits fichiers du volume, sans aucune donnée de candidat. L'écriture passe par un conteneur jetable : elle marche même API arrêtée. La route de l'API les lit, et la page `admin/sauvegardes.html` les affiche en vert ou en rouge. Aucune alerte n'est envoyée.
 
 ### Cas A ou cas B
 | Situation sur le serveur | Cas | Qui gère le HTTPS |
@@ -58,14 +82,16 @@ La base SQLite vit dans le volume `recrutement_data`. Il survit aux arrêts, aux
 | Rien sur les ports web | B | le Caddy du projet |
 | Proxy dans Docker ou inconnu | — | rien n'est touché : le responsable du serveur décide |
 
-### Les trois scripts
+### Les scripts
 | Script | Qui le lance | À quoi il sert |
 |---|---|---|
-| Préparation du serveur | l'administrateur, une fois | crée l'utilisateur `deploy`, clone le dépôt, sans rien installer |
-| Déploiement | `deploy`, à chaque mise à jour | met le serveur à jour, attend que le site puis l'API soient prêts, ou revient en arrière |
-| Contrôle du site | tout le monde | vérifie 6 adresses, dont l'API refusée sans connexion |
+| Préparation du serveur | l'administrateur, une fois | crée l'utilisateur `deploy`, clone le dépôt, sans rien installer ; depuis la v1.7, vérifie aussi qu'age est là |
+| Déploiement | `deploy`, à chaque mise à jour | met le serveur à jour, attend le site puis l'API, ou revient en arrière |
+| Sauvegarde (v1.7) | le timer de la nuit, ou `deploy` à la main | copie, chiffre, fait le ménage, écrit le résultat |
+| Contrôle du disque (v1.7) | le timer horaire | mesure les deux disques, rouge au-delà de 80 % |
+| Contrôle du site | tout le monde | vérifie 7 adresses, dont la page d'état renvoyée vers Google et l'API refusée sans connexion |
 
-Le déploiement n'attend l'API que si la version déployée en a une : un retour vers une version plus ancienne réussit sans elle, et le volume reste.
+Une sauvegarde et un déploiement ne se chevauchent jamais : la sauvegarde attend jusqu'à 10 minutes la fin d'un déploiement, et un déploiement lancé pendant une sauvegarde s'arrête en le disant.
 
 ### Où ça tourne
 | Endroit | Adresse | Pour quoi |
@@ -78,17 +104,21 @@ Le déploiement n'attend l'API que si la version déployée en a une : un retour
 ## À savoir avant de modifier
 
 - **Ne jamais publier de port pour l'API.** Elle ne doit rester joignable que par oauth2-proxy.
-- **Ne pas toucher au réseau interne sans refaire les essais.** Ses réglages empêchent le serveur de joindre l'API ; ils ont été vérifiés sur la version de Docker du serveur.
-- **Ne toucher qu'au projet.** Le serveur est partagé : le nettoyage ne vise que les images du projet.
-- **Ajouter une page publique, c'est modifier la liste** dans la configuration d'oauth2-proxy.
+- **Ne pas toucher au réseau interne sans refaire les essais.** Ses réglages ont été vérifiés sur la version de Docker du serveur.
+- **Ne toucher qu'au projet.** Le serveur est partagé : le nettoyage ne vise que les images du projet, et les unités systemd portent le préfixe `recrutement-`.
+- **Ajouter une page publique, c'est modifier la liste** dans la configuration d'oauth2-proxy. La page d'état, elle, doit rester protégée.
 - **Le dépôt du serveur doit rester propre.** Un fichier en trop entrerait dans l'image : le déploiement refuse de partir.
-- **La première mise en service de l'API** suit une procédure à part : contrôle du réseau, puis premier admin (`deploy/README.md`).
+- **Une unité systemd changée n'est jamais écrasée** par la commande d'installation : elle affiche la différence, et l'administrateur décide.
+- **Avant une maintenance de Docker, arrête les timers.** Les unités ne demandent pas Docker, mais la première commande `docker` d'une sauvegarde le relancerait.
+- **La clé secrète de sauvegarde ne va jamais sur le serveur.** C'est un fichier gardé hors du serveur par une ou deux personnes ; sans lui, les copies sont illisibles.
+- **Les scripts écrivent l'état dans `/data/etat`.** Si le chemin de la base change dans l'image, il faut les changer avec.
 
 ## Voir aussi
 - [Comment les pages choisissent où ranger les dossiers](mode-serveur.md)
 - [L'API de stockage](api.md)
 - [Décisions techniques](decisions.md)
 - [Conventions et tests](conventions.md)
+- [Déployer sur OVH, pas à pas](deploiement-ovh.md)
 - [Lancer le site avec Docker sur ton poste](docker-local.md)
-- Le mode d'emploi pas à pas du serveur : `deploy/README.md`
+- Le mode d'emploi du serveur : `deploy/README.md` ; mettre à jour : `deploy/METTRE-A-JOUR.md` ; la clé : `deploy/CLE-SAUVEGARDE.md` ; restaurer : `deploy/RESTAURER.md`
 - Le détail (réglages, versions exactes, garde-fous de chaque script) est dans la version complète.

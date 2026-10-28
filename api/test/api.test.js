@@ -1,6 +1,9 @@
-/* Identité, autorisation, format des erreurs, /api/sante, /api/moi, /api/equipe, options de disponibilité. */
+/* Identité, autorisation, format des erreurs, /api/sante, /api/moi, /api/equipe, options de disponibilité,
+   état des sauvegardes (v1.7). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { creerApp, requete } from "./aide.js";
 
 const json = r => JSON.parse(r.body);
@@ -149,4 +152,64 @@ test("options de disponibilité : ajout, doublon, option de base, longueur, lect
   assert.equal((await post("é".repeat(60))).statusCode, 201);
   assert.equal((await post("Autre", "lec@yeita.fr")).statusCode, 403);
   assert.equal(db.prepare("SELECT count(*) n FROM options_disponibilite").get().n, 3);
+});
+
+/* --- GET /api/sauvegardes (v1.7) : réservé aux admins, lu dans <dossier de la base>/etat/ --- */
+
+function etat(dbPath, fichier, contenu) {
+  const d = path.join(path.dirname(dbPath), "etat");
+  fs.mkdirSync(d, { recursive: true });
+  fs.writeFileSync(path.join(d, fichier), typeof contenu === "string" ? contenu : JSON.stringify(contenu));
+}
+const ilYA = h => new Date(Date.now() - h * 3600 * 1000).toISOString();
+
+test("sauvegardes : admin seulement ; recruteur, lecture, hors équipe, sans identité refusés (CA22)", async t => {
+  const { app } = creerApp(t);
+  let r = await requete(app, "adm@yeita.fr", { url: "/api/sauvegardes" });
+  assert.equal(r.statusCode, 200, r.body);
+  for (const email of ["rec@yeita.fr", "lec@yeita.fr"]) {
+    r = await requete(app, email, { url: "/api/sauvegardes" });
+    assert.equal(r.statusCode, 403, email);
+    assert.deepEqual(json(r), { erreur: "Réservé aux admins de l'équipe.", code: "admin-requis" });
+  }
+  r = await requete(app, "parti@yeita.fr", { url: "/api/sauvegardes" });
+  assert.equal(json(r).code, "hors-equipe");
+  r = await requete(app, null, { url: "/api/sauvegardes" });
+  assert.equal(r.statusCode, 401);
+});
+
+test("sauvegardes : fichiers absents → null, en retard (CA22)", async t => {
+  const { app } = creerApp(t);
+  const v = json(await requete(app, "adm@yeita.fr", { url: "/api/sauvegardes" }));
+  assert.deepEqual(v.sauvegarde, { derniere: null, reussie: null, en_retard: true });
+  assert.deepEqual(v.disque, { mesure: null, en_retard: true });
+  assert.ok(Math.abs(Date.parse(v.maintenant) - Date.now()) < 5000);
+});
+
+test("sauvegardes : états lus, seuils de 26 h et 2 h, fichier illisible (CA22)", async t => {
+  const { app, dbPath } = creerApp(t);
+  const reussie = { le: ilYA(25.9), resultat: "reussie", fichier: "recrutement-x.db.age", taille: 32968, copies: 3 };
+  etat(dbPath, "sauvegarde-reussie.json", reussie);
+  etat(dbPath, "sauvegarde-derniere.json", { le: ilYA(1), resultat: "echec", etape: "chiffrement (age)", code: 1 });
+  etat(dbPath, "disque.json", { le: ilYA(1.9), resultat: "normal", racine: 34, docker: 34, seuil: 80 });
+  let v = json(await requete(app, "adm@yeita.fr", { url: "/api/sauvegardes" }));
+  assert.deepEqual(v.sauvegarde.reussie, reussie);
+  assert.equal(v.sauvegarde.derniere.etape, "chiffrement (age)");
+  assert.equal(v.sauvegarde.en_retard, false, "25,9 h : à l'heure");
+  assert.equal(v.disque.en_retard, false, "1,9 h : à l'heure");
+  etat(dbPath, "sauvegarde-reussie.json", { ...reussie, le: ilYA(26.1) });
+  etat(dbPath, "disque.json", "{ pas du JSON");
+  v = json(await requete(app, "adm@yeita.fr", { url: "/api/sauvegardes" }));
+  assert.equal(v.sauvegarde.en_retard, true, "26,1 h : en retard");
+  assert.deepEqual(v.disque, { mesure: { illisible: true }, en_retard: true });
+  etat(dbPath, "disque.json", { le: ilYA(2.1), resultat: "normal", racine: 1, docker: 1, seuil: 80 });
+  assert.equal(json(await requete(app, "adm@yeita.fr", { url: "/api/sauvegardes" })).disque.en_retard, true, "2,1 h : en retard");
+  etat(dbPath, "sauvegarde-reussie.json", { ...reussie, le: "pas une date" });
+  assert.equal(json(await requete(app, "adm@yeita.fr", { url: "/api/sauvegardes" })).sauvegarde.en_retard, true, "date invalide : en retard");
+  etat(dbPath, "sauvegarde-reussie.json", { ...reussie, le: new Date(Date.now() + 3600 * 1000).toISOString() });
+  assert.equal(json(await requete(app, "adm@yeita.fr", { url: "/api/sauvegardes" })).sauvegarde.en_retard, true, "date dans le futur : en retard");
+  for (const contenu of ["[1, 2]", "42", "null"]) {
+    etat(dbPath, "sauvegarde-derniere.json", contenu);
+    assert.deepEqual(json(await requete(app, "adm@yeita.fr", { url: "/api/sauvegardes" })).sauvegarde.derniere, { illisible: true }, `JSON valide mais pas un objet : ${contenu}`);
+  }
 });

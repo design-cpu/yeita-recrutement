@@ -2,10 +2,10 @@
 type: technique
 page: architecture
 titre: Architecture et déploiement
-maj: 1.3
-commit: 3b314a9
-sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, docker/api.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, tools/check-site.sh, tools/build.py, .env.example, .dockerignore
-date: 2026-10-26
+maj: 1.7
+commit: 8db372f
+sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, docker/api.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/backup.sh, deploy/verif-disque.sh, deploy/commun.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, tools/check-site.sh, tools/build.py, .env.example, .dockerignore, admin/sauvegardes.html, api/src/sauvegardes.js
+date: 2026-10-28
 ---
 
 # Architecture et déploiement
@@ -35,6 +35,7 @@ flowchart LR
 | `fastify` | `5.12.7` | serveur HTTP de l'API | 1.2 |
 | `better-sqlite3` | `13.0.3` | base SQLite de l'API (binaires fournis, `api/.npmrc` `ignore-scripts=true`) | 1.2 |
 | `@fastify/static` | `10.1.6` | site construit servi par l'API en mode local (`DEV_STATIC`) | 1.2 |
+| `age` | 1.2.1 (paquet Ubuntu 26.04, installé par l'administrateur) | chiffrement des copies de la base pour une clé publique (`AGE_RECIPIENT`) ; la clé privée n'est jamais sur le serveur | 1.7 |
 | `node:22.23.4-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d` | figée par le digest de l'index multi-architecture (exception à l'âge de 14 jours, décision de l'utilisateur) | image `api` | 1.3 |
 
 ## Image `front` (`docker/front.Dockerfile`)
@@ -88,9 +89,13 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 ## Scripts
 | Script | Lancé par | Rôle | Garde-fous |
 |---|---|---|---|
-| `deploy/prepare-serveur.sh "<clé>"` | root, une fois | utilisateur `deploy` (groupe `docker`), clé SSH, clone dans `/opt/recrutement` (par `deploy`), `/var/backups/recrutement` (700) | n'installe rien ; vérifie outils, port 4180, sous-réseau 172.30.0.0/24 (réseaux Docker et routes), conteneurs `recrutement` d'un autre dossier, `deploy` existant hors groupe `docker`, groupe `deploy` orphelin, origine du dépôt — avant toute modification ; idempotent ; reprend un dossier vide laissé par un clone en échec ; `RECRUTEMENT_REPO` pour les essais |
+| `deploy/prepare-serveur.sh "<clé>"` | root, une fois | (v1.7 : exige aussi `age`) utilisateur `deploy` (groupe `docker`), clé SSH, clone dans `/opt/recrutement` (par `deploy`), `/var/backups/recrutement` (700) | n'installe rien ; vérifie outils, port 4180, sous-réseau 172.30.0.0/24 (réseaux Docker et routes), conteneurs `recrutement` d'un autre dossier, `deploy` existant hors groupe `docker`, groupe `deploy` orphelin, origine du dépôt — avant toute modification ; idempotent ; reprend un dossier vide laissé par un clone en échec ; `RECRUTEMENT_REPO` pour les essais |
 | `deploy/deploy.sh [commit]` | `deploy` | `git` (main ou commit de main), `build --pull`, `up -d --remove-orphans --force-recreate`, `image prune --filter label=fr.yeita.projet=recrutement`, attente de `/ping`, puis (v1.3) attente de `api` `healthy` (60 s) si `docker compose config --services`, lu après le changement de commit, contient `api`, `check-site.sh` | réglages lus par `docker compose config --environment` (comme Compose les utilise) et cas B par `config --services` ; verrou `flock` (`~/.recrutement-deploy.lock`), refuse root, `.env` d'exemple (identifiant, secret client, cookie secret), incohérent ou avec une valeur vide suivie d'un commentaire, dépôt modifié ou avec un fichier non suivi (une copie de `.env` serait publiée), conteneurs d'un autre dossier, 80/443 pris en cas B, commit hors `main` ou antérieur à 1.1 ; retire `caddy` sans profil ; commande de retour si `build`, `up` ou le contrôle échouent ; corps dans `main` (lu en entier) |
-| `tools/check-site.sh BASE_URL` | tous | 6 contrôles : `/one-pager.html` 200, `/index.html` 200, `/candidatures/` et `/assets/data-diamants.js` 302 vers `https://accounts.google.com/`, `/ping` 200, `/api/moi` 401 (v1.3 ; vient d'oauth2-proxy, ne prouve pas que l'api est saine) | codes 0/1/2, `--max-time 10`, certificat non vérifié pour `localhost` et `*.localhost` |
+| `deploy/backup.sh` (v1.7) | `deploy`, par `recrutement-backup.timer` (3 h–3 h 15, `Persistent=true`) ou à la main | `docker compose exec -T api node api/sauvegarde.js --nettoyer`, `docker compose cp` vers `/var/backups/recrutement`, `age -r` → `recrutement-<AAAA-MM-JJTHHMMSSZ>.db.age` (600), clair supprimé, rétention locale 30 j après une sauvegarde réussie, état écrit (`sauvegarde-derniere.json`, `sauvegarde-reussie.json`) ; **les copies restent sur le serveur** | refuse root ; `umask 077` ; dossier absent → état `echec` ; verrou `/var/backups/recrutement/.backup.lock` (pris → code 1, aucun état) puis verrou de `deploy.sh` attendu 10 min ; `AGE_RECIPIENT` lue par `docker compose config --environment` (vide, `#…`, exemple, clé `age1…` seule) ; dossier 700 ; api `healthy` attendue 120 s ; dernière ligne de `sauvegarde.js` contrôlée ; en-tête `age-encryption.org/v1` ; nom déjà pris → échec ; à toute sortie en échec : clair supprimé puis état `echec` (étape, code) ; état non écrit → code 1 |
+| `deploy/verif-disque.sh` (v1.7) | `deploy`, par `recrutement-verif-disque.timer` (`hourly`, `Persistent=true`) | `df --output=pcent` sur `/` et `docker info -f '{{.DockerRootDir}}'` ; écrit `disque.json` (`normal`, `plein` au-delà de 80 %, `mesure-impossible`) ; code 1 si plein ou mesure impossible | Docker muet → rien d'écrit, code 1 |
+| `deploy/commun.sh` (v1.7) | chargé par les deux scripts | `lire_reglages`, `reglage_valide`, `maintenant`, `ecrire_etat` (conteneur jetable `docker compose run --rm --no-deps -T api`, dans `/data/etat`, `node`, 700/600, nom temporaire puis renommage) | — |
+| Unités `deploy/systemd/` (v1.7) | administrateur (`deploy/README.md` § 14 : copie si absente, rien si identique, arrêt si différente) | `Type=oneshot`, `User=deploy`, `UMask=0077`, `After=docker.service` (aucune demande de démarrage ; mais `docker.socket` relance Docker au premier appel `docker` : arrêter les timers avant une maintenance de Docker), `TimeoutStartSec` 1 h / 5 min, `TimeoutStopSec=90` ; sauvegarde : `ExecStopPost` sous `flock -n` qui retire le clair après un arrêt forcé | `systemd-analyze verify` sans remarque (banc Ubuntu 26.04 avec systemd) |
+| `tools/check-site.sh BASE_URL` | tous | 7 contrôles (v1.7 : `/admin/sauvegardes.html` → 302 Google) : `/one-pager.html` 200, `/index.html` 200, `/candidatures/` et `/assets/data-diamants.js` 302 vers `https://accounts.google.com/`, `/ping` 200, `/api/moi` 401 (v1.3 ; vient d'oauth2-proxy, ne prouve pas que l'api est saine) | codes 0/1/2, `--max-time 10`, certificat non vérifié pour `localhost` et `*.localhost` |
 
 ## Environnements
 | Environnement | Commande | Adresse |
@@ -109,6 +114,8 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 - [Décisions](decisions.md)
 - [Conventions et tests](conventions.md)
 - [Lancer le site avec Docker sur un poste](docker-local.md)
+- [Mettre à jour le site en production](mise-a-jour-production.md)
+- [La clé des sauvegardes](cle-sauvegarde.md)
 - Mode d'emploi du serveur : `deploy/README.md`
 
 ## Historique
@@ -117,3 +124,4 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 | 1.1 | Création : image `front`, Compose, cas A et B, scripts de préparation, de déploiement et de contrôle |
 | 1.2 | API de stockage `api/` (Node.js, Fastify, SQLite), hors Docker : pile et environnement local |
 | 1.3 | Image et service `api`, réseau `back` interne sans adresse hôte, volume `recrutement_data`, upstream et `api_routes` d'oauth2-proxy, attente de l'api dans `deploy.sh`, 6e contrôle de `check-site.sh` |
+| 1.7 | Sauvegardes sur le serveur : `age` ; `deploy/backup.sh`, `deploy/verif-disque.sh`, `deploy/commun.sh`, unités systemd, état des sauvegardes (`/data/etat`), route `GET /api/sauvegardes`, page `admin/sauvegardes.html`, 7e contrôle de `check-site.sh` ; `prepare-serveur.sh` exige `age` (reprise du 2026-10-28 : rclone, OVH Object Storage et healthchecks.io retirés) |

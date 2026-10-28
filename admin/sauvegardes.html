@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sauvegardes · Administration Yeita</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../assets/yeita.css">
+<style>
+  main{margin:24px 0 40px}
+  h1{font-size:28px; margin:0 0 6px}
+  .sous{color:var(--muted); margin:0 0 20px}
+  .verdict{border-radius:var(--radius); padding:18px 20px; margin:0 0 20px; border:1.5px solid var(--line-strong)}
+  .verdict h2{margin:0; font-size:20px}
+  .verdict ul{margin:10px 0 0; padding-left:20px}
+  .verdict.vert{background:var(--go-tint); border-color:var(--go); color:var(--go)}
+  .verdict.rouge{background:var(--stop-tint); border-color:var(--stop); color:var(--stop)}
+  .verdict.neutre{background:var(--surface-2)}
+  .verdict li{color:var(--ink)}
+  dl.etat{display:grid; grid-template-columns:minmax(150px, max-content) 1fr; gap:8px 18px; margin:0 0 20px;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 20px}
+  dl.etat dt{color:var(--muted); font-weight:600}
+  dl.etat dd{margin:0; overflow-wrap:anywhere}
+  .aide{color:var(--ink-2); font-size:15px}
+  .aide code{font-family:var(--f-mono); font-size:14px; background:var(--surface-2); padding:1px 5px; border-radius:6px}
+  @media (max-width:560px){ dl.etat{grid-template-columns:1fr} dl.etat dt{margin-top:6px} }
+</style>
+</head>
+<body>
+<!-- Administration : état des sauvegardes de la base (deploy/backup.sh, deploy/verif-disque.sh).
+     Protégée par oauth2-proxy (connexion Google @yeita.fr) ; les données ne sont servies qu'au rôle admin
+     (GET /api/sauvegardes). Aucun lien depuis l'espace Candidatures. -->
+<div class="wrap narrow">
+  <header class="topbar">
+    <span id="logo" aria-hidden="true"></span>
+    <span class="where">Administration · Sauvegardes</span>
+  </header>
+  <main aria-labelledby="titre">
+    <h1 id="titre">Sauvegardes de la base</h1>
+    <p class="sous">Une copie chiffrée chaque nuit entre 3 h et 3 h 15, gardée 30 jours sur le serveur.</p>
+    <div id="verdict" class="verdict neutre" role="status" aria-live="polite"><h2>Chargement de l'état…</h2></div>
+    <dl class="etat" id="details" hidden></dl>
+    <div class="aide" id="aide" hidden>
+      <p>Pour en savoir plus, sur le serveur (compte <code>ubuntu</code>) :<br>
+        <code>sudo journalctl -u recrutement-backup -n 50</code> · <code>systemctl list-timers 'recrutement-*'</code></p>
+    </div>
+    <p><button class="btn quiet small" type="button" id="relire">Actualiser</button></p>
+  </main>
+</div>
+<script src="../assets/yeita.js"></script>
+<script>
+(function () {
+  "use strict";
+  document.getElementById("logo").innerHTML = YEITA.logo(26);
+  var verdict = document.getElementById("verdict"), details = document.getElementById("details"), aide = document.getElementById("aide");
+
+  var MESSAGES = {
+    401: "Session expirée : recharge la page pour te reconnecter.",
+    "admin-requis": "Réservé aux admins de l'équipe.",
+    "hors-equipe": "Tu ne fais pas partie de l'équipe.",
+    absente: "État indisponible ici : ce site n'a pas l'API.",
+    reseau: "Le serveur ne répond pas. Réessaie dans un instant."
+  };
+
+  /* Tout le contenu est inséré comme texte, jamais comme HTML. */
+  function el(nom, texte) { var e = document.createElement(nom); if (texte !== undefined) e.textContent = texte; return e; }
+
+  function date(iso) {
+    var t = Date.parse(iso || "");
+    if (isNaN(t)) return "date inconnue";
+    return new Date(t).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "full", timeStyle: "short" });
+  }
+  function octets(n) { return typeof n === "number" ? (n < 1048576 ? Math.round(n / 1024) + " Ko" : (n / 1048576).toFixed(1) + " Mo") : "?"; }
+  function lisible(o) { return o && typeof o === "object" && !o.illisible; }
+
+  function afficherVerdict(classe, titre, motifs) {
+    verdict.className = "verdict " + classe;
+    verdict.replaceChildren(el("h2", titre));
+    if (motifs && motifs.length) { var ul = el("ul"); motifs.forEach(function (m) { ul.appendChild(el("li", m)); }); verdict.appendChild(ul); }
+  }
+
+  function message(texte) { afficherVerdict("neutre", texte); details.hidden = true; aide.hidden = true; }
+
+  /* Rouge si l'un des motifs ci-dessous ; vert sinon (spec R23). */
+  function motifsRouges(v) {
+    var s = v.sauvegarde, d = v.disque, m = [];
+    if (!s.reussie) m.push("Aucune sauvegarde réussie n'est enregistrée.");
+    else if (s.reussie.illisible) m.push("Le fichier de la dernière sauvegarde réussie est illisible.");
+    else if (s.en_retard) m.push(Date.parse(s.reussie.le) > Date.parse(v.maintenant)
+      ? "La date de la dernière sauvegarde réussie est dans le futur : l'horloge du serveur est peut-être fausse."
+      : "La dernière sauvegarde réussie date de plus de 26 heures (ou sa date est illisible).");
+    if (s.derniere && s.derniere.illisible) m.push("Le fichier de la dernière tentative est illisible.");
+    else if (s.derniere && s.derniere.resultat === "echec") m.push("La dernière tentative a échoué (étape : " + (s.derniere.etape || "inconnue") + ").");
+    if (!d.mesure) m.push("Aucune mesure des disques n'est enregistrée.");
+    else if (d.mesure.illisible) m.push("Le fichier de la mesure des disques est illisible.");
+    else {
+      if (d.en_retard) m.push("La dernière mesure des disques date de plus de 2 heures.");
+      if (d.mesure.resultat === "plein") m.push("Un disque dépasse " + d.mesure.seuil + " % : il faut faire de la place.");
+      else if (d.mesure.resultat !== "normal") m.push("La mesure des disques a échoué.");
+    }
+    return m;
+  }
+
+  function ligne(dt, dd) { details.appendChild(el("dt", dt)); details.appendChild(el("dd", dd)); }
+
+  function afficher(v) {
+    var m = motifsRouges(v), s = v.sauvegarde, d = v.disque;
+    if (m.length) afficherVerdict("rouge", "À vérifier", m);
+    else afficherVerdict("vert", "Tout va bien : la dernière sauvegarde a réussi et les disques ont de la place.");
+    details.replaceChildren();
+    ligne("Dernière réussite", lisible(s.reussie) ? date(s.reussie.le) + " · " + (s.reussie.fichier || "?") + " · " + octets(s.reussie.taille) : "aucune");
+    ligne("Dernière tentative", lisible(s.derniere)
+      ? date(s.derniere.le) + " · " + (s.derniere.resultat === "reussie" ? "réussie" : "échec" + (s.derniere.etape ? " (" + s.derniere.etape + ")" : ""))
+      : "aucune");
+    ligne("Copies sur le serveur", lisible(s.reussie) && typeof s.reussie.copies === "number" ? String(s.reussie.copies) : "?");
+    ligne("Disques", lisible(d.mesure)
+      ? (typeof d.mesure.racine === "number" ? "racine " + d.mesure.racine + " %, Docker " + d.mesure.docker + " %" : "mesure impossible") + " · mesuré " + date(d.mesure.le)
+      : "aucune mesure");
+    ligne("Page à jour", date(v.maintenant));
+    details.hidden = false; aide.hidden = false;
+  }
+
+  function charger() {
+    message("Chargement de l'état…");
+    fetch("/api/sauvegardes", { credentials: "same-origin", headers: { Accept: "application/json" } })
+      .then(function (r) {
+        return r.text().then(function (t) {
+          var corps = null; try { corps = JSON.parse(t); } catch (e) { corps = null; }
+          if (r.status === 200 && corps && corps.sauvegarde && corps.disque) return afficher(corps);
+          if (r.status === 401) return message(MESSAGES[401]);
+          if (r.status === 403 && corps && MESSAGES[corps.code]) return message(MESSAGES[corps.code]);
+          if (r.status === 404 || !corps) return message(MESSAGES.absente);
+          message((corps && corps.erreur) || MESSAGES.reseau);
+        });
+      }, function () { message(MESSAGES.reseau); });
+  }
+
+  document.getElementById("relire").addEventListener("click", charger);
+  charger();
+})();
+</script>
+</body>
+</html>

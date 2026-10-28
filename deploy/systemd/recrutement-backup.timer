@@ -1,0 +1,11 @@
+# Sauvegarde chaque nuit entre 3 h et 3 h 15 ; rattrapée au démarrage si le serveur était éteint.
+[Unit]
+Description=Sauvegarde nocturne de la base des candidatures
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

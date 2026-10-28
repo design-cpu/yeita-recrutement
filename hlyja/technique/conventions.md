@@ -2,10 +2,10 @@
 type: technique
 page: conventions
 titre: Conventions et tests
-maj: 1.4
-commit: c51ed2c
-sources: api/package.json, api/test/aide.js, README.md, CONTRIBUER.md, tools/build.py, tools/check-site.sh, compose.yaml, .dockerignore, .gitignore, tools/test-store.js, tools/test-serveur.js, tools/e2e-serveur.py, tools/e2e-candidatures.py, tools/e2e-parcours.py, tools/e2e-liens.py, tools/e2e-pdf.py
-date: 2026-10-27
+maj: 1.7
+commit: 8db372f
+sources: api/package.json, api/test/aide.js, README.md, CONTRIBUER.md, tools/build.py, tools/check-site.sh, compose.yaml, .dockerignore, .gitignore, tools/test-store.js, tools/test-serveur.js, tools/e2e-serveur.py, tools/e2e-candidatures.py, tools/e2e-parcours.py, tools/e2e-liens.py, tools/e2e-pdf.py, tools/test-sauvegarde.sh, deploy/backup.sh, deploy/verif-disque.sh
+date: 2026-10-28
 ---
 
 # Conventions et tests
@@ -21,9 +21,10 @@ date: 2026-10-27
 | `docs/` | `backend/MODELE.md` (modèle v3, fait foi), `dossier-candidat.schema.json` |
 | `tools/` | construction du site, tests, `check-site.sh` (contrôle d'un site déployé) |
 | `docker/` | `front.Dockerfile` (v1.1), `api.Dockerfile` (v1.3) |
-| `deploy/` | configuration et scripts du serveur, `README.md` (mode d'emploi) (v1.1) |
-| `api/` | l'API de stockage (v1.2) : `server.js`, `equipe.js`, `src/`, `test/`, `README.md` ; `node_modules/` et `data/` jamais commités (`.gitignore`) ; jamais publiée (`SKIP`) |
+| `deploy/` | configuration et scripts du serveur, `README.md` (mode d'emploi) (v1.1) ; `systemd/` (unités, v1.7), `RESTAURER.md`, `CLE-SAUVEGARDE.md`, `METTRE-A-JOUR.md` (v1.7) |
+| `api/` | l'API de stockage (v1.2) : `server.js`, `equipe.js`, `sauvegarde.js` (v1.7), `src/`, `test/`, `README.md` ; `node_modules/` et `data/` jamais commités (`.gitignore`) ; jamais publiée (`SKIP`) |
 | `compose.yaml`, `.env.example`, `.dockerignore` | pile Docker ; `.env` (secrets) n'est jamais commité (`.gitignore`) (v1.1) |
+| `admin/` | pages d'administration (v1.7 : `sauvegardes.html`), protégées par oauth2-proxy, sans lien depuis Candidatures |
 | `hlyja/` | trace Hlýja, exclue de la publication (`SKIP` de `tools/build.py`) |
 
 ## Publication
@@ -41,14 +42,15 @@ Règles du déploiement (v1.1) : images servies figées par tag (`oauth2-proxy:v
 | `python3 tools/e2e-liens.py` | idem | « Précédent », liens directs, feuille vierge |
 | `python3 tools/e2e-pdf.py` | idem, plus `pdftotext` (poppler) | exports PDF |
 | `python3 tools/e2e-serveur.py` | site construit dans `_site`, Node 22 et `npm ci` dans `api/`, Playwright Python ; lance lui-même l'API (port 18765, base temporaire, `DEV_STATIC`) | mode serveur de bout en bout : trois navigateurs (Alice, Bob recruteurs, Léa lecture) par `X-Forwarded-Email` ; réponses d'oauth2-proxy, réseau et lenteur simulées par interception (v1.3) ; bandeau jaune des 6 pages et boutons d'exemples (v1.4) ; 51 vérifications ; 20 s par vérification (Playwright) ; l'API lancée est arrêtée dans `finally` |
-| `cd api && npm test` | Node 22 ; `npm ci` dans `api/` | l'API (v1.2) : 52 tests — configuration, base et schéma, autorisation, dossiers, options, serveur et `equipe.js` en processus fils ; ~20 s (délais de 5 s volontaires) |
+| `cd api && npm test` | Node 22 ; `npm ci` dans `api/` | l'API (v1.2) : 58 tests — configuration, base et schéma, autorisation, dossiers, options, serveur, `equipe.js` et `sauvegarde.js` (v1.7, lancée sous `umask 022`) en processus fils, route `GET /api/sauvegardes` (v1.7) ; ~20 s (délais de 5 s volontaires) ; verdict `ℹ fail 0` |
+| `BANC_JETABLE=oui bash tools/test-sauvegarde.sh <dépôt>` (v1.7) | root dans un conteneur jetable `ubuntu:26.04` (refus sans `BANC_JETABLE=oui` : il vide `/var/backups/recrutement`) avec l'utilisateur `deploy`, `/var/backups/recrutement` (700), docker (CLI et plugin compose), `age`, `python3` | `deploy/backup.sh` et `deploy/verif-disque.sh` : faux `docker` (sauf `compose config`, réel ; `compose run` écrit l'état dans un faux volume), faux `df` ; vrai `age` (avec des modes de panne simulés) ; 102 vérifications ; finit par **`TOUT OK`** (code 0) ou `ÉCHECS : n` (code 1) |
 | `tools/check-site.sh BASE_URL` | `curl` ; site déployé ou pile Docker locale | pages publiques en 200, pages protégées en 302 vers Google, `/ping` (v1.1), `/api/moi` → 401 sans session (v1.3) |
 
 Serveur : `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site`.
 
 En conteneur, avec le mode serveur (v1.3) : copier le binaire Node de l'image `node:22-slim` (`docker create --name n22 node:22-slim && docker cp n22:/usr/local/bin/node ./node22 && docker rm n22`), puis `docker run --rm --ipc=host -v "$PWD:/depot:ro" -v "$PWD/node22:/usr/local/bin/node:ro" mcr.microsoft.com/playwright/python:v1.63.0-noble bash -c 'pip -q install playwright==1.63.0; cp -r /depot /w && cd /w && python3 tools/build.py _site && (python3 -m http.server 8765 --directory _site &) && sleep 1 && for t in e2e-candidatures e2e-parcours e2e-liens e2e-pdf e2e-serveur; do python3 tools/$t.py; done'` (`api/node_modules` du dépôt fournit les binaires `linux-x64` et `linux-arm64` de better-sqlite3 ; `e2e-pdf` demande aussi `poppler-utils`). L'e2e serveur pose `DEV_EMAIL` (Alice) pour les seules requêtes sans en-tête : l'envoi de départ `keepalive` ne reçoit pas les en-têtes ajoutés par Playwright. Chaque test affiche `OK` / `FAIL` par vérification ; les e2e Python finissent par `ALL OK` / `SOMETHING FAILED` (ou `TOUT OK` / `ÉCHECS`) : **lire cette dernière ligne**, `e2e-candidatures` et `e2e-parcours` sortent avec le code 0 même en échec. Depuis v1.3, ces deux suites écartent de leurs erreurs de console la seule réponse dont l'adresse finit par `/api/moi` (404 attendu sans API, mode navigateur ; écart à R37 de la spec 1.3). Sans Playwright sur le poste : conteneur `mcr.microsoft.com/playwright/python:v1.63.0-noble` avec `pip install playwright==1.63.0` et `poppler-utils` (v1.1).
 
-Scripts du serveur (`deploy/*.sh`) : essayés dans un conteneur `ubuntu:24.04` privilégié avec son propre `dockerd` et un dépôt nu local (`RECRUTEMENT_REPO`), jamais sur le serveur ; `shellcheck` 0.10.0 (image `koalaman/shellcheck:v0.10.0`) sans remarque (v1.1).
+Scripts du serveur (`deploy/*.sh`) : essayés dans un conteneur `ubuntu:24.04` privilégié avec son propre `dockerd` et un dépôt nu local (`RECRUTEMENT_REPO`), jamais sur le serveur ; `shellcheck` 0.10.0 (image `koalaman/shellcheck:v0.10.0`) sans remarque (v1.1). Depuis v1.7 : banc `ubuntu:26.04` (le système du serveur), dossiers `/var/lib/docker` et `/var/lib/containerd` sur des volumes (overlay sur overlay refusé), variante avec systemd en PID 1 (`--privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --tmpfs /run`, `CMD /sbin/init`) pour essayer les unités ; `/tmp` y est un tmpfs (un `docker cp` vers `/tmp` est masqué). shellcheck : `docker run --rm -e LC_ALL=C.UTF-8 -v "$PWD:/mnt:ro" -w /mnt koalaman/shellcheck:v0.10.0 -x deploy/*.sh` (sans `LC_ALL`, shellcheck plante sur les accents : « commitBuffer: invalid character »).
 
 API (v1.2) : `node:test` seulement, aucune dépendance de développement ; un fichier par domaine dans `api/test/` (7 au plus), outils communs dans `test/aide.js` (`dossierTemporaire`, `siteConstruit`, `dossier`, `fichiersContiennent`, `MEMBRES`, `creerApp`, `requete`) ; chaque test sur une base temporaire ; tout processus lancé par un test est arrêté à sa fin ; chaque contrôle d'accès, de conflit ou de configuration est mis à l'épreuve par mutation dans une copie hors du dépôt (fiches de tâches). Code de l'API : modules ES, noms et messages en français, valeurs reprises des pages recopiées avec leur source (`api/src/valeurs.js`), erreurs client par `ErreurHttp` (`{erreur, code?}`).
 
@@ -69,3 +71,4 @@ Une branche par sujet (`feat/…`, `fix/…`, `version/<x.y>-<slug>` pour Hlýja
 | 1.2 | Dossier `api/`, `api` dans `SKIP`, tests de l'API (`node:test`) |
 | 1.3 | `docker/api.Dockerfile`, `assets/demarrage.js`, `assets/adapter-serveur.js` ; tests `tools/test-serveur.js` et `tools/e2e-serveur.py` |
 | 1.4 | Ancien modèle v2 de `docs/` supprimé ; `e2e-candidatures` couvre le bandeau et les boutons d'exemples du mode navigateur ; compteurs de `test-serveur` et `e2e-serveur` |
+| 1.7 | `admin/`, `deploy/systemd/`, `deploy/RESTAURER.md`, `CLE-SAUVEGARDE.md`, `METTRE-A-JOUR.md` ; `npm test` à 58 tests ; `tools/test-sauvegarde.sh` ; banc `ubuntu:26.04` avec systemd ; shellcheck avec `LC_ALL=C.UTF-8` |

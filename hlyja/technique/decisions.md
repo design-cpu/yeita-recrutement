@@ -2,10 +2,10 @@
 type: technique
 page: decisions
 titre: Décisions techniques
-maj: 1.3
-commit: 3b314a9
-sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh
-date: 2026-10-26
+maj: 1.7
+commit: 8db372f
+sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md, deploy/commun.sh, deploy/verif-disque.sh
+date: 2026-10-28
 ---
 
 # Décisions techniques
@@ -34,6 +34,11 @@ date: 2026-10-26
 | Réseau `back` sans adresse hôte | Sur un moteur Linux, l'hôte et tout conteneur en réseau hôte joignent un conteneur d'un réseau `internal` par son adresse, en IPv4 et en IPv6 si actif ; l'API croit `X-Forwarded-Email` (vérifié, v1.3, V30, V39) | `internal: true`, `enable_ipv6: false`, `com.docker.network.bridge.inhibit_ipv4: "true"` ; aucun port publié ; contrôle réseau avant le premier admin (`deploy/README.md` § 9b) | `gateway_mode_ipv4: isolated` (même effet, option plus récente) ; secret partagé proxy/API (évolution de l'API, hors périmètre) | Vérifié sur le moteur 29.9.2 ; à refaire sur un moteur plus ancien | 1.3 |
 | Image Node figée | `node:22-slim` = 22.23.4, correctif de sécurité de moins de 14 jours | `node:22.23.4-slim` figée par le digest de l'index multi-architecture (choix de l'utilisateur, exception à l'âge minimal) | `node:22-slim` flottante ; 22.23.3 (plus de 14 jours, sans le correctif) | Mise à jour par changement explicite du digest | 1.3 |
 | « Remplacer tout » masqué en mode serveur | En mode serveur, l'import « Remplacer tout » supprimerait les dossiers de toute l'équipe absents du fichier, sans sauvegarde | Seule la fusion est proposée en mode serveur (choix de l'utilisateur) ; `store.js` inchangé | Garder l'option avec un avertissement | Un import « Fusion » d'un vieil export peut recréer un dossier supprimé (écrit dans `MODELE.md`) | 1.3 |
+| Méthode de copie | Une lecture longue de la base empêche le point de contrôle de l'API, et un dossier supprimé reste lisible jusqu'à l'enregistrement suivant (fiche 1.2-5) | `db.backup()` de better-sqlite3 dans le conteneur (`api/sauvegarde.js`), contrôle `integrity_check`, un seul fichier (`journal_mode = DELETE`), sous un nom temporaire puis renommé (décision du pitch) | `sqlite3 .backup`, copie des fichiers à chaud, `VACUUM INTO` | Aucune lecture gardée au-delà de la copie ; sans `journal_mode = DELETE`, la copie garderait l'en-tête WAL de la base et créerait `-wal`/`-shm` à son ouverture (vérifié, v1.7) | 1.7 |
+| Chiffrement et clé | Les copies contiennent les dossiers candidat | `age` vers une seule clé publique `age1…` (`AGE_RECIPIENT`) ; clé privée créée sur un Mac, jamais sur le serveur ; pour l'instant un fichier `.txt` gardé et partagé en main propre par l'utilisateur (coffre interne plus tard, `deploy/CLE-SAUVEGARDE.md`) ; déchiffrement sur un Mac seulement (décisions du pitch et de l'utilisateur) | GPG ; clé SSH comme destinataire (age l'accepte : refusée par `backup.sh`) ; retirer le chiffrement (décision de l'utilisateur : gardé) | Perte du fichier = copies illisibles ; contrôle par déchiffrement après la première sauvegarde | 1.7 |
+| Copies sur le serveur seulement | OVH Object Storage est payant ; aucun autre stockage gratuit retenu | Copies chiffrées gardées 30 jours dans `/var/backups/recrutement`, sur le serveur (décision de l'utilisateur, reprise du 2026-10-28) | OVH Object Storage, rclone et le client `aws` (retirés) ; Google Drive de Workspace (proposé, non retenu) | La perte du serveur emporte les sauvegardes (accepté) ; durée maximale d'un dossier supprimé dans les copies : 3 j (volume), 31 j (serveur) | 1.7 |
+| Page d'état au lieu d'alertes | Savoir si les sauvegardes tournent, sans service tiers | État écrit par les scripts dans le volume (`/data/etat`), lu par `GET /api/sauvegardes` (rôle `admin`), affiché par `admin/sauvegardes.html` (vert, ou rouge avec motifs) ; `/admin/` réservé au futur tableau de bord (décisions de l'utilisateur) | healthchecks.io (retiré) ; lien depuis Candidatures (refusé par l'utilisateur) ; `/dashboard/` (nom anglais, remplacé par `/admin/`) | Aucune alerte envoyée : vérification à la main ; emails dans une évolution ultérieure | 1.7 |
+| Restauration | La copie en clair ne doit jamais toucher le disque du serveur ; une restauration ratée ne doit pas détruire la base | Copie envoyée par l'entrée standard de `docker compose run` dans le volume, en tant que `node` ; empreinte SHA-256 et `integrity_check` vérifiés dans le conteneur avant de remplacer ; état actuel sauvegardé avant ; suppressions refaites dans l'interface | `docker compose cp` vers le volume (fichier posé à l'uid de `deploy`, illisible par l'api, vérifié v1.7) ; réécrire les suppressions en SQL hors de l'API | `deploy/RESTAURER.md` rejoué sur le banc (3 cas) | 1.7 |
 
 ## Voir aussi
 - [API de stockage](api.md)
@@ -47,3 +52,4 @@ date: 2026-10-26
 | 1.1 | Hébergement Docker derrière oauth2-proxy (l'authentification de la décision « Stockage et authentification » est en place ; le stockage SQLite reste à faire), `reverse_proxy = false`, `/index.html` en 200 |
 | 1.2 | API de stockage, confiance dans `X-Forwarded-Email`, version optimiste, effacement réel, exception sur l'âge des dépendances |
 | 1.3 | Choix du mode des pages, versions et file par dossier, fiches qui écrivent leur partie, réseau `back` sans adresse hôte, image Node figée, « Remplacer tout » masqué ; la décision « Stockage et authentification » est réalisée |
+| 1.7 | Méthode de copie, chiffrement et clé, copies sur le serveur seulement, page d'état au lieu d'alertes, restauration (reprise du 2026-10-28 : OVH, rclone et healthchecks.io retirés) |

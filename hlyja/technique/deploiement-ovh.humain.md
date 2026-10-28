@@ -3,15 +3,15 @@ type: technique
 vue: humaine
 page: deploiement-ovh
 titre: Déployer sur OVH et tester avec Google, pas à pas
-maj: 1.6
-commit: 4b98c3a
-sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js
-date: 2026-10-27
+maj: 1.7
+commit: 8db372f
+sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js, deploy/README.md, deploy/backup.sh, deploy/verif-disque.sh, deploy/commun.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, deploy/RESTAURER.md, deploy/METTRE-A-JOUR.md, deploy/CLE-SAUVEGARDE.md, admin/sauvegardes.html
+date: 2026-10-28
 ---
 
 # Déployer sur OVH et tester avec Google, pas à pas
 
-> Fais une case à la fois, de haut en bas. Chaque commande se copie-colle telle quelle. Après chaque commande, une case « Tu dois voir » te dit si c'est bon. Si ce n'est pas bon, lis le **Sinon** juste en dessous et ne passe pas à la suite. Tes coches restent enregistrées dans ce navigateur : tu peux t'arrêter et reprendre plus tard.
+> Fais une case à la fois, de haut en bas. Chaque commande se copie-colle telle quelle (sauf quand la case te demande d'y remplacer un nom ou une adresse). Après chaque commande, une case « Tu dois voir » te dit si c'est bon. Si ce n'est pas bon, lis le **Sinon** juste en dessous et ne passe pas à la suite. Tes coches restent enregistrées dans ce navigateur : tu peux t'arrêter et reprendre plus tard.
 
 Ce guide est écrit pour **ton** serveur OVH :
 
@@ -52,7 +52,9 @@ dig +short recrutement.yeita.fr
 
 ---
 
-## Étape 2 — Installer Docker et certbot (compte `ubuntu`)
+## Étape 2 — Installer Docker, certbot et age (compte `ubuntu`)
+
+`age` chiffre les sauvegardes de l'étape 11. Le script de l'étape 3 refuse de continuer s'il manque : on l'installe donc dès maintenant.
 
 - [ ] Connecte-toi :
 
@@ -63,17 +65,17 @@ ssh -i ~/.ssh/id_ed25519 ubuntu@51.75.252.121
 - [ ] Vérifie qu'Ubuntu propose bien les logiciels :
 
 ```bash
-apt-cache policy docker.io docker-compose-v2 certbot python3-certbot-nginx | grep -E '^[a-z]|Candidate|Candidat'
+apt-cache policy docker.io docker-compose-v2 certbot python3-certbot-nginx age | grep -E '^[a-z]|Candidate|Candidat'
 ```
 
-- [ ] **Tu dois voir** quatre noms (`docker.io:`, `docker-compose-v2:`, `certbot:`, `python3-certbot-nginx:`), chacun suivi d'une ligne `Candidate:` avec un numéro de version.
+- [ ] **Tu dois voir** cinq noms (`docker.io:`, `docker-compose-v2:`, `certbot:`, `python3-certbot-nginx:`, `age:`), chacun suivi d'une ligne `Candidate:` avec un numéro de version.
 
 **Sinon** (une ligne dit `Candidate: (none)`) : arrête-toi ici et envoie la sortie à l'équipe technique.
 
 - [ ] Installe-les (une à deux minutes) :
 
 ```bash
-sudo apt update && sudo apt install -y docker.io docker-compose-v2 certbot python3-certbot-nginx tmux
+sudo apt update && sudo apt install -y docker.io docker-compose-v2 certbot python3-certbot-nginx tmux age
 ```
 
 - [ ] **Tu dois voir** l'installation défiler, puis le retour à l'invite `ubuntu@vps-b800c3bb:~$`. Certains logiciels (comme certbot) sont peut-être déjà installés : `est déjà la version la plus récente` (ou `is already the newest version`) est normal.
@@ -83,10 +85,10 @@ sudo apt update && sudo apt install -y docker.io docker-compose-v2 certbot pytho
 - [ ] Vérifie que tout est installé :
 
 ```bash
-sudo docker version --format 'Docker {{.Server.Version}}' && sudo docker compose version && certbot --version
+sudo docker version --format 'Docker {{.Server.Version}}' && sudo docker compose version && certbot --version && age --version
 ```
 
-- [ ] **Tu dois voir** trois lignes : `Docker …`, `Docker Compose version …`, `certbot …`.
+- [ ] **Tu dois voir** quatre lignes : `Docker …`, `Docker Compose version …`, `certbot …`, puis un numéro de version d'age (par exemple `1.2.1` ou `v1.2.1`).
 
 **Sinon** : arrête-toi ici et envoie la sortie à l'équipe technique.
 
@@ -367,14 +369,14 @@ tmux new -s deploy
 - [ ] Lance le site (la première fois, compte 3 à 5 minutes) :
 
 ```bash
-/opt/recrutement/deploy/deploy.sh
+umask 022 && cd /opt/recrutement && deploy/deploy.sh
 ```
 
-- [ ] **Tu dois voir**, à la fin : `· API saine.`, six lignes qui commencent par `OK`, `Tout est OK sur https://recrutement.yeita.fr`, puis `Déploiement réussi : …`.
+- [ ] **Tu dois voir**, à la fin : `· API saine.`, sept lignes qui commencent par `OK`, `Tout est OK sur https://recrutement.yeita.fr`, puis `Déploiement réussi : …`.
 
 **Sinon** :
-- une ligne `ARRÊT : …` : rien n'a bougé ; fais ce qu'elle dit (souvent une ligne de `.env`, étape 5), puis relance `/opt/recrutement/deploy/deploy.sh`.
-- une ligne `ÉCHEC : …` suivie de `Pour revenir … : deploy/deploy.sh <code>` : copie-colle cette commande de retour tout de suite, puis envoie toute la sortie à l'équipe technique.
+- une ligne `ARRÊT : …` : rien n'a bougé ; fais ce qu'elle dit (souvent une ligne de `.env`, étape 5), puis relance `umask 022 && cd /opt/recrutement && deploy/deploy.sh`.
+- une ligne `ÉCHEC : …` suivie de `Pour revenir … : deploy/deploy.sh <code>` : tape tout de suite `cd /opt/recrutement`, puis copie-colle cette commande de retour, puis envoie toute la sortie à l'équipe technique.
 
 - [ ] Sors de la session protégée sans l'arrêter : appuie sur `Ctrl+B`, lâche, puis appuie sur `D`.
 
@@ -462,7 +464,7 @@ exit
 
 **Sinon** :
 - `Erreur 400 : redirect_uri_mismatch` : refais l'étape 4 (adresse de retour), attends 5 minutes, réessaie.
-- `Erreur 401 : invalid_client` : l'ID ou le secret est mal recopié. Refais l'étape 5 à partir de `nano .env`, puis, toujours en `deploy`, relance `/opt/recrutement/deploy/deploy.sh`.
+- `Erreur 401 : invalid_client` : l'ID ou le secret est mal recopié. Refais l'étape 5 à partir de `nano .env`, puis, toujours en `deploy`, relance `umask 022 && cd /opt/recrutement && deploy/deploy.sh`.
 - `Tu ne fais pas partie de l'équipe.` : refais l'étape 9 avec **exactement** l'e-mail du compte Google choisi.
 
 - [ ] Dans la même fenêtre, va sur `https://recrutement.yeita.fr/api/moi`
@@ -481,21 +483,316 @@ exit
 cd ~/Documents/Yeita/Projects/Github/yeita-recrutement && tools/check-site.sh https://recrutement.yeita.fr
 ```
 
-- [ ] **Tu dois voir** six lignes `OK`, puis `Tout est OK sur https://recrutement.yeita.fr`.
+- [ ] **Tu dois voir** sept lignes `OK`, puis `Tout est OK sur https://recrutement.yeita.fr`.
 
 **Sinon** : si une ligne dit `FAIL /candidatures/ … reçu 200` ou `FAIL /api/moi … reçu 200`, des candidatures sont visibles sans connexion. Connecte-toi en `deploy`, tape `cd /opt/recrutement && docker compose stop api`, et préviens l'équipe technique tout de suite.
 
 C'est en ligne. 🎉
 
+> **Avant d'enregistrer de vraies candidatures, fais l'étape 11.** Tant qu'elle n'est pas faite, la base n'a aucune copie : une fausse manœuvre et tout est perdu.
+
 ---
+
+
+## Étape 11 — Les sauvegardes de chaque nuit (Mac, puis serveur)
+
+Chaque nuit vers 3 h, le serveur copiera la base, la chiffrera et la gardera 30 jours. Une page réservée aux admins dira si tout va bien. Cette étape se fait une seule fois, dans l'ordre. Compte une demi-heure.
+
+> **Les copies restent sur le serveur.** Elles protègent d'une erreur ou d'une base abîmée, pas de la perte du serveur. **Aucun email n'est envoyé** : c'est en ouvrant la page d'état que tu sauras si une sauvegarde a raté.
+
+### 11.1 — Vérifier age sur le serveur (compte `ubuntu`)
+
+- [ ] Connecte-toi :
+
+```bash
+ssh -i ~/.ssh/id_ed25519 ubuntu@51.75.252.121
+```
+
+- [ ] Lance (age est normalement déjà installé depuis l'étape 2) :
+
+```bash
+sudo apt install -y age
+```
+
+- [ ] **Tu dois voir** à la fin `age est déjà la version la plus récente` (ou `age is already the newest version`).
+
+**Sinon** (`Could not get lock`) : attends 3 minutes et relance la même commande.
+
+- [ ] Quitte le serveur :
+
+```bash
+exit
+```
+
+### 11.2 et 11.3 — La clé des sauvegardes (sur ton Mac, puis sur le serveur)
+
+**Ouvrir le Terminal sur le Mac** : appuie sur `Cmd + Espace`, tape `Terminal`, appuie sur `Entrée`.
+
+**Lancer une commande de cette page** : copie le texte de l'encadré gris (sélectionne-le puis `Cmd + C`), clique dans la fenêtre du Terminal, colle avec `Cmd + V`, puis appuie sur `Entrée`.
+
+#### Clé, étape 1 — Installer age sur ton Mac
+
+À faire une seule fois par Mac.
+
+- [ ] **Où** : dans le Terminal de ton Mac.
+- [ ] **Copie-colle** :
+
+```bash
+brew install age
+```
+
+- [ ] **Puis copie-colle** :
+
+```bash
+age --version
+```
+
+- [ ] **Tu dois voir** un numéro de version, par exemple `1.2.1`.
+
+**Si tu vois `command not found: brew`** : Homebrew n'est pas installé sur ce Mac. Va sur https://brew.sh, copie-colle la commande indiquée sur la page dans le Terminal, attends la fin, puis recommence l'étape 1.
+
+
+#### Clé, étape 2 — Créer la clé
+
+À faire **une seule fois** (pas une fois par personne, pas une fois par Mac).
+
+- [ ] **Où** : dans le Terminal de ton Mac.
+- [ ] **Copie-colle** :
+
+```bash
+mkdir -p ~/cles-yeita && chmod 700 ~/cles-yeita && age-keygen -o ~/cles-yeita/cle-sauvegarde-recrutement.txt && chmod 600 ~/cles-yeita/cle-sauvegarde-recrutement.txt
+```
+
+- [ ] **Tu dois voir** une ligne `Public key: age1…` (une longue suite de lettres et de chiffres).
+
+Cette commande a créé le fichier `cle-sauvegarde-recrutement.txt` dans un dossier `cles-yeita` de ton dossier personnel. Ce dossier n'est pas synchronisé avec iCloud (ce n'est ni le Bureau, ni Documents).
+
+**Si tu vois `file exists`** : la clé existe déjà. **Ne la recrée pas** : les sauvegardes faites avec l'ancienne deviendraient illisibles. Passe directement à l'étape 3.
+
+
+#### Clé, étape 3 — Faire une copie de secours du fichier
+
+Si ton Mac est perdu ou cassé et que personne d'autre n'a le fichier, les sauvegardes sont perdues. Il faut donc une seconde copie.
+
+- [ ] **Où** : sur ton Mac.
+- [ ] **Copie-colle** dans le Terminal, pour ouvrir le dossier de la clé dans le Finder :
+
+```bash
+open ~/cles-yeita
+```
+
+- [ ] **Tu dois voir** une fenêtre du Finder avec le fichier `cle-sauvegarde-recrutement.txt`.
+- [ ] **Fais une des deux choses suivantes** (ou les deux) :
+  - copie ce fichier sur une clé USB chiffrée, que tu ranges en lieu sûr ;
+  - donne-le à une personne de confiance, **en face à face**, par AirDrop d'un Mac à l'autre. Cette personne le range comme toi : dans un dossier `cles-yeita` de son dossier personnel.
+- [ ] **Note** quelque part qui a le fichier, et depuis quand.
+
+**À ne jamais faire avec ce fichier** : l'envoyer par email, Slack, WhatsApp ou tout autre message ; le mettre dans iCloud, Google Drive ou Dropbox ; le mettre sur le serveur ou dans le dépôt Git ; l'imprimer ; le coller dans un document.
+
+
+#### Clé, étape 4 — Copier la clé publique
+
+- [ ] **Où** : dans le Terminal de ton Mac.
+- [ ] **Copie-colle** :
+
+```bash
+age-keygen -y ~/cles-yeita/cle-sauvegarde-recrutement.txt
+```
+
+- [ ] **Tu dois voir** une seule ligne qui commence par `age1`, par exemple :
+
+```
+age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+```
+
+- [ ] **Sélectionne toute cette ligne** avec la souris (du `a` de `age1` jusqu'au dernier caractère), puis copie-la avec `Cmd + C`.
+
+C'est la clé publique : tu vas la donner au serveur à l'étape 6.
+
+
+#### Clé, étape 5 — Se connecter au serveur
+
+- [ ] **Où** : ouvre une **nouvelle fenêtre** de Terminal sur ton Mac (`Cmd + N` dans le Terminal).
+- [ ] **Copie-colle** :
+
+```bash
+ssh deploy@51.75.252.121
+```
+
+- [ ] **Tu dois voir** une ligne qui se termine par `$`, par exemple `deploy@vps-…:~$`. Tu es maintenant sur le serveur : les commandes que tu tapes dans **cette fenêtre** s'exécutent sur le serveur.
+
+**Si tu vois `Permission denied`** : ton Mac n'a pas l'accès au compte `deploy` du serveur. Demande-le à la personne qui administre le serveur.
+
+
+#### Clé, étape 6 — Donner la clé publique au serveur
+
+- [ ] **Où** : dans la fenêtre connectée au serveur (étape 5).
+- [ ] **Copie-colle cette ligne seule**, puis `Entrée` :
+
+```bash
+read -r -p "Colle ta clé publique (age1…) puis appuie sur Entrée : " CLE
+```
+
+- [ ] **Tu dois voir** la question : `Colle ta clé publique (age1…) puis appuie sur Entrée :`
+- [ ] **Colle la clé** copiée à l'étape 4 (`Cmd + V`), puis appuie sur `Entrée`. Rien d'autre ne s'affiche : c'est normal, le serveur a gardé la clé pour la commande suivante.
+- [ ] **Copie-colle tout l'encadré ci-dessous**, puis `Entrée`. Il vérifie que c'est bien une clé publique, garde une copie de l'ancien fichier de réglages, puis enregistre la clé dans les réglages du site :
+
+```bash
+cd /opt/recrutement
+if [[ "$CLE" =~ ^age1[a-z0-9]+$ ]]; then
+  cp -p .env ~/env-avant-cle
+  sed -i '/^AGE_RECIPIENT=/d' .env
+  [ -z "$(tail -c 1 .env)" ] || echo >> .env
+  echo "AGE_RECIPIENT=$CLE" >> .env
+  echo "C'EST FAIT. Clé enregistrée :"
+  grep '^AGE_RECIPIENT=' .env
+else
+  echo "RIEN N'A ÉTÉ CHANGÉ : ce qui a été collé n'est pas une clé publique (elle doit commencer par age1)."
+fi
+```
+
+- [ ] **Tu dois voir** `C'EST FAIT. Clé enregistrée :`, puis une ligne `AGE_RECIPIENT=age1…` avec la même clé qu'à l'étape 4.
+
+**Si tu vois `RIEN N'A ÉTÉ CHANGÉ`** : la clé n'a pas été collée en entier, ou autre chose a été collé. Reviens à l'étape 4, recopie la ligne en entier, puis refais l'étape 6 depuis le début.
+
+- [ ] **Quitte le serveur** : copie-colle `exit` puis `Entrée`. Tu peux fermer cette fenêtre.
+
+### 11.4 — Installer les minuteries (compte `ubuntu`)
+
+Deux minuteries systemd : la sauvegarde chaque nuit entre 3 h et 3 h 15, la mesure des disques chaque heure. Si le serveur est éteint à l'heure prévue, la tâche part à son redémarrage.
+
+- [ ] Connecte-toi en `ubuntu` :
+
+```bash
+ssh -i ~/.ssh/id_ed25519 ubuntu@51.75.252.121
+```
+
+- [ ] Copie-colle **tout** le bloc d'un coup, puis `Entrée` :
+
+```bash
+cd /opt/recrutement && sudo bash -c 'set -e
+for u in recrutement-backup.service recrutement-backup.timer recrutement-verif-disque.service recrutement-verif-disque.timer; do
+  if [ ! -e /etc/systemd/system/$u ]; then install -m 644 deploy/systemd/$u /etc/systemd/system/$u; echo "copiée : $u"
+  elif cmp -s deploy/systemd/$u /etc/systemd/system/$u; then echo "identique : $u"
+  else echo "DIFFÉRENTE : $u (rien n est écrasé)"; diff /etc/systemd/system/$u deploy/systemd/$u || true; exit 1; fi
+done
+systemctl daemon-reload
+systemctl enable --now recrutement-backup.timer recrutement-verif-disque.timer' && systemctl list-timers 'recrutement-*'
+```
+
+- [ ] **Tu dois voir** 4 lignes `copiée : …`, puis un tableau de deux minuteries : `recrutement-backup.timer` (prochain passage vers 3 h) et `recrutement-verif-disque.timer` (à la prochaine heure pleine).
+
+**Sinon** :
+- `identique : …` à la place de `copiée : …` : c'était déjà fait, c'est bon.
+- `DIFFÉRENTE : …` : une autre version est déjà installée ; rien n'a été écrasé. Arrête-toi et envoie la sortie à l'équipe technique.
+
+- [ ] Quitte le serveur :
+
+```bash
+exit
+```
+
+### 11.5 — Donner le rôle admin (compte `deploy`)
+
+Seuls les admins voient la page d'état. Tu l'es déjà depuis l'étape 9. Fais cette case pour chaque autre personne qui doit la voir ; elle doit déjà être dans l'équipe (étape 9).
+
+- [ ] Connecte-toi en `deploy` :
+
+```bash
+ssh -i ~/.ssh/id_ed25519 deploy@51.75.252.121
+```
+
+- [ ] Lance, en remplaçant l'e-mail :
+
+```bash
+cd /opt/recrutement && docker compose exec api node api/equipe.js role prenom.nom@yeita.fr admin
+```
+
+- [ ] **Tu dois voir** `Base : /data/recrutement.sqlite`, puis `Rôle changé : prenom.nom@yeita.fr · <Prénom> · admin · actif · ajouté le …`.
+
+**Sinon** : vérifie l'e-mail avec `docker compose exec api node api/equipe.js list`, puis relance.
+
+### 11.6 — Première sauvegarde (compte `deploy`)
+
+- [ ] Toujours en `deploy`, lance :
+
+```bash
+cd /opt/recrutement && deploy/backup.sh && deploy/verif-disque.sh
+```
+
+- [ ] **Tu dois voir**, à la fin : `Sauvegarde réussie : recrutement-…Z.db.age (… octets) ; 1 copies sur le serveur.`, puis `Disque racine : … % ; dossier Docker : … % ; seuil : 80 %.`. (Si tu relances, le nombre de copies augmente : c'est normal.)
+
+**Sinon**, selon la ligne affichée :
+
+| Ligne | Que faire |
+|---|---|
+| `AGE_RECIPIENT … vide`, `… valeur d'exemple`, `… clé publique age` | Refais l'étape 11.3. |
+| `« age » est absent` | Refais l'étape 11.1. |
+| `ÉCHEC (api non saine)` | Lance `docker compose ps api` et envoie la sortie à l'équipe technique. |
+| `une sauvegarde est déjà en cours` | Attends 5 minutes et relance. |
+| `… existe déjà : rien n'est écrasé` | Relance. |
+| `ARRÊT : disque presque plein.` | Envoie la ligne à l'équipe technique : il faut faire de la place. |
+| autre ligne `ÉCHEC (…)` ou `ARRÊT : …` | Envoie toute la sortie à l'équipe technique. |
+
+- [ ] Vérifie qu'aucune copie en clair n'est restée :
+
+```bash
+ls -l /var/backups/recrutement
+```
+
+- [ ] **Tu dois voir** seulement des fichiers qui finissent par `.db.age`.
+
+- [ ] Quitte le serveur :
+
+```bash
+exit
+```
+
+### 11.7 — Ouvrir la page d'état (dans le navigateur)
+
+- [ ] Connecté avec ton compte @yeita.fr (admin), ouvre `https://recrutement.yeita.fr/admin/sauvegardes.html`
+- [ ] **Tu dois voir** un encadré vert : « Tout va bien : la dernière sauvegarde a réussi et les disques ont de la place. », puis la dernière réussite, la dernière tentative, le nombre de copies et l'occupation des disques.
+
+**Sinon** :
+- « Réservé aux admins de l'équipe. » : ton compte n'est pas admin ; refais l'étape 11.5 avec ton e-mail.
+- « Session expirée : recharge la page pour te reconnecter. » : recharge la page.
+- « À vérifier », avec une ou plusieurs raisons : refais l'étape 11.6 et lis sa ligne de fin.
+
+### 11.8 — Vérifier que ta clé ouvre bien les sauvegardes (sur ton Mac)
+
+#### Clé, étape 7 — Vérifier que ta clé ouvre bien les sauvegardes
+
+À faire **après la première sauvegarde** (une fois les sauvegardes installées sur le serveur), puis de temps en temps. C'est la seule preuve que ton fichier ouvre vraiment les sauvegardes.
+
+- [ ] **Où** : dans le Terminal de ton Mac (pas sur le serveur).
+- [ ] **Copie-colle tout l'encadré**, puis `Entrée` :
+
+```bash
+d=$(mktemp -d)
+F=$(ssh deploy@51.75.252.121 'ls -t /var/backups/recrutement/*.db.age | head -n 1'); echo "Dernière copie : $F"
+scp -q "deploy@51.75.252.121:$F" "$d/copie.db.age" && age -d -i ~/cles-yeita/cle-sauvegarde-recrutement.txt -o "$d/copie.db" "$d/copie.db.age" && sqlite3 -readonly "$d/copie.db" "SELECT 'Copie lisible : ' || count(*) || ' candidature(s).' FROM candidats;"
+rm -rf "$d"
+```
+
+- [ ] **Tu dois voir** `Dernière copie : /var/backups/recrutement/recrutement-…`, puis `Copie lisible : N candidature(s).` Le nombre doit correspondre à peu près à ce que tu vois dans l'espace Candidatures. La copie déchiffrée est effacée tout de suite après.
+
+**Si tu vois `no identity matched any of the recipients`** : le serveur chiffre avec une autre clé que la tienne. Refais les étapes 4, 5 et 6, lance une sauvegarde à la main (sur le serveur : `cd /opt/recrutement && deploy/backup.sh`), puis refais l'étape 7.
+
+**Si tu vois `No such file or directory`** : aucune sauvegarde n'a encore été faite sur le serveur.
 
 ## Pour plus tard (compte `deploy`, dans `/opt/recrutement`)
 
 | Tu veux | Tape |
 |---|---|
-| Mettre en ligne la dernière version | `/opt/recrutement/deploy/deploy.sh` (le site est coupé ~15 secondes : pas pendant un entretien) |
-| Revenir à la version d'avant | `/opt/recrutement/deploy/deploy.sh <code>` (le code est affiché en cas d'échec) |
+| Mettre en ligne la dernière version | `umask 022 && cd /opt/recrutement && deploy/deploy.sh` (le site est coupé ~15 secondes : pas pendant un entretien, ni entre 3 h et 3 h 15 ; pendant une sauvegarde, il s'arrête sur « un déploiement est déjà en cours » : relance-le 5 minutes après) |
+| Revenir à la version d'avant | `umask 022 && deploy/deploy.sh <code>` (le code est affiché en cas d'échec) |
 | Voir si tout tourne | `docker compose ps` |
 | Retirer l'accès à quelqu'un | `docker compose exec api node api/equipe.js disable prenom.nom@yeita.fr` |
+| Voir l'état des sauvegardes | `https://recrutement.yeita.fr/admin/sauvegardes.html` (compte admin) |
+| Faire une sauvegarde tout de suite | `deploy/backup.sh` |
+| Voir les prochaines sauvegardes | `systemctl list-timers 'recrutement-*'` |
+| Voir les copies gardées sur le serveur | `ls -l /var/backups/recrutement` (seulement des fichiers `.db.age`) |
+| Arrêter Docker pour une maintenance (compte `ubuntu`) | d'abord `sudo systemctl stop recrutement-backup.timer recrutement-verif-disque.timer`, puis après la maintenance `sudo systemctl start recrutement-backup.timer recrutement-verif-disque.timer` : sinon une sauvegarde relancerait Docker |
+| Restaurer la base | ne le fais pas seul : fais-toi accompagner par l'équipe technique |
 
-**Ne tape jamais** `docker compose down -v` ni `docker volume prune` sur le serveur : ces commandes effacent toutes les candidatures, et il n'y en a pas d'autre copie.
+**Ne tape jamais** `docker compose down -v` ni `docker volume prune` sur le serveur : ces commandes effacent toutes les candidatures. Les sauvegardes de la nuit permettent de les remettre, mais tout ce qui a été saisi depuis la dernière serait perdu.

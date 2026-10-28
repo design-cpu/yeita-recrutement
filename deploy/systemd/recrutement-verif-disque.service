@@ -1,0 +1,17 @@
+# Occupation des disques (deploy/verif-disque.sh). Lancée par recrutement-verif-disque.timer.
+# Installation et mise à jour : deploy/README.md, « Sauvegardes ».
+[Unit]
+Description=Vérification de l'occupation des disques (recrutement)
+# Après Docker s'il démarre ; les unités ne le demandent pas, mais docker.socket relance Docker au premier appel
+# d'une commande docker : arrêter les timers avant une maintenance de Docker (deploy/README.md § 14).
+After=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+UMask=0077
+WorkingDirectory=/opt/recrutement
+ExecStart=/opt/recrutement/deploy/verif-disque.sh
+TimeoutStartSec=5min
+TimeoutStopSec=90

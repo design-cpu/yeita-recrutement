@@ -3,15 +3,15 @@ type: technique
 vue: humaine
 page: decisions
 titre: Décisions techniques
-maj: 1.3
-commit: 6cd5776
-sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh
-date: 2026-10-26
+maj: 1.7
+commit: 8db372f
+sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md, deploy/commun.sh, deploy/verif-disque.sh, deploy/CLE-SAUVEGARDE.md, api/src/sauvegardes.js, admin/sauvegardes.html
+date: 2026-10-28
 ---
 
 # Décisions techniques
 
-> Les grands choix du dépôt et ce qu'ils écartent. En v1.1, le site est hébergé chez Yeita derrière une connexion Google. En v1.2, une API garde les dossiers dans SQLite. En v1.3, les pages l'utilisent, sans jamais basculer en silence dans le navigateur en production.
+> Les grands choix du dépôt et ce qu'ils écartent. En v1.1, le site est hébergé chez Yeita derrière une connexion Google. En v1.2, une API garde les dossiers dans SQLite. En v1.3, les pages l'utilisent. En v1.7, la base est sauvegardée chaque nuit, chiffrée, sur le serveur, et une page d'état remplace les alertes.
 
 ## En un coup d'œil
 
@@ -34,46 +34,72 @@ date: 2026-10-26
 | Réseau interne sans adresse sur le serveur | Seul oauth2-proxy joint l'API | v1.3 |
 | Image Node figée | Une version précise, avec son correctif de sécurité | v1.3 |
 | « Remplacer tout » masqué | En mode serveur, seule la fusion est proposée | v1.3 |
+| Méthode de copie | La copie passe par SQLite lui-même, vérifiée, en un seul fichier | v1.7 |
+| Chiffrement et clé | Une clé publique sur le serveur, la clé secrète dans un fichier hors du serveur | v1.7 |
+| Copies sur le serveur seulement | Pas de stockage payant : les copies restent sur le serveur | v1.7 |
+| Page d'état au lieu d'alertes | Les admins regardent une page ; aucun service tiers | v1.7 |
+| Restauration | La copie en clair ne touche jamais le disque du serveur | v1.7 |
 
-Les décisions de v1.0 à v1.2 sont expliquées dans la version complète. Voici celles de v1.3.
+Les décisions de v1.0 à v1.3 sont expliquées dans la version complète. Voici celles de v1.7.
 
-## Ne jamais basculer en silence
+## Copier sans retarder l'effacement
 
-À la lettre, le pitch passait dans le navigateur dès que l'API ne répondait pas « oui ». Un essai a montré le danger : une API arrêtée ou une session expirée auraient fait travailler les recruteurs dans leur navigateur, sans le savoir, en production.
+Une lecture longue de la base, par un autre outil, empêche l'API de nettoyer ses fichiers : un dossier supprimé y resterait lisible plus longtemps. La copie utilise donc la fonction de sauvegarde de SQLite, dans le conteneur, et ne garde la base ouverte que le temps de la copie.
 
-| Situation | Choix retenu |
+La copie est vérifiée avant de recevoir son nom définitif, et tient en un seul fichier. Copier les fichiers à chaud ou passer par l'outil `sqlite3` est écarté.
+
+## Chiffrer pour une seule clé
+
+Les copies contiennent les dossiers candidat. Elles sont chiffrées avec age pour une seule clé publique, posée sur le serveur. La clé secrète est créée sur un Mac et n'existe que sous forme d'un fichier `.txt`, confié en main propre à une ou deux personnes, en attendant un coffre de mots de passe.
+
+> Perdre ce fichier rend toutes les copies illisibles. Après la première sauvegarde, on vérifie qu'il ouvre bien une vraie copie.
+
+Une clé SSH, que age accepterait aussi, est refusée par le script : une seule forme de clé, plus simple à contrôler.
+
+## Garder les copies sur le serveur
+
+La première spec envoyait les copies chez OVH Object Storage. Ce service est payant, et aucun stockage gratuit n'a été retenu. Pour cette version, les copies chiffrées restent donc 30 jours sur le serveur, dans `/var/backups/recrutement`.
+
+| Ce que ça permet | Ce que ça ne permet pas |
 |---|---|
-| Pas d'API, hors production, ou page ouverte depuis un fichier | mode navigateur, comme avant |
-| Session expirée | un rechargement, avec une garde contre la boucle |
-| Tout le reste en production | mode bloqué, avec un bandeau |
+| Revenir en arrière après une erreur, une base abîmée, un volume Docker perdu | Survivre à la perte du serveur : les copies partent avec lui |
 
-> Conséquence : un oauth2-proxy mal réglé bloque les pages au lieu de les faire basculer. Les tests et les aperçus restent en mode navigateur.
+Choix accepté par l'utilisateur. Un dossier supprimé reste au plus 3 jours dans la copie de travail et 31 jours dans les copies chiffrées.
 
-## Ne pas se mettre en conflit avec soi-même
+## Une page plutôt que des alertes
 
-Les pages enregistrent toutes les 300 à 400 ms, et certaines gardent un dossier lu à l'ouverture. Garder une seule version par dossier aurait laissé un vieil objet écraser un enregistrement récent. Les pages retiennent donc la version de chaque objet lu, et envoient les enregistrements d'un même dossier un par un. Elles ne réessaient jamais seules.
+Pour savoir si les sauvegardes tournent sans dépendre d'un service tiers, les scripts écrivent leur résultat dans le volume de l'API. Une route réservée aux admins le lit, et la page `/admin/sauvegardes.html` l'affiche : vert, ou rouge avec la raison en clair.
 
-## Laisser chaque fiche écrire sa partie
+```mermaid
+flowchart LR
+  A[Scripts de la nuit et de l'heure] --> B[État dans le volume]
+  B --> C[Route admin]
+  C --> D[Page verte ou rouge]
+```
 
-La fiche EC1 et la feuille de décompte d'un candidat sont faites pour être ouvertes ensemble. Chacune écrivait le dossier entier lu à l'ouverture : elles se seraient refusées l'une l'autre. Désormais, chacune relit le dossier, vérifie que sa partie n'a pas changé ailleurs, la pose et écrit.
+Écartés : healthchecks.io (retiré avec la reprise), un lien depuis Candidatures (refusé), le nom `/dashboard/` (remplacé par `/admin/`, réservé au futur tableau de bord).
 
-> Risque accepté : en quittant la page juste après avoir tapé, les dernières frappes peuvent se perdre si un collègue a enregistré le même dossier juste avant.
+> Aucune alerte n'est envoyée : si personne n'ouvre la page, personne ne voit une panne. Les emails viendront dans une évolution ultérieure.
 
-## Fermer l'API au serveur lui-même
+## Restaurer sans risque
 
-Sur Linux, un réseau Docker « interne » reste joignable depuis le serveur par l'adresse du conteneur. Or l'API croit l'email qu'on lui transmet. Le réseau de l'API n'a donc ni adresse sur le serveur, ni IPv6, et aucun port n'est publié. Un contrôle du réseau est fait avant d'ajouter le premier admin.
+Une restauration ratée ne doit pas détruire la base, et la copie en clair ne doit jamais toucher le disque du serveur.
 
-## Figer l'image Node
+```mermaid
+flowchart LR
+  A[Copie déchiffrée sur un Mac] --> B[Envoyée par SSH dans le volume]
+  B --> C{Empreinte et contrôle bons ?}
+  C -- oui --> D[Base remplacée]
+  C -- non --> E[Rien n'est touché]
+  D --> F[Suppressions refaites dans l'interface]
+```
 
-La version récente de Node 22 apporte un correctif de sécurité, mais a moins de 14 jours. L'utilisateur a accepté l'exception : l'image est figée par son empreinte, et ne change que par une décision explicite.
-
-## Masquer « Remplacer tout »
-
-En mode serveur, « Remplacer tout » effacerait les dossiers de toute l'équipe absents du fichier, sans sauvegarde. Seule la fusion reste proposée (choix de l'utilisateur). Une fusion d'un vieil export peut toutefois faire revenir un dossier supprimé.
+Avant de remplacer, l'état actuel est sauvegardé, pour pouvoir revenir en arrière. Après, l'équipe supprime à nouveau, dans l'interface, les dossiers supprimés depuis la date de la copie. Poser la copie avec `docker compose cp` est écarté : le fichier serait illisible par l'API. La procédure a été rejouée sur un serveur d'essai, dans trois situations.
 
 ## Voir aussi
 - [Comment les pages choisissent où ranger les dossiers](mode-serveur.md)
 - [L'API de stockage](api.md)
 - [Architecture et déploiement](architecture.md)
 - [Conventions et tests](conventions.md)
+- La clé : `deploy/CLE-SAUVEGARDE.md` ; restaurer la base : `deploy/RESTAURER.md`
 - Le détail de chaque décision (contexte, options écartées, conséquences) est dans la version complète.

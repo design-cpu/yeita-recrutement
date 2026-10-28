@@ -1,11 +1,14 @@
 ---
 type: glossaire
-maj: 1.6
+maj: 1.7
 ---
 
 # Glossaire
 
 > Les mots du produit et du projet, expliqués simplement.
+
+## age
+L'outil qui chiffre les sauvegardes. Il n'a besoin, sur le serveur, que de la partie publique de la clé : la partie secrète reste hors du serveur, dans un fichier gardé par quelques personnes.
 
 ## API
 Un programme qui ne montre pas de pages : il répond aux demandes d'autres programmes, comme les pages du site. Celle du projet garde les dossiers candidat dans une base partagée et dit qui a le droit de les lire ou de les modifier.
@@ -26,6 +29,10 @@ Aussi : Caddy du projet, service caddy.
 ## Cas A / cas B
 Les deux façons d'installer le site sur le serveur. Cas A : un proxy existe déjà sur le serveur, on lui ajoute le site. Cas B : rien n'occupe les ports web, le projet apporte son propre Caddy.
 Aussi : cas A, cas B.
+
+## Clé de sauvegarde
+La clé secrète qui ouvre les sauvegardes. Elle n'est jamais sur le serveur : c'est un fichier `.txt` gardé sur un Mac et confié en main propre à une ou deux personnes de confiance (en attendant un coffre de mots de passe). La perdre rend toutes les sauvegardes illisibles.
+Aussi : clé privée age.
 
 ## Conflit d'écriture
 Ce qui arrive quand deux personnes modifient le même dossier en même temps. Chaque dossier porte un numéro de version : un enregistrement fait à partir d'une version dépassée est refusé, et la personne doit recharger la page au lieu d'écraser le travail de l'autre. Cette méthode s'appelle la « version optimiste ».
@@ -85,6 +92,10 @@ Aussi : Node.
 Le gardien placé devant le site. Il sert les pages publiques à tout le monde et demande une connexion avec un compte Google @yeita.fr pour tout le reste.
 Aussi : front.
 
+## Page d'état des sauvegardes
+La page `https://recrutement.yeita.fr/admin/sauvegardes.html`, réservée aux admins de l'équipe : elle dit en vert que tout va bien, ou en rouge ce qui ne va pas (sauvegarde ratée ou trop ancienne, disque presque plein).
+Aussi : page admin.
+
 ## Page publique
 Une page accessible sans connexion, par exemple celle envoyée aux candidats. La liste est fermée : une nouvelle page est protégée tant qu'on ne l'y ajoute pas.
 Aussi : pages publiques, liste publique.
@@ -96,7 +107,6 @@ Aussi : suggéré.
 ## Panneau Notes
 Le panneau qui s'ouvre à droite avec le bouton « Notes », à tout moment, sans perdre l'endroit où on était dans la page. On y écrit en vrac pendant l'entretien, une note par étape ; rien ne part chez le candidat. Les notes des autres étapes s'y relisent.
 Aussi : Notes, notes libres.
-
 
 ## Profil Compose
 Un interrupteur dans Docker Compose qui active des conteneurs optionnels. Le profil `caddy` allume le Caddy du projet (cas B) ; laissé vide, seul le site tourne (cas A).
@@ -110,6 +120,13 @@ Aussi : reverse proxy, proxy de l'hôte, proxy existant.
 Un réseau Docker sans sortie vers Internet ni adresse sur le serveur lui-même. L'API n'est reliée qu'à celui-là, avec oauth2-proxy : personne d'autre, même sur le serveur, ne peut lui parler.
 Aussi : réseau back.
 
+## Restauration
+Remettre la base des candidatures dans l'état d'une sauvegarde, après une panne ou une erreur. Ce qui a été saisi depuis la date de la copie est perdu, et les suppressions faites depuis sont à refaire.
+
+## Sauvegarde
+La copie de la base des candidatures faite chaque nuit, vérifiée puis chiffrée : sans la clé de sauvegarde, personne ne peut la lire. Elle est gardée 30 jours sur le serveur ; son état se lit sur la page d'état des sauvegardes.
+Aussi : copie chiffrée.
+
 ## Serveur partagé
 Le serveur OVH de Yeita, qui fait tourner d'autres services que le projet ne connaît pas. D'où la règle : ne toucher qu'à ce qui appartient au projet.
 Aussi : serveur OVH.
@@ -118,6 +135,9 @@ Aussi : serveur OVH.
 Une base de données tenue dans un simple fichier, sans serveur de base à installer. L'API y range les dossiers candidat, l'équipe et le journal.
 Aussi : base SQLite.
 
+## Timer systemd
+Le réveil du serveur qui lance une tâche à heure fixe : chaque nuit vers 3 h pour la sauvegarde, chaque heure pour le disque. Si le serveur était éteint, la tâche part à son redémarrage.
+
 ## Volume
-Un dossier géré par Docker, qui survit à l'arrêt et à la recréation des conteneurs. Le volume `recrutement_data` contient la base des candidatures : c'est la seule copie, à ne jamais supprimer.
+Un dossier géré par Docker, qui survit à l'arrêt et à la recréation des conteneurs. Le volume `recrutement_data` contient la base des candidatures, à ne jamais supprimer ; depuis la 1.7, elle est aussi sauvegardée chaque nuit, sur le même serveur.
 Aussi : volume Docker, recrutement_data.
