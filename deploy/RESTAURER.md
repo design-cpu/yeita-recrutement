@@ -36,10 +36,12 @@ Trois petits programmes servent sur le serveur ; les créer dans le dossier :
 ```bash
 cat > "$d/controle.mjs" <<'EOF'
 // Contrôle d'une base dans le volume : integrity_check, version du schéma, comptes, dernière date du journal.
+// fichiers=absente : copie d'avant la 1.10 (la table est créée à la première ouverture par la 1.10).
 import Database from "/app/api/node_modules/better-sqlite3/lib/index.js";
 const db = new Database(process.env.FICHIER, { readonly: true, fileMustExist: true });
 const n = t => db.prepare(`SELECT count(*) n FROM ${t}`).get().n;
-console.log(`integrity_check=${db.pragma("integrity_check", { simple: true })} user_version=${db.pragma("user_version", { simple: true })} candidats=${n("candidats")} equipe=${n("equipe")} journal=${n("journal")} dernier=${db.prepare("SELECT max(le) m FROM journal").get().m}`);
+const existe = t => db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(t);
+console.log(`integrity_check=${db.pragma("integrity_check", { simple: true })} user_version=${db.pragma("user_version", { simple: true })} candidats=${n("candidats")} equipe=${n("equipe")} journal=${n("journal")} fichiers=${existe("fichiers") ? n("fichiers") : "absente"} dernier=${db.prepare("SELECT max(le) m FROM journal").get().m}`);
 EOF
 cat > "$d/suppressions.mjs" <<'EOF'
 // Sans IDS : liste les suppressions du journal (id, date, auteur). Avec IDS : dit lesquels sont encore dans la base.
@@ -89,10 +91,11 @@ EOF
    age -d -i "$d/cle.txt" -o "$d/copie.db" "$d/recrutement-AAAA-MM-JJTHHMMSSZ.db.age"
    ```
 
-3. **Contrôler** (Mac) : `ok`, `1`, des comptes plausibles, une dernière date du journal juste avant la date du nom. Noter l'empreinte.
+3. **Contrôler** (Mac) : `ok`, `1`, des comptes plausibles, une dernière date du journal juste avant la date du nom, et le nombre de fichiers (CV, portfolios) ; `fichiers absente` pour une copie d'avant la 1.10, acceptée. Noter l'empreinte.
 
    ```bash
    sqlite3 -readonly "$d/copie.db" "PRAGMA integrity_check; PRAGMA user_version; SELECT 'candidats', count(*) FROM candidats; SELECT 'equipe', count(*) FROM equipe; SELECT 'journal', count(*) FROM journal; SELECT 'dernier', max(le) FROM journal;"
+   sqlite3 -readonly "$d/copie.db" "SELECT 'fichiers', count(*) FROM fichiers;" 2>/dev/null || echo "fichiers absente (copie d'avant la 1.10)"
    EMPREINTE=$(shasum -a 256 "$d/copie.db" | cut -d' ' -f1); echo "$EMPREINTE"
    ```
 
@@ -149,6 +152,7 @@ EOF
    - Les comptes sont ceux de l'étape 3 (ou 1 bis) ; `check-site.sh` finit par `Tout est OK`.
    - Un membre de l'équipe se connecte et ouvre un dossier connu.
    - Chaque ligne `À SUPPRIMER <adresse>` : un recruteur ouvre l'adresse et supprime le dossier dans l'interface. Relancer la dernière commande : il ne doit rester que des `rien à faire`.
+   - Depuis la 1.10 : un CV ou un portfolio **retiré** depuis la date de la copie (sans suppression du candidat) revient avec elle, car le journal ne note pas les retraits de fichiers. Si un candidat avait demandé ce retrait, un recruteur ouvre sa fiche et retire le fichier à nouveau ; noter ces demandes hors de l'application pour pouvoir les refaire.
 
 9. **Effacer le Mac** : copie et copie de la clé (le fichier d'origine de la clé reste où il est gardé).
 
