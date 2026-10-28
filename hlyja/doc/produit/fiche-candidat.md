@@ -3,8 +3,8 @@ type: doc
 domaine: fiche-candidat
 titre: Fiche du candidat, CV et portfolio
 maj: 1.10
-commit: c684a41
-sources: candidatures/menu-candidat.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/carte.html, candidatures/ui.js, candidatures/style.css, assets/adapter-serveur.js, assets/store.js, assets/wording.fr.js, assets/config.js, api/src/fichiers.js, api/src/candidats.js, api/src/base.js, one-pager.html
+commit: ababdde
+sources: candidatures/menu-candidat.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/carte.html, candidatures/ui.js, candidatures/style.css, assets/adapter-serveur.js, assets/store.js, assets/wording.fr.js, assets/config.js, api/src/fichiers.js, api/src/candidats.js, api/src/base.js, one-pager.html, assets/qui.js, deploy/METTRE-A-JOUR.md, deploy/RESTAURER.md
 date: 2026-10-28
 ---
 
@@ -48,12 +48,12 @@ sequenceDiagram
 | Fichiers acceptés | PDF, PNG ou JPG, reconnus à leur contenu (pas à leur nom), 10 Mo au plus. Le nom est nettoyé (sans chemin, 120 caractères au plus) | 1.10 |
 | Fichiers en mode navigateur | Hors du site de l'équipe (pas de base), CV et portfolio se mettent en lien seulement | 1.10 |
 | La fiche ne cite jamais un fichier absent | Un fichier n'est cité par la fiche qu'une fois enregistré dans la base ; il ne se retire de la base qu'une fois la fiche enregistrée sans lui ; si un enregistrement échoue, le champ revient exactement comme avant. La base refuse une fiche qui cite un fichier absent (« Le CV ou le portfolio de cette fiche n'existe plus. Recharge la page. ») et le retrait d'un fichier encore cité | 1.10 |
-| Fichiers non cités | Un fichier que plus aucune fiche ne cite (panne au mauvais moment) n'est jamais affiché ; il est effacé au premier enregistrement de la fiche passé une heure | 1.10 |
+| Fichier non référencé | Un fichier que plus aucune fiche ne cite (panne au mauvais moment) n'est jamais affiché ; il est effacé au premier enregistrement de la fiche passé une heure | 1.10 |
 | Une action à la fois | Pendant l'envoi ou le retrait d'un document, les boutons de ce champ sont désactivés et la fenêtre ne se ferme pas ; les autres champs restent modifiables et sont enregistrés ensuite | 1.10 |
-| Messages | Fichier trop gros : « Ce fichier dépasse 10 Mo. Compresse-le ou colle plutôt un lien. » ; mauvais type : « Ce fichier n'est pas accepté. Choisis un PDF, un PNG ou un JPG. » ; refus du serveur du site (réglage manquant) : « Le serveur refuse ce fichier. Colle plutôt un lien et préviens Sofiane ou Léo. » ; conflit : « CV non enregistré : la candidature a été modifiée par quelqu'un d'autre. Recharge la page, puis dépose-le à nouveau. » | 1.10 |
-| Lien sûr | Seul un lien qui commence par `http://` ou `https://` est cliquable ; tout autre texte (dossier ancien, import) s'affiche tel quel, sans lien | 1.10 |
+| Messages | Fichier trop gros : « Ce fichier dépasse 10 Mo. Compresse-le ou colle plutôt un lien. » ; mauvais type : « Ce fichier n'est pas accepté. Choisis un PDF, un PNG ou un JPG. » ; refus du serveur du site (réglage manquant) : « Le serveur refuse ce fichier. Colle plutôt un lien et préviens Sofiane ou Léo. » ; conflit : « CV non enregistré : la candidature a été modifiée par quelqu'un d'autre. Recharge la page, puis dépose-le à nouveau. » ; fichier vide : « Ce fichier est vide. » ; lien mal formé : « Ce lien n'est pas valide. Colle une adresse qui commence par https://. » | 1.10 |
+| Lien sûr | Un lien collé doit commencer par `http://` ou `https://`. Seul un lien qui commence par `http://` ou `https://` est cliquable ; tout autre texte (dossier ancien, import) s'affiche tel quel, sans lien | 1.10 |
 | Historique | Dépôt, retrait, lien ajouté, lien retiré : une ligne dans l'historique du dossier (menu ⋯ → Historique), avec le nom du fichier et l'auteur, seulement si l'enregistrement a réussi | 1.10 |
-| Effacement | Supprimer un candidat efface ses documents, réellement (rien ne reste lisible dans les fichiers de la base) ; retirer un document l'efface aussi. Les copies de sauvegarde gardent l'état de la nuit 30 jours | 1.10 |
+| Effacement | La confirmation de suppression le dit (« Son CV et son portfolio déposés sont effacés avec elle. ») ; supprimer un candidat efface ses documents, réellement (rien ne reste lisible dans les fichiers de la base) ; retirer un document l'efface aussi. Les copies de sauvegarde gardent l'état de la nuit 30 jours | 1.10 |
 | Lecture seule | Un compte en lecture ouvre les documents, ne dépose ni ne retire rien | 1.10 |
 | Import | Un export ne contient pas les documents ; à l'import, un document qui n'existe plus dans la base est oublié par la fiche | 1.10 |
 | Étapes harmonisées | Une seule largeur (1120 px) pour l'appel, les EC, les bilans, la décision et la proposition ; le panneau Notes s'ouvre à côté dès 1360 px d'écran, par-dessus en dessous | 1.10 |

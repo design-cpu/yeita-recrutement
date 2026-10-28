@@ -101,8 +101,12 @@ Toutes les routes sauf `/api/sante` exigent un membre actif de l'équipe, identi
 | `GET /api/equipe` | tous | 200 `[{prenom, role}]`, membres actifs, triés par prénom | 401, 403 |
 | `GET /api/candidats` | tous | 200 `[{id, version, data}]`, du plus récent au plus ancien (`data.meta.modifieLe`) | 401, 403 |
 | `GET /api/candidats/:id` | tous | 200 `{id, version, data}` | 400, 401, 403, 404 |
-| `PUT /api/candidats/:id` | recruteur, admin | 201 (création) ou 200, `{id, version, data}` | 400, 401, 403, 409, 413, 415, 503 |
-| `DELETE /api/candidats/:id` | recruteur, admin | 204 | 400, 401, 403, 404, 503 |
+| `PUT /api/candidats/:id` | recruteur, admin | 201 (création) ou 200, `{id, version, data}` ; v1.10 : chaque fichier cité par `data.identite.fichiers` doit exister sous ce candidat, et les fichiers non cités déposés depuis plus d'une heure sont effacés | 400, 401, 403, 409 (`conflit`, ou `fichier-introuvable` : rien n'est écrit), 413, 415, 503 |
+| `DELETE /api/candidats/:id` | recruteur, admin | 204 (ses fichiers sont effacés avec lui) | 400, 401, 403, 404, 503 |
+| `POST /api/candidats/:id/fichiers?champ=cv\|portfolio` (v1.10) | recruteur, admin | 201 `{id, champ, nom, type, taille, deposeLe, deposePar}` ; corps : le fichier brut (PDF, PNG ou JPG, reconnu à ses premiers octets, 10 Mo au plus), `Content-Type` du fichier, nom dans `X-Nom-Fichier` (`encodeURIComponent`) | 400, 401, 403, 404, 413 `fichier-trop-gros`, 415 `type-fichier`, 503 |
+| `GET /api/candidats/:id/fichiers` (v1.10) | tous | 200 `[{id, champ, nom, type, taille, deposeLe, deposePar}]` | 400, 401, 403, 404 |
+| `GET /api/candidats/:id/fichiers/:fid` (v1.10) | tous | 200, le fichier, `Content-Disposition: inline`, `X-Content-Type-Options: nosniff` | 400, 401, 403, 404 `fichier-introuvable` |
+| `DELETE /api/candidats/:id/fichiers/:fid` (v1.10) | recruteur, admin | 204 | 400, 401, 403, 404 `fichier-introuvable`, 409 `fichier-cite` (le dossier enregistré le cite encore : l'enregistrer d'abord sans lui), 503 |
 | `GET /api/options-disponibilite` | tous | 200 `["…"]` : les options **ajoutées**, dans l'ordre d'ajout | 401, 403 |
 | `POST /api/options-disponibilite` `{libelle}` | recruteur, admin | 201 (ajoutée) ou 200 (déjà là, ou option de base), corps : la liste | 400, 401, 403, 413, 415, 503 |
 | `GET /api/deploiement` (v1.9) | admin | 200 `{maintenant, etat, demande}` (voir plus bas) | 401, 403 |

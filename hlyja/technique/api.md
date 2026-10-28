@@ -3,7 +3,7 @@ type: technique
 page: api
 titre: API de stockage (api/)
 maj: 1.10
-commit: c684a41
+commit: ababdde
 sources: api/server.js, api/equipe.js, api/sauvegarde.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md, api/src/sauvegardes.js, api/src/deploiement.js, api/src/fichiers.js, api/test/aide.js
 date: 2026-10-28
 ---
@@ -32,7 +32,7 @@ Un processus, une connexion better-sqlite3 (synchrone). `equipe.js` ouvre sa pro
 | `api/equipe.js` | Commande `add|list|disable|role` | — |
 | `api/sauvegarde.js` (v1.7) | Commande `node api/sauvegarde.js [--nettoyer]` : base ouverte en lecture seule (`fileMustExist`), `db.backup()` vers `<dossier de la base>/sauvegardes/recrutement-AAAA-MM-JJ.db.tmp-<pid>` (date UTC), `integrity_check` = `ok` exigé, `journal_mode = DELETE` (un seul fichier), renommage ; masque 077 (dossier 700, copie 600) ; dernière ligne de sortie = chemin de la copie (contrat de `deploy/backup.sh`) ; `--nettoyer` : `recrutement-AAAA-MM-JJ.db` et temporaires de plus de 48 h (date de modification), jamais la copie faite ; code 0/1, messages en français ; aucune route, aucun changement du reste de l'API | — |
 | `api/src/config.js` | Lecture et contrôle des variables | `lireConfig(env, dossierApi)`, `cheminBase(env, dossierApi)`, `ErreurConfig`, `DOSSIER_API` |
-| `api/src/base.js` | Ouverture de la base, réglages, schéma | `ouvrirBase(chemin)` → `{db, creee, userVersion}`, `SCHEMA`, `VERSION_SCHEMA` (1), `ATTENTE_MS` (5000), `ErreurBase`, `estOccupee(e)` |
+| `api/src/base.js` | Ouverture de la base, réglages, schéma | `ouvrirBase(chemin)` → `{db, creee, userVersion}`, `SCHEMA`, `AJOUTS` (v1.10 : tables ajoutées sans changer `user_version`), `VERSION_SCHEMA` (1), `ATTENTE_MS` (5000), `ErreurBase`, `estOccupee(e)` |
 | `api/src/app.js` | Application Fastify : analyseur JSON, autorisation, erreurs, `/api/sante`, `/api/moi`, `/api/equipe`, site local, `adminRequis(req)` (v1.9 : 403 `admin-requis` hors rôle admin, routes d'administration) |
 | `api/src/candidats.js` | Routes des dossiers, journal, point de contrôle | `routesCandidats(app, db)` |
 | `api/src/options.js` | Routes des options de disponibilité | `routesOptions(app, db)` |
@@ -40,7 +40,7 @@ Un processus, une connexion better-sqlite3 (synchrone). `equipe.js` ouvre sa pro
 | `api/src/deploiement.js` (v1.9) | Déploiement automatique : lit `<dossier de la base>/etat/deploiement.json` (par `lire` de `sauvegardes.js`) et la demande en attente ; écrit `<dossier de la base>/demandes/deploiement.demande` (une ligne `clé=valeur` par champ, `wx` sous un nom temporaire puis renommage, 600, dossier 700) | `routesDeploiement(app, db)`, `lireDemande(fichier)`, `CLES_DEMANDE`, `TAILLE_MAX_DEMANDE` (1 024) |
 | `api/src/fichiers.js` (1.10) | Routes des fichiers des candidats, appelées par `routesCandidats` ; dates de dépôt par `app.maintenant()` ; le DELETE refuse un fichier cité par le dossier enregistré (`fichier-cite`) | `routesFichiers(app, db, pointDeControle)`, `nomPropre(brut, type)`, `ROUTE_ENVOI` |
 | `api/src/routes.js` | Liste des routes de données | `routesApi` (candidats, options, sauvegardes, déploiement) |
-| `api/src/valeurs.js` | Valeurs recopiées (source citée) et constantes | `SCHEMA_DOSSIER`, `MOTIF_ID`, `ETAPES` (12), `DISPOS` (6), `MOTIF_EMAIL`, `ROLES`, `HOTES_LOCAUX`, `LIMITE_CORPS` (1 048 576), `MESSAGE_CONFLIT`, `emailValide(brut)` |
+| `api/src/valeurs.js` | Valeurs recopiées (source citée) et constantes | `SCHEMA_DOSSIER`, `MOTIF_ID`, `ETAPES` (12), `DISPOS` (6), `MOTIF_EMAIL`, `ROLES`, `HOTES_LOCAUX`, v1.10 : `LIMITE_FICHIER` (10 485 760), `TYPES_FICHIER`, `CHAMPS_FICHIER`, `MOTIF_FICHIER` (`^fic-[a-f0-9]{18}$`), `DELAI_NON_REFERENCE_MS` (3 600 000) ; `LIMITE_CORPS` (1 048 576), `MESSAGE_CONFLIT`, `emailValide(brut)` |
 
 Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISPOS` viennent de `assets/dossier.js`, `ETAPES` de `MODELE.md`.
 
@@ -53,7 +53,7 @@ Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISP
 | `GET /api/candidats` | oui | tous | — | 200 `[{id, version, data}]`, tri `json_extract(data,'$.meta.modifieLe') DESC, modifie_le DESC` | 401, 403 | 1.2 |
 | `GET /api/candidats/:id` | oui | tous | `:id` (`MOTIF_ID`) | 200 `{id, version, data}` | 400, 401, 403, 404 `introuvable` | 1.2 |
 | `PUT /api/candidats/:id` | oui | recruteur, admin | `{version: null \| entier ≥ 1, data}` JSON ≤ 1 Mo ; v1.10 : `data.identite.fichiers` absent, `null` ou `{cv, portfolio}`, chaque entrée `null` ou `{id: fic-…, …}` | 201 (création, `version` 1), 200 (`version + 1`) ; v1.10, dans la même transaction : chaque fichier référencé doit exister sous ce candidat pour ce champ, puis les fichiers non référencés déposés depuis plus d'une heure (`DELAI_NON_REFERENCE_MS`) sont effacés | 400 (dont `identite.fichiers` mal formé), 401, 403, 409 `conflit`, 409 `fichier-introuvable` (référence absente : rien n'est écrit), 413, 415, 503 | 1.2 ; 1.10 |
-| `DELETE /api/candidats/:id` | oui | recruteur, admin | `:id` | 204 | 400, 401, 403, 404 `introuvable`, 503 | 1.2 |
+| `DELETE /api/candidats/:id` | oui | recruteur, admin | `:id` | 204 ; v1.10 : ses fichiers sont effacés dans la même transaction | 400, 401, 403, 404 `introuvable`, 503 | 1.2 ; 1.10 |
 | `GET /api/deploiement` (v1.9) | oui | admin (sinon 403 `admin-requis`) | — | 200 `{maintenant, etat, demande}` : `etat` = `deploiement.json` (`null` absent, `{illisible: true}`) ; `demande` = demande en attente lue avec les règles de l'hôte (fichier ordinaire, 1 024 octets, 4 clés exactes, valeurs contrôlées), `null` ou `{illisible: true}` ; consommateur : `admin/deploiement.html` | 401, 403 | 1.9 |
 | `POST /api/deploiement/demande` (v1.9) | oui | admin | `{action: "deployer", commit: "main"\|<7 à 40 hex>}` ou `{action: "reprendre"}`, rien d'autre | 202 `{demande: {action, commit, par, le}}` ; `par` = `req.membre.email` ; demande identique (action, commit, par) à celle en attente : rendue sans réécrire | 400 « Demande invalide … », 401, 403, 413 (corps de plus de 1 Mo), 415, 503 `demande-non-ecrite` | 1.9 |
 | `GET /api/sauvegardes` (v1.7) | oui | admin (sinon 403 `admin-requis` « Réservé aux admins de l'équipe. ») | — | 200 `{maintenant, sauvegarde: {derniere, reussie, en_retard}, disque: {mesure, en_retard}}` ; fichier absent → `null`, illisible → `{illisible: true}` ; `en_retard` : réussite de plus de 26 h, mesure de plus de 2 h, absente, illisible ou datée dans le futur ; consommateur : `admin/sauvegardes.html` | 401, 403 | 1.7 |
@@ -74,10 +74,10 @@ Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISP
 | Identité | `onRequest` | `X-Forwarded-Email` seul (`X-Forwarded-User` ignoré), `emailValide` : minuscules, `^[a-z0-9._%+-]+@yeita\.fr$` ; absent ou vide → `config.devEmail` ; invalide → 401 |
 | Équipe | `onRequest` | `SELECT … FROM equipe WHERE email = ?` à chaque requête ; absent ou `actif = 0` → 403 `hors-equipe` |
 | Rôle | `onRequest` | `lecture` : `GET` et `HEAD` seulement (Fastify crée `HEAD` pour chaque `GET`), sinon 403 `lecture-seule` |
-| Corps | analyseur | seul `application/json` (`getDefaultJsonParser("error","error")` : `__proto__`, `constructor.prototype` refusés) ; corps vide → `undefined` ; `bodyLimit` 1 048 576 |
+| Corps | analyseur | seul `application/json` (`getDefaultJsonParser("error","error")` : `__proto__`, `constructor.prototype` refusés) ; corps vide → `undefined` ; `bodyLimit` 1 048 576 | ; v1.10 : route d'envoi des fichiers, analyseur `parseAs: "buffer"` des trois types, `bodyLimit` 10 485 760
 | Type | `preValidation` | PUT et POST sans `Content-Type: application/json` → 415, sauf `POST /api/candidats/:id/fichiers` (1.10), dont le contexte encapsulé a seul l'analyseur `parseAs: "buffer"` des trois types de fichier ; toute autre méthode avec un corps d'un autre type → 415 |
 | Cache | `onSend` | `Cache-Control: no-store` sauf route statique `/*` |
-| Erreurs | `setErrorHandler` | `ErreurHttp` tel quel ; `FST_ERR_CTP_BODY_TOO_LARGE` → 413, `FST_ERR_CTP_INVALID_JSON_BODY` → 400, `FST_ERR_CTP_INVALID_MEDIA_TYPE` → 415, `SQLITE_BUSY*` → 503, autre 4xx → « Requête invalide. », sinon 500 journalisé sans message (type, code, pile sans 1re ligne) |
+| Erreurs | `setErrorHandler` | `ErreurHttp` tel quel ; `FST_ERR_CTP_BODY_TOO_LARGE` → 413 (v1.10 : sur la route d'envoi, `fichier-trop-gros` « Fichier trop volumineux (10 Mo maximum). »), `FST_ERR_CTP_INVALID_JSON_BODY` → 400, `FST_ERR_CTP_INVALID_MEDIA_TYPE` → 415 (v1.10 : sur la route d'envoi, `type-fichier`), `SQLITE_BUSY*` → 503, autre 4xx → « Requête invalide. », sinon 500 journalisé sans message (type, code, pile sans 1re ligne) |
 | Introuvable | `setNotFoundHandler` | 404 « Route inconnue. » |
 Routeur : `maxParamLength` 200 (un `:id` plus long → 404 de route inconnue).
 
@@ -117,7 +117,7 @@ Variable vide = absente. Toute erreur → `ErreurConfig` → code 1 et une ligne
 Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue, hôte, adresse distante, statut, durée. Démarrage : `hote`, `port`, `base`, `user_version`, `node_env`, `dev_email`, `dev_static`. Avertissements : exposition (`HOST` non local), mode local, point de contrôle incomplet.
 
 ## Tests
-`cd api && npm test` (`node --test "test/*.test.js"`), 82 tests (~22 s), 8 fichiers dans `api/test/` : `config`, `base` (v1.10 : ajout de `fichiers` sans changer de version, ouvertures simultanées, retour vers la 1.9), `api` (autorisation, erreurs, options, état des sauvegardes, déploiement v1.9), `candidats`, `fichiers` (v1.10 : envoi, types, taille, nom, accès, lecture, retrait, références et nettoyage avec horloge simulée `creerApp(t, {maintenant})`), `serveur` et `equipe` (commandes en ligne en processus fils : `equipe.js` et, depuis la 1.7, `sauvegarde.js` — copie pendant des écritures, base absente ou abîmée, dossier non inscriptible, `--nettoyer`), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
+`cd api && npm test` (`node --test "test/*.test.js"`), 85 tests (~22 s), 8 fichiers dans `api/test/` : `config`, `base` (v1.10 : ajout de `fichiers` sans changer de version, ouvertures simultanées, retour vers la 1.9), `api` (autorisation, erreurs, options, état des sauvegardes, déploiement v1.9), `candidats`, `fichiers` (v1.10 : envoi, types, taille, nom, accès, lecture, retrait, références et nettoyage avec horloge simulée `creerApp(t, {maintenant})`), `serveur` et `equipe` (commandes en ligne en processus fils : `equipe.js` et, depuis la 1.7, `sauvegarde.js` — copie pendant des écritures, base absente ou abîmée, dossier non inscriptible, `--nettoyer`), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
 
 ## Consommateurs (v1.3)
 | Consommateur | Routes | Fichier |
@@ -130,6 +130,7 @@ Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue
 Les réponses d'oauth2-proxy (401 `{}`, 502 HTML, 302) sont classées par `AdaptateurServeur.lire` ([Mode serveur](mode-serveur.md)).
 
 ## Voir aussi
+- [Fiche du candidat, CV et portfolio](../doc/produit/fiche-candidat.md)
 - [Mode serveur des pages](mode-serveur.md)
 - [Architecture et déploiement](architecture.md)
 - [Décisions](decisions.md)

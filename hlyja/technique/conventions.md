@@ -43,7 +43,7 @@ Règles du déploiement (v1.1) : images servies figées par tag (`oauth2-proxy:v
 |---|---|---|
 | `node tools/test-store.js` | Node | règles du parcours (store, dossier) |
 | `node tools/test-serveur.js` | Node 22 | mode serveur hors navigateur, contre une fausse API : adaptateur, démarrage, bandeau, identité, options, écriture des fiches par partie (v1.3), bandeau jaune (v1.4) ; 87 vérifications (~4 s) ; une vérification qui dépasse 5 s échoue avec son message ; tout rejet non traité est un échec |
-| `python3 tools/e2e-candidatures.py` | site construit servi sur `localhost:8765`, Playwright Python | tableau, appel ; bandeau et boutons d'exemples du mode navigateur (v1.4) |
+| `python3 tools/e2e-candidatures.py` | site construit servi sur `localhost:8765`, Playwright Python | tableau, appel ; bandeau et boutons d'exemples du mode navigateur (v1.4) ; v1.10 : fenêtre Fiche du candidat en création (4 groupes, deux actions, nom obligatoire), CV et portfolio en lien seulement en mode navigateur |
 | `python3 tools/e2e-parcours.py` | idem | EC1, EC2, Bilans, EC3, Décision ; v1.10 : largeur de 1120 px, Notes à côté dès 1360 px, appel sans liens utiles, aucun sélecteur d'État dans les étapes, initiales du kanban, grille 3/2/1, en-tête de la carte, téléphone (fenêtre de création comprise) ; 84 `OK` |
 | `python3 tools/e2e-liens.py` | idem | « Précédent », liens directs, feuille vierge |
 | `python3 tools/e2e-pdf.py` | idem, plus `pdftotext` (poppler) | exports PDF |

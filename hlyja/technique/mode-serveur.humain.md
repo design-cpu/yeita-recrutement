@@ -4,7 +4,7 @@ vue: humaine
 page: mode-serveur
 titre: Mode serveur des pages (démarrage, adaptateur, identité)
 maj: 1.10
-commit: 08ae3e2
+commit: ababdde
 sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, assets/qui.js, assets/store.js, assets/wording.fr.js, assets/yeita.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/decompte.html, candidatures/carte.html, tools/test-serveur.js, tools/e2e-serveur.py, candidatures/menu-candidat.js
 date: 2026-10-28
 ---

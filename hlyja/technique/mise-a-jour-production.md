@@ -4,7 +4,7 @@ page: mise-a-jour-production
 titre: Mettre à jour le site en production
 maj: 1.10
 commit: c684a41
-sources: deploy/METTRE-A-JOUR.md, deploy/deploy.sh, tools/check-site.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, deploy/backup.sh, deploy/verif-disque.sh, api/equipe.js, deploy/CLE-SAUVEGARDE.md, deploy/auto-deploy.sh, deploy/systemd/recrutement-deploy.service, deploy/systemd/recrutement-deploy.timer, deploy/systemd/recrutement-deploy.path
+sources: deploy/METTRE-A-JOUR.md, deploy/deploy.sh, tools/check-site.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, deploy/backup.sh, deploy/verif-disque.sh, api/equipe.js, deploy/CLE-SAUVEGARDE.md, deploy/auto-deploy.sh, deploy/systemd/recrutement-deploy.service, deploy/systemd/recrutement-deploy.timer, deploy/systemd/recrutement-deploy.path, deploy/README.md, deploy/RESTAURER.md
 date: 2026-10-28
 ---
 
@@ -32,7 +32,7 @@ date: 2026-10-28
 | Déploiement automatique (v1.9) | lancer `deploy.sh` à la main pendant un passage l'annule (`annule`) ; voir l'état sur `/admin/deploiement.html` avant |
 | 1.9 | gestes : déployer la 1.9 à la main (encore le `deploy.sh` de la 1.8), installer `recrutement-deploy.{service,timer,path}` (`deploy/README.md` § 15), vérifier la page verte |
 | 1.10 — avant le merge | compte `deploy` : `deploy/backup.sh` (« Sauvegarde réussie ») ; compte `ubuntu` : relevé `nginx -T` (`client_max_body_size`, `server_name` → `~/sites-avant-1.10.txt`), copie de `/etc/nginx/sites-available/recrutement.yeita.fr`, `client_max_body_size 10m;` dans le `server` 443, `nginx -t` puis `reload`, preuve : POST de 2 097 152 octets sur `https://recrutement.yeita.fr/api/candidats/cand-x-y/fichiers?champ=cv` → `401` (oauth2-proxy, sans compte ; `413` = réglage absent), relevé des sites et `diff` vide ; banc : 2 Mo et 10 Mo → `401`, 10 Mo + 1 → `413` |
-| Retour avant la 1.10 | rien à arrêter : l'API de la 1.9 relit la base (`user_version` 1) ; pages 1.9 : fichiers invisibles (gardés), lignes de dépôt affichées « undefined → undefined », « Annuler le dernier passage » refusé ; tout revient avec la 1.10 ; ne pas recoller les CV en lien |
+| Retour avant la 1.10 | rien à arrêter : l'API de la 1.9 relit la base (`user_version` 1) ; pages 1.9 : fichiers invisibles (gardés), lignes de dépôt affichées « undefined → undefined », « Annuler le dernier passage » peut être refusé tant qu'une ligne de dépôt est la dernière ; tout revient avec la 1.10 ; ne pas recoller les CV en lien |
 | Retour avant la 1.9 | `sudo systemctl disable --now recrutement-deploy.timer recrutement-deploy.path` avant `deploy.sh <commit>` ; au retour : réinstaller (« identique ») puis « Reprendre » |
 | Retour avant la 1.7 | `sudo systemctl disable --now recrutement-backup.timer recrutement-verif-disque.timer` avant `deploy.sh <commit>` |
 

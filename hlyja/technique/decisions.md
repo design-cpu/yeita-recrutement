@@ -4,7 +4,7 @@ page: decisions
 titre: Décisions techniques
 maj: 1.10
 commit: c684a41
-sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md, deploy/commun.sh, deploy/verif-disque.sh, deploy/auto-deploy.sh, api/src/deploiement.js, deploy/systemd/recrutement-deploy.path
+sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md, deploy/commun.sh, deploy/verif-disque.sh, deploy/auto-deploy.sh, api/src/deploiement.js, deploy/systemd/recrutement-deploy.path, api/src/fichiers.js, api/src/valeurs.js
 date: 2026-10-28
 ---
 
@@ -48,6 +48,7 @@ date: 2026-10-28
 | Retour automatique et pause (v1.9) | Un `deploy.sh` raté laisse le dépôt sur le nouveau commit ; un retour manuel ne doit pas être défait | Retour automatique au commit d'avant (décision de l'utilisateur), par le `deploy.sh` **de ce commit-là**, extrait sous le verrou ; arrêt avant changement (pas de `· Dépôt sur`) sans retour ; pause `deploy/PAUSE` posée par celui qui demande un commit précis (page, ou `deploy.sh` à la main), jamais par l'automatisme (`RECRUTEMENT_PAR_AUTO=1`) ; un déploiement fait à la main pendant les tests l'emporte (`annule`) | Retour par le `deploy.sh` du commit en échec (cassé avec lui) ; pause décidée par `deploy.sh` d'après son propre `fetch` (`main` qui avance pendant les tests aurait mis en pause) ; `.gitignore` pour `PAUSE` (perdu en revenant à un ancien commit : exclusion locale `.git/info/exclude`) | Le pire cas (retour raté, passage tué pendant la mise en ligne) est une alerte rouge sur la page avec la commande à lancer ; aucune notification (hors pitch) | 1.9 |
 
 ## Voir aussi
+- [Fiche du candidat, CV et portfolio](../doc/produit/fiche-candidat.md)
 - [API de stockage](api.md)
 - [Architecture et déploiement](architecture.md)
 - [Conventions et tests](conventions.md)
