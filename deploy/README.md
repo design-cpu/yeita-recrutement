@@ -419,6 +419,7 @@ Toutes les 10 minutes, `recrutement-deploy.timer` lance `deploy/auto-deploy.sh -
 - **Pause** : le fichier `deploy/PAUSE` (ignoré par git). Créé par « Déployer ce commit » ou par `deploy.sh <commit>` lancé à la main sur un autre commit que le dernier de `main` ; retiré **seulement** par « Reprendre ». En pause, les nouveaux commits ne partent pas ; les demandes sont traitées.
 - **À la main** : `deploy/auto-deploy.sh` (sans option) met tout de suite le dernier `main` en ligne, avec les tests, **même en pause**. Ce n'est pas un moyen de diagnostic.
 - **Un déploiement fait à la main l'emporte** : si `deploy.sh` est lancé en SSH pendant les tests d'un passage, ce passage s'annule.
+- **Ce qu'un compte admin peut faire** : déployer un commit testé de la ligne principale de `main` (depuis la 1.9), y compris une version plus ancienne, que la pause maintient ensuite en place. La trace qui fait foi est le journal (`sudo journalctl -u recrutement-deploy`) ; l'historique de la page garde 30 passages et n'est pas un audit. Vérifier de temps en temps qu'une pause n'est pas restée par erreur.
 - **Fichiers** : décisions dans `~deploy/.recrutement-deploiement/` (`deploye` : dernier commit mis en ligne, écrit par `deploy.sh` ; `echec`, `incertain`, `retour-ko`, `en-cours`, `passages/`) ; vue de la page dans le volume (`/data/etat/deploiement.json`), demandes dans `/data/demandes/`.
 
 ### Mise en service (une fois, dans l'ordre)
