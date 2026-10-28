@@ -35,7 +35,7 @@ date: 2026-10-28
 |---|---|---|
 | Timer et unité path | même service : systemd n'en lance jamais deux à la fois (V6) | — |
 | `auto-deploy.sh` lancé à la main | verrou de passage, worktree d'essai, historique local | attend le verrou (V14) ; le second passage refait l'évaluation après le premier |
-| `deploy.sh` lancé à la main | verrou `~/.recrutement-deploy.lock`, dépôt | `auto-deploy.sh` attend ce verrou avant `deploy.sh` (V15) ; un `deploy.sh` manuel pendant les tests d'un passage : le passage déploie ensuite par-dessus (dernier arrivé gagne, chaque déploiement étant complet) |
+| `deploy.sh` lancé à la main | verrou `~/.recrutement-deploy.lock`, dépôt | `auto-deploy.sh` attend ce verrou avant `deploy.sh` (V15) ; un `deploy.sh` manuel pendant les tests d'un passage l'emporte : le passage s'annule (spec R19, après tour 1) |
 | `backup.sh` (3 h) | verrou de `deploy.sh`, `ecrire_etat` (autre fichier d'état) | même attente ; fichiers d'état distincts |
 | Application (`POST`) | `/data/demandes/deploiement.demande` | l'application écrit sous un nom temporaire puis renomme ; le passage prend la demande par renommage avant de la lire (aucune demande perdue entre lecture et suppression) |
 
