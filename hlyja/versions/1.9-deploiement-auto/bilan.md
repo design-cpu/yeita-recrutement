@@ -68,6 +68,10 @@ Aucune.
 - Nouvelles occurrences : [1.7-6](../../backlog/1.7-6-alertes-email-sauvegardes.md) (aucune alerte pour un retour raté), [1.7-7](../../backlog/1.7-7-tableau-de-bord-admin.md) (deux pages admin sans accueil), [1.1-4](../../backlog/1.1-4-disque-images-de-construction.md) (cache de construction des essais), [1.1-6](../../backlog/1.1-6-scripts-deploiement-controles-dupliques.md) (conteneur jetable recopié)
 - Traitées par cette version : aucune.
 
+## Étonnements
+[1.9-deploiement-auto](../../etonnements/1.9-deploiement-auto.md) : 1 retenu (un mécanisme de secours se teste seul, l'autre neutralisé), 3 fusionnés (état de départ du banc réel ; doc d'exploitation jouée pendant que le service tourne ; mutation survivante = cas manquant, vérification par identifiant), 2 rejetés.
+Règles récurrentes signalées par le validateur (le skill devrait évoluer) : contrôle compté sans pouvoir échouer (6e occurrence : `controles.md` § 6 ne dit ni « bloque », ni « plantage », ni quoi faire d'une survivante) ; vérification faite dans des conditions plus favorables que la réalité (6e version de suite : `controles.md` § 1 sans colonne « conditions ») ; test qui hérite d'un état qu'il n'a pas créé (2e occurrence : `controles.md` § 4 devrait exiger un état de départ neuf ou vérifié pour un banc réel).
+
 ## Couverture de la doc
 | Élément | Page |
 |---|---|
