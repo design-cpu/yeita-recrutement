@@ -30,12 +30,14 @@ La liste est dans `deploy/oauth2-proxy.cfg` (`skip_auth_routes`).
 | `deploy/Caddyfile` | Caddy du cas B : HTTPS automatique et en-têtes de sécurité |
 | `.env.example` | Modèle du fichier `.env` (secrets, domaine, cas A ou B) |
 | `deploy/prepare-serveur.sh` | Préparation, une seule fois, par l'administrateur |
-| `deploy/deploy.sh` | Déploiement et retour arrière, par le compte `deploy` |
-| `tools/check-site.sh` | Contrôle du site (7 adresses, dont `/admin/sauvegardes.html` → Google et `/api/moi` → 401 sans session) |
+| `deploy/deploy.sh` | Déploiement et retour arrière, par le compte `deploy` ; secours sans tests depuis la 1.9 |
+| `deploy/auto-deploy.sh` | Déploiement automatique de `main` après les tests (section 15, v1.9) |
+| `admin/deploiement.html` | Page des déploiements : état, passages, demandes, réservée aux admins (section 15) |
+| `tools/check-site.sh` | Contrôle du site (8 adresses, dont `/admin/sauvegardes.html` et `/admin/deploiement.html` → Google, `/api/moi` → 401 sans session) |
 | `deploy/backup.sh`, `deploy/commun.sh` | Sauvegarde chiffrée de la base chaque nuit, gardée 30 jours sur le serveur (section 14) |
 | `deploy/verif-disque.sh` | Occupation des disques, seuil 80 % (section 14) |
 | `admin/sauvegardes.html` | Page d'état des sauvegardes, réservée aux admins (section 14) |
-| `deploy/systemd/` | Unités `recrutement-backup` et `recrutement-verif-disque` (service et timer) |
+| `deploy/systemd/` | Unités `recrutement-backup` et `recrutement-verif-disque` (service et timer) ; `recrutement-deploy` (service, timer, path, v1.9) |
 | `deploy/RESTAURER.md` | Restaurer la base, ou ouvrir une copie sur un poste |
 | `deploy/CLE-SAUVEGARDE.md` | Créer, garder et partager la clé des sauvegardes |
 | `deploy/METTRE-A-JOUR.md` | Mettre à jour le site en production, pas à pas |
@@ -206,6 +208,8 @@ Passer du cas B au cas A : vider `COMPOSE_PROFILES` dans `.env` ; au déploiemen
 
 ## 9. Déployer
 
+Depuis la 1.9, `main` est mis en ligne **tout seul**, après les tests (section 15). `deploy.sh` reste le geste du premier déploiement et le **secours sans tests**.
+
 En tant que `deploy`, de préférence dans `tmux` ou `screen` (une coupure SSH n'interrompt pas le déploiement) :
 
 ```bash
@@ -276,6 +280,8 @@ Avant de revenir à un commit **antérieur aux sauvegardes (v1.7)**, arrêtez le
 Revenez **de préférence à un commit qui contient déjà l'API** : la base reste servie. Un retour vers une version sans API retire le conteneur `api` (le volume `recrutement_data` et ses données restent) et **remet les pages dans le navigateur** : ce qui est saisi pendant ce temps reste sur chaque poste et ne sera pas repris au retour de l'API. Prévenez l'équipe de ne rien saisir tant que l'API n'est pas revenue.
 
 Après un retour arrière, le dépôt reste **détaché** sur ce commit. Le prochain `deploy.sh` **sans argument** reprend le dernier `main` : ne le lancez qu'une fois `main` corrigé.
+
+Depuis la 1.9 : `deploy.sh <commit>` lancé à la main sur un autre commit que le dernier de `main` **met le déploiement automatique en pause** (`deploy/PAUSE`), sinon il redéploierait `main` par-dessus dans les 10 minutes. Le plus simple est de revenir en arrière depuis la page (`/admin/deploiement.html`, « Déployer ce commit » : les tests sont relancés). Une fois `main` corrigé : « Reprendre » sur la page. Avant de revenir à un commit **antérieur à la 1.9**, arrêter aussi le déploiement automatique : `sudo systemctl disable --now recrutement-deploy.timer recrutement-deploy.path` ; au retour à une version ≥ 1.9, les réactiver (section 15) puis « Reprendre ».
 
 ## 11. Contrôler et lire un échec
 
@@ -368,7 +374,14 @@ Puis ouvrir la page d'état (connecté avec un compte admin) : verdict vert. Enf
 
 **Mettre à jour une unité** (quand la commande de l'étape 3 affiche « DIFFÉRENTE », après un déploiement qui l'a changée) : relire la différence affichée, puis `sudo install -m 644 deploy/systemd/<unité> /etc/systemd/system/<unité> && sudo systemctl daemon-reload`.
 
-**Maintenance de Docker** : `docker.socket` démarre Docker au premier appel d'une commande `docker`. Avant d'arrêter Docker pour une maintenance, arrêter aussi les timers (`sudo systemctl stop recrutement-backup.timer recrutement-verif-disque.timer`), puis les relancer après (`sudo systemctl start recrutement-backup.timer recrutement-verif-disque.timer`).
+**Maintenance de Docker** : `docker.socket` démarre Docker au premier appel d'une commande `docker`. Avant d'arrêter Docker pour une maintenance, arrêter aussi les timers et le path, puis attendre la fin d'un passage en cours :
+
+```bash
+sudo systemctl stop recrutement-backup.timer recrutement-verif-disque.timer recrutement-deploy.timer recrutement-deploy.path
+while systemctl is-active -q recrutement-deploy recrutement-backup; do sleep 10; done; echo "Plus rien ne tourne : Docker peut être arrêté."
+```
+
+Après la maintenance : `sudo systemctl start recrutement-backup.timer recrutement-verif-disque.timer recrutement-deploy.timer recrutement-deploy.path`.
 
 **Retirer les sauvegardes** (obligatoire avant un retour vers un commit antérieur à la 1.7, section 10) : `sudo systemctl disable --now recrutement-backup.timer recrutement-verif-disque.timer`. Retrait complet : `sudo rm /etc/systemd/system/recrutement-backup.service /etc/systemd/system/recrutement-backup.timer /etc/systemd/system/recrutement-verif-disque.service /etc/systemd/system/recrutement-verif-disque.timer && sudo systemctl daemon-reload`. Les copies déjà faites restent dans `/var/backups/recrutement`.
 
@@ -396,6 +409,74 @@ Pendant une sauvegarde, `deploy/deploy.sh` s'arrête sur « un déploiement est 
 | `… l'état des sauvegardes n'a pas pu être écrit` | Docker ou `.env` illisible par Compose | `docker compose config --environment >/dev/null` ; `docker compose ps` |
 | Page : « date de plus de 26 heures » | La sauvegarde ne tourne plus | `systemctl list-timers 'recrutement-*'` ; `sudo journalctl -u recrutement-backup -n 50` |
 | Page : « Un disque dépasse 80 % » | Disque presque plein | `df -h`, `docker system df` ; faire de la place |
+
+## 15. Déploiement automatique (v1.9)
+
+Toutes les 10 minutes, `recrutement-deploy.timer` lance `deploy/auto-deploy.sh --auto` en tant que `deploy`. Si `main` a un nouveau commit, il est **testé dans un dossier à part** (`~/.recrutement-deploiement/essai`, jamais dans `/opt/recrutement`) : `node tools/test-store.js` et `npm test` dans des conteneurs jetables (image Node de `docker/api.Dockerfile`), puis `docker compose build` sous d'autres noms d'image ; les images en ligne ne sont pas touchées. Tests OK → `deploy/deploy.sh <commit>`. Un test KO → le commit n'est pas mis en ligne et n'est plus retenté tant que `main` n'avance pas. `deploy.sh` KO après avoir changé de commit → **retour automatique** au commit d'avant (par le `deploy.sh` de ce commit-là).
+
+`/admin/deploiement.html` (rôle `admin`) montre l'état et les 30 derniers passages, et **dépose des demandes** : « Déployer maintenant » (dernier `main`), « Déployer ce commit » (un ancien commit dont les tests sont passés, met en pause), « Reprendre ». L'application ne lance rien : elle écrit la demande dans le volume, `recrutement-deploy.path` réveille le service, et c'est `auto-deploy.sh` qui la valide (commit qui a été la pointe de `main`, depuis la 1.9). Une demande déposée pendant un passage est traitée juste après ; seule la plus récente compte.
+
+- **Pause** : le fichier `deploy/PAUSE` (ignoré par git). Créé par « Déployer ce commit » ou par `deploy.sh <commit>` lancé à la main sur un autre commit que le dernier de `main` ; retiré **seulement** par « Reprendre ». En pause, les nouveaux commits ne partent pas ; les demandes sont traitées.
+- **À la main** : `deploy/auto-deploy.sh` (sans option) met tout de suite le dernier `main` en ligne, avec les tests, **même en pause**. Ce n'est pas un moyen de diagnostic.
+- **Un déploiement fait à la main l'emporte** : si `deploy.sh` est lancé en SSH pendant les tests d'un passage, ce passage s'annule.
+- **Fichiers** : décisions dans `~deploy/.recrutement-deploiement/` (`deploye` : dernier commit mis en ligne, écrit par `deploy.sh` ; `echec`, `incertain`, `retour-ko`, `en-cours`, `passages/`) ; vue de la page dans le volume (`/data/etat/deploiement.json`), demandes dans `/data/demandes/`.
+
+### Mise en service (une fois, dans l'ordre)
+
+1. Déployer la 1.9 à la main (section 9) : `umask 022 && /opt/recrutement/deploy/deploy.sh` → `Déploiement réussi`.
+2. **Unités systemd** (administrateur, compte avec `sudo`) : copie si absente, rien si identique, arrêt si différente ; vérifie d'abord que le volume est là où l'unité path le surveille ; note le commit en place comme « mis en ligne ».
+
+```bash
+cd /opt/recrutement && sudo bash -c 'set -e
+m=$(docker volume inspect recrutement_data -f "{{.Mountpoint}}")
+attendu=$(sed -n "s#^PathExists=\(.*\)/demandes/deploiement.demande\$#\1#p" deploy/systemd/recrutement-deploy.path)
+[ -n "$m" ] && [ "$m" = "$attendu" ] || { echo "ARRÊT : le volume recrutement_data est dans « $m », pas dans « $attendu » : rien n est installé (voir deploy/README.md)."; exit 1; }
+for u in recrutement-deploy.service recrutement-deploy.timer recrutement-deploy.path; do
+  if [ ! -e /etc/systemd/system/$u ]; then install -m 644 deploy/systemd/$u /etc/systemd/system/$u; echo "copiée : $u"
+  elif cmp -s deploy/systemd/$u /etc/systemd/system/$u; then echo "identique : $u"
+  else echo "DIFFÉRENTE : $u (rien n est écrasé)"; diff /etc/systemd/system/$u deploy/systemd/$u || true; exit 1; fi
+done
+runuser -u deploy -- sh -c "d=\$HOME/.recrutement-deploiement; [ -d \$d ] || mkdir -m 700 \$d; [ -f \$d/deploye ] || git -C /opt/recrutement rev-parse HEAD > \$d/deploye"
+systemctl daemon-reload
+systemctl enable --now recrutement-deploy.timer recrutement-deploy.path' && systemctl list-timers 'recrutement-deploy*' && systemctl is-active recrutement-deploy.path
+```
+
+Attendu : 3 lignes « copiée » (ou « identique »), le timer avec son prochain passage (dans 10 minutes au plus), puis `active`. **`ARRÊT : le volume recrutement_data est dans …`** : le dossier Docker n'est pas `/var/lib/docker` ; ne rien installer, transmettre le message à l'équipe technique (la ligne `PathExists=` de `recrutement-deploy.path` est à adapter). **`DIFFÉRENTE`** : relire la différence, puis `sudo install -m 644 deploy/systemd/<unité> /etc/systemd/system/<unité> && sudo systemctl daemon-reload` (comme pour les sauvegardes, section 14).
+
+3. **Rôle admin** pour qui doit voir la page (section 13).
+4. **Essai** : ouvrir `https://recrutement.yeita.fr/admin/deploiement.html` → « À jour : le dernier commit de main est en ligne. » après le premier passage du timer (10 minutes au plus).
+
+### Au quotidien
+
+| Besoin | Où |
+|---|---|
+| Ce qui est en ligne, les passages, les sorties des tests | `https://recrutement.yeita.fr/admin/deploiement.html` |
+| Mettre en ligne tout de suite le dernier `main` | Page : « Déployer maintenant » ; ou, en `deploy`, `deploy/auto-deploy.sh` |
+| Revenir en arrière | Page : « Déployer ce commit » sur un passage aux tests OK (met en pause) ; ou en SSH `deploy/deploy.sh <commit>` (met en pause, sans tests). Puis, `main` corrigé : « Reprendre » |
+| Secours sans tests | `umask 022 && deploy/deploy.sh` (section 9) |
+| Détail d'un passage | `sudo journalctl -u recrutement-deploy -n 200` ; sans sudo, `deploy` lit `~/.recrutement-deploiement/passages/` |
+| Prochain passage, unité des demandes | `systemctl list-timers 'recrutement-*'` · `systemctl status recrutement-deploy.path` |
+
+### Lire un échec
+
+| Message (journal) ou verdict de la page | Cause | Que faire |
+|---|---|---|
+| « Tests en échec : pas mis en ligne » | Un test ou la construction échoue sur ce commit | Lire la sortie de l'étape sur la page ; corriger sur `main`. Une panne réseau (npm, Docker Hub) donne aussi ce résultat : « Déployer maintenant » relance les tests |
+| « Mise en ligne ratée — retour à <c> réussi » | `deploy.sh` a échoué sur le nouveau commit ; le site est revenu au commit d'avant | Lire l'étape « Mise en ligne » ; corriger sur `main` |
+| « Retour arrière raté : le site est peut-être hors service », « Mise en ligne interrompue pendant … » (rouge) | Le retour a échoué, ou le passage a été arrêté pendant la mise en ligne | **Tout de suite**, en `deploy` : la commande affichée (`deploy/deploy.sh <commit d'avant>`), puis « Reprendre » si elle a mis en pause |
+| « Mise en ligne refusée avant de commencer » | `deploy.sh` s'est arrêté avant de toucher au site (`ARRÊT : …`) | Section 11 ; le site n'a pas changé |
+| « Annulé : verrou de deploy.sh occupé » | Une sauvegarde ou un `deploy.sh` à la main tenait le verrou plus de 15 minutes | Rien : le passage suivant réessaie |
+| « Annulé : déploiement fait à la main pendant le passage » | Un `deploy.sh` lancé en SSH l'a emporté | Rien |
+| « Demande refusée : ce commit n'a jamais été la pointe de main » | Commit intermédiaire d'une branche, ou d'une autre branche | Choisir le merge de la PR ; sinon `deploy.sh <hash>` en SSH |
+| « Demande refusée : commit antérieur au déploiement automatique » | Commit d'avant la 1.9 | Section 10 (arrêter d'abord timer et path) |
+| « Le serveur ne vérifie plus main » | Timer arrêté, service en échec, serveur éteint | `systemctl list-timers 'recrutement-*'` ; `sudo journalctl -u recrutement-deploy -n 50` |
+| « Le serveur ne joint pas GitHub » | `git fetch` impossible | Réseau du serveur, clé de déploiement |
+| « La demande n'a pas été prise en charge » | L'unité path ne réagit plus | `sudo systemctl reset-failed recrutement-deploy.service recrutement-deploy.path && sudo systemctl start recrutement-deploy.path` |
+| `Un passage est en cours, attente…` | Un passage (timer ou à la main) tourne | Attendre ; au-delà de 30 minutes : `ARRÊT : un passage tient le verrou…` |
+| `Docker ne répond pas : nouvel essai au prochain passage.` | Docker arrêté | `systemctl status docker` |
+| `Demande illisible : le conteneur n'a pas pu la retirer.` | `.env` illisible par Compose, ou dossier des demandes abîmé | `docker compose config >/dev/null` ; le passage continue sans la demande |
+
+Retirer le déploiement automatique : `sudo systemctl disable --now recrutement-deploy.timer recrutement-deploy.path`, puis `sudo rm /etc/systemd/system/recrutement-deploy.service /etc/systemd/system/recrutement-deploy.timer /etc/systemd/system/recrutement-deploy.path && sudo systemctl daemon-reload`.
 
 ## Tester sur un poste (sans serveur)
 

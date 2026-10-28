@@ -34,6 +34,7 @@ Les anciennes pages `fiche-ec1.html`, `fiche-ec2.html`, `carte-identite.html`, `
 | `python3 tools/e2e-liens.py` | « Précédent », liens directs, feuille de décompte vierge |
 | `python3 tools/e2e-pdf.py` | Exports PDF : carte d'une candidature, feuille vierge |
 | `cd api && npm test` | L'API de stockage : autorisation, dossiers, conflits, effacement, `equipe.js`, `sauvegarde.js`, démarrage |
+| `bash tools/test-auto-deploy.sh <dépôt>` | `deploy/auto-deploy.sh` et la pause de `deploy/deploy.sh` avec un faux docker et un dépôt nu : décisions, demandes refusées, tests KO, retour automatique, annulation, verrous, état de la page. En root, dans un conteneur jetable `ubuntu:26.04`, avec `AUTO_DEPLOY_JETABLE=oui` ; finit par `TOUT OK` |
 | `bash tools/test-sauvegarde.sh <dépôt>` | `deploy/backup.sh` et `deploy/verif-disque.sh` avec de faux outils : réglage refusé, chaque échec écrit dans l'état des sauvegardes, aucun clair laissé, rétention, disques. En root, dans un conteneur jetable `ubuntu:26.04`, avec `BANC_JETABLE=oui` (utilisateur `deploy`, `/var/backups/recrutement`, docker, age) ; finit par `TOUT OK` |
 
 Les tests de navigateur demandent le site construit et servi : `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site`.
@@ -44,7 +45,14 @@ Le serveur qui gardera les dossiers dans SQLite, derrière oauth2-proxy, est dan
 
 ## Publier
 
-Le site est servi sur `https://recrutement.yeita.fr`, depuis le serveur OVH de Yeita, dans Docker : l'espace Candidatures y demande un compte Google @yeita.fr, les pages destinées aux candidats restent publiques. Le déploiement est manuel : mode d'emploi dans [`deploy/README.md`](deploy/README.md). GitHub Pages n'est plus utilisé.
+Le site est servi sur `https://recrutement.yeita.fr`, depuis le serveur OVH de Yeita, dans Docker : l'espace Candidatures y demande un compte Google @yeita.fr, les pages destinées aux candidats restent publiques. GitHub Pages n'est plus utilisé ; il n'y a pas de GitHub Actions : c'est le serveur qui vérifie `main`.
+
+- **Merge sur `main` = en ligne sous 10 minutes, si les tests passent.** Toutes les 10 minutes, le serveur teste le dernier commit de `main` (`node tools/test-store.js`, `npm test` dans `api/`, `docker compose build`) à part, puis le met en ligne. Un test en échec : le commit n'est pas mis en ligne.
+- **Suivre et déployer** : `https://recrutement.yeita.fr/admin/deploiement.html` (rôle admin) : ce qui est en ligne, les passages avec la sortie de chaque étape, « Déployer maintenant ». Détail sur le serveur : `sudo journalctl -u recrutement-deploy`.
+- **Revenir en arrière** : « Déployer ce commit » sur la page (les tests sont relancés), ou `deploy/deploy.sh <hash>` en SSH : l'un comme l'autre **met l'automatisme en pause** ; une fois `main` corrigé, « Reprendre » sur la page.
+- **Secours sans tests** : `deploy/deploy.sh` en SSH.
+
+Installation des unités systemd, diagnostic et cas particuliers : [`deploy/README.md`](deploy/README.md), section 15 ; mise à jour pas à pas : [`deploy/METTRE-A-JOUR.md`](deploy/METTRE-A-JOUR.md).
 
 Pour construire en local : `python3 tools/build.py` (le site sort dans `_site/`). Pour lancer le site comme sur le serveur : `cp .env.example .env && docker compose up -d --build`, puis `https://localhost`.
 

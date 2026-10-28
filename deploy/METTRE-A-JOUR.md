@@ -1,16 +1,17 @@
 # Mettre à jour le site en production
 
-Il n'y a pas encore de déploiement automatique : après chaque pull request mergée dans `main`, quelqu'un met le serveur à jour à la main, en suivant cette page. Compter 10 minutes, plus les gestes propres à certaines versions (section 5).
+Depuis la 1.9, **le serveur met `main` en ligne tout seul**, sous 10 minutes, si les tests passent : rien à faire après un merge, sauf suivre `https://recrutement.yeita.fr/admin/deploiement.html`. Cette page sert pour le **premier passage à la 1.9** (section 5), pour le **secours sans tests**, et pour les gestes propres à certaines versions. Compter 10 minutes.
 
 Serveur : `51.75.252.121` (compte `deploy` pour mettre à jour, compte `ubuntu` pour les gestes administrateur avec `sudo`). Site : `https://recrutement.yeita.fr`.
 
 ## 1. Avant
 
 - [ ] La pull request est **mergée dans `main`** sur GitHub (pas seulement approuvée). `deploy.sh` prend toujours le dernier `main`.
+- [ ] Depuis la 1.9 : vérifier sur `/admin/deploiement.html` que rien n'est en cours (sinon `deploy.sh` attend ou s'arrête sur « déjà en cours »). Lancer `deploy.sh` à la main pendant un passage l'annule.
 - [ ] Lire la section 5 : la version demande-t-elle des gestes en plus ? Si oui, les prévoir dans le même créneau.
 - [ ] Éviter 3 h–3 h 15 (sauvegarde de la nuit). En dehors, une sauvegarde lancée à la main peut aussi être en cours : `deploy.sh` le dira (voir section 4).
 - [ ] Prévenir l'équipe : le site est coupé une quinzaine de secondes ; les pages ouvertes affichent alors le message réseau, il suffit de recharger.
-- [ ] Si tu dois arrêter Docker lui-même (maintenance du serveur, rare) : arrêter d'abord les minuteries des sauvegardes (compte `ubuntu`) : `sudo systemctl stop recrutement-backup.timer recrutement-verif-disque.timer`, et les relancer après avec `start` au lieu de `stop`. Sinon une commande `docker` des sauvegardes le redémarrerait.
+- [ ] Si tu dois arrêter Docker lui-même (maintenance du serveur, rare) : `deploy/README.md`, section 14, « Maintenance de Docker » (arrêter les minuteries des sauvegardes et du déploiement automatique, attendre la fin d'un passage).
 
 ## 2. Mettre à jour
 
@@ -46,7 +47,7 @@ umask 022 && cd /opt/recrutement && deploy/deploy.sh
 | `ARRÊT : … a encore sa valeur d'exemple` ou `… est vide` | Un réglage de `/opt/recrutement/.env` est à remplir : transmettre le nom affiché à la personne responsable du site. |
 | Le site affiche une erreur après `Déploiement réussi` | Revenir à la version d'avant : `deploy/deploy.sh <commit précédent>` (le commit est sur la ligne `Commit en place : …` affichée au début). |
 
-Après un retour en arrière, le dépôt reste sur ce commit : la prochaine mise à jour (section 2) reprendra le dernier `main`, une fois le problème corrigé.
+Après un retour en arrière, le dépôt reste sur ce commit : la prochaine mise à jour (section 2) reprendra le dernier `main`, une fois le problème corrigé. Depuis la 1.9, un `deploy/deploy.sh <commit>` qui n'est pas le dernier `main` **met le déploiement automatique en pause** (`· Déploiement automatique en pause …`) : une fois `main` corrigé, cliquer « Reprendre » sur `/admin/deploiement.html`.
 
 ## 5. Gestes propres à une version
 
@@ -96,6 +97,24 @@ cd /opt/recrutement && deploy/backup.sh && deploy/verif-disque.sh
 Tu dois voir `Sauvegarde réussie : recrutement-…Z.db.age (… octets) ; 1 copies sur le serveur.` puis `Disque racine : … % ; dossier Docker : … % ; seuil : 80 %.`. Ensuite, `https://recrutement.yeita.fr/admin/sauvegardes.html` affiche un verdict **vert**.
 
 6. **Vérifier la clé** : `deploy/CLE-SAUVEGARDE.md`, étape 7.
+
+### 1.9 — déploiement automatique
+
+1. **Déployer la 1.9 à la main** : section 2 (c'est encore le `deploy.sh` de la 1.8 qui tourne). Tu dois voir à la fin `Déploiement réussi : <commit> sur https://recrutement.yeita.fr`, et 8 lignes `OK` (dont `/admin/deploiement.html → 302`).
+2. **Installer le déploiement automatique** (compte `ubuntu`) : la commande de `deploy/README.md`, section 15, « Mise en service », étape 2 (copier le bloc en entier). Tu dois voir 3 lignes `copiée : recrutement-deploy.…`, le timer avec son prochain passage, puis `active`.
+   **Sinon** : `ARRÊT : le volume recrutement_data est dans …` → ne rien installer, transmettre le message à la personne responsable du site.
+3. **Vérifier**, après 10 minutes au plus : `https://recrutement.yeita.fr/admin/deploiement.html` (compte admin) affiche en vert « À jour : le dernier commit de main est en ligne. ».
+   **Sinon** : « Aucun passage enregistré » au-delà de 10 minutes → `systemctl list-timers 'recrutement-*'` doit montrer `recrutement-deploy.timer` ; `sudo journalctl -u recrutement-deploy -n 50` pour la cause.
+
+### Revenir avant la 1.9
+
+Avant un `deploy/deploy.sh <commit>` vers un commit antérieur à la 1.9, arrêter le déploiement automatique (compte `ubuntu`) :
+
+```bash
+sudo systemctl disable --now recrutement-deploy.timer recrutement-deploy.path
+```
+
+Au retour vers une version ≥ 1.9 : refaire l'étape 2 de la section « 1.9 », puis « Reprendre » sur la page (la pause posée par le retour reste).
 
 ### Revenir avant la 1.7
 
