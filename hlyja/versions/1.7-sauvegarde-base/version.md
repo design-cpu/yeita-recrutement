@@ -7,13 +7,13 @@ branche: version/1.7-sauvegarde-base
 base: main
 mode: complexe
 type_version: livrable
-statut: terminee
+statut: en-cours
 date: 2026-10-27
 ---
 
 # Version 1.7 — Sauvegarde chiffrée de la base chaque nuit, hors du serveur, avec alertes
 
-> **Statut** : terminée · **Branche** : `version/1.7-sauvegarde-base`
+> **Statut** : en cours (reprise du 2026-10-28) · **Branche** : `version/1.7-sauvegarde-base`
 > Objectif : la base SQLite de l'API est copiée chaque nuit, chiffrée, envoyée sur OVH Object Storage ; une restauration se fait pas à pas ; une sauvegarde ratée ou un disque plein déclenchent une alerte healthchecks.io.
 
 ## Objectif
@@ -40,6 +40,15 @@ Décisions de l'utilisateur (2026-10-27) :
 - Rétention distante : règle de cycle de vie du bucket OVH (30 jours), documentée ; le serveur n'efface rien à distance.
 - Unités nommées `recrutement-backup.service`/`.timer` et `recrutement-verif-disque.service`/`.timer` (serveur partagé).
 - Après le tour 1 : un second utilisateur S3 en lecture seule, rangé au coffre avec la clé privée, sert à restaurer depuis un poste.
+
+Reprise du 2026-10-28 (décisions de l'utilisateur, après relecture du travail livré) :
+- OVH Object Storage est payant : abandonné. Les sauvegardes restent **uniquement sur le serveur** (`/var/backups/recrutement`, 30 jours) ; rclone, le bucket, les utilisateurs S3 et le client `aws` sont retirés. Accepté : la perte du serveur emporte aussi les sauvegardes.
+- healthchecks.io est **retiré** : plus d'alerte envoyée ; vérification à la main. Une évolution ultérieure enverra des emails.
+- Ajout : une page d'état des sauvegardes **`/admin/sauvegardes.html`**, derrière la connexion Google, réservée aux membres au rôle **admin** (refus fait par l'API), sans lien depuis l'espace Candidatures ; `/admin/` accueillera plus tard un tableau de bord d'administration.
+- age est **gardé**. Pour l'instant la clé privée est un fichier `.txt` que l'utilisateur partage ; un coffre interne viendra plus tard.
+- Ajout : une page de doc pour créer et gérer la clé, et une page « mettre à jour le site en production » (pas encore de déploiement automatique).
+- Le guide de test humain doit se lire et se suivre sans réfléchir.
+- Le tout est **intégré à la 1.7** (pas de 1.8).
 
 ## Niveau
 Complexe, recommandé et confirmé : données personnelles des candidats copiées hors du serveur, chiffrement, deux outils système nouveaux (age, rclone), un service tiers (healthchecks.io), restauration à prouver.

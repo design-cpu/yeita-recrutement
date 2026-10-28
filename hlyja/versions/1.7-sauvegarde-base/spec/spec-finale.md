@@ -2,7 +2,7 @@
 type: spec
 version: 1.7
 iteration: 3
-statut: validee
+statut: reprise-en-revue
 date: 2026-10-27
 ---
 
@@ -144,3 +144,42 @@ Banc des scripts : conteneur `ubuntu:26.04` (V-détail), faux outils en tête du
 ## Hypothèses et questions ouvertes
 - H1 : l'envoi réel vers OVH (identifiants, endpoint `.io`) n'est pas vérifiable sans compte : prouvé par CA19.
 - H3 : une politique sans `s3:DeleteObject` (utilisateur « serveur ») ou en lecture seule (« restauration ») sur un utilisateur non propriétaire refuse bien ce qu'elle doit refuser et laisse `rclone copy` ou la lecture fonctionner (V20, doc seulement) : prouvé par CA19.
+
+## Reprise du 2026-10-28 (décisions de l'utilisateur)
+Les règles ci-dessous **remplacent** celles de même numéro et s'ajoutent aux autres ; R12, R15 et R18 sont **retirées** (OVH Object Storage, healthchecks.io).
+
+### Règles modifiées
+| # | Règle |
+|---|---|
+| R6 | Réglage lu par `docker compose config --environment` : seule `AGE_RECIPIENT` ; refusée si vide, commençant par `#`, égale à `.env.example`, pas une seule clé `age1…`, ou refusée par `age -r … -o /dev/null`. |
+| R7 | Enchaînement de `backup.sh` : outils (`docker`, `age`, `flock`) ; réglage ; dossier 700 ; nettoyage du clair d'une coupure ; verrou de `deploy.sh` (10 min) ; api saine (120 s) ; `sauvegarde.js --nettoyer` (nom pris dans la dernière ligne) ; `docker compose cp` ; `age` vers `recrutement-<horodatage UTC>.db.age`, en-tête contrôlé, nom déjà pris → échec ; clair supprimé ; rétention locale 30 jours ; état écrit (R21). Une étape en échec arrête la suite, écrit l'état « échec » avec l'étape (si Docker répond) et sort en code 1. |
+| R9 | Rétention locale : `recrutement-*.db.age` de plus de 30 × 24 h supprimés, seulement après une sauvegarde réussie. |
+| R10 | Plus de signalement externe : le résultat est le code de sortie, le journal systemd et l'état de R21. |
+| R11 | `verif-disque.sh` : mesure `/` et le dossier Docker ; écrit l'état du disque (R21) ; code 1 au-delà de 80 % ou si la mesure échoue. |
+| R13 | `prepare-serveur.sh` exige `age` (plus `rclone`) ; message « « age » est absent. Installez-le vous-même (apt install age) ; ce script n'installe rien. ». |
+| R16 | `deploy/RESTAURER.md` : récupération depuis `/var/backups/recrutement` (ou `/data/sauvegardes` si le volume est intact) seulement ; la section « Serveur perdu » devient une mise en garde (sauvegardes perdues avec lui) ; le reste inchangé (déchiffrement sur le poste, contrôles, empreinte, suppressions refaites, poste effacé). |
+| R17 | Clé : créée sur un poste, jamais sur le serveur ; pour l'instant la clé privée est un fichier `.txt` partagé par l'utilisateur (coffre interne plus tard) ; page dédiée R25. |
+| R19 | `.env.example` : la seule `AGE_RECIPIENT`, commentée, valeur d'exemple refusée ; `deploy.sh` ne la lit pas. |
+| R12 (rétention) | Remplacée : durée maximale d'un dossier supprimé dans les copies : 3 jours dans le volume, 31 jours sur le serveur, plus tant que les sauvegardes échouent. |
+
+### Règles ajoutées
+| # | Règle |
+|---|---|
+| R21 | État des sauvegardes : `backup.sh` écrit à chaque passage, dans le volume de l'api (`/data/etat/`, 700, fichiers 600, propriétaire `node`), `sauvegarde-derniere.json` (date, résultat `reussie`/`echec`, étape en cas d'échec, nom et taille du fichier chiffré en cas de succès, nombre de copies locales) et, sur succès seulement, `sauvegarde-reussie.json` ; `verif-disque.sh` écrit `disque.json` (date, occupation de `/` et du dossier Docker, seuil, résultat). Écriture par `docker compose run --rm --no-deps -T api` (fonctionne api arrêtée), sous un nom temporaire puis renommé ; aucune donnée de candidat. Si Docker ne répond pas, rien n'est écrit (le site est alors hors service lui aussi). |
+| R22 | `GET /api/sauvegardes` : réservé au rôle `admin` (sinon 403 `admin-requis`, « Réservé aux admins de l'équipe. ») ; rend `{maintenant, sauvegarde: {derniere, reussie, en_retard}, disque: {..., en_retard}}` ; `en_retard` vaut vrai si la dernière sauvegarde réussie a plus de 26 h ou n'existe pas, et pour le disque si la dernière mesure a plus de 2 h ou n'existe pas ; un fichier absent → `null`, illisible → `null` et `illisible: true`. Aucune autre route ne change. |
+| R23 | Page `admin/sauvegardes.html` (publiée par `tools/build.py`, protégée par oauth2-proxy sans réglage nouveau) : sans lien depuis Candidatures ; affiche en clair la dernière sauvegarde réussie, la dernière tentative (et son étape si échec), le nombre de copies, l'occupation des disques, un verdict vert/rouge ; messages pour : chargement, compte non admin, hors équipe, API absente, erreur réseau. Mise en forme `assets/yeita.css`. |
+| R24 | `tools/check-site.sh` : 7e contrôle, `/admin/sauvegardes.html` → 302 vers Google sans session. |
+| R25 | Page `deploy/CLE-SAUVEGARDE.md` : créer la clé sur le Mac, ranger et partager le fichier `.txt` (avec qui, comment, précautions), mettre la clé publique dans `.env`, essai de déchiffrement, perte et changement de clé. Commandes recopiables, testées sous zsh. |
+| R26 | Page `deploy/METTRE-A-JOUR.md` : mettre à jour le site en production à la main (avant, pendant, contrôle, retour arrière, gestes propres à une version comme la 1.7 : `age`, unités, `.env`), autonome, sans renvoi nécessaire pour les gestes courants. |
+| R27 | Guide de test humain réécrit : uniquement des étapes à lire et suivre, cases à cocher, « Tu dois voir » / « Sinon », aucun renvoi. |
+
+### Critères d'acceptation de la reprise
+| # | Critère |
+|---|---|
+| CA22 | Tests de l'API : `GET /api/sauvegardes` → 200 pour un admin avec les états lus ; 403 `admin-requis` pour recruteur et lecture ; 403 `hors-equipe`, 401 sans identité ; fichiers absents → `null` et `en_retard: true` ; JSON illisible → `illisible: true` ; seuils 26 h et 2 h (R22). |
+| CA23 | Lanceur des scripts : succès → `sauvegarde-derniere.json` `reussie` et `sauvegarde-reussie.json` ; chaque échec → `echec` avec l'étape, `sauvegarde-reussie.json` inchangé ; `disque.json` écrit dans les trois cas de `verif-disque.sh` ; plus aucun appel à `rclone` ni à `curl` (R7, R11, R21). |
+| CA24 | Banc systemd : `backup.sh` et `verif-disque.sh` réels écrivent l'état dans le volume ; la route le rend ; fichiers `node` 600 dans `/data/etat` 700 (R21, R22). |
+| CA25 | Page : rendue dans un navigateur de test contre l'API locale (admin, recruteur, API absente) ; textes de R23 (R23). |
+| CA26 | `check-site.sh` a 7 contrôles ; `/admin/sauvegardes.html` publié par `tools/build.py` (R23, R24). |
+| CA27 | Pages R25, R26 et guide R27 écrits ; commandes destinées au Mac passées à `zsh -n` et les lignes interactives essayées sous zsh (R25-R27). |
+| CA4 à CA9, CA10, CA12, CA14, CA19 | Repris sans rclone ni healthchecks.io (envoi distant, pings, remote, comptes S3 retirés des critères). |
