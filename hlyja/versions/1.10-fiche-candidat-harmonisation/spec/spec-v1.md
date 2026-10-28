@@ -38,8 +38,6 @@ Régler `client_max_body_size 10m` sur le nginx du serveur (cas A) avant le merg
 ### Inclus
 - Tout ce que décrit la branche (liste du pitch, `version.md`), tel qu'il est codé, après correction des défauts P1 à P8 du cadrage.
 - Les tests qui prouvent les règles ci-dessous ; la doc hlyja ; le guide nginx.
-- `[ajout]` R1b : une base de test passée en `user_version` 2 par la branche de Léo est ramenée à 1. Raison : sans cela, la base locale de Léo (et de quiconque a testé la branche) serait refusée par la nouvelle version.
-- `[ajout]` R15 : la ligne de contrôle de `deploy/RESTAURER.md` compte aussi les fichiers. Raison : sans elle, une restauration ne montre pas si les CV sont revenus.
 
 ### Exclu
 Reprend le « Hors périmètre » du cadrage : choix d'interface de Léo non rediscutés ; 1.10-1, 1.10-2, 1.10-3, 1.6-2 ; stockage hors SQLite, antivirus, aperçu ; fichiers en mode navigateur ; changement de `user_version` ; action sur le serveur réel ; `Claude outputs/`.
@@ -57,8 +55,8 @@ Reprend le « Hors périmètre » du cadrage : choix d'interface de Léo non red
 ## Règles et comportements
 | # | Règle | Détail / valeurs |
 |---|---|---|
-| R1 | La table `fichiers` s'ajoute sans changer la version de la base | À chaque ouverture : `CREATE TABLE IF NOT EXISTS fichiers` (colonnes et contraintes de Léo) et son index, dans la transaction immédiate de `appliquerSchema` ; `VERSION_SCHEMA` = 1 ; une base neuve est créée avec la table (V4, décision de l'utilisateur) |
-| R1b | `[ajout]` Base de test en `user_version` 2 | Si `user_version` vaut 2 **et** que la table `fichiers` existe : remise à 1 ; toute autre valeur > 1 reste refusée |
+| R1 | La table `fichiers` s'ajoute sans changer la version de la base | Ajout idempotent à l'ouverture de la base (neuve ou existante), sûr si deux processus ouvrent la base en même temps ; `user_version` reste 1 ; aucune donnée existante modifiée (V4, décision de l'utilisateur) |
+| R1b | Base de test en `user_version` 2 (branche de Léo d'avant la reprise) | Refusée comme toute version plus récente ; le guide de test dit de supprimer ou recréer la base locale (décision de l'utilisateur, P1) |
 | R2 | La 1.9 relit une base de la 1.10 | L'API de `main` (`b727ded`) démarre sur une base ouverte par la 1.10 ; la suppression d'un candidat par la 1.9 efface ses fichiers (`ON DELETE CASCADE`, clés étrangères actives, V17) |
 | R3 | Création : un seul candidat, quoi qu'il arrive aux fichiers | Une fois le candidat créé, la fenêtre passe sur ce candidat : un nouveau clic sur une action du pied ne crée rien, il renvoie seulement les fichiers encore en attente puis fait l'action ; un fichier en échec est signalé sur son champ (raison et « Réessaie »), le candidat est déjà dans la liste ; le bouton est désactivé pendant l'envoi (V14) |
 | R4 | Dépôt : le dossier ne pointe que vers un fichier présent | Ordre : envoi du nouveau fichier → enregistrement du dossier qui le référence → seulement alors retrait de l'ancien. Enregistrement en échec : le nouveau fichier est retiré de l'API (au mieux), le dossier garde l'ancien, message sur le champ (V14) |
@@ -72,7 +70,7 @@ Reprend le « Hors périmètre » du cadrage : choix d'interface de Léo non red
 | R12 | Lecture d'un fichier | Type enregistré, `X-Content-Type-Options: nosniff`, `Content-Disposition: inline` avec le nom nettoyé, `Cache-Control: no-store` ; un fichier ne se lit que sous son candidat |
 | R13 | nginx (cas A) | `client_max_body_size 10m;` dans le `server` du site : exemple de `deploy/README.md` § 7 et guide de mise en production ; étape « avant le merge » ; oauth2-proxy et Caddy ne limitent pas (V10, V11) |
 | R14 | Sauvegardes | Les fichiers sont dans chaque copie (V8) ; la doc dit que la taille des copies croît avec eux et que la vérification du disque de la 1.7 couvre ce risque |
-| R15 | `[ajout]` Restauration | `deploy/RESTAURER.md` : la ligne de contrôle compte aussi `fichiers` ; le contrôle `user_version` reste 1 |
+| R15 | Restauration | `deploy/RESTAURER.md` : la ligne de contrôle compte aussi `fichiers` ; le contrôle `user_version` reste 1 |
 | R16 | Mode navigateur (sans API) | CV et Portfolio en lien seulement (aucun bouton de fichier) |
 | R17 | Interface de Léo | Tel que décrit : fenêtre de création (2 actions), composant unique de la fiche (4 groupes ; 3, 2 puis 1 colonnes), largeur 1120 px, Notes à côté dès 1360 px et par-dessus en dessous, appel sans liens utiles, EC1 (section « Yeita Match », bouton du jeu en ligne en visio, feuille de décompte en présentiel, plus de « Liens et outils »), EC2 (icône de grille, palier sur une ligne, mention de séniorité, plus de « Liens et outils »), Bilans (partie interne en lecture sous la carte), plus de sélecteur d'État dans les étapes, noms tels que saisis (`equipeNoms` vide), initiales sur la carte du kanban, RGPD 22 mois (config, carte, page des étapes, one-pager) |
 | R18 | Déploiement automatique | Le commit de la 1.10 passe les étapes de test de `auto-deploy.sh` (`test-store`, `npm test` dans l'image `node:22.23.4-slim`, `docker compose build`) sans modifier `auto-deploy.sh` ni `deploy.sh` |
@@ -129,13 +127,13 @@ Les dossiers restent en JSON seul (1 Mo) ; un corps non JSON sur une autre route
 | Redéploiement de la 1.10 après un retour | 1.10 | 1.10 relue par 1.9 | table déjà là, rien ne change |
 | Restauration d'une copie d'avant la 1.10 (`RESTAURER.md`) | 1.10 | copie 1.9 | contrôle `user_version=1` passe, table créée à l'ouverture |
 | Restauration d'une copie 1.10 | 1.9 ou 1.10 | copie 1.10 | contrôle passe, `fichiers=<n>` affiché (R15) |
-| Base de test de Léo (`user_version` 2) | 1.10 | v2 | ramenée à 1 (R1b) |
+| Base de test de Léo (`user_version` 2) | 1.10 | v2 | refusée ; base locale à recréer (R1b) |
 Prérequis avant le merge : R13 appliqué sur le serveur.
 
 ## Critères d'acceptation
 - [ ] CA1 — Une base créée par `main` puis ouverte par la 1.10 a la table `fichiers` et `user_version` 1 ; ses dossiers sont intacts (R1).
 - [ ] CA2 — L'API de `main` démarre sur une base ouverte par la 1.10, lit les candidats ; une suppression par `main` efface les fichiers du candidat (R2).
-- [ ] CA3 — Une base `user_version` 2 avec `fichiers` est ramenée à 1 ; `user_version` 3, ou 2 sans `fichiers`, est refusée (R1b).
+- [ ] CA3 — Une base `user_version` 2 est refusée avec le message existant ; le guide de test dit de recréer sa base locale (R1b).
 - [ ] CA4 — Création avec un CV dont l'envoi échoue, puis second clic : un seul candidat, le CV envoyé au second essai, référencé par le dossier (R3).
 - [ ] CA5 — Dépôt d'un CV pendant un enregistrement du dossier refusé (409) : le dossier garde l'ancien CV, qui existe toujours ; le nouveau n'est plus en base (R4).
 - [ ] CA6 — Remplacement réussi d'un CV : l'ancien n'est plus en base, le nouveau est référencé (R4).
@@ -148,7 +146,7 @@ Prérequis avant le merge : R13 appliqué sur le serveur.
 - [ ] CA13 — `deploy/README.md` § 7 et le guide de mise en production contiennent `client_max_body_size 10m;` ; les blocs du guide passent `zsh -n` (poste) et `nginx -t` (banc) (R13).
 - [ ] CA14 — `deploy/RESTAURER.md` affiche `fichiers=<n>` et accepte une copie 1.9 et une copie 1.10 (R15).
 - [ ] CA15 — Mode navigateur : aucun bouton de fichier (R16).
-- [ ] CA16 — Chaque point de R17 est couvert par un e2e (`e2e-candidatures`, `e2e-parcours`, `e2e-serveur`), y compris le téléphone sans défilement horizontal et Notes à côté à 1360 px (R17).
+- [ ] CA16 — Chaque point de R17 est vérifié par un e2e ; ceux que les e2e de Léo couvrent déjà ne demandent pas de nouveau test ; le téléphone sans défilement horizontal et Notes à côté à 1360 px sont couverts (R17).
 - [ ] CA17 — Suites complètes : `npm test` (Node 22), `test-store`, `test-serveur`, les 5 e2e, verdicts recopiés ; `docker compose build` réussit (R18).
 - [ ] CA18 — Messages du champ annoncés, dépôt au clavier, focus rendu au champ (Accessibilité).
 

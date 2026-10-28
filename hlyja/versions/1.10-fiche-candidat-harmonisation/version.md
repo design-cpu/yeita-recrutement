@@ -38,6 +38,7 @@ Description de la branche par Léo (résumée ; texte complet : `Claude outputs/
 | 2026-10-28 | Niveau | Complexe |
 | 2026-10-28 | Base | `main` (la branche `version/1.5-guide-deploiement-ovh`, non mergée, est ancienne et sans rapport) |
 | 2026-10-28 | Retour arrière après la migration (une base v2 est refusée par l'API de la 1.9, reproduit) | Table `fichiers` ajoutée sans changer `user_version` (reste 1) : la 1.9 relit la base |
+| 2026-10-28 | Base de test locale en `user_version` 2 (branche de Léo) | Pas de code : une ligne du guide dit de la recréer |
 | 2026-10-28 | `client_max_body_size` du nginx de production (cas A) | Étape du guide de mise en production, appliquée sur le serveur par Sofiane ou Léo avant le merge |
 
 ## Reprise de la branche
