@@ -40,7 +40,7 @@ umask 022 && cd /opt/recrutement && deploy/deploy.sh
 
 | Dernière ligne affichée | Que faire |
 |---|---|
-| `ÉCHEC : …` puis `Pour revenir à la version précédente : deploy/deploy.sh <commit>` | Lancer **tout de suite** la commande affichée (`deploy/deploy.sh <commit>`), puis transmettre le message `ÉCHEC` à la personne responsable du site. Le site revient à la version d'avant. |
+| `ÉCHEC : …` puis `Pour revenir à la version précédente : deploy/deploy.sh <commit>` | Lancer **tout de suite** la commande affichée (`deploy/deploy.sh <commit>`), telle quelle. Seule exception : si la commande qui vient d'échouer était déjà un retour vers une version d'avant la 1.8, ajouter `umask 022 &&` devant. Puis transmettre le message `ÉCHEC` à la personne responsable du site. Le site revient à la version d'avant. |
 | `ARRÊT : un déploiement est déjà en cours` | Une sauvegarde ou un autre déploiement tourne : attendre 5 minutes et relancer la commande de la section 2. |
 | `ARRÊT : le dépôt contient des modifications ou des fichiers en trop` | Quelqu'un a modifié un fichier sur le serveur : ne rien supprimer ; transmettre la liste affichée à la personne responsable du site. |
 | `ARRÊT : … a encore sa valeur d'exemple` ou `… est vide` | Un réglage de `/opt/recrutement/.env` est à remplir : transmettre le nom affiché à la personne responsable du site. |

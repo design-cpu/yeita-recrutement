@@ -212,6 +212,8 @@ En tant que `deploy`, de préférence dans `tmux` ou `screen` (une coupure SSH n
 umask 022 && /opt/recrutement/deploy/deploy.sh
 ```
 
+Depuis la 1.8, `deploy.sh` fixe lui-même `umask 022` : les fichiers que git réécrit restent lisibles dans les images (sous `umask 077`, l'API ne démarrerait plus). Le préfixe `umask 022 &&` reste utile quand le `deploy.sh` du serveur est antérieur à la 1.8 : au premier passage à la 1.8, et après un retour vers un commit d'avant la 1.8.
+
 Le script affiche le commit en place, `DOMAIN` et le cas, vérifie les réglages (tels que Compose les lit) et que le dépôt n'a ni modification ni fichier en trop (une copie de `.env` serait publiée), met le dépôt sur le dernier `main`, reconstruit l'image, recrée les conteneurs (la configuration est toujours rechargée), supprime les anciennes images **du projet seulement** (étiquette `fr.yeita.projet=recrutement`, jamais de nettoyage global), puis lance `tools/check-site.sh https://$DOMAIN`. En cas B, le contrôle est retenté pendant une minute, le temps que Caddy obtienne son certificat au premier déploiement.
 
 Quand le commit déployé contient l'API, le script attend aussi qu'elle soit saine (« API saine. », 60 s au plus), sinon il s'arrête en échec avec la commande de retour. Chaque déploiement recrée les conteneurs : **l'API est coupée une quinzaine de secondes**, les pages ouvertes affichent alors « La base ne répond pas » et ce qui est saisi pendant ce temps n'est pas enregistré. Déployez en dehors des entretiens.

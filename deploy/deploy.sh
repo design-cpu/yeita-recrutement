@@ -5,6 +5,8 @@
 # Tout est vérifié avant de toucher au dépôt ou aux conteneurs ; seules les images étiquetées
 # fr.yeita.projet=recrutement sont nettoyées (le serveur est partagé). Relancer après une interruption est sûr.
 set -euo pipefail
+# Fichiers réécrits par git lisibles par tous : ils entrent tels quels dans les images, servies par node et oauth2-proxy.
+umask 022
 
 PROJET=recrutement
 ETIQUETTE=fr.yeita.projet=recrutement
