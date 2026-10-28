@@ -77,7 +77,7 @@ Aucune.
 - Remarqué : les fiches 1.6-1 à 1.6-4 portent `nature: amelioration` (à lire `evolution`).
 
 ## Étonnements
-Voir `etonnements/1.7-sauvegarde-base.md` (premier passage : 3 retenus sur 4 ; reprise : candidats ci-dessous validés à part). Règles récurrentes signalées par le validateur au premier passage : vérification faite dans des conditions plus favorables que la cible (5e version), contrôle qui ne peut pas échouer (4e), concurrence non exercée (2e).
+Voir `etonnements/1.7-sauvegarde-base.md` : premier passage, 3 retenus sur 4 ; reprise, 2 retenus sur 3 (vérifier avec l'utilisateur l'accès et le coût de chaque service tiers du pitch, au cadrage ; garde explicite sur un outil de test qui efface). Nouvelles récurrences : une décision « non rediscutable » du pitch non confrontée au réel (1.1, 1.7) ; une correction demandée par un relecteur qui crée le défaut suivant (E14, puis B2). Règles récurrentes signalées par le validateur au premier passage : vérification faite dans des conditions plus favorables que la cible (5e version), contrôle qui ne peut pas échouer (4e), concurrence non exercée (2e).
 
 ## Couverture de la doc
 | Élément | Page |
