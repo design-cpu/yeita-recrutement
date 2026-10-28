@@ -1,44 +1,35 @@
 # Restaurer la base des candidatures
 
-Les copies de la base sont faites chaque nuit par `deploy/backup.sh` (voir `deploy/README.md`, « Sauvegardes »), chiffrées avec age, gardées 30 jours dans `/var/backups/recrutement` sur le serveur et 30 jours sur OVH Object Storage. Elles ne se déchiffrent **que sur un poste**, jamais sur le serveur : la clé privée n'y est pas.
+Les copies de la base sont faites chaque nuit par `deploy/backup.sh` (voir `deploy/README.md`, « Sauvegardes »), chiffrées avec age et gardées 30 jours dans `/var/backups/recrutement`, **sur le serveur seulement**. Elles ne se déchiffrent **que sur un Mac**, jamais sur le serveur : la clé privée n'y est pas (créer et garder la clé : `deploy/CLE-SAUVEGARDE.md`).
 
-Dans les commandes, remplacer `SERVEUR` par l'adresse du serveur (accès SSH `deploy`), `BUCKET` par le nom du bucket et `DOMAINE` par `recrutement.yeita.fr`.
+> **Si le serveur est perdu, les sauvegardes le sont aussi** : il n'existe pas de copie ailleurs.
+
+Dans les commandes, remplacer `SERVEUR` par l'adresse du serveur (accès SSH `deploy`, par exemple `51.75.252.121`) et `DOMAINE` par `recrutement.yeita.fr`.
 
 ## Quel cas ?
 
 | Situation | Que faire |
 |---|---|
-| Un dossier perdu ou abîmé, le reste va bien | [Ouvrir une copie](#ouvrir-une-copie-sur-un-poste) et ressaisir le dossier dans l'interface. Jamais une restauration complète : elle effacerait la journée de toute l'équipe. Jamais pour un dossier supprimé à la demande du candidat. |
+| Un dossier perdu ou abîmé, le reste va bien | [Ouvrir une copie](#ouvrir-une-copie-sur-un-mac) et ressaisir le dossier dans l'interface. Jamais une restauration complète : elle effacerait la journée de toute l'équipe. Jamais pour un dossier supprimé à la demande du candidat. |
 | Base abîmée ou vidée, volume Docker intact (moins de 3 jours) | [Restaurer](#restaurer-la-base) en partant de la copie déjà dans le volume (`/data/sauvegardes`, pas de déchiffrement) : étapes 1 bis puis 4 à 8. |
 | Volume `recrutement_data` perdu, ou copie plus ancienne nécessaire | [Restaurer](#restaurer-la-base), étapes 1 à 8. |
-| Serveur perdu | [Serveur perdu](#serveur-perdu). |
+| Serveur perdu | Pas de restauration possible : les copies étaient sur le serveur. Voir [Serveur perdu](#serveur-perdu). |
 
-## Avant de commencer (poste)
+## Avant de commencer (Mac)
 
-- Un poste au disque chiffré (FileVault sur macOS), avec `age`, `rclone` et `sqlite3` : `brew install age rclone sqlite`.
-- La clé privée age et les identifiants S3 « restauration » (lecture seule), dans le coffre de mots de passe de Yeita.
+- Un Mac au disque chiffré (FileVault), avec `age` et `sqlite3` : `brew install age sqlite`.
+- Le fichier de la clé privée (`cle-sauvegarde-recrutement.txt`, `deploy/CLE-SAUVEGARDE.md`).
 - Tout se fait dans un dossier temporaire, hors des dossiers synchronisés (Bureau, Documents, iCloud, Drive), lisible par vous seul, effacé à la fin :
 
 ```bash
 umask 077; d=$(mktemp -d); cd "$d"; echo "$d"
 ```
 
-Coller la clé privée du coffre (la ligne `AGE-SECRET-KEY-…`) dans un fichier de ce dossier, puis la contrôler : la clé publique affichée doit être exactement `AGE_RECIPIENT` du `.env` du serveur.
+Copier le fichier de la clé dans ce dossier (remplacer le chemin par celui où il est gardé), puis la contrôler : la clé publique affichée doit être exactement `AGE_RECIPIENT` du `.env` du serveur.
 
 ```bash
-pbpaste > "$d/cle.txt"; pbcopy </dev/null; age-keygen -y "$d/cle.txt"
+cp ~/chemin/vers/cle-sauvegarde-recrutement.txt "$d/cle.txt"; age-keygen -y "$d/cle.txt"
 ```
-
-(`pbcopy </dev/null` vide le presse-papiers : la clé n'y reste pas. Désactiver aussi tout historique du presse-papiers pendant la procédure.)
-
-Identifiants « restauration » (rien n'est écrit sur le disque ; `read -s` ne les affiche pas ; ces lignes marchent sous zsh, le shell par défaut de macOS, comme sous bash) :
-
-```bash
-printf "Clé d'accès S3 (restauration) : "; read -r RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID; printf "Secret S3 : "; read -r -s RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY; echo
-export RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY RCLONE_CONFIG_RESTAU_TYPE=s3 RCLONE_CONFIG_RESTAU_PROVIDER=Other RCLONE_CONFIG_RESTAU_ENDPOINT=https://s3.gra.io.cloud.ovh.net RCLONE_CONFIG_RESTAU_REGION=gra
-```
-
-(Endpoint et région : ceux du bucket, rangés au coffre avec les identifiants ; `gra` ici.)
 
 Trois petits programmes servent sur le serveur ; les créer dans le dossier :
 
@@ -85,22 +76,20 @@ EOF
 
 ## Restaurer la base
 
-1. **Récupérer une copie** (poste). Lister les copies, puis prendre la plus récente **antérieure à l'incident** :
+1. **Récupérer une copie** (Mac). Lister les copies du serveur, puis prendre la plus récente **antérieure à l'incident** :
 
    ```bash
-   rclone lsl restau:BUCKET/recrutement
-   rclone copy restau:BUCKET/recrutement/recrutement-AAAA-MM-JJTHHMMSSZ.db.age "$d/"
+   ssh deploy@SERVEUR 'ls -l /var/backups/recrutement'
+   scp deploy@SERVEUR:/var/backups/recrutement/recrutement-AAAA-MM-JJTHHMMSSZ.db.age "$d/"
    ```
 
-   Serveur encore là : `scp deploy@SERVEUR:/var/backups/recrutement/recrutement-AAAA-MM-JJTHHMMSSZ.db.age "$d/"`.
-
-2. **Déchiffrer** (poste) :
+2. **Déchiffrer** (Mac) :
 
    ```bash
    age -d -i "$d/cle.txt" -o "$d/copie.db" "$d/recrutement-AAAA-MM-JJTHHMMSSZ.db.age"
    ```
 
-3. **Contrôler** (poste) : `ok`, `1`, des comptes plausibles, une dernière date du journal juste avant la date du nom. Noter l'empreinte.
+3. **Contrôler** (Mac) : `ok`, `1`, des comptes plausibles, une dernière date du journal juste avant la date du nom. Noter l'empreinte.
 
    ```bash
    sqlite3 -readonly "$d/copie.db" "PRAGMA integrity_check; PRAGMA user_version; SELECT 'candidats', count(*) FROM candidats; SELECT 'equipe', count(*) FROM equipe; SELECT 'journal', count(*) FROM journal; SELECT 'dernier', max(le) FROM journal;"
@@ -123,7 +112,7 @@ EOF
    ssh deploy@SERVEUR 'cd /opt/recrutement && deploy/backup.sh'
    ```
 
-   Base actuelle illisible : sauter cette étape et la liste de l'étape 5 ; les suppressions sont à refaire d'après les demandes reçues (comme pour « Serveur perdu »).
+   Base actuelle illisible : sauter cette étape et la liste de l'étape 5 ; les suppressions faites depuis la date de la copie sont à refaire d'après les demandes reçues.
 
 5. **Arrêter l'api, lister les suppressions** de la base actuelle : elles reviendront avec la copie et seront refaites à l'étape 8.
 
@@ -147,7 +136,7 @@ EOF
    ssh deploy@SERVEUR 'cd /opt/recrutement && docker compose start api && sleep 20 && docker inspect -f "{{.State.Health.Status}}" $(docker compose ps -q api) && docker compose run --rm --no-deps -T api ls -A /data'
    ```
 
-   Attendu : `healthy`, puis seulement `recrutement.sqlite`, éventuellement `recrutement.sqlite-wal`, `recrutement.sqlite-shm`, et `sauvegardes`. Un `restauration.tmp` restant : `ssh deploy@SERVEUR 'cd /opt/recrutement && docker compose run --rm --no-deps -T api rm -f /data/restauration.tmp'`.
+   Attendu : `healthy`, puis seulement `recrutement.sqlite`, éventuellement `recrutement.sqlite-wal`, `recrutement.sqlite-shm`, `sauvegardes` et `etat` (l'état des sauvegardes, que la restauration ne touche pas ; sur un volume neuf, il réapparaît à la sauvegarde suivante et la page d'état est « en retard » d'ici là). Un `restauration.tmp` restant : `ssh deploy@SERVEUR 'cd /opt/recrutement && docker compose run --rm --no-deps -T api rm -f /data/restauration.tmp'`.
 
 8. **Vérifier et refaire les suppressions** :
 
@@ -162,21 +151,19 @@ EOF
    - Un membre de l'équipe se connecte et ouvre un dossier connu.
    - Chaque ligne `À SUPPRIMER <adresse>` : un recruteur ouvre l'adresse et supprime le dossier dans l'interface. Relancer la dernière commande : il ne doit rester que des `rien à faire`.
 
-9. **Effacer le poste** : copie, clé, identifiants.
+9. **Effacer le Mac** : copie et copie de la clé (le fichier d'origine de la clé reste où il est gardé).
 
    ```bash
-   cd / && rm -rf "$d"; pbcopy </dev/null; unset RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY EMPREINTE
+   cd / && rm -rf "$d"; unset EMPREINTE
    ```
 
 ## Serveur perdu
 
-1. Nouveau serveur : `deploy/README.md` § 1 à 9 (préparation, `.env` recréé avec de nouvelles valeurs — il n'est pas sauvegardé —, déploiement : l'api démarre sur une base vide).
-2. Remote rclone de `deploy` et unités systemd : `deploy/README.md`, « Sauvegardes ». Ne pas activer les timers avant la fin de la restauration.
-3. Restaurer : étapes 1 à 3, puis 5 (arrêt seulement, pas de liste : la base est vide), 6, 7, 8 sans la partie suppressions, 9.
-4. **Limite** : les suppressions faites entre la copie et la perte du serveur sont inconnues (au plus une journée). Les refaire d'après les demandes d'effacement reçues.
-5. Activer les timers, lancer `deploy/backup.sh` une fois.
+Les copies étant **sur le serveur**, elles disparaissent avec lui : il n'y a rien à restaurer. Reconstruire le serveur (`deploy/README.md` § 1 à 9 et § 14) donne une base vide. C'est la limite acceptée de cette version ; une copie hors du serveur pourra être ajoutée plus tard.
 
-## Ouvrir une copie sur un poste
+Si le serveur est seulement **en panne** (disque encore lisible), récupérer d'abord `/var/backups/recrutement` (par exemple en le copiant depuis le disque, avec l'aide de l'hébergeur), puis suivre [Restaurer la base](#restaurer-la-base) depuis l'étape 2.
+
+## Ouvrir une copie sur un Mac
 
 Étapes 1 à 3, puis lecture seule :
 

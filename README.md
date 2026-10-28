@@ -34,7 +34,7 @@ Les anciennes pages `fiche-ec1.html`, `fiche-ec2.html`, `carte-identite.html`, `
 | `python3 tools/e2e-liens.py` | « Précédent », liens directs, feuille de décompte vierge |
 | `python3 tools/e2e-pdf.py` | Exports PDF : carte d'une candidature, feuille vierge |
 | `cd api && npm test` | L'API de stockage : autorisation, dossiers, conflits, effacement, `equipe.js`, `sauvegarde.js`, démarrage |
-| `bash tools/test-sauvegarde.sh <dépôt>` | `deploy/backup.sh` et `deploy/verif-disque.sh` avec de faux outils : réglages refusés, chaque échec signalé, aucun clair laissé, rétention, alertes disque. En root, dans un conteneur jetable `ubuntu:26.04` (utilisateur `deploy`, `/var/backups/recrutement`, docker, age, rclone) ; finit par `TOUT OK` |
+| `bash tools/test-sauvegarde.sh <dépôt>` | `deploy/backup.sh` et `deploy/verif-disque.sh` avec de faux outils : réglage refusé, chaque échec écrit dans l'état des sauvegardes, aucun clair laissé, rétention, disques. En root, dans un conteneur jetable `ubuntu:26.04` (utilisateur `deploy`, `/var/backups/recrutement`, docker, age) ; finit par `TOUT OK` |
 
 Les tests de navigateur demandent le site construit et servi : `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site`.
 
