@@ -3,9 +3,9 @@ type: technique
 page: api
 titre: API de stockage (api/)
 maj: 1.7
-commit: 26c1d9f
-sources: api/server.js, api/equipe.js, api/sauvegarde.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md
-date: 2026-10-27
+commit: fed40fe
+sources: api/server.js, api/equipe.js, api/sauvegarde.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md, api/src/sauvegardes.js
+date: 2026-10-28
 ---
 
 # API de stockage (`api/`)
@@ -36,7 +36,8 @@ Un processus, une connexion better-sqlite3 (synchrone). `equipe.js` ouvre sa pro
 | `api/src/app.js` | Application Fastify : analyseur JSON, autorisation, erreurs, `/api/sante`, `/api/moi`, `/api/equipe`, site local | `construireApp({config, db, logger, routes})`, `ErreurHttp(statut, message, code)`, `envoyer(rep, statut, erreur, code)` |
 | `api/src/candidats.js` | Routes des dossiers, journal, point de contrôle | `routesCandidats(app, db)` |
 | `api/src/options.js` | Routes des options de disponibilité | `routesOptions(app, db)` |
-| `api/src/routes.js` | Liste des routes de données | `routesApi` |
+| `api/src/sauvegardes.js` (v1.7) | État des sauvegardes : lit `<dossier de la base>/etat/` (`path.dirname(db.name)`), contrôle du rôle `admin` dans la route | `routesSauvegardes(app, db)`, `RETARD_SAUVEGARDE_MS` (26 h), `RETARD_DISQUE_MS` (2 h) |
+| `api/src/routes.js` | Liste des routes de données | `routesApi` (candidats, options, sauvegardes) |
 | `api/src/valeurs.js` | Valeurs recopiées (source citée) et constantes | `SCHEMA_DOSSIER`, `MOTIF_ID`, `ETAPES` (12), `DISPOS` (6), `MOTIF_EMAIL`, `ROLES`, `HOTES_LOCAUX`, `LIMITE_CORPS` (1 048 576), `MESSAGE_CONFLIT`, `emailValide(brut)` |
 
 Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISPOS` viennent de `assets/dossier.js`, `ETAPES` de `MODELE.md`.
@@ -51,6 +52,7 @@ Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISP
 | `GET /api/candidats/:id` | oui | tous | `:id` (`MOTIF_ID`) | 200 `{id, version, data}` | 400, 401, 403, 404 `introuvable` | 1.2 |
 | `PUT /api/candidats/:id` | oui | recruteur, admin | `{version: null \| entier ≥ 1, data}` JSON ≤ 1 Mo | 201 (création, `version` 1), 200 (`version + 1`) | 400, 401, 403, 409 `conflit`, 413, 415, 503 | 1.2 |
 | `DELETE /api/candidats/:id` | oui | recruteur, admin | `:id` | 204 | 400, 401, 403, 404 `introuvable`, 503 | 1.2 |
+| `GET /api/sauvegardes` (v1.7) | oui | admin (sinon 403 `admin-requis` « Réservé aux admins de l'équipe. ») | — | 200 `{maintenant, sauvegarde: {derniere, reussie, en_retard}, disque: {mesure, en_retard}}` ; fichier absent → `null`, illisible → `{illisible: true}` ; `en_retard` : réussite de plus de 26 h, mesure de plus de 2 h, ou absente | 401, 403 | 1.7 |
 | `GET /api/options-disponibilite` | oui | tous | — | 200 `["…"]` (ajouts, ordre `rowid`) | 401, 403 | 1.2 |
 | `POST /api/options-disponibilite` | oui | recruteur, admin | `{libelle}` (1 à 60 caractères, espaces normalisés) | 201 ajouté, 200 doublon ou option de `DISPOS` ; corps : la liste | 400, 401, 403, 413, 415, 503 | 1.2 |
 | `* /api/*` (autre) | oui | tous | — | — | 404 « Route inconnue. » (après l'autorisation) | 1.2 |
@@ -106,7 +108,7 @@ Variable vide = absente. Toute erreur → `ErreurConfig` → code 1 et une ligne
 Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue, hôte, adresse distante, statut, durée. Démarrage : `hote`, `port`, `base`, `user_version`, `node_env`, `dev_email`, `dev_static`. Avertissements : exposition (`HOST` non local), mode local, point de contrôle incomplet.
 
 ## Tests
-`cd api && npm test` (`node --test "test/*.test.js"`), 55 tests (~20 s), 7 fichiers dans `api/test/` : `config`, `base`, `api` (autorisation, erreurs, options), `candidats`, `serveur` et `equipe` (commandes en ligne en processus fils : `equipe.js` et, depuis la 1.7, `sauvegarde.js` — copie pendant des écritures, base absente ou abîmée, dossier non inscriptible, `--nettoyer`), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
+`cd api && npm test` (`node --test "test/*.test.js"`), 58 tests (~20 s), 7 fichiers dans `api/test/` : `config`, `base`, `api` (autorisation, erreurs, options, état des sauvegardes), `candidats`, `serveur` et `equipe` (commandes en ligne en processus fils : `equipe.js` et, depuis la 1.7, `sauvegarde.js` — copie pendant des écritures, base absente ou abîmée, dossier non inscriptible, `--nettoyer`), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
 
 ## Consommateurs (v1.3)
 | Consommateur | Routes | Fichier |
@@ -129,4 +131,4 @@ Les réponses d'oauth2-proxy (401 `{}`, 502 HTML, 302) sont classées par `Adapt
 |---|---|
 | 1.2 | Création : routes, autorisation, base, configuration, `equipe.js` |
 | 1.3 | Dans Docker derrière oauth2-proxy ; consommateurs (pages) ; aucun changement du code de l'API |
-| 1.7 | `api/sauvegarde.js` (copie contrôlée de la base) ; ses tests dans `api/test/equipe.test.js` (commandes en ligne) |
+| 1.7 | `api/sauvegarde.js` (copie contrôlée) ; route `GET /api/sauvegardes` réservée aux admins (`api/src/sauvegardes.js`) ; tests dans `equipe.test.js` et `api.test.js` |

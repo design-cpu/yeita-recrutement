@@ -3,9 +3,9 @@ type: technique
 page: deploiement-ovh
 titre: Déployer sur OVH et tester avec Google, pas à pas
 maj: 1.7
-commit: 26c1d9f
-sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js, deploy/README.md, deploy/backup.sh, deploy/verif-disque.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, deploy/RESTAURER.md
-date: 2026-10-27
+commit: fed40fe
+sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js, deploy/README.md, deploy/backup.sh, deploy/verif-disque.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, deploy/RESTAURER.md, deploy/METTRE-A-JOUR.md, deploy/CLE-SAUVEGARDE.md
+date: 2026-10-28
 ---
 
 # Déployer sur OVH et tester avec Google, pas à pas
@@ -16,7 +16,7 @@ date: 2026-10-27
 | # | Où | Action | Sortie attendue (lue dans le code) |
 |---|---|---|---|
 | 1 | espace client OVH | entrée **A** `recrutement` → `51.75.252.121` ; supprimer les entrées `recrutement` existantes ; pas d'AAAA | `dig +short recrutement.yeita.fr` = IP |
-| 2 | serveur, `ubuntu` | `apt install docker.io docker-compose-v2 certbot python3-certbot-nginx tmux age rclone` (v1.7 : `age` et `rclone`, exigés par `prepare-serveur.sh` à l'étape 3) (paquets Ubuntu, vérifiés par `apt-cache policy` avant) | `docker version`, `docker compose version`, `certbot --version` ; pm2 et nginx toujours actifs |
+| 2 | serveur, `ubuntu` | `apt install docker.io docker-compose-v2 certbot python3-certbot-nginx tmux age` (v1.7 : `age`, exigé par `prepare-serveur.sh` à l'étape 3) (paquets Ubuntu, vérifiés par `apt-cache policy` avant) | `docker version`, `docker compose version`, `certbot --version` ; pm2 et nginx toujours actifs |
 | 3 | poste + serveur, `ubuntu` | `pbcopy` de la clé ; `read CLE` sur une ligne seule (un `read` dans un collage multiligne lirait la ligne suivante) ; clone dans `mktemp -d` ; `sudo prepare-serveur.sh "$CLE"` | `Serveur prêt.` (prepare-serveur.sh l. 167) ; `ssh deploy@… whoami` → `deploy` |
 | 4 | console Google Cloud | client existant : URI `https://recrutement.yeita.fr/oauth2/callback`, audience **Interne** | |
 | 5 | serveur, `deploy` | `.env` écrit par heredoc (6 variables de `.env.example`, `COMPOSE_PROFILES=` vide, cookie secret généré), ID et secret remplacés à la main dans `nano` | contrôlé par `deploy.sh` l. 35-52 |
@@ -25,7 +25,7 @@ date: 2026-10-27
 | 8 | serveur, `deploy` | bloc de contrôle réseau de l'API (`deploy/README.md` § 9b, recopié tel quel) — obligatoire : moteur Docker d'Ubuntu, pas le 29.9.2 vérifié en v1.3 | 7 `OK`, `VERDICT : tout est bon.` |
 | 9 | serveur, `deploy` | `docker compose exec api node api/equipe.js add <email> <Prénom> admin` | membre listé par `list` |
 | 10 | navigateur + poste | public sans connexion ; `/candidatures/` → Google → `Connecté·e : <prénom>` ; `/api/moi` → `{email, prenom, role}` ; compte gmail refusé (Interne) ; `tools/check-site.sh https://recrutement.yeita.fr` → 6 `OK` | |
-| 11 | poste, OVH, serveur (`ubuntu`, puis `deploy`) | sauvegardes : `deploy/README.md` § 14, étapes 1 à 7 (clé age sur un poste, bucket OVH et trois utilisateurs S3, cycle de vie depuis un poste, remote rclone de `deploy`, deux contrôles healthchecks.io, 4 variables de `.env`, unités systemd par `sudo`, premiers essais) ; prérequis `sudo apt install age rclone` (v1.7) | `Sauvegarde réussie : recrutement-…Z.db.age (… octets), envoyée.` ; `Disque racine : … % ; dossier Docker : … % ; seuil : 80 %.` ; deux contrôles au vert ; `systemctl list-timers 'recrutement-*'` |
+| 11 | Mac, puis serveur (`ubuntu`, `deploy`) | sauvegardes : `deploy/METTRE-A-JOUR.md` § 5 « 1.7 » (age, clé créée sur le Mac et clé publique dans `.env` (`deploy/CLE-SAUVEGARDE.md`), unités systemd, rôle admin, première sauvegarde, page d'état, vérification de la clé) (v1.7) | `Sauvegarde réussie : recrutement-…Z.db.age (… octets) ; 1 copies sur le serveur.` ; `https://recrutement.yeita.fr/admin/sauvegardes.html` verte ; `systemctl list-timers 'recrutement-*'` |
 
 ## Points à savoir
 | Point | Détail |
@@ -44,4 +44,4 @@ date: 2026-10-27
 |---|---|
 | 1.5 | Création : ordre de la première mise en ligne |
 | 1.6 | Relevé du serveur réel |
-| 1.7 | `age` et `rclone` à l'étape 2 ; étape 11 : sauvegardes (`deploy/README.md` § 14) |
+| 1.7 | `age` à l'étape 2 ; étape 11 : sauvegardes (`deploy/METTRE-A-JOUR.md` § 5) ; mises à jour suivantes : `deploy/METTRE-A-JOUR.md` |

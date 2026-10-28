@@ -3,9 +3,9 @@ type: technique
 page: conventions
 titre: Conventions et tests
 maj: 1.7
-commit: 26c1d9f
+commit: fed40fe
 sources: api/package.json, api/test/aide.js, README.md, CONTRIBUER.md, tools/build.py, tools/check-site.sh, compose.yaml, .dockerignore, .gitignore, tools/test-store.js, tools/test-serveur.js, tools/e2e-serveur.py, tools/e2e-candidatures.py, tools/e2e-parcours.py, tools/e2e-liens.py, tools/e2e-pdf.py, tools/test-sauvegarde.sh, deploy/backup.sh, deploy/verif-disque.sh
-date: 2026-10-27
+date: 2026-10-28
 ---
 
 # Conventions et tests
@@ -21,9 +21,10 @@ date: 2026-10-27
 | `docs/` | `backend/MODELE.md` (modèle v3, fait foi), `dossier-candidat.schema.json` |
 | `tools/` | construction du site, tests, `check-site.sh` (contrôle d'un site déployé) |
 | `docker/` | `front.Dockerfile` (v1.1), `api.Dockerfile` (v1.3) |
-| `deploy/` | configuration et scripts du serveur, `README.md` (mode d'emploi) (v1.1) ; `systemd/` (unités, v1.7), `RESTAURER.md` (v1.7) |
+| `deploy/` | configuration et scripts du serveur, `README.md` (mode d'emploi) (v1.1) ; `systemd/` (unités, v1.7), `RESTAURER.md`, `CLE-SAUVEGARDE.md`, `METTRE-A-JOUR.md` (v1.7) |
 | `api/` | l'API de stockage (v1.2) : `server.js`, `equipe.js`, `sauvegarde.js` (v1.7), `src/`, `test/`, `README.md` ; `node_modules/` et `data/` jamais commités (`.gitignore`) ; jamais publiée (`SKIP`) |
 | `compose.yaml`, `.env.example`, `.dockerignore` | pile Docker ; `.env` (secrets) n'est jamais commité (`.gitignore`) (v1.1) |
+| `admin/` | pages d'administration (v1.7 : `sauvegardes.html`), protégées par oauth2-proxy, sans lien depuis Candidatures |
 | `hlyja/` | trace Hlýja, exclue de la publication (`SKIP` de `tools/build.py`) |
 
 ## Publication
@@ -41,8 +42,8 @@ Règles du déploiement (v1.1) : images servies figées par tag (`oauth2-proxy:v
 | `python3 tools/e2e-liens.py` | idem | « Précédent », liens directs, feuille vierge |
 | `python3 tools/e2e-pdf.py` | idem, plus `pdftotext` (poppler) | exports PDF |
 | `python3 tools/e2e-serveur.py` | site construit dans `_site`, Node 22 et `npm ci` dans `api/`, Playwright Python ; lance lui-même l'API (port 18765, base temporaire, `DEV_STATIC`) | mode serveur de bout en bout : trois navigateurs (Alice, Bob recruteurs, Léa lecture) par `X-Forwarded-Email` ; réponses d'oauth2-proxy, réseau et lenteur simulées par interception (v1.3) ; bandeau jaune des 6 pages et boutons d'exemples (v1.4) ; 51 vérifications ; 20 s par vérification (Playwright) ; l'API lancée est arrêtée dans `finally` |
-| `cd api && npm test` | Node 22 ; `npm ci` dans `api/` | l'API (v1.2) : 55 tests — configuration, base et schéma, autorisation, dossiers, options, serveur, `equipe.js` et `sauvegarde.js` (v1.7, lancée sous `umask 022`) en processus fils ; ~20 s (délais de 5 s volontaires) ; verdict `ℹ fail 0` |
-| `bash tools/test-sauvegarde.sh <dépôt>` (v1.7) | root dans un conteneur jetable `ubuntu:26.04` avec l'utilisateur `deploy`, `/var/backups/recrutement` (700), docker (CLI et plugin compose), `age`, `rclone`, `curl`, `openssl`, `python3` ; port 127.0.0.1:8443 libre | `deploy/backup.sh` et `deploy/verif-disque.sh` : faux `docker` (sauf `compose config`, réel), `rclone`, `df` ; vrai `age` (avec des modes de panne simulés) et vrai `curl` vers un faux healthchecks.io HTTPS (`CURL_CA_BUNDLE`) ; 119 vérifications ; finit par **`TOUT OK`** (code 0) ou `ÉCHECS : n` (code 1) |
+| `cd api && npm test` | Node 22 ; `npm ci` dans `api/` | l'API (v1.2) : 58 tests — configuration, base et schéma, autorisation, dossiers, options, serveur, `equipe.js` et `sauvegarde.js` (v1.7, lancée sous `umask 022`) en processus fils, route `GET /api/sauvegardes` (v1.7) ; ~20 s (délais de 5 s volontaires) ; verdict `ℹ fail 0` |
+| `bash tools/test-sauvegarde.sh <dépôt>` (v1.7) | root dans un conteneur jetable `ubuntu:26.04` avec l'utilisateur `deploy`, `/var/backups/recrutement` (700), docker (CLI et plugin compose), `age`, `python3` | `deploy/backup.sh` et `deploy/verif-disque.sh` : faux `docker` (sauf `compose config`, réel ; `compose run` écrit l'état dans un faux volume), faux `df` ; vrai `age` (avec des modes de panne simulés) ; 102 vérifications ; finit par **`TOUT OK`** (code 0) ou `ÉCHECS : n` (code 1) |
 | `tools/check-site.sh BASE_URL` | `curl` ; site déployé ou pile Docker locale | pages publiques en 200, pages protégées en 302 vers Google, `/ping` (v1.1), `/api/moi` → 401 sans session (v1.3) |
 
 Serveur : `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site`.
@@ -70,4 +71,4 @@ Une branche par sujet (`feat/…`, `fix/…`, `version/<x.y>-<slug>` pour Hlýja
 | 1.2 | Dossier `api/`, `api` dans `SKIP`, tests de l'API (`node:test`) |
 | 1.3 | `docker/api.Dockerfile`, `assets/demarrage.js`, `assets/adapter-serveur.js` ; tests `tools/test-serveur.js` et `tools/e2e-serveur.py` |
 | 1.4 | Ancien modèle v2 de `docs/` supprimé ; `e2e-candidatures` couvre le bandeau et les boutons d'exemples du mode navigateur ; compteurs de `test-serveur` et `e2e-serveur` |
-| 1.7 | `deploy/systemd/`, `deploy/RESTAURER.md` ; `npm test` à 55 tests (`sauvegarde.js`) ; `tools/test-sauvegarde.sh` ; banc `ubuntu:26.04` avec systemd ; shellcheck avec `LC_ALL=C.UTF-8` |
+| 1.7 | `admin/`, `deploy/systemd/`, `deploy/RESTAURER.md`, `CLE-SAUVEGARDE.md`, `METTRE-A-JOUR.md` ; `npm test` à 58 tests ; `tools/test-sauvegarde.sh` ; banc `ubuntu:26.04` avec systemd ; shellcheck avec `LC_ALL=C.UTF-8` |

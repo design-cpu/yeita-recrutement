@@ -8,7 +8,7 @@ maj: 1.7
 > Les mots du produit et du projet, expliqués simplement.
 
 ## age
-L'outil qui chiffre les sauvegardes. Il n'a besoin, sur le serveur, que de la partie publique de la clé : la partie secrète reste au coffre.
+L'outil qui chiffre les sauvegardes. Il n'a besoin, sur le serveur, que de la partie publique de la clé : la partie secrète reste hors du serveur, dans un fichier gardé par quelques personnes.
 
 ## API
 Un programme qui ne montre pas de pages : il répond aux demandes d'autres programmes, comme les pages du site. Celle du projet garde les dossiers candidat dans une base partagée et dit qui a le droit de les lire ou de les modifier.
@@ -22,10 +22,6 @@ Aussi : bandeau.
 Le bandeau en tête des pages de Candidatures. Sur le site de l'équipe, il dit que les candidatures sont enregistrées sur le serveur de l'équipe Yeita, accessible aux seuls recruteurs connectés, et affiche « Connecté·e : prénom ». Ailleurs, il rappelle que les données sont fictives et restent dans le navigateur.
 Aussi : bandeau « Données fictives ».
 
-## Bucket
-L'espace de stockage chez OVH (Object Storage) où arrivent les sauvegardes chiffrées. Il efface seul les copies de plus de 30 jours, et le serveur n'a pas le droit d'y effacer quoi que ce soit.
-Aussi : OVH Object Storage.
-
 ## Caddy
 Un logiciel qui reçoit les visites d'un site web et obtient tout seul le certificat HTTPS. Le projet en lance un dans le cas B, quand le serveur n'a pas déjà de proxy.
 Aussi : Caddy du projet, service caddy.
@@ -35,7 +31,7 @@ Les deux façons d'installer le site sur le serveur. Cas A : un proxy existe dé
 Aussi : cas A, cas B.
 
 ## Clé de sauvegarde
-La clé secrète qui ouvre les sauvegardes. Elle n'est jamais sur le serveur : elle est rangée dans le coffre de mots de passe de Yeita et connue d'au moins deux personnes. La perdre rend toutes les sauvegardes illisibles.
+La clé secrète qui ouvre les sauvegardes. Elle n'est jamais sur le serveur : c'est un fichier `.txt` gardé sur un Mac et confié en main propre à une ou deux personnes de confiance (en attendant un coffre de mots de passe). La perdre rend toutes les sauvegardes illisibles.
 Aussi : clé privée age.
 
 ## Conflit d'écriture
@@ -57,9 +53,6 @@ Aussi : effacement.
 ## En-tête
 Une information jointe à chaque demande envoyée à un serveur, invisible pour le visiteur. oauth2-proxy en ajoute une qui donne l'email du compte connecté ; l'API s'y fie pour savoir qui parle.
 Aussi : en-têtes, X-Forwarded-Email.
-
-## healthchecks.io
-Le service qui prévient l'administrateur par email quand une sauvegarde échoue, quand le disque du serveur se remplit, ou quand il n'a plus de nouvelles de l'un des deux.
 
 ## HTTPS
 La version chiffrée d'une adresse web. Le navigateur affiche un cadenas ; il faut un certificat, que le proxy du serveur ou Caddy se charge d'obtenir.
@@ -99,6 +92,10 @@ Aussi : Node.
 Le gardien placé devant le site. Il sert les pages publiques à tout le monde et demande une connexion avec un compte Google @yeita.fr pour tout le reste.
 Aussi : front.
 
+## Page d'état des sauvegardes
+La page `https://recrutement.yeita.fr/admin/sauvegardes.html`, réservée aux admins de l'équipe : elle dit en vert que tout va bien, ou en rouge ce qui ne va pas (sauvegarde ratée ou trop ancienne, disque presque plein).
+Aussi : page admin.
+
 ## Page publique
 Une page accessible sans connexion, par exemple celle envoyée aux candidats. La liste est fermée : une nouvelle page est protégée tant qu'on ne l'y ajoute pas.
 Aussi : pages publiques, liste publique.
@@ -119,9 +116,6 @@ Aussi : profil caddy, COMPOSE_PROFILES.
 Le programme qui reçoit les visites sur l'adresse publique et les transmet au bon service du serveur. C'est souvent lui qui gère le HTTPS.
 Aussi : reverse proxy, proxy de l'hôte, proxy existant.
 
-## rclone
-L'outil qui envoie les sauvegardes chiffrées du serveur vers le bucket OVH.
-
 ## Réseau interne
 Un réseau Docker sans sortie vers Internet ni adresse sur le serveur lui-même. L'API n'est reliée qu'à celui-là, avec oauth2-proxy : personne d'autre, même sur le serveur, ne peut lui parler.
 Aussi : réseau back.
@@ -130,7 +124,7 @@ Aussi : réseau back.
 Remettre la base des candidatures dans l'état d'une sauvegarde, après une panne ou une erreur. Ce qui a été saisi depuis la date de la copie est perdu, et les suppressions faites depuis sont à refaire.
 
 ## Sauvegarde
-La copie de la base des candidatures faite chaque nuit, vérifiée puis chiffrée : sans la clé rangée au coffre, personne ne peut la lire. Elle est gardée 30 jours sur le serveur et 30 jours chez OVH, en Europe.
+La copie de la base des candidatures faite chaque nuit, vérifiée puis chiffrée : sans la clé de sauvegarde, personne ne peut la lire. Elle est gardée 30 jours sur le serveur ; son état se lit sur la page d'état des sauvegardes.
 Aussi : copie chiffrée.
 
 ## Serveur partagé
