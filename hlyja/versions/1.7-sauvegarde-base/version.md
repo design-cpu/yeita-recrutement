@@ -2,7 +2,7 @@
 type: version
 version: 1.7
 slug: sauvegarde-base
-titre: Sauvegarde chiffrée de la base chaque nuit, hors du serveur, avec alertes
+titre: Sauvegarde chiffrée de la base chaque nuit, sur le serveur, avec page d'état
 branche: version/1.7-sauvegarde-base
 base: main
 mode: complexe
@@ -11,10 +11,10 @@ statut: en-cours
 date: 2026-10-27
 ---
 
-# Version 1.7 — Sauvegarde chiffrée de la base chaque nuit, hors du serveur, avec alertes
+# Version 1.7 — Sauvegarde chiffrée de la base chaque nuit, sur le serveur, avec page d'état
 
 > **Statut** : en cours (reprise du 2026-10-28) · **Branche** : `version/1.7-sauvegarde-base`
-> Objectif : la base SQLite de l'API est copiée chaque nuit, chiffrée, envoyée sur OVH Object Storage ; une restauration se fait pas à pas ; une sauvegarde ratée ou un disque plein déclenchent une alerte healthchecks.io.
+> Objectif : la base SQLite de l'API est copiée chaque nuit, chiffrée et gardée 30 jours sur le serveur ; un admin en voit l'état sur `/admin/sauvegardes.html` ; une restauration se fait pas à pas. (Avant la reprise du 2026-10-28 : envoi sur OVH Object Storage et alertes healthchecks.io, abandonnés.)
 
 ## Objectif
 Traiter le pitch ci-dessous, qui réalise la fiche du backlog 1.2-5 (sauvegarder la base sans retarder l'effacement).
@@ -51,7 +51,7 @@ Reprise du 2026-10-28 (décisions de l'utilisateur, après relecture du travail 
 - Le tout est **intégré à la 1.7** (pas de 1.8).
 
 ## Niveau
-Complexe, recommandé et confirmé : données personnelles des candidats copiées hors du serveur, chiffrement, deux outils système nouveaux (age, rclone), un service tiers (healthchecks.io), restauration à prouver.
+Complexe, recommandé et confirmé : données personnelles des candidats copiées, chiffrement, outil système nouveau (age), restauration à prouver ; la reprise ajoute une route d'API et une page. (Au départ : copie hors du serveur, rclone, healthchecks.io.)
 
 ## Plan d'équipe
 Écrit par le chef d'équipe au démarrage (détail : `pilote.md`).
