@@ -1,0 +1,9 @@
+# Vérifie toutes les 10 minutes si main a un nouveau commit à tester et mettre en ligne (recrutement-deploy.service).
+[Unit]
+Description=Déploiement automatique de main toutes les 10 minutes (recrutement)
+
+[Timer]
+OnCalendar=*:0/10
+
+[Install]
+WantedBy=timers.target

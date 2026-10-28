@@ -1,0 +1,25 @@
+# Déploiement automatique de main après les tests (deploy/auto-deploy.sh, v1.9). Lancé par recrutement-deploy.timer
+# (toutes les 10 minutes) et par recrutement-deploy.path (dès qu'un admin dépose une demande sur /admin/deploiement.html).
+# Installation et mise à jour : deploy/README.md, « Déploiement automatique ».
+[Unit]
+Description=Déploiement automatique de main (recrutement)
+# Après Docker s'il démarre ; les unités ne le demandent pas, mais docker.socket relance Docker au premier appel
+# d'une commande docker : arrêter le timer et le path avant une maintenance de Docker (deploy/README.md).
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+UMask=0077
+WorkingDirectory=/opt/recrutement
+ExecStart=/opt/recrutement/deploy/auto-deploy.sh --auto
+# Après tout arrêt, même forcé : conteneurs, worktree et images d'essai retirés. Rien n'est touché si un passage lancé
+# à la main tient le verrou : ce sont ses fichiers.
+ExecStopPost=-/usr/bin/flock -n %h/.recrutement-auto-deploy.lock /opt/recrutement/deploy/auto-deploy.sh --nettoyer
+# Attentes bornées par auto-deploy.sh : verrou 30 min + 3 étapes de test × 20 min + verrou de deploy.sh 15 min
+# + deploy.sh ~30 min + verrou 15 min + retour ~30 min = 3 h ; une heure de marge.
+TimeoutStartSec=4h
+# Le temps d'enregistrer le passage interrompu et de nettoyer après SIGTERM.
+TimeoutStopSec=90
