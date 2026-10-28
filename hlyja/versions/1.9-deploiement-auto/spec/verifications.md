@@ -1,7 +1,7 @@
 ---
 type: verifications
 version: 1.9
-total: 15
+total: 16
 ecarts: 4
 date: 2026-10-28
 ---
@@ -28,6 +28,7 @@ date: 2026-10-28
 | V13 | Validation d'un identifiant de commit | banc : `git rev-parse --verify --quiet "<x>^{commit}"`, `merge-base --is-ancestor`, `cat-file -e <c>:deploy/auto-deploy.sh` | préfixe trop court ou ambigu : code 1 ; `b066b31` → complet ; ancêtre de `origin/main` : 0 ; `b066b31` (1.8) sans `auto-deploy.sh` : 128 ; `HEAD` accepté par `rev-parse` (refusé par l'expression du pitch) | R3 : expression du pitch **puis** résolution en hash complet, appartenance à main, présence de `deploy/auto-deploy.sh` ; on agit ensuite sur le hash complet |
 | V14 | Verrous `flock` | banc : porteur A 4 s ; B `flock -n` ; C `flock -w 10` ; porteur tué par `kill -9` | B refusé ; C obtenu après 3 s ; verrou libéré à la mort du porteur | R6, R10 |
 | V15 | Verrou de `deploy.sh` partagé avec les sauvegardes | `grep -n flock deploy/backup.sh deploy/deploy.sh` | `deploy.sh` : `flock -n` sur `~/.recrutement-deploy.lock` (refuse tout de suite) ; `backup.sh` prend ce même verrou (`flock -w 600`) pendant sa copie | R10 : avant `deploy.sh`, attendre ce verrou (jusqu'à 15 min) ; « déjà en cours » malgré tout : rien n'a été touché, pas de retour arrière, commit non noté en échec |
+| V16 | Commits de main au sens de la ligne principale (après tour 1, S1) | dépôt : `git rev-list --first-parent main | wc -l` contre `git rev-list main` ; `8324ef4` (commit de la branche 1.8) et `b066b31` (merge #10) | 19 commits sur la ligne principale, 227 ancêtres ; `8324ef4` est un ancêtre (`--is-ancestor` 0) mais **absent** de `--first-parent` ; `b066b31` présent | R3 : une demande vise un commit de `git rev-list --first-parent origin/main` (un commit qui a été la pointe de main) |
 
 ## Autres exécutions qui peuvent tourner en même temps (règle des étonnements 1.4, 1.7)
 | Acteur | Fichiers communs | Ce que fait le mécanisme |
