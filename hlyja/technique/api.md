@@ -2,9 +2,9 @@
 type: technique
 page: api
 titre: API de stockage (api/)
-maj: 1.9
-commit: 5e41a2d
-sources: api/server.js, api/equipe.js, api/sauvegarde.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md, api/src/sauvegardes.js, api/src/deploiement.js
+maj: 1.10
+commit: c684a41
+sources: api/server.js, api/equipe.js, api/sauvegarde.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md, api/src/sauvegardes.js, api/src/deploiement.js, api/src/fichiers.js, api/test/aide.js
 date: 2026-10-28
 ---
 
@@ -38,7 +38,7 @@ Un processus, une connexion better-sqlite3 (synchrone). `equipe.js` ouvre sa pro
 | `api/src/options.js` | Routes des options de disponibilité | `routesOptions(app, db)` |
 | `api/src/sauvegardes.js` (v1.7) | État des sauvegardes : lit `<dossier de la base>/etat/` (`path.dirname(db.name)`), contrôle du rôle par `adminRequis` (v1.9) | `routesSauvegardes(app, db)`, `lire(fichier)` (exportée v1.9, reprise par `deploiement.js`), `RETARD_SAUVEGARDE_MS` (26 h), `RETARD_DISQUE_MS` (2 h) |
 | `api/src/deploiement.js` (v1.9) | Déploiement automatique : lit `<dossier de la base>/etat/deploiement.json` (par `lire` de `sauvegardes.js`) et la demande en attente ; écrit `<dossier de la base>/demandes/deploiement.demande` (une ligne `clé=valeur` par champ, `wx` sous un nom temporaire puis renommage, 600, dossier 700) | `routesDeploiement(app, db)`, `lireDemande(fichier)`, `CLES_DEMANDE`, `TAILLE_MAX_DEMANDE` (1 024) |
-| `api/src/fichiers.js` | Routes des fichiers des candidats (1.10), appelées par `routesCandidats` | `routesFichiers(app, db, pointDeControle)`, `nomPropre(brut, type)`, `ROUTE_ENVOI` |
+| `api/src/fichiers.js` (1.10) | Routes des fichiers des candidats, appelées par `routesCandidats` ; dates de dépôt par `app.maintenant()` ; le DELETE refuse un fichier cité par le dossier enregistré (`fichier-cite`) | `routesFichiers(app, db, pointDeControle)`, `nomPropre(brut, type)`, `ROUTE_ENVOI` |
 | `api/src/routes.js` | Liste des routes de données | `routesApi` (candidats, options, sauvegardes, déploiement) |
 | `api/src/valeurs.js` | Valeurs recopiées (source citée) et constantes | `SCHEMA_DOSSIER`, `MOTIF_ID`, `ETAPES` (12), `DISPOS` (6), `MOTIF_EMAIL`, `ROLES`, `HOTES_LOCAUX`, `LIMITE_CORPS` (1 048 576), `MESSAGE_CONFLIT`, `emailValide(brut)` |
 
@@ -52,7 +52,7 @@ Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISP
 | `GET /api/equipe` | oui | tous | — | 200 `[{prenom, role}]` (actifs, triés par prénom, `localeCompare` fr) | 401, 403 | 1.2 |
 | `GET /api/candidats` | oui | tous | — | 200 `[{id, version, data}]`, tri `json_extract(data,'$.meta.modifieLe') DESC, modifie_le DESC` | 401, 403 | 1.2 |
 | `GET /api/candidats/:id` | oui | tous | `:id` (`MOTIF_ID`) | 200 `{id, version, data}` | 400, 401, 403, 404 `introuvable` | 1.2 |
-| `PUT /api/candidats/:id` | oui | recruteur, admin | `{version: null \| entier ≥ 1, data}` JSON ≤ 1 Mo | 201 (création, `version` 1), 200 (`version + 1`) | 400, 401, 403, 409 `conflit`, 413, 415, 503 | 1.2 |
+| `PUT /api/candidats/:id` | oui | recruteur, admin | `{version: null \| entier ≥ 1, data}` JSON ≤ 1 Mo ; v1.10 : `data.identite.fichiers` absent, `null` ou `{cv, portfolio}`, chaque entrée `null` ou `{id: fic-…, …}` | 201 (création, `version` 1), 200 (`version + 1`) ; v1.10, dans la même transaction : chaque fichier référencé doit exister sous ce candidat pour ce champ, puis les fichiers non référencés déposés depuis plus d'une heure (`DELAI_NON_REFERENCE_MS`) sont effacés | 400 (dont `identite.fichiers` mal formé), 401, 403, 409 `conflit`, 409 `fichier-introuvable` (référence absente : rien n'est écrit), 413, 415, 503 | 1.2 ; 1.10 |
 | `DELETE /api/candidats/:id` | oui | recruteur, admin | `:id` | 204 | 400, 401, 403, 404 `introuvable`, 503 | 1.2 |
 | `GET /api/deploiement` (v1.9) | oui | admin (sinon 403 `admin-requis`) | — | 200 `{maintenant, etat, demande}` : `etat` = `deploiement.json` (`null` absent, `{illisible: true}`) ; `demande` = demande en attente lue avec les règles de l'hôte (fichier ordinaire, 1 024 octets, 4 clés exactes, valeurs contrôlées), `null` ou `{illisible: true}` ; consommateur : `admin/deploiement.html` | 401, 403 | 1.9 |
 | `POST /api/deploiement/demande` (v1.9) | oui | admin | `{action: "deployer", commit: "main"\|<7 à 40 hex>}` ou `{action: "reprendre"}`, rien d'autre | 202 `{demande: {action, commit, par, le}}` ; `par` = `req.membre.email` ; demande identique (action, commit, par) à celle en attente : rendue sans réécrire | 400 « Demande invalide … », 401, 403, 413 (corps de plus de 1 Mo), 415, 503 `demande-non-ecrite` | 1.9 |
@@ -60,7 +60,7 @@ Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISP
 | `POST /api/candidats/:id/fichiers?champ=cv\|portfolio` | oui | recruteur, admin | corps brut `application/pdf`, `image/png` ou `image/jpeg`, ≤ 10 Mo (`LIMITE_FICHIER`) ; nom dans `X-Nom-Fichier` (`encodeURIComponent`) | 201 `{id, champ, nom, type, taille, deposeLe, deposePar}` | 400 (champ, vide, id), 401, 403, 404 `introuvable`, 413 `fichier-trop-gros`, 415 `type-fichier` (type annoncé ou premiers octets), 503 | 1.10 |
 | `GET /api/candidats/:id/fichiers` | oui | tous | — | 200 `[{id, champ, nom, type, taille, deposeLe, deposePar}]` | 400, 401, 403, 404 `introuvable` | 1.10 |
 | `GET /api/candidats/:id/fichiers/:fid` | oui | tous | `:fid` (`MOTIF_FICHIER`) | 200, le fichier, son type, `Content-Disposition: inline`, `X-Content-Type-Options: nosniff`, `no-store` | 400, 401, 403, 404 `fichier-introuvable` (aussi sous un autre candidat) | 1.10 |
-| `DELETE /api/candidats/:id/fichiers/:fid` | oui | recruteur, admin | — | 204 | 400, 401, 403, 404 `fichier-introuvable`, 503 | 1.10 |
+| `DELETE /api/candidats/:id/fichiers/:fid` | oui | recruteur, admin | — | 204 | 400, 401, 403, 404 `fichier-introuvable`, 409 `fichier-cite` « Ce fichier est encore sur la fiche. Recharge la page. » (cité par `candidats.data` de ce candidat, `cv` ou `portfolio`), 503 | 1.10 |
 | `GET /api/options-disponibilite` | oui | tous | — | 200 `["…"]` (ajouts, ordre `rowid`) | 401, 403 | 1.2 |
 | `POST /api/options-disponibilite` | oui | recruteur, admin | `{libelle}` (1 à 60 caractères, espaces normalisés) | 201 ajouté, 200 doublon ou option de `DISPOS` ; corps : la liste | 400, 401, 403, 413, 415, 503 | 1.2 |
 | `* /api/*` (autre) | oui | tous | — | — | 404 « Route inconnue. » (après l'autorisation) | 1.2 |
@@ -88,7 +88,7 @@ Routeur : `maxParamLength` 200 (un `:id` plus long → 404 de route inconnue).
 | `candidats` | `id` (clé), `data` (JSON), `version` (≥ 1), `modifie_le`, `modifie_par` | aucune colonne tirée du JSON | PUT, DELETE |
 | `journal` | `id`, `candidat_id`, `action` (`creation`, `modification`, `suppression`), `etape` (une des 12 `ETAPES` ou `null`), `par`, `le` | jamais de contenu du dossier ; purgé à la suppression du dossier, une ligne `suppression` gardée | PUT, DELETE |
 | `options_disponibilite` | `libelle` (clé), `ajoute_le` | seulement les ajouts | POST |
-| `fichiers` (1.10, `user_version` 2) | `id` (`fic-` + 18 hexadécimaux), `candidat_id`, `champ` (`cv`/`portfolio`), `nom` (nettoyé, 1 à 120), `type` (pdf/png/jpeg), `taille`, `contenu` (BLOB), `depose_le`, `depose_par` | index sur `candidat_id` ; supprimés avec le dossier dans la transaction du `DELETE` ; jamais de colonne lue par le journal | POST, DELETE (fichier ou dossier) |
+| `fichiers` (1.10, sans changer `user_version`) | `id` (`fic-` + 18 hexadécimaux), `candidat_id` → `candidats(id)` `ON DELETE CASCADE`, `champ` (`cv`/`portfolio`), `nom` (nettoyé, 1 à 120), `type` (pdf/png/jpeg), `taille` (> 0), `contenu` (BLOB), `depose_le`, `depose_par` ; index `fichiers_candidat` | un dossier enregistré ne cite jamais un fichier absent (PUT et DELETE) ; non référencé → effacé au premier PUT du dossier passé une heure | POST, PUT (nettoyage), DELETE |
 
 | Réglage | Valeur | Raison |
 |---|---|---|
@@ -96,7 +96,7 @@ Routeur : `maxParamLength` 200 (un `:id` plus long → 404 de route inconnue).
 | `journal_mode` | `WAL` (hors transaction) | lectures non bloquées par l'écriture |
 | `busy_timeout` | 5000 ms (100 ms le temps d'un point de contrôle) | attendre un écrivain ; ne pas geler sur un lecteur |
 | `secure_delete` | `ON` | contenu effacé, pas seulement libéré |
-| `user_version` | 2 (1.10) | 0 → schéma créé (sans `IF NOT EXISTS`) puis migrations ; 1 → `MIGRATIONS[2]` (table `fichiers`) ; dans une transaction immédiate qui relit `user_version` ; > 2 → refus |
+| `user_version` | 1 | 0 → `SCHEMA` créé ; puis, à chaque ouverture où il manque quelque chose, `AJOUTS` (`CREATE TABLE IF NOT EXISTS fichiers`, `CREATE INDEX IF NOT EXISTS fichiers_candidat`), dans une transaction immédiate qui relit `user_version` ; base à jour (version 1 et `TABLES_AJOUTEES` présentes) → aucune écriture ; > 1 → refus « Base d'une version plus récente » (dont une base de test passée en 2 par la branche d'avant la 1.10). **Règle (1.10)** : une table ajoutée sans casser la lecture par la version d'avant passe par `AJOUTS`, sans changer `user_version`, pour que le retour arrière (`auto-deploy.sh`) reste possible ; un changement qui casserait cette lecture change `user_version` |
 Écritures : toutes en `transaction(...).immediate()` (API et `equipe.js`). Après chaque écriture sur `candidats` : `wal_checkpoint(TRUNCATE)` ; s'il est gêné par un lecteur, avertissement « Point de contrôle incomplet » au journal du serveur.
 
 ## Configuration (`api/src/config.js`)
@@ -117,7 +117,7 @@ Variable vide = absente. Toute erreur → `ErreurConfig` → code 1 et une ligne
 Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue, hôte, adresse distante, statut, durée. Démarrage : `hote`, `port`, `base`, `user_version`, `node_env`, `dev_email`, `dev_static`. Avertissements : exposition (`HOST` non local), mode local, point de contrôle incomplet.
 
 ## Tests
-`cd api && npm test` (`node --test "test/*.test.js"`), 65 tests (~20 s), 7 fichiers dans `api/test/` : `config`, `base`, `api` (autorisation, erreurs, options, état des sauvegardes, déploiement v1.9), `candidats`, `serveur` et `equipe` (commandes en ligne en processus fils : `equipe.js` et, depuis la 1.7, `sauvegarde.js` — copie pendant des écritures, base absente ou abîmée, dossier non inscriptible, `--nettoyer`), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
+`cd api && npm test` (`node --test "test/*.test.js"`), 82 tests (~22 s), 8 fichiers dans `api/test/` : `config`, `base` (v1.10 : ajout de `fichiers` sans changer de version, ouvertures simultanées, retour vers la 1.9), `api` (autorisation, erreurs, options, état des sauvegardes, déploiement v1.9), `candidats`, `fichiers` (v1.10 : envoi, types, taille, nom, accès, lecture, retrait, références et nettoyage avec horloge simulée `creerApp(t, {maintenant})`), `serveur` et `equipe` (commandes en ligne en processus fils : `equipe.js` et, depuis la 1.7, `sauvegarde.js` — copie pendant des écritures, base absente ou abîmée, dossier non inscriptible, `--nettoyer`), `aide.js` (base temporaire, `creerApp`, `requete`, membres de test). Voir [Conventions](conventions.md#tests).
 
 ## Consommateurs (v1.3)
 | Consommateur | Routes | Fichier |
@@ -125,7 +125,7 @@ Fastify, niveau `info`, sortie standard en JSON : méthode, URL telle que reçue
 | Démarrage des pages | `GET /api/moi`, `GET /api/equipe`, `GET /api/options-disponibilite` | `assets/demarrage.js` |
 | Options ajoutées | `POST /api/options-disponibilite` | `assets/demarrage.js` (`STORE.sourceDispos`) |
 | Dossiers | `GET /api/candidats`, `GET`/`PUT`/`DELETE /api/candidats/:id` | `assets/adapter-serveur.js` |
-| Fichiers (1.10) | `POST`, `GET`, `DELETE /api/candidats/:id/fichiers…` | `assets/adapter-serveur.js` (`deposer`, `fichierUrl`, `retirerFichier`), utilisés par `candidatures/menu-candidat.js` |
+| Fichiers (1.10) | `POST`, `GET`, `DELETE /api/candidats/:id/fichiers…` | `assets/adapter-serveur.js` (`deposer`, `fichiers`, `fichierUrl`, `retirerFichier`), utilisés par `candidatures/menu-candidat.js` ; `fichiers` sert aussi à l'import (`assets/store.js`, `sansFichiersAbsents`) |
 | Sonde de santé | `GET /api/sante` (dans le conteneur, pas au travers d'oauth2-proxy, où elle exige une session) | `docker/api.Dockerfile` |
 Les réponses d'oauth2-proxy (401 `{}`, 502 HTML, 302) sont classées par `AdaptateurServeur.lire` ([Mode serveur](mode-serveur.md)).
 
@@ -143,4 +143,4 @@ Les réponses d'oauth2-proxy (401 `{}`, 502 HTML, 302) sont classées par `Adapt
 | 1.3 | Dans Docker derrière oauth2-proxy ; consommateurs (pages) ; aucun changement du code de l'API |
 | 1.7 | `api/sauvegarde.js` (copie contrôlée) ; route `GET /api/sauvegardes` réservée aux admins (`api/src/sauvegardes.js`) ; tests dans `equipe.test.js` et `api.test.js` |
 | 1.9 | `GET /api/deploiement`, `POST /api/deploiement/demande` (`api/src/deploiement.js`) ; `adminRequis(req)` exporté par `app.js`, utilisé par les deux routes d'administration ; 7 tests dans `api.test.js` |
-| 1.10 | Fichiers des candidats : table `fichiers` (`user_version` 2), 4 routes, 10 Mo, PDF/PNG/JPG vérifiés aux premiers octets, noms nettoyés, effacés avec le dossier. Derrière un nginx existant (cas A), régler `client_max_body_size 10m` (défaut nginx : 1 Mo) ; oauth2-proxy et Caddy ne limitent pas la taille |
+| 1.10 | Fichiers des candidats : table `fichiers` ajoutée sans changer `user_version` (reste 1, la 1.9 relit la base), 4 routes, 10 Mo, PDF/PNG/JPG vérifiés aux premiers octets, noms nettoyés, effacés avec le dossier ; PUT : références vérifiées et fichiers non référencés effacés après une heure ; DELETE : 409 `fichier-cite` ; `construireApp({maintenant})`. Derrière un nginx existant (cas A), `client_max_body_size 10m` (défaut nginx : 1 Mo) ; oauth2-proxy et Caddy ne limitent pas (vérifié) |

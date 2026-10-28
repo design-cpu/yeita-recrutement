@@ -1,6 +1,6 @@
 ---
 type: glossaire
-maj: 1.9
+maj: 1.10
 ---
 
 # Glossaire
@@ -53,8 +53,18 @@ L'outil qui décrit et lance ensemble les conteneurs d'un projet, à partir d'un
 Aussi : Compose, pile Compose.
 
 ## Documents du candidat
-Le CV et le portfolio, dans la fiche du candidat. Chacun est soit un fichier déposé (PDF, PNG ou JPG, 10 Mo au plus), gardé sur le serveur de l'équipe avec la candidature et effacé avec elle, soit un lien. Chaque dépôt et chaque retrait est noté dans l'historique.
+Le CV et le portfolio, dans la fiche du candidat. Chacun est soit un fichier déposé (PDF, PNG ou JPG, 10 Mo au plus), gardé sur le serveur de l'équipe avec la candidature et effacé avec elle, soit un lien. Chaque dépôt et chaque retrait est noté dans l'historique. La fiche ne cite jamais un fichier qui n'existe pas.
+Voir : [Fiche du candidat, CV et portfolio](doc/produit/fiche-candidat.md)
 Aussi : dépôt de fichier, CV, portfolio.
+
+## Fichier non référencé
+Un CV ou un portfolio gardé dans la base sans qu'aucune fiche ne le cite, par exemple après une panne réseau au mauvais moment. Il n'est jamais affiché, et il est effacé au premier enregistrement de la fiche passé une heure.
+Aussi : orphelin, fichier orphelin.
+Voir : [Fiche du candidat, CV et portfolio](doc/produit/fiche-candidat.md)
+
+## Avant le merge
+Une partie d'un guide de mise en production à faire sur le serveur avant de cliquer « Merge » sur GitHub : depuis le déploiement automatique, le merge met la version en ligne sous 10 minutes, donc un réglage du serveur dont elle a besoin doit être en place avant.
+Voir : [Mettre à jour le site en production](technique/mise-a-jour-production.md)
 
 ## Effacement réel
 Supprimer un dossier de sorte qu'il ne reste plus lisible nulle part dans les fichiers de la base. Une base de données ordinaire marque souvent la place comme libre sans effacer le contenu ; l'API, elle, l'écrase.
