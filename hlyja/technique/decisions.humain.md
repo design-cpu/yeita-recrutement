@@ -3,15 +3,16 @@ type: technique
 vue: humaine
 page: decisions
 titre: Décisions techniques
-maj: 1.7
-commit: 8db372f
-sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md, deploy/commun.sh, deploy/verif-disque.sh, deploy/CLE-SAUVEGARDE.md, api/src/sauvegardes.js, admin/sauvegardes.html
+maj: 1.9
+commit: 5e41a2d
+sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md, deploy/commun.sh, deploy/verif-disque.sh, deploy/auto-deploy.sh, api/src/deploiement.js, deploy/systemd/recrutement-deploy.path
 date: 2026-10-28
 ---
 
+
 # Décisions techniques
 
-> Les grands choix du dépôt et ce qu'ils écartent. En v1.1, le site est hébergé chez Yeita derrière une connexion Google. En v1.2, une API garde les dossiers dans SQLite. En v1.3, les pages l'utilisent. En v1.7, la base est sauvegardée chaque nuit, chiffrée, sur le serveur, et une page d'état remplace les alertes.
+> Les grands choix du dépôt et ce qu'ils écartent. En v1.1, le site est hébergé chez Yeita derrière une connexion Google. En v1.2, une API garde les dossiers dans SQLite. En v1.3, les pages l'utilisent. En v1.7, la base est sauvegardée chaque nuit, chiffrée, sur le serveur, et une page d'état remplace les alertes. En v1.9, le serveur met lui-même `main` en ligne après les tests ; l'application ne peut que le lui demander.
 
 ## En un coup d'œil
 
@@ -39,8 +40,12 @@ date: 2026-10-28
 | Copies sur le serveur seulement | Pas de stockage payant : les copies restent sur le serveur | v1.7 |
 | Page d'état au lieu d'alertes | Les admins regardent une page ; aucun service tiers | v1.7 |
 | Restauration | La copie en clair ne touche jamais le disque du serveur | v1.7 |
+| Déploiement automatique sans GitHub Actions | Le serveur vérifie `main` lui-même et teste à part | v1.9 |
+| Frontière application → serveur | La page dépose une demande ; le serveur décide sur ses propres fichiers | v1.9 |
+| Commits admis depuis la page | Seulement la ligne principale de main, depuis la v1.9 | v1.9 |
+| Retour automatique et pause | Revenir seul au commit d'avant ; un retour voulu n'est pas défait | v1.9 |
 
-Les décisions de v1.0 à v1.3 sont expliquées dans la version complète. Voici celles de v1.7.
+Les décisions de v1.0 à v1.3 sont expliquées dans la version complète. Voici celles de v1.7, puis celles de v1.9.
 
 ## Copier sans retarder l'effacement
 
@@ -96,10 +101,61 @@ flowchart LR
 
 Avant de remplacer, l'état actuel est sauvegardé, pour pouvoir revenir en arrière. Après, l'équipe supprime à nouveau, dans l'interface, les dossiers supprimés depuis la date de la copie. Poser la copie avec `docker compose cp` est écarté : le fichier serait illisible par l'API. La procédure a été rejouée sur un serveur d'essai, dans trois situations.
 
+## Mettre en ligne sans service tiers (v1.9)
+
+Le but : qu'un merge sur `main` parte en ligne sans connexion SSH, et jamais si un test échoue. Plutôt que GitHub Actions, c'est le serveur qui vérifie `main`, toutes les 10 minutes, avec un timer systemd. Une préproduction était hors du sujet.
+
+Les tests tournent dans une copie de travail à part et des conteneurs jetables. La construction d'essai prend d'autres noms d'image : sinon elle écraserait les images du site en ligne. Pas de Node, ni de jq, ni de python sur le serveur : le script écrit son JSON lui-même.
+
+| Ce que ça coûte | Ce que ça apporte |
+|---|---|
+| Un passage dure de 35 secondes (avec le cache) à quelques minutes | Un merge est en ligne en 10 minutes, tests compris |
+| Le cache de construction reste sur le disque, surveillé par le contrôle du disque | Aucun compte ni service extérieur |
+
+## L'application demande, le serveur décide (v1.9)
+
+La page doit pouvoir demander une mise en ligne, sans pouvoir piloter le serveur. L'API dépose donc seulement un petit fichier de demande dans son volume. Le serveur le prend par un conteneur jetable, le lit strictement, vérifie le commit, puis agit.
+
+```mermaid
+flowchart LR
+  A[Application] -->|dépose| D[(Demande)]
+  D --> S[Serveur : vérifie]
+  S --> F[(Ses propres fichiers de décision)]
+  S -->|copie lisible| E[(État de la page)]
+```
+
+Ses décisions (commit en ligne, échec, pause, passages) vivent dans le dossier du compte `deploy`, jamais dans le volume. L'état que lit la page n'en est qu'une copie : si l'application le falsifiait, rien ne changerait.
+
+> Même compromise, l'application ne peut que : mettre en ligne un commit testé de la ligne principale de main (v1.9 ou après), poser ou retirer la pause, et faire tourner le service.
+
+Elle peut aussi remplir de refus l'historique de la page : une demande illisible est refusée, et ce refus est noté comme un passage. Si l'application empêche le serveur de retirer la demande, le service ne tourne plus qu'une fois par minute. Écartés : un dossier partagé entre l'application et le serveur (il aurait fallu changer `compose.yaml` et mêler les droits), et des décisions relues dans l'état de la page.
+
+## Quels commits on peut demander (v1.9)
+
+Le dépôt fusionne les branches par merge. `main` a 227 ancêtres, mais seulement 19 commits ont été, à un moment, son dernier commit. Seuls ces derniers (la ligne principale de main) peuvent être demandés depuis la page, et seulement s'ils datent de la v1.9 ou après. Choix de l'utilisateur.
+
+Les commits intermédiaires d'une branche n'ont jamais été relus ni mis en ligne seuls : ils sont refusés. En SSH, `deploy.sh <commit>` garde son ancienne règle (tout ancêtre de `main`).
+
+## Revenir seul, et ne pas défaire un retour voulu (v1.9)
+
+```mermaid
+flowchart LR
+  A[Mise en ligne ratée] --> B[Retour par le deploy.sh du commit d'avant]
+  B -- réussi --> C[Site revenu]
+  B -- raté --> D[Alerte rouge, commande à lancer]
+```
+
+Quand la mise en ligne rate après avoir changé de version, le serveur revient tout seul au commit d'avant (choix de l'utilisateur). Il utilise le `deploy.sh` **de ce commit-là** : celui du commit en échec peut être cassé avec lui. Si `deploy.sh` s'arrête avant de rien changer, il n'y a pas de retour à faire.
+
+Un retour voulu par un admin ne doit pas être défait 10 minutes plus tard. Celui qui demande un ancien commit (la page, ou `deploy.sh` en SSH) pose donc une pause ; l'automatisme n'en pose jamais. La pause est un fichier ignoré par git par une exclusion locale : un `.gitignore` disparaîtrait en revenant à un commit plus ancien. Et si quelqu'un déploie à la main pendant les tests, son geste l'emporte : le passage s'annule.
+
+> Le pire cas (retour raté, passage tué pendant la mise en ligne) est une alerte rouge sur la page, avec la commande à lancer. Aucune notification n'est envoyée.
+
 ## Voir aussi
 - [Comment les pages choisissent où ranger les dossiers](mode-serveur.md)
 - [L'API de stockage](api.md)
 - [Architecture et déploiement](architecture.md)
 - [Conventions et tests](conventions.md)
+- [Le déploiement automatique](deploiement-automatique.md)
 - La clé : `deploy/CLE-SAUVEGARDE.md` ; restaurer la base : `deploy/RESTAURER.md`
 - Le détail de chaque décision (contexte, options écartées, conséquences) est dans la version complète.

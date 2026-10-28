@@ -1,5 +1,5 @@
 /* Identité, autorisation, format des erreurs, /api/sante, /api/moi, /api/equipe, options de disponibilité,
-   état des sauvegardes (v1.7). */
+   état des sauvegardes (v1.7), déploiement automatique (v1.9). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -212,4 +212,127 @@ test("sauvegardes : états lus, seuils de 26 h et 2 h, fichier illisible (CA22)"
     etat(dbPath, "sauvegarde-derniere.json", contenu);
     assert.deepEqual(json(await requete(app, "adm@yeita.fr", { url: "/api/sauvegardes" })).sauvegarde.derniere, { illisible: true }, `JSON valide mais pas un objet : ${contenu}`);
   }
+});
+
+/* --- GET /api/deploiement, POST /api/deploiement/demande (v1.9) : réservés aux admins ; l'application ne fait que
+   déposer une demande dans <dossier de la base>/demandes/, que l'hôte valide (spec 1.9 R4, R6, R16, R17) --- */
+
+const demandeDe = dbPath => path.join(path.dirname(dbPath), "demandes", "deploiement.demande");
+const deposer = (app, corps, email = "adm@yeita.fr") =>
+  requete(app, email, { method: "POST", url: "/api/deploiement/demande", payload: corps });
+
+test("déploiement : admin seulement ; recruteur, lecture, hors équipe, sans identité refusés (CA12)", async t => {
+  const { app, dbPath } = creerApp(t);
+  assert.equal((await requete(app, "adm@yeita.fr", { url: "/api/deploiement" })).statusCode, 200);
+  for (const email of ["rec@yeita.fr", "lec@yeita.fr"]) {
+    let r = await requete(app, email, { url: "/api/deploiement" });
+    assert.equal(r.statusCode, 403, email);
+    assert.equal(json(r).code, "admin-requis", email);
+    r = await deposer(app, { action: "deployer", commit: "main" }, email);
+    assert.equal(r.statusCode, 403, `POST ${email}`);
+  }
+  assert.equal(json(await requete(app, "parti@yeita.fr", { url: "/api/deploiement" })).code, "hors-equipe");
+  assert.equal((await requete(app, null, { url: "/api/deploiement" })).statusCode, 401);
+  assert.equal((await deposer(app, { action: "deployer", commit: "main" }, null)).statusCode, 401);
+  assert.equal(fs.existsSync(demandeDe(dbPath)), false, "aucune demande déposée par un non-admin");
+});
+
+test("déploiement : GET rend l'état et la demande en attente ; absents → null, illisible (CA12)", async t => {
+  const { app, dbPath } = creerApp(t);
+  let v = json(await requete(app, "adm@yeita.fr", { url: "/api/deploiement" }));
+  assert.equal(v.etat, null);
+  assert.equal(v.demande, null);
+  assert.ok(Math.abs(Date.parse(v.maintenant) - Date.now()) < 5000);
+  const etatDeploiement = { maj: "2026-10-28T13:00:02Z", pause: null, passages: [{ id: "x", resultat: "deploye" }] };
+  etat(dbPath, "deploiement.json", etatDeploiement);
+  await deposer(app, { action: "deployer", commit: "main" });
+  v = json(await requete(app, "adm@yeita.fr", { url: "/api/deploiement" }));
+  assert.deepEqual(v.etat, etatDeploiement);
+  assert.equal(v.demande.action, "deployer");
+  assert.equal(v.demande.par, "adm@yeita.fr");
+  etat(dbPath, "deploiement.json", "{ pas du JSON");
+  assert.deepEqual(json(await requete(app, "adm@yeita.fr", { url: "/api/deploiement" })).etat, { illisible: true });
+});
+
+test("déploiement : POST écrit la demande (clé=valeur), email du membre, 202 (CA12)", async t => {
+  const { app, dbPath } = creerApp(t);
+  let r = await deposer(app, { action: "deployer", commit: "main" }, " Adm@Yeita.FR ");
+  assert.equal(r.statusCode, 202, r.body);
+  const d = json(r).demande;
+  assert.deepEqual(Object.keys(d), ["action", "commit", "par", "le"]);
+  assert.equal(d.par, "adm@yeita.fr", "email normalisé du membre, pas l'en-tête brut");
+  assert.equal(fs.readFileSync(demandeDe(dbPath), "utf8"), `action=deployer\ncommit=main\npar=adm@yeita.fr\nle=${d.le}\n`);
+  r = await deposer(app, { action: "deployer", commit: "b066b31" });
+  assert.equal(json(r).demande.commit, "b066b31", "la nouvelle demande remplace l'ancienne");
+  r = await deposer(app, { action: "reprendre" });
+  assert.equal(r.statusCode, 202);
+  assert.match(fs.readFileSync(demandeDe(dbPath), "utf8"), /^action=reprendre\ncommit=\npar=adm@yeita\.fr\nle=/);
+  assert.deepEqual(fs.readdirSync(path.dirname(demandeDe(dbPath))), ["deploiement.demande"], "aucun fichier temporaire laissé");
+  assert.equal(fs.statSync(demandeDe(dbPath)).mode & 0o777, 0o600);
+});
+
+test("déploiement : POST refuse toute autre forme (400), le corps non JSON (415), sans rien écrire (CA12)", async t => {
+  const { app, dbPath } = creerApp(t);
+  const refuses = [
+    {}, [], [1], { action: "deployer" }, { action: "deployer", commit: "HEAD" }, { action: "deployer", commit: "--upload-pack=x" },
+    { action: "deployer", commit: "B066B31" }, { action: "deployer", commit: "b066b3" }, { action: "deployer", commit: "a".repeat(41) },
+    { action: "deployer", commit: "b066b31\naction=reprendre" }, { action: "deployer", commit: 123 },
+    { action: "deployer", commit: "main", par: "pirate@yeita.fr" }, { action: "reprendre", commit: "main" }, { action: "supprimer" }
+  ];
+  for (const corps of refuses) {
+    const r = await deposer(app, corps);
+    assert.equal(r.statusCode, 400, JSON.stringify(corps));
+    assert.match(json(r).erreur, /^Demande invalide/, JSON.stringify(corps));
+  }
+  const r = await requete(app, "adm@yeita.fr", { method: "POST", url: "/api/deploiement/demande", payload: '{"action":"reprendre"}', headers: { "content-type": "text/plain" } });
+  assert.equal(r.statusCode, 415);
+  assert.equal(fs.existsSync(demandeDe(dbPath)), false);
+});
+
+test("déploiement : demande identique à celle en attente non réécrite ; autre admin : réécrite (CA12, R17)", async t => {
+  const { app, db, dbPath } = creerApp(t);
+  db.prepare("INSERT INTO equipe VALUES ('adm2@yeita.fr', 'Noa', 'admin', 1, '2026-10-26T00:00:00.000Z')").run();
+  const premiere = json(await deposer(app, { action: "deployer", commit: "main" })).demande;
+  const avant = fs.statSync(demandeDe(dbPath));
+  await new Promise(r => setTimeout(r, 20));
+  const r = await deposer(app, { action: "deployer", commit: "main" });
+  assert.equal(r.statusCode, 202);
+  assert.equal(json(r).demande.le, premiere.le, "même demande rendue");
+  assert.equal(fs.statSync(demandeDe(dbPath)).ino, avant.ino, "fichier non réécrit");
+  assert.equal(json(await deposer(app, { action: "deployer", commit: "main" }, "adm2@yeita.fr")).demande.par, "adm2@yeita.fr");
+});
+
+test("déploiement : demande lue strictement (lien, taille, clé en double ou inconnue, valeurs) → illisible (R6)", async t => {
+  const { app, dbPath } = creerApp(t);
+  const f = demandeDe(dbPath);
+  fs.mkdirSync(path.dirname(f), { recursive: true });
+  const lu = async () => json(await requete(app, "adm@yeita.fr", { url: "/api/deploiement" })).demande;
+  const bonne = "action=deployer\ncommit=main\npar=adm@yeita.fr\nle=2026-10-28T13:00:02.000Z\n";
+  fs.writeFileSync(f, bonne);
+  assert.equal((await lu()).commit, "main", "forme valide");
+  const mauvaises = {
+    "clé en double": bonne + "commit=b066b31\n", "clé inconnue": bonne + "x=1\n", "clé manquante": "action=reprendre\ncommit=\n",
+    "action inconnue": bonne.replace("deployer", "detruire"), "commit mal formé": bonne.replace("main", "HEAD"),
+    "reprendre avec commit": bonne.replace("deployer", "reprendre"), "date": bonne.replace(/le=.*/, "le=hier"),
+    "par": bonne.replace("adm@yeita.fr", "x;rm -rf /"), "trop grande (lignes vides)": bonne + "\n".repeat(1100)
+  };
+  for (const [nom, contenu] of Object.entries(mauvaises)) {
+    fs.writeFileSync(f, contenu);
+    assert.deepEqual(await lu(), { illisible: true }, nom);
+  }
+  fs.rmSync(f);
+  fs.writeFileSync(dbPath + ".lien-cible", bonne);
+  fs.symlinkSync(dbPath + ".lien-cible", f);
+  assert.deepEqual(await lu(), { illisible: true }, "lien symbolique");
+  fs.rmSync(f);
+  fs.mkdirSync(f);
+  assert.deepEqual(await lu(), { illisible: true }, "dossier");
+});
+
+test("déploiement : demande impossible à écrire → 503, rien de laissé (CA12)", async t => {
+  const { app, dbPath } = creerApp(t);
+  fs.writeFileSync(path.dirname(demandeDe(dbPath)), "un fichier à la place du dossier");
+  const r = await deposer(app, { action: "deployer", commit: "main" });
+  assert.equal(r.statusCode, 503);
+  assert.deepEqual(json(r), { erreur: "Le serveur n'a pas pu enregistrer la demande.", code: "demande-non-ecrite" });
 });

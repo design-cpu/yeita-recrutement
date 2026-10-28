@@ -41,6 +41,7 @@ controle /index.html 200
 controle /candidatures/ 302 "$GOOGLE"
 controle /assets/data-diamants.js 302 "$GOOGLE"
 controle /admin/sauvegardes.html 302 "$GOOGLE"   # v1.7 : page d'état des sauvegardes, jamais publique
+controle /admin/deploiement.html 302 "$GOOGLE"   # v1.9 : page du déploiement automatique (elle dépose des demandes), jamais publique
 controle /ping 200
 controle /api/moi 401   # sans session, oauth2-proxy refuse la route d'API (api_routes) sans renvoyer vers Google
 

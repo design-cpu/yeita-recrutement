@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Déploiement · Administration Yeita</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../assets/yeita.css">
+<style>
+  main{margin:24px 0 40px}
+  h1{font-size:28px; margin:0 0 6px}
+  h2.liste{font-size:20px; margin:28px 0 10px}
+  .sous{color:var(--muted); margin:0 0 20px}
+  .verdict{border-radius:var(--radius); padding:18px 20px; margin:0 0 20px; border:1.5px solid var(--line-strong)}
+  .verdict h2{margin:0; font-size:20px}
+  .verdict ul{margin:10px 0 0; padding-left:20px}
+  .verdict.vert{background:var(--go-tint); border-color:var(--go); color:var(--go)}
+  .verdict.rouge{background:var(--stop-tint); border-color:var(--stop); color:var(--stop)}
+  .verdict.neutre{background:var(--surface-2)}
+  .verdict li{color:var(--ink)}
+  .bandeau{border-radius:var(--radius); padding:12px 16px; margin:0 0 12px; border:1px solid var(--line-strong); background:var(--surface-2)}
+  .bandeau.rouge{background:var(--stop-tint); border-color:var(--stop)}
+  dl.etat{display:grid; grid-template-columns:minmax(150px, max-content) 1fr; gap:8px 18px; margin:0 0 20px;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 20px}
+  dl.etat dt{color:var(--muted); font-weight:600}
+  dl.etat dd{margin:0; overflow-wrap:anywhere}
+  .actions{display:flex; flex-wrap:wrap; gap:10px; margin:0 0 12px}
+  .retour{margin:0 0 16px; font-weight:600}
+  details.passage{border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); margin:0 0 10px}
+  details.passage > summary{cursor:pointer; padding:12px 16px; display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline}
+  details.passage > summary:focus-visible, details.etape > summary:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+  .res{font-weight:700}
+  .res.vert{color:var(--go)} .res.rouge{color:var(--stop)}
+  .meta{color:var(--muted); font-size:14px}
+  .corps{padding:0 16px 14px}
+  details.etape{border-top:1px solid var(--line); padding:8px 0}
+  details.etape > summary{cursor:pointer}
+  pre.sortie{font-family:var(--f-mono); font-size:12.5px; background:var(--surface-2); padding:10px 12px; border-radius:6px;
+    max-height:360px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; margin:8px 0 0}
+  .aide{color:var(--ink-2); font-size:15px}
+  .aide code, .verdict code{font-family:var(--f-mono); font-size:14px; background:var(--surface-2); padding:1px 5px; border-radius:6px}
+  @media (max-width:560px){ dl.etat{grid-template-columns:1fr} dl.etat dt{margin-top:6px} }
+</style>
+</head>
+<body>
+<!-- Administration : déploiement automatique de main (deploy/auto-deploy.sh, v1.9). Protégée par oauth2-proxy
+     (connexion Google @yeita.fr) ; données et demandes réservées au rôle admin (GET /api/deploiement,
+     POST /api/deploiement/demande). La page ne lance rien : elle dépose une demande, que le serveur valide.
+     Aucun lien depuis l'espace Candidatures. -->
+<div class="wrap narrow">
+  <header class="topbar">
+    <span id="logo" aria-hidden="true"></span>
+    <span class="where">Administration · Déploiement</span>
+  </header>
+  <main aria-labelledby="titre">
+    <h1 id="titre">Déploiement du site</h1>
+    <p class="sous">Toutes les 10 minutes, le serveur teste le dernier commit de main et le met en ligne si les tests passent.</p>
+    <div id="verdict" class="verdict neutre" role="status" aria-live="polite"><h2>Chargement de l'état…</h2></div>
+    <div id="bandeaux" role="status" aria-live="polite"></div>
+    <dl class="etat" id="details" hidden></dl>
+    <div class="actions" id="actions" hidden>
+      <button class="btn primary" type="button" id="maintenant">Déployer maintenant</button>
+      <button class="btn quiet" type="button" id="reprendre" hidden>Reprendre</button>
+      <button class="btn quiet small" type="button" id="relire">Actualiser</button>
+    </div>
+    <p class="retour" id="retour" role="status" aria-live="polite" hidden></p>
+    <h2 class="liste" id="titre-liste" hidden>Passages</h2>
+    <p class="aide" id="note-liste" hidden>Seuls les commits passés par l'automatisme figurent ici ; pour un autre commit : <code>deploy/deploy.sh &lt;hash&gt;</code> en SSH.</p>
+    <div id="passages"></div>
+    <div class="aide" id="aide" hidden>
+      <p>Pour en savoir plus, sur le serveur (compte <code>ubuntu</code>) :<br>
+        <code>sudo journalctl -u recrutement-deploy -n 100</code> · <code>systemctl list-timers 'recrutement-*'</code></p>
+    </div>
+  </main>
+</div>
+<script src="../assets/yeita.js"></script>
+<script>
+(function () {
+  "use strict";
+  document.getElementById("logo").innerHTML = YEITA.logo(26);
+  var verdict = document.getElementById("verdict"), details = document.getElementById("details"), bandeaux = document.getElementById("bandeaux");
+  var actions = document.getElementById("actions"), bMaintenant = document.getElementById("maintenant"), bReprendre = document.getElementById("reprendre");
+  var retourEl = document.getElementById("retour"), liste = document.getElementById("passages"), aide = document.getElementById("aide");
+  var etat = null, demande = null, maintenant = null, minuterie = null, envoi = false;
+
+  var MESSAGES = {
+    401: "Session expirée : recharge la page pour te reconnecter.",
+    "admin-requis": "Réservé aux admins de l'équipe.",
+    "hors-equipe": "Tu ne fais pas partie de l'équipe.",
+    absente: "État indisponible ici : ce site n'a pas l'API.",
+    reseau: "Le serveur ne répond pas. Réessaie dans un instant."
+  };
+  var REPONSES = {
+    202: "Demande envoyée : le serveur la prend en charge dans quelques secondes.",
+    400: "Demande invalide : rien n'a été envoyé.",
+    503: "Le serveur n'a pas pu enregistrer la demande : rien n'a été envoyé."
+  };
+  var ETAPES = { "test-store": "Tests des règles du parcours", "npm-test": "Tests de l'API", build: "Construction des images", deploy: "Mise en ligne", retour: "Retour arrière" };
+  var STATUTS = { ok: "réussie", ko: "en échec", "non-lancee": "non lancée" };
+  var ORDRE = ["test-store", "npm-test", "build", "deploy"];
+  var MIN = 60 * 1000;
+
+  /* Tout le contenu est inséré comme texte, jamais comme HTML. */
+  function el(nom, texte, classe) { var e = document.createElement(nom); if (texte !== undefined) e.textContent = texte; if (classe) e.className = classe; return e; }
+  function date(iso) {
+    var t = Date.parse(iso || "");
+    if (isNaN(t)) return "date inconnue";
+    return new Date(t).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "medium", timeStyle: "short" });
+  }
+  function heure(iso) { var t = Date.parse(iso || ""); return isNaN(t) ? "?" : new Date(t).toLocaleTimeString("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit" }); }
+  function ilYA(iso) { var t = Date.parse(iso || ""), m = Date.parse(maintenant || ""); return isNaN(t) || isNaN(m) ? Infinity : m - t; }
+  function c(x) { return x && x.court ? x.court : "?"; }
+  function commitTexte(x) { return x ? c(x) + " — " + (x.message || "") + (x.auteur ? " (" + x.auteur + ")" : "") : "inconnu"; }
+  function etapeTexte(nom) { return ETAPES[nom] || nom || "?"; }
+  /* Dans une phrase : première lettre en minuscule seulement (« tests de l'API »). */
+  function etapeDansPhrase(nom) { var t = etapeTexte(nom); return t.charAt(0).toLowerCase() + t.slice(1); }
+  function demandeValide() { return demande && !demande.illisible ? demande : null; }
+
+  function libelleResultat(p) {
+    var m = p.motif || "";
+    switch (p.resultat) {
+      case "deploye": return "Mis en ligne";
+      case "tests-ko": return "Tests en échec : pas mis en ligne";
+      case "deploiement-ko":
+        if (/^ARRÊT|^arrêt avant/.test(m)) return "Mise en ligne refusée avant de commencer";
+        return "Mise en ligne ratée — " + m.replace(/^mise en ligne ratée, /, "");
+      case "demande-refusee": return "Demande refusée : " + m;
+      case "annule": return "Annulé : " + m;
+      case "interrompu": return "Interrompu pendant " + etapeDansPhrase(m.replace(/^interrompu pendant /, ""));
+      default: return p.resultat || "?";
+    }
+  }
+  function couleurResultat(r) { return r === "deploye" ? "vert" : (r === "tests-ko" || r === "deploiement-ko" || r === "interrompu") ? "rouge" : ""; }
+  function declencheur(d) {
+    if (!d) return "?";
+    if (d.type === "automatique") return "Automatique";
+    if (d.type === "demande") return "Demande de " + (d.par || "?");
+    if (d.type === "ligne-de-commande") return "Ligne de commande" + (d.par ? " (" + d.par + ")" : "");
+    return d.type || "?";
+  }
+
+  /* Réécrit seulement si le contenu change : un lecteur d'écran ne relit pas le même verdict à chaque relecture. */
+  function afficherVerdict(classe, titre, motifs) {
+    var signature = classe + "|" + titre + "|" + (motifs || []).join("|");
+    if (verdict.getAttribute("data-signature") === signature) return;
+    verdict.setAttribute("data-signature", signature);
+    verdict.className = "verdict " + classe;
+    verdict.replaceChildren(el("h2", titre));
+    if (motifs && motifs.length) { var ul = el("ul"); motifs.forEach(function (m) { ul.appendChild(el("li", m)); }); verdict.appendChild(ul); }
+  }
+  function message(texte) {
+    afficherVerdict("neutre", texte);
+    [details, actions, aide].forEach(function (x) { x.hidden = true; });
+    nouveauxBandeaux = []; poserBandeaux(); liste.replaceChildren();
+    document.getElementById("titre-liste").hidden = true; document.getElementById("note-liste").hidden = true;
+  }
+
+  /* Verdict de l'en-tête : le premier cas vrai, dans l'ordre de la spec 1.9 (UX/UI). */
+  function calculerVerdict(e) {
+    var rk = e.retour_ko, avant = rk && rk.avant ? rk.avant.court : (e.en_ligne ? c(e.en_ligne) : "?");
+    if (rk && rk.type === "retour-ko") return ["rouge", "Retour arrière raté : le site est peut-être hors service. En SSH : deploy/deploy.sh " + avant, ["Commit en ligne : incertain"]];
+    if (rk && rk.type === "interrompu") return ["rouge", "Mise en ligne interrompue pendant " + etapeDansPhrase(rk.etape) + " : le site est peut-être hors service. En SSH : deploy/deploy.sh " + avant, ["Commit en ligne : incertain"]];
+    if (e.incertain) return ["rouge", "Commit en ligne : incertain (une mise en ligne n'a pas abouti).", []];
+    var ec = e.en_cours, controle = e.dernier_controle || {};
+    if (ilYA(controle.le) > 25 * MIN && !(ec && ilYA(ec.etape_depuis) < 45 * MIN)) {
+      var n = ilYA(controle.le); return ["rouge", "Le serveur ne vérifie plus main (dernière vérification il y a " + (isFinite(n) ? Math.round(n / MIN) + " min" : "longtemps") + ")", []];
+    }
+    if (controle.fetch === "echec") return ["rouge", "Le serveur ne joint pas GitHub", []];
+    var main = e.dernier_main, enLigne = e.en_ligne;
+    if (main && e.echec && e.echec.commit === main.commit) {
+      var p = (e.passages || []).filter(function (x) { return x.commit && x.commit.commit === main.commit && (x.resultat === "tests-ko" || x.resultat === "deploiement-ko"); })[0];
+      return ["rouge", "Le dernier commit de main a échoué (" + (p ? libelleResultat(p) : "échec") + ") : il ne sera pas mis en ligne tant que main n'avance pas.", []];
+    }
+    if (e.pause) return ["neutre", "En pause : les nouveaux commits de main ne sont pas mis en ligne.", []];
+    if (main && enLigne && main.commit !== enLigne.commit) return ["neutre", ec ? "Passage en cours." : "main a avancé : test au prochain passage (10 min au plus).", []];
+    if (ec) return ["neutre", "Passage en cours.", []];
+    return ["vert", "À jour : le dernier commit de main est en ligne.", []];
+  }
+
+  function ligne(dt, dd) { details.appendChild(el("dt", dt)); details.appendChild(el("dd", dd)); }
+  var nouveauxBandeaux = [];
+  function bandeau(texte, rouge) { nouveauxBandeaux.push(el("div", texte, "bandeau" + (rouge ? " rouge" : ""))); }
+  function poserBandeaux() {
+    var signature = nouveauxBandeaux.map(function (b) { return b.className + "|" + b.textContent; }).join("\n");
+    if (bandeaux.getAttribute("data-signature") !== signature) { bandeaux.setAttribute("data-signature", signature); bandeaux.replaceChildren.apply(bandeaux, nouveauxBandeaux); }
+    nouveauxBandeaux = [];
+  }
+
+  function confirmationMaintenant() {
+    var e = etat || {}, main = e.dernier_main, t = ["Le dernier commit de main (" + (main ? c(main) + " " + (main.message || "") : "?") + ") sera testé puis mis en ligne."];
+    if (main && e.en_ligne && main.commit === e.en_ligne.commit) t.push("Il est déjà en ligne : il sera retesté et redéployé.");
+    if (main && e.echec && e.echec.commit === main.commit) t.push("Il a échoué la dernière fois.");
+    if (e.pause) t.push("L'automatisme reste en pause : utilisez Reprendre pour le relancer.");
+    if (demandeValide()) t.push("Remplace la demande de " + demande.par + ".");
+    return t.join("\n");
+  }
+  function confirmationReprendre() {
+    var main = (etat || {}).dernier_main, t = ["L'automatisme reprend : le dernier commit de main (" + c(main) + ") sera testé puis mis en ligne s'il ne l'est pas déjà."];
+    if (demandeValide()) t.push("Remplace la demande de " + demande.par + ".");
+    return t.join("\n");
+  }
+  function confirmationCommit(p) {
+    var e = etat || {}, t = ["Les tests seront relancés."];
+    if (!e.dernier_main || p.commit.commit !== e.dernier_main.commit) t.push("L'automatisme sera mis en pause.");
+    if ((e.echec && e.echec.commit === p.commit.commit) || p.resultat === "deploiement-ko") t.push("La dernière mise en ligne de ce commit a échoué.");
+    if (demandeValide()) t.push("Remplace la demande de " + demande.par + ".");
+    return t.join("\n");
+  }
+
+  function boutonsActifs(oui) { document.querySelectorAll("button[data-demande]").forEach(function (b) { b.disabled = !oui; }); }
+
+  function envoyer(corps, texteConfirmation) {
+    if (envoi || !window.confirm(texteConfirmation)) return;
+    envoi = true; boutonsActifs(false); retourEl.hidden = true;
+    fetch("/api/deploiement/demande", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(corps) })
+      .then(function (r) {
+        return r.text().then(function (t) {
+          var corpsR = null; try { corpsR = JSON.parse(t); } catch (e) { corpsR = null; }
+          var texte = REPONSES[r.status] || (r.status === 401 ? MESSAGES[401] : r.status === 403 && corpsR && MESSAGES[corpsR.code] ? MESSAGES[corpsR.code] : MESSAGES.reseau);
+          retourEl.textContent = texte; retourEl.hidden = false;
+          if (r.status === 202) charger(true);
+        });
+      }, function () { retourEl.textContent = MESSAGES.reseau; retourEl.hidden = false; })
+      .then(function () { envoi = false; boutonsActifs(true); });
+  }
+
+  /* Dépliages gardés d'une relecture à l'autre (clé : identifiant du passage, et nom de l'étape). */
+  var ouverts = null;
+  function noterOuverts() {
+    ouverts = {};
+    liste.querySelectorAll("details[data-cle]").forEach(function (d) { ouverts[d.getAttribute("data-cle")] = d.open; });
+  }
+  function ouvrir(d, cle, defaut) { d.setAttribute("data-cle", cle); d.open = ouverts && cle in ouverts ? ouverts[cle] : defaut; }
+
+  function passageEl(p, ouvert) {
+    var d = el("details", undefined, "passage"), s = el("summary");
+    s.appendChild(el("span", libelleResultat(p), "res " + couleurResultat(p.resultat)));
+    s.appendChild(el("span", commitTexte(p.commit)));
+    s.appendChild(el("span", date(p.debut) + " · " + declencheur(p.declencheur), "meta"));
+    d.appendChild(s);
+    var corps = el("div", undefined, "corps");
+    (p.etapes || []).forEach(function (x) {
+      var de = el("details", undefined, "etape"), se = el("summary", etapeTexte(x.nom) + " : " + (STATUTS[x.statut] || x.statut) + (x.statut === "non-lancee" ? "" : " · " + (x.duree_s || 0) + " s"));
+      de.appendChild(se);
+      if (x.statut !== "non-lancee") de.appendChild(el("pre", x.sortie || "(aucune sortie)", "sortie"));
+      ouvrir(de, p.id + "/" + x.nom, x.statut === "ko");
+      corps.appendChild(de);
+    });
+    var tests = {}; (p.etapes || []).forEach(function (x) { tests[x.nom] = x.statut; });
+    var e = etat || {};
+    if (p.commit && tests["test-store"] === "ok" && tests["npm-test"] === "ok" && tests.build === "ok" && !(e.en_ligne && e.en_ligne.commit === p.commit.commit)) {
+      var b = el("button", "Déployer ce commit", "btn quiet small");
+      b.type = "button"; b.setAttribute("data-demande", "commit");
+      b.addEventListener("click", function () { envoyer({ action: "deployer", commit: p.commit.commit }, confirmationCommit(p)); });
+      var pb = el("p"); pb.appendChild(b); corps.appendChild(pb);
+    }
+    d.appendChild(corps);
+    ouvrir(d, p.id, ouvert);
+    return d;
+  }
+
+  function afficher(v) {
+    etat = v.etat; demande = v.demande; maintenant = v.maintenant;
+    if (liste.children.length) noterOuverts();
+    /* Focus clavier gardé d'une relecture à l'autre : passage ou étape (résumé) ou bouton d'un passage. */
+    var actif = document.activeElement, focusCle = null, focusBouton = false;
+    if (actif && liste.contains(actif)) {
+      var porteur = actif.closest("details[data-cle]");
+      if (porteur) { focusCle = porteur.getAttribute("data-cle"); focusBouton = actif.tagName === "BUTTON"; }
+    }
+    details.replaceChildren(); liste.replaceChildren();
+    if (!etat || etat.illisible) {
+      afficherVerdict("neutre", etat ? "L'état du déploiement est illisible." : "Aucun passage enregistré : le déploiement automatique n'est peut-être pas installé (deploy/README.md).");
+      etat = etat && etat.illisible ? {} : etat;
+    } else {
+      var vd = calculerVerdict(etat); afficherVerdict(vd[0], vd[1], vd[2]);
+    }
+    var e = etat || {}, ec = e.en_cours;
+    if (demande) {
+      if (demande.illisible) bandeau("Une demande illisible attend : elle sera refusée.", false);
+      else {
+        var action = demande.action === "reprendre" ? "reprendre l'automatisme" : "déployer " + (demande.commit === "main" ? "le dernier commit de main" : demande.commit);
+        var texte = "Demande en attente : " + action + " par " + demande.par + " à " + heure(demande.le) + ".";
+        if (ec) bandeau(texte + " Elle sera traitée à la fin du passage en cours.", false);
+        else if (ilYA(demande.le) > 5 * MIN) bandeau(texte + " La demande n'a pas été prise en charge : sudo systemctl status recrutement-deploy.path", true);
+        else bandeau(texte, false);
+      }
+    }
+    if (ec) {
+      var k = ORDRE.indexOf(ec.etape) + 1;
+      bandeau("Passage en cours depuis " + heure(ec.depuis) + " : " + c(ec.commit) + " — " + etapeTexte(ec.etape) + (k > 0 ? " (" + k + "/4)" : ""), false);
+    }
+    if (etat && !etat.illisible && e.maj) {
+      ligne("Commit en ligne", commitTexte(e.en_ligne) + (e.incertain ? " (incertain)" : ""));
+      if (e.dernier_main && (!e.en_ligne || e.dernier_main.commit !== e.en_ligne.commit)) ligne("Dernier commit de main", commitTexte(e.dernier_main));
+      ligne("Automatisme", e.pause ? "en pause depuis " + date(e.pause.depuis) + " (par " + (e.pause.par || "?") + ", commit " + (e.pause.commit || "?") + ")" : "actif");
+      if (e.echec) ligne("Dernier commit en échec", commitTexte(e.echec));
+      ligne("Dernière vérification", e.dernier_controle ? date(e.dernier_controle.le) : "aucune");
+      details.hidden = false;
+    }
+    bMaintenant.setAttribute("data-demande", "maintenant"); bReprendre.setAttribute("data-demande", "reprendre");
+    bReprendre.hidden = !e.pause;
+    actions.hidden = false; aide.hidden = false;
+    var passages = e.passages || [];
+    document.getElementById("titre-liste").hidden = !passages.length; document.getElementById("note-liste").hidden = !passages.length;
+    passages.forEach(function (p, i) { liste.appendChild(passageEl(p, i === 0 && p.resultat !== "deploye")); });
+    poserBandeaux();
+    if (focusCle) {
+      var cible = liste.querySelector('details[data-cle="' + (window.CSS && CSS.escape ? CSS.escape(focusCle) : focusCle) + '"]');
+      var f = cible && (focusBouton ? cible.querySelector(":scope > .corps > p > button") : cible.querySelector(":scope > summary"));
+      if (f) f.focus();
+    }
+    boutonsActifs(!envoi);
+    /* Relecture toutes les 10 s tant qu'une demande attend ou qu'un passage est en cours. */
+    clearTimeout(minuterie);
+    if (demande || ec) minuterie = setTimeout(function () { charger(true); }, 10000);
+  }
+
+  function charger(silencieux) {
+    if (!silencieux) message("Chargement de l'état…");
+    fetch("/api/deploiement", { credentials: "same-origin", headers: { Accept: "application/json" } })
+      .then(function (r) {
+        return r.text().then(function (t) {
+          var corps = null; try { corps = JSON.parse(t); } catch (e) { corps = null; }
+          if (r.status === 200 && corps && "etat" in corps) return afficher(corps);
+          if (r.status === 401) return message(MESSAGES[401]);
+          if (r.status === 403 && corps && MESSAGES[corps.code]) return message(MESSAGES[corps.code]);
+          if (r.status === 404 || !corps) return message(MESSAGES.absente);
+          message((corps && corps.erreur) || MESSAGES.reseau);
+        });
+      }, function () { message(MESSAGES.reseau); });
+  }
+
+  bMaintenant.addEventListener("click", function () { envoyer({ action: "deployer", commit: "main" }, confirmationMaintenant()); });
+  bReprendre.addEventListener("click", function () { envoyer({ action: "reprendre" }, confirmationReprendre()); });
+  document.getElementById("relire").addEventListener("click", function () { charger(); });
+  charger();
+})();
+</script>
+</body>
+</html>

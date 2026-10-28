@@ -1,0 +1,13 @@
+# Lance recrutement-deploy.service dès qu'une demande est déposée par /admin/deploiement.html. Le chemin est celui du
+# volume recrutement_data sur l'hôte (dossier Docker par défaut) : la commande d'installation (deploy/README.md) vérifie
+# qu'il correspond à « docker volume inspect recrutement_data ». Seulement PathExists= : le service ne lit jamais ce
+# chemin depuis l'hôte (la demande est prise par un conteneur jetable).
+[Unit]
+Description=Demande de déploiement déposée par la page d'administration (recrutement)
+
+[Path]
+PathExists=/var/lib/docker/volumes/recrutement_data/_data/demandes/deploiement.demande
+Unit=recrutement-deploy.service
+
+[Install]
+WantedBy=paths.target

@@ -15,6 +15,11 @@ export class ErreurHttp extends Error {
   constructor(statut, message, code) { super(message); this.statut = statut; this.codeHttp = code; }
 }
 
+/* Routes d'administration (sauvegardes, déploiement) : réservées au rôle admin. */
+export function adminRequis(req) {
+  if (req.membre.role !== "admin") throw new ErreurHttp(403, "Réservé aux admins de l'équipe.", "admin-requis");
+}
+
 export function construireApp({ config, db, logger = false, routes = [] }) {
   /* maxParamLength : un :id trop long reste un « Identifiant invalide. » (400) jusqu'à 200 caractères. */
   const app = Fastify({ logger, bodyLimit: LIMITE_CORPS, routerOptions: { maxParamLength: 200 } });

@@ -1,0 +1,50 @@
+---
+type: verifications
+version: 1.9
+total: 16
+ecarts: 4
+date: 2026-10-28
+---
+
+# Vérifications — Déploiement automatique de main
+
+> 15 vérifications sur le poste (Docker Desktop 29.9.2, arm64) et sur un banc jetable `banc19` : image `banc-1.7-systemd` (Ubuntu 26.04.1, systemd 259 en PID 1, `docker.io` 29.1.3, son propre dockerd, `/var/lib/docker` et `/var/lib/containerd` sur des volumes), utilisateur `deploy` (uid 1001, groupe docker), dépôt nu `/srv/origine.git`, clone dans `/opt/recrutement`, pile lancée (`api` healthy).
+> **4 écarts** avec ce qu'on supposait : (1) `compose.yaml` fixe les noms d'image (`image: recrutement-front`, `recrutement-api`) : un `docker compose build` dans le worktree **écrase les images de production** même sous un autre nom de projet (V4) ; (2) un fichier `deploy/PAUSE` non suivi **bloque `deploy.sh`** (« fichiers en trop ») (V7) ; (3) une demande laissée en place fait **tomber l'unité path** au bout de 5 passages (`unit-start-limit-hit`) (V12) ; (4) `deploy` ne peut pas lire le volume depuis l'hôte : demandes et état ne passent que par un conteneur (V5).
+
+| # | Ce qu'on vérifie | Comment (commande, essai) | Résultat | Conséquence pour la spec |
+|---|---|---|---|---|
+| V1 | `node tools/test-store.js` dans un conteneur, sans Node sur l'hôte | poste : `docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -v "$PWD:/w" -w /w <image du FROM de docker/api.Dockerfile> node tools/test-store.js` | code 0, 60 lignes, dernière ligne **`TOUT OK`**, < 1 s | R8 : les tests tournent dans l'image Node de `docker/api.Dockerfile` du commit visé (aucun Node sur l'hôte) |
+| V2 | `npm ci && npm test` dans `api/`, même conteneur, utilisateur non root | poste : même commande, `-w /w/api sh -c 'npm ci --no-audit --no-fund && npm test'` | code 0 en 23 s ; **369 lignes** (sortie TAP hors terminal), verdict `# fail 0` ; `node_modules` appartient à l'utilisateur lanceur (pas à root) | R8 : `--user` de `deploy` (nettoyage possible) ; R12 : la sortie dépasse 300 lignes → coupée aux 300 dernières, le verdict reste visible |
+| V3 | `docker compose build` dans un worktree sans `.env` | poste : `docker compose -p recrutement-essai config` dans le clone | **échec** : `required variable DOMAIN is missing a value` (et 4 autres) ; avec `--env-file .env.example` : config valide | R8 : la construction d'essai lit `.env.example` du commit visé, jamais le `.env` de production |
+| V4 | Noms des images construites dans le worktree | `config --images` avec `-p recrutement-essai` | **Écart** : `recrutement-front`, `recrutement-api` (noms fixés par `compose.yaml`) ; avec un fichier de surcharge `services.{front,api}.image: recrutement-essai-*` : `recrutement-essai-front`, `recrutement-essai-api` ; construction 2 s (cache), 116 lignes ; les images de production gardent leur identifiant | R8 : surcharge des noms d'image ; images d'essai supprimées en fin de passage |
+| V5 | Accès de `deploy` au volume `recrutement_data` depuis l'hôte | banc : `docker volume inspect -f '{{.Mountpoint}}'` ; `ls -ld` ; `runuser -u deploy -- ls` | point de montage `/var/lib/docker/volumes/recrutement_data/_data` ; `/var/lib/docker` `drwx--x--- root`, `_data` `drwx------` uid 1000 ; **`deploy` : Permission denied** ; `docker compose run --rm --no-deps -T api` tourne en `node` (1000) et crée `/data/demandes` (700) | R4, R5 : demandes lues et retirées par un conteneur jetable `api`, comme `ecrire_etat` ; aucun accès de l'hôte aux fichiers du volume (un lien symbolique posé par l'application ne mène nulle part sur l'hôte) |
+| V6 | Unité path `PathExists=` sur un fichier du volume | banc : `essai.path` + `essai.service` (oneshot, 6 s) ; dossier `demandes` absent puis créé ; fichier posé par renommage ; seconde demande posée pendant le passage | dossier absent : surveillé quand même (déclenché à la création) ; renommage : déclenché ; seconde demande : un **second passage part juste après le premier** (fichier toujours présent à la fin) | R5 : `PathExists=` ; R6 : une demande posée pendant un passage est traitée juste après |
+| V7 | `deploy/PAUSE` face au contrôle « dépôt propre » de `deploy.sh` | banc : `touch deploy/PAUSE` ; `deploy.sh` ; puis `/deploy/PAUSE` dans `.git/info/exclude` ; `git checkout --detach HEAD~3` | **Écart** : `?? deploy/PAUSE` → `ARRÊT : le dépôt contient des modifications ou des fichiers en trop` ; avec l'exclusion locale : `git status --porcelain` vide, **y compris après passage à un commit ancien** (le fichier reste, l'exclusion ne dépend pas du commit) | R14 : `.git/info/exclude` (et non `.gitignore`, perdu en revenant à un vieux commit) |
+| V8 | Worktree temporaire et dépôt de production | banc : `git worktree add --detach /home/deploy/essai HEAD~1` ; `git status` de prod ; `rm -rf` brutal puis `git worktree list`, `prune` | prod reste propre (`status` vide) ; dossier supprimé brutalement : `prunable`, retiré par `git worktree prune` | R9 : dossier d'essai fixe, vidé et `prune` au début de chaque passage (reprise après un arrêt) |
+| V9 | Sortie quelconque mise en JSON par le shell, sans jq ni python | banc (sed/awk GNU) : guillemets, `\`, tabulation, `\r`, codes de contrôle, séquences de couleur, UTF-8 valide et invalide, `</script>`, pas de fin de ligne ; 400 lignes → `tail -n 300` ; lu par `JSON.parse` dans l'image `api` | JSON valide ; contrôles retirés, octets invalides lus en `�` ; 300 lignes gardées, première = `ligne 101` | R12 : sorties limitées aux 300 dernières lignes, échappées par le script ; affichées comme texte (R21) |
+| V10 | Protection intersite existante des routes en écriture | code : `api/src/app.js` (PUT/POST exigent `application/json`, sinon 415 ; tests `api.test.js:111-117`, `candidats.test.js:85`) ; banc : `OPTIONS` de pré-vol (`Origin: https://evil.yeita.fr`) et `POST text/plain` sans session vers `127.0.0.1:4180/api/deploiement/demande` | aucun jeton CSRF dans le projet ; pré-vol → **401** (oauth2-proxy, `api_routes`), aucun en-tête `Access-Control-*` ; `POST text/plain` → 401 sans session ; avec session : 415 (règle existante) ; cookie `SameSite=Lax` | R17 : même protection que les autres routes en écriture (corps JSON obligatoire, pas de CORS) ; pas de nouveau mécanisme (aucune question à l'utilisateur) |
+| V11 | Calendrier « toutes les 10 minutes » | banc : `systemd-analyze calendar "*:0/10" --iterations=3` | `*-*-* *:00/10:00` ; prochains : 12:50, 13:00 | R5 |
+| V12 | Demande non retirée par le service | banc : `essai2.path` (`PathExists=`) + service qui ne retire pas le fichier | **Écart** : 5 passages en 15 s, puis path `failed` (`unit-start-limit-hit`) : plus aucune réaction aux demandes | R6 : chaque passage retire toujours la demande (même refusée) ; s'il ne peut pas la lire (Docker muet), il attend 60 s avant de sortir en échec ; verrou pris : il **attend** au lieu de sortir |
+| V13 | Validation d'un identifiant de commit | banc : `git rev-parse --verify --quiet "<x>^{commit}"`, `merge-base --is-ancestor`, `cat-file -e <c>:deploy/auto-deploy.sh` | préfixe trop court ou ambigu : code 1 ; `b066b31` → complet ; ancêtre de `origin/main` : 0 ; `b066b31` (1.8) sans `auto-deploy.sh` : 128 ; `HEAD` accepté par `rev-parse` (refusé par l'expression du pitch) | R3 : expression du pitch **puis** résolution en hash complet, appartenance à main, présence de `deploy/auto-deploy.sh` ; on agit ensuite sur le hash complet |
+| V14 | Verrous `flock` | banc : porteur A 4 s ; B `flock -n` ; C `flock -w 10` ; porteur tué par `kill -9` | B refusé ; C obtenu après 3 s ; verrou libéré à la mort du porteur | R6, R10 |
+| V15 | Verrou de `deploy.sh` partagé avec les sauvegardes | `grep -n flock deploy/backup.sh deploy/deploy.sh` | `deploy.sh` : `flock -n` sur `~/.recrutement-deploy.lock` (refuse tout de suite) ; `backup.sh` prend ce même verrou (`flock -w 600`) pendant sa copie | R10 : avant `deploy.sh`, attendre ce verrou (jusqu'à 15 min) ; « déjà en cours » malgré tout : rien n'a été touché, pas de retour arrière, commit non noté en échec |
+| V16 | Commits de main au sens de la ligne principale (après tour 1, S1) | dépôt : `git rev-list --first-parent main | wc -l` contre `git rev-list main` ; `8324ef4` (commit de la branche 1.8) et `b066b31` (merge #10) | 19 commits sur la ligne principale, 227 ancêtres ; `8324ef4` est un ancêtre (`--is-ancestor` 0) mais **absent** de `--first-parent` ; `b066b31` présent | R3 : une demande vise un commit de `git rev-list --first-parent origin/main` (un commit qui a été la pointe de main) |
+
+## Autres exécutions qui peuvent tourner en même temps (règle des étonnements 1.4, 1.7)
+| Acteur | Fichiers communs | Ce que fait le mécanisme |
+|---|---|---|
+| Timer et unité path | même service : systemd n'en lance jamais deux à la fois (V6) | — |
+| `auto-deploy.sh` lancé à la main | verrou de passage, worktree d'essai, historique local | attend le verrou (V14) ; le second passage refait l'évaluation après le premier |
+| `deploy.sh` lancé à la main | verrou `~/.recrutement-deploy.lock`, dépôt | `auto-deploy.sh` attend ce verrou avant `deploy.sh` (V15) ; un `deploy.sh` manuel pendant les tests d'un passage l'emporte : le passage s'annule (spec R19, après tour 1) |
+| `backup.sh` (3 h) | verrou de `deploy.sh`, `ecrire_etat` (autre fichier d'état) | même attente ; fichiers d'état distincts |
+| Application (`POST`) | `/data/demandes/deploiement.demande` | l'application écrit sous un nom temporaire puis renomme ; le passage prend la demande par renommage avant de la lire (aucune demande perdue entre lecture et suppression) |
+
+## Détail
+```
+V4  config --images -p recrutement-essai            → recrutement-front, recrutement-api, caddy:2.11.7
+    + -f surcharge.yaml                              → recrutement-essai-front, recrutement-essai-api
+V6  debut 12:43:01 / un / fin 12:43:07 / debut 12:43:08 / deux / fin 12:43:14
+V12 passages: 5 · essai2.path ActiveState=failed Result=unit-start-limit-hit
+V14 B -n: refusé · C -w: obtenu après 3s · après kill -9 du porteur : verrou libre
+```
+Scripts et sorties : `scratchpad/v/` (hors dépôt). Banc : conteneur `banc19`, volumes `banc19-docker`, `banc19-containerd`.
