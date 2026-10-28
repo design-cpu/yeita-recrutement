@@ -135,6 +135,8 @@ lancer() { (cd "$PROD" && runuser -u deploy -- env -i "${ENV_FAUX[@]}" ${EXTRA:-
 code() { cat "$T/code"; }
 vue() { python3 -c "import json,sys; d=json.load(open('$VOLUME/etat/deploiement.json')); print(eval(sys.argv[1]))" "$1" 2>/dev/null; }
 nb_passages() { find "$ETATH/passages" -name '*.json' 2>/dev/null | wc -l; }
+# Identifiant du dernier passage enregistré (au-delà de 30 passages, leur nombre ne bouge plus).
+dernier_id() { find "$ETATH/passages" -name '*.json' -printf '%f\n' 2>/dev/null | sort | tail -n 1; }
 dernier() { python3 -c "import json,sys; d=json.load(open('$VOLUME/etat/deploiement.json')); p=d['passages'][0]; print(eval(sys.argv[1]))" "$1" 2>/dev/null; }
 derniere_demande() { python3 -c "import json,sys; d=json.load(open('$VOLUME/etat/deploiement.json')); p=next(x for x in d['passages'] if x['declencheur']['type']=='demande'); print(eval(sys.argv[1]))" "$1" 2>/dev/null; }
 demande() { mkdir -p "$VOLUME/demandes"; printf '%s' "${1%x}" > "$VOLUME/demandes/deploiement.demande"; chown -R deploy:deploy "$VOLUME"; }
@@ -159,8 +161,8 @@ verifie "commit (court, message, auteur), déclencheur automatique, branche main
 verifie "vue : en ligne = C1, non incertain, pas de pause" test "$(vue "d['en_ligne']['commit'], d['incertain'], d['pause'], d['en_cours']")" = "('$C1', False, None, None)"
 verifie "aucun conteneur ni dossier d'essai restant" test ! -e "$ETATH/essai"
 verifie "dépôt de production propre" test -z "$(D git -C "$PROD" status --porcelain)"
-n=$(nb_passages); lancer --auto
-verifie "passage suivant sans nouveau commit : rien d'enregistré, rien de déployé" test "$(nb_passages)" = "$n" -a "$(deploys)" = 1
+n=$(dernier_id); lancer --auto
+verifie "passage suivant sans nouveau commit : rien d'enregistré, rien de déployé" test "$(dernier_id)" = "$n" -a "$(deploys)" = 1
 
 echo "--- CA10 (A) : isolement des tests ---"
 verifie "build : projet recrutement-essai, .env.example, surcharge des noms d'image" grep -q -- "-p recrutement-essai --env-file $ETATH/essai/.env.example -f $ETATH/essai/compose.yaml -f $ETATH/essai-images.yaml build" "$J/docker.log"
@@ -182,8 +184,8 @@ for etape_ko in test-store npm-test build; do
   verifie "$etape_ko KO : résultat tests-ko, étapes $attendu" test "$(dernier "p['resultat'], [e['statut'] for e in p['etapes']]")" = "('tests-ko', $attendu)"
   verifie "$etape_ko KO : pas de deploy.sh, commit noté en échec, code 1" test "$(deploys)" = "$avant" -a "$(cat "$ETATH/echec")" = "$C" -a "$(code)" = 1
 done
-n=$(nb_passages); le1=$(vue "d['dernier_controle']['le']"); sleep 1; lancer --auto
-verifie "passage suivant : rien d'enregistré, dernier_controle mis à jour" test "$(nb_passages)" = "$n" -a "$(vue "d['dernier_controle']['le']")" != "$le1"
+n=$(dernier_id); le1=$(vue "d['dernier_controle']['le']"); sleep 1; lancer --auto
+verifie "passage suivant : rien d'enregistré, dernier_controle mis à jour" test "$(dernier_id)" = "$n" -a "$(vue "d['dernier_controle']['le']")" != "$le1"
 verifie "vue : échec = dernier commit" test "$(vue "d['echec']['commit']")" = "$C"
 
 echo "--- CA11 : sorties et messages hostiles, 300 lignes, JSON valide ---"
@@ -273,8 +275,8 @@ lancer --auto
 CM=$(D git -C "$TRAVAIL" rev-parse HEAD)
 verifie "passage suivant : le nouveau commit est déployé" test "$(en_place)" = "$CM"
 demande_ok deployer main
-n=$(nb_passages); lancer
-verifie "lancement à la main avec une demande en attente : la demande puis le dernier de main, deux passages" test "$(( $(nb_passages) - n ))" = 2 -a "$(dernier "p['declencheur']['type']")" = ligne-de-commande
+n=$(dernier_id); lancer
+verifie "lancement à la main avec une demande en attente : la demande puis le dernier de main, deux passages" test "$(vue "[p['declencheur']['type'] for p in d['passages'][:2]], d['passages'][1]['id'] > '$n'")" = "(['ligne-de-commande', 'demande'], True)" -a "$(dernier "p['declencheur']['type']")" = ligne-de-commande
 
 echo "--- CA6 : refus ---"
 D git -C "$TRAVAIL" checkout -q -b branche-x; sans_marqueurs
@@ -283,8 +285,8 @@ INTER=$(D git -C "$TRAVAIL" rev-parse HEAD)
 echo 2 > "$TRAVAIL/x.txt"; D git -C "$TRAVAIL" commit -qam "branche : étape 2"
 D git -C "$TRAVAIL" checkout -q main; D git -C "$TRAVAIL" merge -q --no-ff -m "Merge branche-x" branche-x; D git -C "$TRAVAIL" push -q origin main
 refus() {   # refus <nom> <contenu de la demande> <motif attendu>
-  local n; n=$(deploys); demande "$2"; lancer --auto
-  verifie "$1 : demande refusée « $3 », rien de lancé, demande retirée" test "$(derniere_demande "p['resultat'] + '|' + p['motif']")" = "demande-refusee|$3" -a "$(deploys)" -le "$((n + 1))" -a ! -e "$VOLUME/demandes/deploiement.demande"
+  local n avant; n=$(deploys); avant=$(derniere_demande "p['id']"); demande "$2"; lancer --auto
+  verifie "$1 : demande refusée « $3 » (passage nouveau), rien de lancé, demande retirée" test "$(derniere_demande "p['id']")" != "$avant" -a "$(derniere_demande "p['resultat'] + '|' + p['motif']")" = "demande-refusee|$3" -a "$(deploys)" -le "$((n + 1))" -a ! -e "$VOLUME/demandes/deploiement.demande"
 }
 L=$'\n'
 refus "commit de branche fusionnée" "action=deployer${L}commit=${INTER:0:12}${L}par=adm@yeita.fr${L}le=2026-10-28T13:00:02Z${L}" "ce commit n'a jamais été la pointe de main"
@@ -308,8 +310,8 @@ mkdir -p "$VOLUME/demandes/deploiement.demande"; chown -R deploy:deploy "$VOLUME
 verifie "dossier à la place de la demande : refusé, retiré" test "$(dernier "p['motif']")" = "demande illisible" -a ! -e "$VOLUME/demandes/deploiement.demande"
 rm -rf "$VOLUME/demandes"; mkdir -p "$T/ailleurs"; printf 'action=deployer\ncommit=main\npar=adm@yeita.fr\nle=2026-10-28T13:00:02Z\n' > "$T/ailleurs/deploiement.demande"
 ln -s "$T/ailleurs" "$VOLUME/demandes"; chown -hR deploy:deploy "$VOLUME" "$T/ailleurs"
-n=$(nb_passages); t0=$(date +%s); lancer --auto
-verifie "dossier des demandes remplacé par un lien : lien retiré, rien d'enregistré, attente avant de sortir, cible intacte" test ! -L "$VOLUME/demandes" -a "$(nb_passages)" = "$n" -a "$(( $(date +%s) - t0 ))" -ge 1 -a -f "$T/ailleurs/deploiement.demande"
+n=$(dernier_id); t0=$(date +%s); lancer --auto
+verifie "dossier des demandes remplacé par un lien : lien retiré, rien d'enregistré, attente avant de sortir, cible intacte" test ! -L "$VOLUME/demandes" -a "$(dernier_id)" = "$n" -a "$(( $(date +%s) - t0 ))" -ge 1 -a -f "$T/ailleurs/deploiement.demande"
 mkdir -p "$VOLUME/demandes"; chown deploy:deploy "$VOLUME/demandes"
 echo "Préfixe ambigu de 7 caractères : non observable sur ce banc (il faudrait ~16 000 commits) ; vérifié par lecture (git rev-parse --verify, V13)."
 
@@ -332,8 +334,8 @@ verifie "Docker muet : attente puis code 1, demande laissée" test "$(code)" = 1
 sans_marqueurs; CR=$(commit_main "feat: pendant que la demande est illisible")
 t0=$(date +%s); EXTRA="FAUX_DOCKER=run-ko" lancer --auto
 verifie "retrait impossible (Docker répond) : journal seulement, l'automatisme continue, attente avant de sortir" test "$(en_place)" = "$CR" -a "$(( $(date +%s) - t0 ))" -ge 1 -a -n "$(grep 'Demande non retirée' "$T/sortie")" -a "$(dernier "p['resultat']")" != demande-refusee
-n=$(nb_passages); EXTRA="FAUX_DOCKER=run-ko" lancer --auto
-verifie "demande non retirée : aucun passage enregistré (l'historique n'est pas remplacé)" test "$(nb_passages)" = "$n"
+n=$(dernier_id); EXTRA="FAUX_DOCKER=run-ko" lancer --auto
+verifie "demande non retirée : aucun passage enregistré (l'historique n'est pas remplacé)" test "$(dernier_id)" = "$n"
 rm -f "$VOLUME/demandes/deploiement.demande"
 
 echo "--- CA11 / R13 / R20 : vue falsifiée, passage interrompu ---"
@@ -342,8 +344,8 @@ import json, sys
 d = json.load(open(sys.argv[1])); d["en_cours"] = {"etape": "deploy", "commit": {"commit": "0"*40}}; d["retour_ko"] = {"type": "interrompu"}; d["echec"] = None
 json.dump(d, open(sys.argv[1], "w"))
 EOF
-n=$(nb_passages); lancer --auto
-verifie "en_cours et retour_ko forgés dans le volume : ni interrompu ni alerte, vue réécrite" test "$(nb_passages)" = "$n" -a "$(vue "d['en_cours'], d['retour_ko']")" = "(None, None)"
+n=$(dernier_id); lancer --auto
+verifie "en_cours et retour_ko forgés dans le volume : ni interrompu ni alerte, vue réécrite" test "$(dernier_id)" = "$n" -a "$(vue "d['en_cours'], d['retour_ko']")" = "(None, None)"
 rm -f "$VOLUME/etat/deploiement.json"; lancer --auto
 verifie "vue supprimée : réécrite au passage suivant" test -f "$VOLUME/etat/deploiement.json"
 ID_INT="$(date -u +%Y%m%dT%H%M%S.%NZ)-1"
