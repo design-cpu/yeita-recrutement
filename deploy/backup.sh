@@ -28,7 +28,7 @@ done
 # L'échec d'une étape, écrit dans l'état des sauvegardes (étape et code seulement).
 etat_echec() {
   ecrire_etat sauvegarde-derniere.json "{\"le\": \"$(maintenant)\", \"resultat\": \"echec\", \"etape\": \"$1\", \"code\": $2}" \
-    || echo "État des sauvegardes non écrit (Docker ne répond pas)." >&2
+    || echo "État des sauvegardes non écrit (docker compose run a échoué, détail ci-dessus)." >&2
 }
 
 # Échec d'une étape : la sortie (trap EXIT) nettoie et écrit l'état.

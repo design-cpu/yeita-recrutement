@@ -88,7 +88,9 @@
     var s = v.sauvegarde, d = v.disque, m = [];
     if (!s.reussie) m.push("Aucune sauvegarde réussie n'est enregistrée.");
     else if (s.reussie.illisible) m.push("Le fichier de la dernière sauvegarde réussie est illisible.");
-    else if (s.en_retard) m.push("La dernière sauvegarde réussie date de plus de 26 heures.");
+    else if (s.en_retard) m.push(Date.parse(s.reussie.le) > Date.parse(v.maintenant)
+      ? "La date de la dernière sauvegarde réussie est dans le futur : l'horloge du serveur est peut-être fausse."
+      : "La dernière sauvegarde réussie date de plus de 26 heures (ou sa date est illisible).");
     if (s.derniere && s.derniere.illisible) m.push("Le fichier de la dernière tentative est illisible.");
     else if (s.derniere && s.derniere.resultat === "echec") m.push("La dernière tentative a échoué (étape : " + (s.derniere.etape || "inconnue") + ").");
     if (!d.mesure) m.push("Aucune mesure des disques n'est enregistrée.");

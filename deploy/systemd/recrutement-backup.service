@@ -4,6 +4,8 @@
 Description=Sauvegarde chiffrée de la base des candidatures
 # Après Docker s'il démarre, sans jamais le démarrer : un Docker arrêté pour une maintenance du serveur partagé
 # n'est pas relancé par une sauvegarde ou une vérification (qui échoue alors et le signale).
+# Après Docker s'il démarre ; les unités ne le demandent pas, mais docker.socket relance Docker au premier appel
+# d'une commande docker : arrêter les timers avant une maintenance de Docker (deploy/README.md § 14).
 After=docker.service
 
 [Service]
@@ -17,5 +19,5 @@ ExecStart=/opt/recrutement/deploy/backup.sh
 # (lancée à la main) tient le verrou : ce sont ses fichiers.
 ExecStopPost=-/usr/bin/flock -n /var/backups/recrutement/.backup.lock /usr/bin/find /var/backups/recrutement -maxdepth 1 -type f ( -name recrutement-*.db -o -name recrutement-*.db.age.tmp ) -delete
 TimeoutStartSec=1h
-# Le temps de nettoyer et de signaler l'échec (3 essais de 10 s) après SIGTERM.
+# Le temps de nettoyer et d'écrire l'état d'échec par un conteneur jetable après SIGTERM.
 TimeoutStopSec=90

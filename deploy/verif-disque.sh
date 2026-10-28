@@ -19,7 +19,7 @@ occupation() { df --output=pcent "$1" 2>/dev/null | tail -n 1 | tr -dc '0-9'; }
 # etat_disque <résultat> [<racine> <docker>] : écrit disque.json (nombres, ou null si la mesure a échoué).
 etat_disque() {
   ecrire_etat disque.json "{\"le\": \"$(maintenant)\", \"resultat\": \"$1\", \"racine\": ${2:-null}, \"docker\": ${3:-null}, \"seuil\": $SEUIL}" \
-    || { echo "État du disque non écrit (Docker ne répond pas)." >&2; return 1; }
+    || { echo "État du disque non écrit (docker compose run a échoué, détail ci-dessus)." >&2; return 1; }
 }
 
 main() {

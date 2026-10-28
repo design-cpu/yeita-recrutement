@@ -125,12 +125,12 @@ age-keygen -y ~/cles-yeita/cle-sauvegarde-recrutement.txt | pbcopy
 - [ ] Sur le serveur, en `deploy` : taper `CLE='`, coller (`Cmd+V`), taper `'`, Entrée. Puis :
 
 ```bash
-cd /opt/recrutement && sed -i '/^AGE_RECIPIENT=/d' .env && echo "AGE_RECIPIENT=$CLE" >> .env && grep '^AGE_RECIPIENT=' .env
+cd /opt/recrutement && [[ "$CLE" =~ ^age1[a-z0-9]+$ ]] && cp -p .env .env.avant-cle && sed -i '/^AGE_RECIPIENT=/d' .env && { [ -z "$(tail -c 1 .env)" ] || echo >> .env; } && echo "AGE_RECIPIENT=$CLE" >> .env && grep '^AGE_RECIPIENT=' .env || echo "RIEN N'A ÉTÉ CHANGÉ : la clé collée n'est pas une clé publique age (age1…)."
 ```
 
 - [ ] Tu dois voir une seule ligne `AGE_RECIPIENT=age1…`, la même clé qu'en B3.
 
-**Sinon** : `AGE_RECIPIENT=` sans rien après → la variable `CLE` est vide : refaire la ligne `CLE='…'` puis la commande.
+**Sinon** : `RIEN N'A ÉTÉ CHANGÉ` → la variable `CLE` est vide ou mal collée : refaire la ligne `CLE='…'` puis la commande.
 
 ## B5. Installer les minuteries
 

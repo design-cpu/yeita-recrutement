@@ -25,6 +25,11 @@ maintenant() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 # api arrêtée), en tant que node, sous un nom temporaire puis renommé. Le JSON ne contient que des dates, des nombres et
 # des textes fixes : jamais de donnée de candidat. Code non nul si Docker ne répond pas.
 ecrire_etat() {
-  printf '%s\n' "$2" | docker compose run --rm --no-deps -T api sh -c \
-    "umask 077 && mkdir -p /data/etat && cat > /data/etat/.$1.tmp && mv /data/etat/.$1.tmp /data/etat/$1" >/dev/null 2>&1
+  case "$1" in ''|*[!a-z.-]*) echo "ecrire_etat : nom de fichier refusé : « $1 »." >&2; return 1 ;; esac
+  local erreur
+  if ! erreur=$(printf '%s\n' "$2" | docker compose run --rm --no-deps -T api sh -c \
+      "umask 077 && mkdir -p /data/etat && cat > /data/etat/.$1.tmp && mv /data/etat/.$1.tmp /data/etat/$1" 2>&1 >/dev/null); then
+    printf '%s\n' "$erreur" | tail -n 3 >&2
+    return 1
+  fi
 }

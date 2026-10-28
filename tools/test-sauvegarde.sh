@@ -267,7 +267,7 @@ verifie "CA9 root refusé" bash -c '[ "$1" -eq 1 ] && grep -q "pas en root" "$2"
 echo "== CA14 : prepare-serveur.sh sans age (ajout QA) =="
 # PATH réduit à des liens vers tous les outils du banc sauf un ; le script s'arrête avant toute modification.
 empreinte_systeme() { { cat /etc/passwd /etc/group; stat -c '%n %a %U' /var/backups/recrutement /home/deploy 2>/dev/null; ls -A /opt; } | sha256sum; }
-for absent in age; do
+absent=age; {
   mkdir -p "$T/sans-$absent"
   for f in /usr/bin/* /usr/sbin/* /bin/* /sbin/*; do [ "$(basename "$f")" = "$absent" ] || ln -sf "$f" "$T/sans-$absent/" 2>/dev/null; done
   avant=$(empreinte_systeme)
@@ -275,7 +275,7 @@ for absent in age; do
   verifie "CA14 sans $absent : code 1" [ "$CODE" -eq 1 ]
   verifie "CA14 sans $absent : message R13" grep -qF "« $absent » est absent. Installez-le vous-même (apt install age) ; ce script n'installe rien." "$T/sortie"
   verifie "CA14 sans $absent : rien modifié" [ "$avant" = "$(empreinte_systeme)" ]
-done
+}
 
 echo
 if [ "$ECHECS" -eq 0 ]; then echo "TOUT OK"; exit 0; else echo "ÉCHECS : $ECHECS"; exit 1; fi

@@ -19,7 +19,7 @@ Installer age (une fois par Mac) :
 brew install age
 ```
 
-Créer la clé dans un dossier qui n'est **pas** synchronisé (ni Bureau, ni Documents, ni iCloud Drive, ni Google Drive), lisible par vous seul :
+Créer la clé dans un dossier qui n'est **pas** synchronisé (ni Bureau, ni Documents, ni iCloud Drive, ni Google Drive), lisible par toi seul :
 
 ```bash
 mkdir -p ~/cles-yeita && chmod 700 ~/cles-yeita && age-keygen -o ~/cles-yeita/cle-sauvegarde-recrutement.txt && chmod 600 ~/cles-yeita/cle-sauvegarde-recrutement.txt
@@ -41,22 +41,22 @@ Sur le Mac, copier la clé publique :
 age-keygen -y ~/cles-yeita/cle-sauvegarde-recrutement.txt | pbcopy
 ```
 
-Sur le serveur, en `deploy` (`ssh deploy@51.75.252.121`), dans `/opt/recrutement`, coller la clé à la place de `age1…` dans la première ligne ci-dessous, puis lancer les deux lignes :
+Sur le serveur, en `deploy` (`ssh deploy@51.75.252.121`) : taper `CLE='`, coller la clé (`Cmd+V`), taper `'`, Entrée. Puis lancer :
 
 ```bash
-CLE='age1…'
-cd /opt/recrutement && sed -i '/^AGE_RECIPIENT=/d' .env && echo "AGE_RECIPIENT=$CLE" >> .env && grep '^AGE_RECIPIENT=' .env
+cd /opt/recrutement && [[ "$CLE" =~ ^age1[a-z0-9]+$ ]] && cp -p .env .env.avant-cle && sed -i '/^AGE_RECIPIENT=/d' .env && { [ -z "$(tail -c 1 .env)" ] || echo >> .env; } && echo "AGE_RECIPIENT=$CLE" >> .env && grep '^AGE_RECIPIENT=' .env || echo "RIEN N'A ÉTÉ CHANGÉ : la clé collée n'est pas une clé publique age (age1…)."
 ```
 
-Attendu : une seule ligne `AGE_RECIPIENT=age1…`, identique à la clé publique du Mac.
+Tu dois voir une seule ligne `AGE_RECIPIENT=age1…`, identique à la clé publique du Mac. Une copie de l'ancien `.env` est gardée dans `.env.avant-cle` (elle n'est jamais publiée).
+Sinon : `RIEN N'A ÉTÉ CHANGÉ` → la variable `CLE` est vide ou mal collée : refaire la ligne `CLE='…'`.
 
 ## 3. Garder et partager le fichier
 
 Pour l'instant (en attendant un coffre de mots de passe interne), le fichier `cle-sauvegarde-recrutement.txt` est la clé.
 
 **À faire :**
-- Le garder sur votre Mac dans `~/cles-yeita/` (étape 1), sur un disque chiffré (FileVault activé).
-- En avoir une seconde copie hors de votre Mac : une clé USB chiffrée rangée en lieu sûr, ou le Mac d'une seconde personne de confiance.
+- Le garder sur ton Mac dans `~/cles-yeita/` (étape 1), sur un disque chiffré (FileVault activé).
+- En avoir une seconde copie hors de ton Mac : une clé USB chiffrée rangée en lieu sûr, ou le Mac d'une seconde personne de confiance.
 - Le donner seulement à 1 ou 2 personnes qui doivent pouvoir restaurer, **en main propre** : AirDrop entre deux Mac côte à côte, ou une clé USB qu'on se passe. La personne le range comme à l'étape 1 (`~/cles-yeita/`, `chmod 600`).
 - Noter qui a le fichier (et depuis quand).
 

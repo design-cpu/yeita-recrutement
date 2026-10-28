@@ -19,10 +19,10 @@ Dans les commandes, remplacer `SERVEUR` par l'adresse du serveur (accès SSH `de
 
 - Un Mac au disque chiffré (FileVault), avec `age` et `sqlite3` : `brew install age sqlite`.
 - Le fichier de la clé privée (`cle-sauvegarde-recrutement.txt`, `deploy/CLE-SAUVEGARDE.md`).
-- Tout se fait dans un dossier temporaire, hors des dossiers synchronisés (Bureau, Documents, iCloud, Drive), lisible par vous seul, effacé à la fin :
+- Tout se fait dans un dossier temporaire, hors des dossiers synchronisés (Bureau, Documents, iCloud, Drive), lisible par toi seul, effacé à la fin. Lancer la première commande **depuis le dossier du dépôt** (pour `tools/check-site.sh` à l'étape 8) :
 
 ```bash
-umask 077; d=$(mktemp -d); cd "$d"; echo "$d"
+depot=$(pwd); umask 077; d=$(mktemp -d); cd "$d"; echo "$d"
 ```
 
 Copier le fichier de la clé dans ce dossier (remplacer le chemin par celui où il est gardé), puis la contrôler : la clé publique affichée doit être exactement `AGE_RECIPIENT` du `.env` du serveur.
@@ -142,7 +142,7 @@ EOF
 
    ```bash
    ssh deploy@SERVEUR 'cd /opt/recrutement && docker compose exec -T -e FICHIER=/data/recrutement.sqlite api node --input-type=module' < "$d/controle.mjs"
-   tools/check-site.sh https://DOMAINE
+   "$depot/tools/check-site.sh" https://DOMAINE
    IDS=$(cut -d' ' -f1 "$d/suppressions.txt" | grep -E '^cand-[a-z0-9]{1,16}-[a-z0-9]{1,16}$' | tr '\n' ' ')
    ssh deploy@SERVEUR "cd /opt/recrutement && docker compose exec -T -e IDS='$IDS' -e DOMAINE=DOMAINE api node --input-type=module" < "$d/suppressions.mjs"
    ```
