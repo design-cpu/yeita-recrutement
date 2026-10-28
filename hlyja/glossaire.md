@@ -139,5 +139,5 @@ Aussi : base SQLite.
 Le réveil du serveur qui lance une tâche à heure fixe : chaque nuit vers 3 h pour la sauvegarde, chaque heure pour le disque. Si le serveur était éteint, la tâche part à son redémarrage.
 
 ## Volume
-Un dossier géré par Docker, qui survit à l'arrêt et à la recréation des conteneurs. Le volume `recrutement_data` contient la base des candidatures, à ne jamais supprimer ; depuis la 1.7, elle est aussi sauvegardée chaque nuit hors du serveur.
+Un dossier géré par Docker, qui survit à l'arrêt et à la recréation des conteneurs. Le volume `recrutement_data` contient la base des candidatures, à ne jamais supprimer ; depuis la 1.7, elle est aussi sauvegardée chaque nuit, sur le même serveur.
 Aussi : volume Docker, recrutement_data.

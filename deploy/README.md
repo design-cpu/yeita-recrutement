@@ -209,7 +209,7 @@ Passer du cas B au cas A : vider `COMPOSE_PROFILES` dans `.env` ; au déploiemen
 En tant que `deploy`, de préférence dans `tmux` ou `screen` (une coupure SSH n'interrompt pas le déploiement) :
 
 ```bash
-/opt/recrutement/deploy/deploy.sh
+umask 022 && /opt/recrutement/deploy/deploy.sh
 ```
 
 Le script affiche le commit en place, `DOMAIN` et le cas, vérifie les réglages (tels que Compose les lit) et que le dépôt n'a ni modification ni fichier en trop (une copie de `.env` serait publiée), met le dépôt sur le dernier `main`, reconstruit l'image, recrée les conteneurs (la configuration est toujours rechargée), supprime les anciennes images **du projet seulement** (étiquette `fr.yeita.projet=recrutement`, jamais de nettoyage global), puis lance `tools/check-site.sh https://$DOMAIN`. En cas B, le contrôle est retenté pendant une minute, le temps que Caddy obtienne son certificat au premier déploiement.
@@ -262,7 +262,7 @@ Le **premier** déploiement qui apporte l'API est lancé par le `deploy.sh` de l
 ## 10. Revenir en arrière
 
 ```bash
-/opt/recrutement/deploy/deploy.sh <commit>
+umask 022 && /opt/recrutement/deploy/deploy.sh <commit>
 ```
 
 Le commit doit appartenir à `main` et contenir le déploiement Docker (pas d'avant cette version). En cas d'échec, `deploy.sh` affiche la commande exacte avec le commit précédent.
@@ -324,7 +324,7 @@ docker compose exec api node api/equipe.js role prenom.nom@yeita.fr lecture     
 
 `disable` coupe l'accès aux données **dès la requête suivante** : la session Google de la personne reste ouverte, mais ne lui montre plus que les pages, sans aucun dossier (« Tu ne fais pas partie de l'équipe. »). Le rôle `lecture` peut tout voir et ne peut rien modifier.
 
-La base est dans le volume `recrutement_data` (`docker volume inspect recrutement_data`) : elle est copiée chaque nuit, chiffrée, hors du serveur (section 14). **Ne lancez jamais `docker compose down -v` ni `docker volume prune`** sur ce serveur : ces commandes effacent la base.
+La base est dans le volume `recrutement_data` (`docker volume inspect recrutement_data`) : elle est copiée chaque nuit, chiffrée, et gardée 30 jours **sur ce serveur** (section 14) : une perte du serveur emporterait aussi les copies. **Ne lancez jamais `docker compose down -v` ni `docker volume prune`** sur ce serveur : ces commandes effacent la base.
 
 ## 14. Sauvegardes
 

@@ -4,14 +4,14 @@ vue: humaine
 page: decisions
 titre: Décisions techniques
 maj: 1.7
-commit: 26c1d9f
-sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md
-date: 2026-10-27
+commit: 8db372f
+sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md, deploy/commun.sh, deploy/verif-disque.sh, deploy/CLE-SAUVEGARDE.md, api/src/sauvegardes.js, admin/sauvegardes.html
+date: 2026-10-28
 ---
 
 # Décisions techniques
 
-> Les grands choix du dépôt et ce qu'ils écartent. En v1.1, le site est hébergé chez Yeita derrière une connexion Google. En v1.2, une API garde les dossiers dans SQLite. En v1.3, les pages l'utilisent. En v1.7, la base est sauvegardée chaque nuit, chiffrée, chez OVH, sans que le serveur puisse effacer ces copies.
+> Les grands choix du dépôt et ce qu'ils écartent. En v1.1, le site est hébergé chez Yeita derrière une connexion Google. En v1.2, une API garde les dossiers dans SQLite. En v1.3, les pages l'utilisent. En v1.7, la base est sauvegardée chaque nuit, chiffrée, sur le serveur, et une page d'état remplace les alertes.
 
 ## En un coup d'œil
 
@@ -35,9 +35,9 @@ date: 2026-10-27
 | Image Node figée | Une version précise, avec son correctif de sécurité | v1.3 |
 | « Remplacer tout » masqué | En mode serveur, seule la fusion est proposée | v1.3 |
 | Méthode de copie | La copie passe par SQLite lui-même, vérifiée, en un seul fichier | v1.7 |
-| Chiffrement et clé | Une clé publique sur le serveur, la clé privée au coffre | v1.7 |
-| Rétention et droits chez OVH | OVH efface au bout de 30 jours ; le serveur ne peut rien effacer | v1.7 |
-| Alertes | Deux contrôles healthchecks.io, un par tâche | v1.7 |
+| Chiffrement et clé | Une clé publique sur le serveur, la clé secrète dans un fichier hors du serveur | v1.7 |
+| Copies sur le serveur seulement | Pas de stockage payant : les copies restent sur le serveur | v1.7 |
+| Page d'état au lieu d'alertes | Les admins regardent une page ; aucun service tiers | v1.7 |
 | Restauration | La copie en clair ne touche jamais le disque du serveur | v1.7 |
 
 Les décisions de v1.0 à v1.3 sont expliquées dans la version complète. Voici celles de v1.7.
@@ -46,37 +46,40 @@ Les décisions de v1.0 à v1.3 sont expliquées dans la version complète. Voici
 
 Une lecture longue de la base, par un autre outil, empêche l'API de nettoyer ses fichiers : un dossier supprimé y resterait lisible plus longtemps. La copie utilise donc la fonction de sauvegarde de SQLite, dans le conteneur, et ne garde la base ouverte que le temps de la copie.
 
-La copie est vérifiée avant de recevoir son nom définitif, et tient en un seul fichier. Les autres façons de copier (copier les fichiers à chaud, l'outil `sqlite3`) sont écartées.
+La copie est vérifiée avant de recevoir son nom définitif, et tient en un seul fichier. Copier les fichiers à chaud ou passer par l'outil `sqlite3` est écarté.
 
 ## Chiffrer pour une seule clé
 
-Les copies contiennent les dossiers candidat et quittent le serveur. Elles sont chiffrées avec age pour une seule clé publique. La clé privée est créée sur un poste, rangée au coffre de Yeita et connue d'au moins deux personnes. Une copie ne se déchiffre que sur un poste, jamais sur le serveur.
+Les copies contiennent les dossiers candidat. Elles sont chiffrées avec age pour une seule clé publique, posée sur le serveur. La clé secrète est créée sur un Mac et n'existe que sous forme d'un fichier `.txt`, confié en main propre à une ou deux personnes, en attendant un coffre de mots de passe.
 
-> Perdre la clé privée rend toutes les copies illisibles. À la mise en service, on vérifie que la clé du coffre correspond à celle du serveur, et qu'une vraie copie s'ouvre.
+> Perdre ce fichier rend toutes les copies illisibles. Après la première sauvegarde, on vérifie qu'il ouvre bien une vraie copie.
 
-## Laisser OVH effacer, pas le serveur
+Une clé SSH, que age accepterait aussi, est refusée par le script : une seule forme de clé, plus simple à contrôler.
 
-Un serveur piraté ne doit pas pouvoir détruire les copies. Trois comptes de stockage se partagent les rôles :
+## Garder les copies sur le serveur
 
-| Compte | Ce qu'il peut faire | Où il vit |
-|---|---|---|
-| Administrateur | tout régler, y compris l'effacement automatique à 30 jours | au coffre, utilisé depuis un poste |
-| Serveur | déposer des copies, sans jamais pouvoir les effacer | sur le serveur |
-| Restauration | lire les copies | au coffre, avec la clé privée |
+La première spec envoyait les copies chez OVH Object Storage. Ce service est payant, et aucun stockage gratuit n'a été retenu. Pour cette version, les copies chiffrées restent donc 30 jours sur le serveur, dans `/var/backups/recrutement`.
 
-Le compte du serveur pourrait encore remplacer un fichier du même nom. Chaque copie porte donc un nom à la seconde près : une relance ne remplace jamais celle de la nuit.
-
-| Endroit | Un dossier supprimé y reste au plus |
+| Ce que ça permet | Ce que ça ne permet pas |
 |---|---|
-| Copie de travail, à côté de la base | 3 jours |
-| Copies chiffrées du serveur | 31 jours |
-| Copies chez OVH | 32 jours |
+| Revenir en arrière après une erreur, une base abîmée, un volume Docker perdu | Survivre à la perte du serveur : les copies partent avec lui |
 
-## Une alerte par tâche
+Choix accepté par l'utilisateur. Un dossier supprimé reste au plus 3 jours dans la copie de travail et 31 jours dans les copies chiffrées.
 
-Chaque tâche signale son succès ou son échec à son propre contrôle healthchecks.io. Un contrôle unique aurait été trompeur : les signaux du disque, toutes les heures, l'auraient gardé au vert malgré une sauvegarde ratée. Un contrôle qui ne reçoit plus rien alerte aussi : il voit un serveur éteint ou un timer cassé.
+## Une page plutôt que des alertes
 
-L'adresse d'un contrôle est un secret : elle ne passe jamais dans la ligne de commande d'un programme, que tout compte du serveur peut lire. Le signal ne compte comme reçu que si healthchecks.io répond exactement « OK ».
+Pour savoir si les sauvegardes tournent sans dépendre d'un service tiers, les scripts écrivent leur résultat dans le volume de l'API. Une route réservée aux admins le lit, et la page `/admin/sauvegardes.html` l'affiche : vert, ou rouge avec la raison en clair.
+
+```mermaid
+flowchart LR
+  A[Scripts de la nuit et de l'heure] --> B[État dans le volume]
+  B --> C[Route admin]
+  C --> D[Page verte ou rouge]
+```
+
+Écartés : healthchecks.io (retiré avec la reprise), un lien depuis Candidatures (refusé), le nom `/dashboard/` (remplacé par `/admin/`, réservé au futur tableau de bord).
+
+> Aucune alerte n'est envoyée : si personne n'ouvre la page, personne ne voit une panne. Les emails viendront dans une évolution ultérieure.
 
 ## Restaurer sans risque
 
@@ -84,19 +87,19 @@ Une restauration ratée ne doit pas détruire la base, et la copie en clair ne d
 
 ```mermaid
 flowchart LR
-  A[Copie déchiffrée sur un poste] --> B[Envoyée par SSH dans le volume]
+  A[Copie déchiffrée sur un Mac] --> B[Envoyée par SSH dans le volume]
   B --> C{Empreinte et contrôle bons ?}
   C -- oui --> D[Base remplacée]
   C -- non --> E[Rien n'est touché]
   D --> F[Suppressions refaites dans l'interface]
 ```
 
-Avant de remplacer, l'état actuel est sauvegardé, pour pouvoir revenir en arrière. Après, l'équipe supprime à nouveau, dans l'interface, les dossiers supprimés depuis la date de la copie. La procédure a été rejouée sur un serveur d'essai, dans trois situations.
+Avant de remplacer, l'état actuel est sauvegardé, pour pouvoir revenir en arrière. Après, l'équipe supprime à nouveau, dans l'interface, les dossiers supprimés depuis la date de la copie. Poser la copie avec `docker compose cp` est écarté : le fichier serait illisible par l'API. La procédure a été rejouée sur un serveur d'essai, dans trois situations.
 
 ## Voir aussi
 - [Comment les pages choisissent où ranger les dossiers](mode-serveur.md)
 - [L'API de stockage](api.md)
 - [Architecture et déploiement](architecture.md)
 - [Conventions et tests](conventions.md)
-- Restaurer la base : `deploy/RESTAURER.md`
+- La clé : `deploy/CLE-SAUVEGARDE.md` ; restaurer la base : `deploy/RESTAURER.md`
 - Le détail de chaque décision (contexte, options écartées, conséquences) est dans la version complète.

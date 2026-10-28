@@ -3,7 +3,7 @@ type: technique
 page: api
 titre: API de stockage (api/)
 maj: 1.7
-commit: fed40fe
+commit: 8db372f
 sources: api/server.js, api/equipe.js, api/sauvegarde.js, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/src/options.js, api/src/routes.js, api/src/valeurs.js, api/package.json, api/.npmrc, api/README.md, api/src/sauvegardes.js
 date: 2026-10-28
 ---
@@ -52,7 +52,7 @@ Rien n'est importé de `assets/` : `SCHEMA_DOSSIER`, `MOTIF_ID` (`uid()`), `DISP
 | `GET /api/candidats/:id` | oui | tous | `:id` (`MOTIF_ID`) | 200 `{id, version, data}` | 400, 401, 403, 404 `introuvable` | 1.2 |
 | `PUT /api/candidats/:id` | oui | recruteur, admin | `{version: null \| entier ≥ 1, data}` JSON ≤ 1 Mo | 201 (création, `version` 1), 200 (`version + 1`) | 400, 401, 403, 409 `conflit`, 413, 415, 503 | 1.2 |
 | `DELETE /api/candidats/:id` | oui | recruteur, admin | `:id` | 204 | 400, 401, 403, 404 `introuvable`, 503 | 1.2 |
-| `GET /api/sauvegardes` (v1.7) | oui | admin (sinon 403 `admin-requis` « Réservé aux admins de l'équipe. ») | — | 200 `{maintenant, sauvegarde: {derniere, reussie, en_retard}, disque: {mesure, en_retard}}` ; fichier absent → `null`, illisible → `{illisible: true}` ; `en_retard` : réussite de plus de 26 h, mesure de plus de 2 h, ou absente | 401, 403 | 1.7 |
+| `GET /api/sauvegardes` (v1.7) | oui | admin (sinon 403 `admin-requis` « Réservé aux admins de l'équipe. ») | — | 200 `{maintenant, sauvegarde: {derniere, reussie, en_retard}, disque: {mesure, en_retard}}` ; fichier absent → `null`, illisible → `{illisible: true}` ; `en_retard` : réussite de plus de 26 h, mesure de plus de 2 h, absente, illisible ou datée dans le futur ; consommateur : `admin/sauvegardes.html` | 401, 403 | 1.7 |
 | `GET /api/options-disponibilite` | oui | tous | — | 200 `["…"]` (ajouts, ordre `rowid`) | 401, 403 | 1.2 |
 | `POST /api/options-disponibilite` | oui | recruteur, admin | `{libelle}` (1 à 60 caractères, espaces normalisés) | 201 ajouté, 200 doublon ou option de `DISPOS` ; corps : la liste | 400, 401, 403, 413, 415, 503 | 1.2 |
 | `* /api/*` (autre) | oui | tous | — | — | 404 « Route inconnue. » (après l'autorisation) | 1.2 |

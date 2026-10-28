@@ -3,7 +3,7 @@ type: technique
 page: decisions
 titre: Décisions techniques
 maj: 1.7
-commit: fed40fe
+commit: 8db372f
 sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md, deploy/commun.sh, deploy/verif-disque.sh
 date: 2026-10-28
 ---

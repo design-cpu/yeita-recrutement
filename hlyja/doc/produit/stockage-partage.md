@@ -3,7 +3,7 @@ type: doc
 domaine: stockage-partage
 titre: Candidatures partagées et identité
 maj: 1.7
-commit: fed40fe
+commit: 8db372f
 sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, assets/qui.js, assets/store.js, assets/wording.fr.js, assets/yeita.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/decompte.html, candidatures/carte.html, deploy/README.md, deploy/RESTAURER.md, api/README.md, admin/sauvegardes.html, api/src/sauvegardes.js
 date: 2026-10-28
 ---
@@ -58,7 +58,7 @@ La page attend la réponse (10 s au plus) avant d'afficher ou d'enregistrer quoi
 - Un import « Fusion » d'un ancien export peut recréer un dossier supprimé depuis.
 - Des exemples chargés dans la base avant la 1.4 restent visibles de toute l'équipe jusqu'à ce que quelqu'un clique « Retirer les exemples ».
 - Chaque déploiement coupe la base une quinzaine de secondes : les pages ouvertes affichent alors le message réseau.
-- Une restauration complète remet la base à la date de la copie : ce qui a été saisi depuis est perdu (l'état d'avant la restauration est gardé en copie chiffrée). Après la perte du serveur, les suppressions de la dernière journée ne sont pas connues et sont refaites d'après les demandes reçues.
+- Une restauration complète remet la base à la date de la copie : ce qui a été saisi depuis est perdu (l'état d'avant la restauration est gardé en copie chiffrée). Si le serveur est perdu, les sauvegardes le sont aussi : il n'y a rien à restaurer.
 
 ## Voir aussi
 - [Mode serveur des pages](../../technique/mode-serveur.md)
