@@ -18,7 +18,7 @@ date: 2026-10-28
 | 1 | GitHub | PR mergée dans `main` ; éviter 3 h–3 h 15 (sauvegarde) ; prévenir l'équipe (coupure ~15 s) | — |
 | 2 | serveur, `deploy`, nouveau terminal | `umask 022 && cd /opt/recrutement && deploy/deploy.sh` (`umask 022` : protège une exécution par un `deploy.sh` antérieur à la 1.8, voir « Masque des fichiers ») | `Commit en place : …`, `· Dépôt sur main : <commit>`, `· Conteneurs à jour ; anciennes images du projet supprimées.`, `· API saine.`, 7 `OK`, `Tout est OK sur https://recrutement.yeita.fr`, `Déploiement réussi : <commit> sur https://recrutement.yeita.fr` (`deploy.sh` l. 102, 113, 134, 139 ; `check-site.sh` l. 51) |
 | 3 | navigateur | `/candidatures/` (connexion Google, « Connecté·e : <prénom> ») ; `/admin/sauvegardes.html` (compte admin) | page d'état affichée |
-| 4 | serveur | échec : lancer la commande affichée `deploy/deploy.sh <commit>` ; `ARRÊT : un déploiement est déjà en cours` : attendre 5 min | `ÉCHEC : …` puis `Pour revenir à la version précédente : deploy/deploy.sh <commit>` (`deploy.sh` fonction `echec`) |
+| 4 | serveur | échec : lancer la commande affichée `deploy/deploy.sh <commit>`, telle quelle, sauf après l'échec d'un retour vers un commit d'avant la 1.8 (le `deploy.sh` du disque est alors l'ancien) : `umask 022 &&` devant ; `ARRÊT : un déploiement est déjà en cours` : attendre 5 min | `ÉCHEC : …` puis `Pour revenir à la version précédente : deploy/deploy.sh <commit>` (`deploy.sh` fonction `echec`) |
 | 5 | serveur et Mac | gestes propres à une version (1.7 : `sudo apt install -y age` ; clé créée sur le Mac et `AGE_RECIPIENT` écrite dans `.env` avec copie dans `~/env-avant-cle` ; installation des 4 unités à trois issues ; `equipe.js role <email> admin` ; `deploy/backup.sh && deploy/verif-disque.sh` ; page verte ; déchiffrement d'essai) | `Rôle changé : … · admin · actif` (`equipe.js` l. 77) ; `Sauvegarde réussie : recrutement-…Z.db.age (… octets) ; 1 copies sur le serveur.` (`backup.sh`) |
 
 ## Points à savoir
@@ -39,4 +39,4 @@ date: 2026-10-28
 | Version | Changement |
 |---|---|
 | 1.7 | Création |
-| 1.8 | `deploy.sh` fixe `umask 022` (fiche 1.7-1) ; préfixe de l'étape 2 gardé, avec sa raison ; numéros de ligne recalés |
+| 1.8 | `deploy.sh` fixe `umask 022` (fiche 1.7-1) ; préfixe de l'étape 2 gardé, avec sa raison ; exception de l'étape 4 ; numéros de ligne recalés |
