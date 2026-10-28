@@ -4,7 +4,7 @@ version: 1.10
 bloquants: 0
 majeurs: 1
 mineurs: 10
-corriges: 7
+corriges: 8
 dependances: 0
 audit: found 0 vulnerabilities (npm audit --omit=dev, api/)
 date: 2026-10-28
@@ -43,4 +43,20 @@ Vérifiés sans constat : rôle lecture refusé en écriture (y compris `%66ichi
 | Q7 | mineur | fiches 03, 04, 07 | Verdicts et mutations incomplets ; preuve 1.10-3 sur `main` absente | — | à la QA de version |
 
 ## Revérification
-<à compléter par le relecteur>
+Par le même relecteur, au commit `56eefd7` ; `cd api && npm test` → `ℹ tests 82 · ℹ pass 82 · ℹ fail 0`.
+| # | Verdict | Preuve |
+|---|---|---|
+| Q1 | ok | `MODELE.md` l. 138 ; `technique/api.md` repris à l'étape documentation |
+| S1 | ok | requête `cite` dans la transaction `immediate` avant le `DELETE` ; test cv, portfolio, retrait après enregistrement ; jamais déclenché par l'ordre R5 des pages, absorbé par `auMieux` sinon |
+| S3 | ok | `ui.js` l. 50 |
+| Q4 | ok | `fichiers.test.js` l. 33 |
+| Q5 | ok | `menu-candidat.js` l. 197 ; la référence au fichier déposé est gardée |
+| Q6 | ok | écriture par `requestAnimationFrame` ; un onglet en arrière-plan reçoit le message en redevenant visible (acceptable) |
+| Q2 (EC1) | ok, **avec régression N1** | grep : plus d'appel aux fonctions retirées |
+| Q3 | ok | commentaire de source dans `valeurs.js` |
+
+Nouveaux défauts introduits par les corrections :
+| # | Sévérité | Fichier | Constat | Statut |
+|---|---|---|---|---|
+| N1 | majeur | `candidatures/style.css` | Le retrait de `details.liens-fiche{…}` par expression régulière avait laissé « details » collé au sélecteur suivant : `.carte-h` devenu `details.carte-h`, en-tête de la carte d'identité cassé | corrige (`.carte-h` rétabli) ; contrôle ajouté à `e2e-parcours` (FAIL sans la correction, OK avec) |
+| N2 | mineur | `hlyja/technique/api.md` | Le contrat du DELETE ne cite pas `409 fichier-cite` | étape documentation |
