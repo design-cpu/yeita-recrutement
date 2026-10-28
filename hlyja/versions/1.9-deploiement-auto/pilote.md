@@ -1,14 +1,14 @@
 ---
 type: pilote
 version: 1.9
-points: 3
-dernier: ok
+points: 4
+dernier: ajuster
 date: 2026-10-28
 ---
 
 # Chef d'équipe — version 1.9
 
-> Plan + P1, P2, P3 · dernier verdict : ok.
+> Plan + P1, P2, P3, P4 · dernier verdict : ajuster (appliqué).
 
 ## Plan · ok
 Plan écrit dans `version.md` (section « Plan d'équipe »).
@@ -44,3 +44,14 @@ Actions appliquées : spec v2 à 191 lignes et 19 CA ; banc en une phrase, garde
 | Gardes à muter | ~22 | 15 à 22 |
 Constats : conforme au plan ; `check-site.sh` (`[ajout]` validé) et `api/README.md` proportionnés ; `deploy.sh` limité à la pause et au commit déployé.
 Actions : pas plus de 22 gardes ; niveau B de la tâche 06 tenu à SC1–SC8 et au cycle complet.
+
+## P4 — avant la QA · ajuster
+| Mesure | Valeur | Repère du plan |
+|---|---|---|
+| Commits | 17 | — |
+| Fichiers touchés (hors `hlyja/`) | 18 (7 nouveaux, 11 modifiés), +1723 / −15 | 15 à 19 ; P3 : 16 |
+| Hors code de production | 3 (`tools/test-auto-deploy.sh`, `api/test/api.test.js`, `tools/e2e-serveur.py`) + 1 script de niveau B hors dépôt | 2 à 3 |
+| Mutations | 40 (9 API + 22 niveau A + 7 après la revue + 2 page) | 15 à 22 |
+| Revue | 4 majeurs et 12 mineurs corrigés, 9 mineurs ouverts | — |
+Constats : conforme au découpage ; `api/src/app.js` et `sauvegardes.js` en plus viennent de Q9 ; mutations presque au double du repère (non prévu, justifié) ; le niveau B n'était pas rejouable depuis le dépôt.
+Actions appliquées : niveau B versé dans `tools/test-auto-deploy.sh` (option `--reel`, derrière `AUTO_DEPLOY_JETABLE=oui`, préparation du banc en en-tête ; toujours 3 fichiers hors production) ; écart des mutations à écrire au bilan ; en QA, recopier les lignes de verdict de shellcheck et de `systemd-analyze verify` ; Q3, Q12, Q15 → documentation ; S3, S5, Q10, Q16 → backlog.

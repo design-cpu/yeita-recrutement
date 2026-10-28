@@ -4,7 +4,7 @@
 # À lancer en root dans un conteneur jetable ubuntu:26.04 avec docker (CLI et plugin compose), git, python3 — jamais
 # sur le serveur. Depuis la racine du dépôt :
 #   docker run --rm -e AUTO_DEPLOY_JETABLE=oui -v "$PWD:/depot:ro" banc-1.7 bash /depot/tools/test-auto-deploy.sh /depot
-# Le niveau B (vraie pile, vraies unités systemd) se déroule sur banc-1.7-systemd : voir la fiche de la tâche 06.
+# Niveau B (vraie pile, vraies unités systemd) : option --reel, sur banc-1.7-systemd préparé (voir plus bas).
 # Affiche OK/FAIL par vérification et finit par « TOUT OK » (code 0) ou « ÉCHECS : n » (code 1).
 set -uo pipefail
 
@@ -23,6 +23,158 @@ verifie() { local nom=$1; shift; if "$@"; then ok "$nom"; else ko "$nom"; fi; }
 [ "${AUTO_DEPLOY_JETABLE:-}" = oui ] || { echo "Refusé : ce lanceur crée un utilisateur et efface des dossiers. Le lancer seulement dans un conteneur jetable, avec -e AUTO_DEPLOY_JETABLE=oui." >&2; exit 2; }
 [ -f /.dockerenv ] || { echo "Refusé : pas dans un conteneur." >&2; exit 2; }
 grep -q 'ID=ubuntu' /etc/os-release || { echo "Banc ubuntu attendu." >&2; exit 2; }
+# --- Niveau B (--reel) : vraie pile, vraies unités, sur banc-1.7-systemd (systemd en PID 1, son propre dockerd) ---
+# Préparation du banc (une fois), depuis la racine du dépôt :
+#   docker run -d --name banc19 --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --tmpfs /run --tmpfs /run/lock \
+#     -v banc19-docker:/var/lib/docker -v banc19-containerd:/var/lib/containerd -v "$PWD:/depot:ro" banc-1.7-systemd
+#   puis dans le banc : utilisateur deploy (groupe docker) ; dépôt nu /srv/origine.git dont main = la branche à tester
+#   (HEAD symbolique sur main) ; clone /opt/recrutement par deploy ; .env tiré de .env.example avec DOMAIN=recrutement.localhost,
+#   OAUTH2_PROXY_REDIRECT_URL=https://recrutement.localhost/oauth2/callback, COMPOSE_PROFILES=caddy et des secrets non d'exemple ;
+#   deploy/deploy.sh (Déploiement réussi) ; commande d'installation de deploy/README.md § 15 ; clone de travail /srv/travail
+#   (git clone -b main /srv/origine.git, user.name et user.email réglés).
+# Lancer : docker exec -e AUTO_DEPLOY_JETABLE=oui banc19 bash /depot/tools/test-auto-deploy.sh --reel   (~25 min ;
+# pousse des commits d'essai sur /srv/origine.git, arrête Docker, supprime et recrée le volume recrutement_data du banc).
+if [ "${1:-}" = --reel ]; then
+  if [ ! -d /run/systemd/system ] || [ ! -f /etc/systemd/system/recrutement-deploy.path ] || [ ! -d /srv/travail/.git ]; then
+    echo "Banc systemd non préparé (voir l'en-tête du niveau B)." >&2; exit 2
+  fi
+  set -u
+  ECHECS=0; ok() { echo "OK   $*"; }; ko() { echo "FAIL $*"; ECHECS=$((ECHECS+1)); }
+  verifie() { local n=$1; shift; if "$@"; then ok "$n"; else ko "$n"; journalctl -u recrutement-deploy.service --no-pager -n 8 | sed 's/^/       | /'; fi; }
+  P=/opt/recrutement; H=/home/deploy/.recrutement-deploiement; VOL=/var/lib/docker/volumes/recrutement_data/_data
+  D() { runuser -u deploy -- "$@"; }
+  commit() {   # commit <message> <commande sh appliquée dans /srv/travail> → hash
+    (cd /srv/travail && sh -c "$2" && git add -A && git commit -qm "$1" && git push -q origin main && git rev-parse HEAD)
+  }
+  passe() { systemctl start recrutement-deploy.service 2>/dev/null; sleep 1; }   # comme le timer (oneshot : attend la fin)
+  # Un service oneshot qui tourne est « activating », pas « active ».
+  tourne() { case "$(systemctl show -p ActiveState --value recrutement-deploy.service)" in activating|active|deactivating) return 0 ;; esac; return 1; }
+  attendre_fin() { local i; for i in $(seq 1 "${1:-300}"); do tourne || return 0; sleep 1; done; return 1; }
+  vue() { python3 -c "import json,sys; d=json.load(open('$VOL/etat/deploiement.json')); print(eval(sys.argv[1]))" "$1" 2>/dev/null; }
+  derniers() { vue "' '.join(p['resultat'] for p in d['passages'][:$1])"; }
+  en_place() { D git -C $P rev-parse HEAD; }
+  post() { (cd $P && D docker compose exec -T api node -e "fetch('http://127.0.0.1:8000/api/deploiement/demande',{method:'POST',headers:{'content-type':'application/json','x-forwarded-email':'adm@yeita.fr'},body:process.argv[1]}).then(async r=>console.log(r.status, await r.text()))" "$1"); }
+  attendre_demande_traitee() { local i; sleep 3; for i in $(seq 1 150); do [ ! -e $VOL/demandes/deploiement.demande ] && ! tourne && return 0; sleep 2; done; return 1; }
+  # shellcheck disable=SC2317 # appelée par verifie
+  essai_vide() { [ -z "$(docker ps -aq --filter label=fr.yeita.projet=recrutement-essai)" ] && [ ! -e "$H/essai" ] && [ -z "$(docker images -q 'recrutement-essai-*')" ]; }
+  (cd $P && D docker compose exec -T api node api/equipe.js add adm@yeita.fr Sacha admin >/dev/null)
+  B1=$(en_place)
+  DEBUT_ESSAI=$(date -u +%Y%m%dT%H%M%S)
+
+  echo "--- CA15 : tests KO ---"
+  C2=$(commit "test: test-store en échec" "sed -i '1i process.exit(1);' tools/test-store.js")
+  passe
+  verifie "tests KO : résultat tests-ko, commit noté en échec, rien de déployé" test "$(derniers 1)" = tests-ko -a "$(cat $H/echec)" = "$C2" -a "$(en_place)" = "$B1"
+  n=$(find "$H/passages" -name '*.json' -printf '%f\n' | sort | tail -n 1); passe
+  verifie "passage suivant sans nouveau commit : rien d'enregistré" test "$(find "$H/passages" -name '*.json' -printf '%f\n' | sort | tail -n 1)" = "$n"
+
+  echo "--- CA15 / CA19 : déploiement KO après changement → retour automatique par le deploy.sh du commit d'avant ---"
+  MARQUE="marque-$RANDOM$RANDOM"
+  C3=$(commit "fix: test-store ; api jamais saine ; deploy.sh modifié" "sed -i '1d' tools/test-store.js && sed -i 's/process.exit(r.status === 200 ? 0 : 1)/process.exit(1)/' docker/api.Dockerfile && sed -i '2i # commentaire ajouté par le banc (CA19 : deploy.sh du commit en échec modifié) $MARQUE' deploy/deploy.sh")
+  t0=$(date +%s); passe
+  verifie "déploiement KO puis retour réussi" test "$(derniers 1)" = deploiement-ko -a "$(vue "d['passages'][0]['motif']")" = "mise en ligne ratée, retour à ${B1:0:7} réussi"
+  verifie "en place = commit d'avant, deploye = commit d'avant, pas d'incertain, pas de pause" test "$(en_place)" = "$B1" -a "$(cat $H/deploye)" = "$B1" -a ! -e $H/incertain -a ! -e $P/deploy/PAUSE
+  verifie "le retour a lancé le deploy.sh du commit d'avant (sans la ligne ajoutée par le commit en échec)" test -z "$(grep "$MARQUE" $P/deploy/deploy.sh)" -a -n "$(D git -C $P show "$C3:deploy/deploy.sh" | grep "$MARQUE")"
+  verifie "API saine après le retour" test "$(docker inspect -f '{{.State.Health.Status}}' recrutement-api-1)" = healthy
+  echo "     (durée du passage : $(( $(date +%s) - t0 )) s)"
+
+  echo "--- CA19 : passage dont le commit modifie auto-deploy.sh ---"
+  C4=$(commit "fix: api saine ; auto-deploy.sh modifié" "git checkout HEAD~2 -- docker/api.Dockerfile && sed -i '2i # commentaire ajouté par le banc (CA19 : auto-deploy.sh modifié par le commit visé)' deploy/auto-deploy.sh")
+  passe
+  verifie "déployé ; l'ancien corps de auto-deploy.sh finit sans erreur (Finished, vue écrite)" test "$(derniers 1)" = deploye -a "$(en_place)" = "$C4" -a "$(systemctl show -p Result --value recrutement-deploy.service)" = success
+  verifie "images de production : nouvel identifiant seulement pour les images reconstruites, aucun reste d'essai" essai_vide
+
+  echo "--- CA15 : demande par la route → path → « Déployer ce commit » → pause → « Reprendre » ---"
+  r=$(post "{\"action\":\"deployer\",\"commit\":\"$B1\"}"); echo "     POST : $r"
+  attendre_demande_traitee
+  verifie "demande prise par l'unité path, commit déployé, pause créée par adm@yeita.fr" test "$(en_place)" = "$B1" -a "$(sed -n 's/^par=//p' $P/deploy/PAUSE)" = adm@yeita.fr -a "$(vue "d['passages'][0]['declencheur']['par']")" = adm@yeita.fr
+  C5=$(commit "feat: pendant la pause" "echo pause >> banc-cycle.txt")
+  passe
+  verifie "en pause : nouveau commit non déployé" test "$(en_place)" = "$B1"
+  r=$(post '{"action":"reprendre"}'); echo "     POST : $r"
+  attendre_demande_traitee
+  verifie "reprendre : pause retirée, dernier de main déployé" test ! -e $P/deploy/PAUSE -a "$(en_place)" = "$C5"
+  GET=$(cd $P && D docker compose exec -T api node -e "fetch('http://127.0.0.1:8000/api/deploiement',{headers:{'x-forwarded-email':'adm@yeita.fr'}}).then(r=>r.json()).then(j=>console.log(j.etat.en_ligne.court, j.etat.pause, j.etat.passages.length, j.demande))")
+  verifie "GET /api/deploiement rend l'état écrit par l'hôte" test "$GET" = "${C5:0:7} null $(vue "len(d['passages'])") null"
+
+  echo "--- SC5 : arrêt du service pendant les tests ---"
+  commit "test: test-store lent" "sed -i '1i Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 40000);' tools/test-store.js" >/dev/null
+  systemctl start --no-block recrutement-deploy.service; sleep 15
+  m=$(docker inspect -f '{{range .Mounts}}{{.Source}}:{{.Destination}} {{end}}{{.HostConfig.Privileged}} {{.HostConfig.NetworkMode}} {{.Config.User}}' recrutement-essai-test-store 2>/dev/null)
+  echo "     (montages lus : $m)"
+  verifie "CA10 : conteneur de test : seul le worktree monté, non privilégié, réseau par défaut, utilisateur deploy" test "$m" = "$H/essai:/w false bridge $(id -u deploy):$(id -g deploy)"
+  systemctl stop recrutement-deploy.service; attendre_fin 120
+  verifie "passage interrompu enregistré une fois (pendant test-store), pas d'alerte" test "$(derniers 1)" = interrompu -a "$(vue "d['retour_ko']")" = None
+  verifie "ExecStopPost : aucun conteneur, worktree ni image d'essai restant" essai_vide
+  verifie "dépôt de production propre" test -z "$(D git -C $P status --porcelain)"
+
+  echo "--- SC3 : deploy.sh à la main pendant les tests ---"
+  systemctl start --no-block recrutement-deploy.service; sleep 8
+  (cd $P && D bash -c "umask 022 && deploy/deploy.sh $C4" > /root/sc3.txt 2>&1)
+  attendre_fin 200
+  verifie "passage annulé, le commit de la main reste en ligne, pause créée par deploy.sh" test "$(derniers 1)" = annule -a "$(en_place)" = "$C4" -a "$(sed -n 's/^par=//p' $P/deploy/PAUSE)" = "deploy.sh (deploy)"
+  verifie "CA19 : après deploy.sh <hash> réussi en SSH, la page montre ce commit, non incertain, verdict en pause" test "$(vue "d['en_ligne']['commit'], d['incertain'], d['pause'] is not None")" = "('$C4', False, True)"
+
+  echo "--- SC2 : demande déposée pendant un passage ---"
+  C7=$(commit "fix: test-store rapide" "sed -i '1d' tools/test-store.js")
+  post '{"action":"reprendre"}' >/dev/null; attendre_demande_traitee
+  verifie "reprendre : C7 déployé" test "$(en_place)" = "$C7"
+  commit "test: test-store lent (SC2)" "sed -i '1i Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25000);' tools/test-store.js" >/dev/null
+  systemctl start --no-block recrutement-deploy.service; sleep 5
+  post "{\"action\":\"deployer\",\"commit\":\"$C7\"}" >/dev/null
+  sleep 2; verifie "pendant le passage : la demande attend" test -e $VOL/demandes/deploiement.demande
+  attendre_fin 300; attendre_demande_traitee
+  verifie "après le passage : la demande est traitée juste après (C7 en ligne, pause)" test "$(en_place)" = "$C7" -a -e $P/deploy/PAUSE -a "$(derniers 2)" = "deploye deploye"
+  post '{"action":"reprendre"}' >/dev/null; attendre_demande_traitee
+
+  echo "--- SC6 : arrêt du service pendant la mise en ligne ---"
+  C9=$(commit "fix: test-store rapide (SC6)" "sed -i '1d' tools/test-store.js")
+  systemctl start --no-block recrutement-deploy.service
+  for i in $(seq 1 120); do grep -q 'etape=deploy' $H/en-cours 2>/dev/null && break; sleep 1; done; sleep 3
+  systemctl stop recrutement-deploy.service; attendre_fin 120
+  verifie "interrompu pendant la mise en ligne : alerte « interrompu », incertain" test "$(derniers 1)" = interrompu -a "$(vue "d['retour_ko']['type'], d['incertain']")" = "('interrompu', True)"
+  passe
+  verifie "passage suivant : commit incertain → remis en ligne, alerte effacée, un seul interrompu" test "$(en_place)" = "$C9" -a "$(vue "d['incertain'], d['retour_ko']")" = "(False, None)" -a "$(vue "sum(p['resultat']=='interrompu' and p['id'] >= '$DEBUT_ESSAI' for p in d['passages'])")" = 2
+
+  echo "--- SC1 : un passage du service et un auto-deploy.sh à la main ---"
+  commit "test: test-store lent (SC1)" "sed -i '1i Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20000);' tools/test-store.js" >/dev/null
+  systemctl start --no-block recrutement-deploy.service; sleep 4
+  (cd $P && D bash -c 'umask 022 && deploy/auto-deploy.sh' > /root/sc1.txt 2>&1)
+  verifie "le lancement à la main attend le passage du service, puis met main en ligne avec les tests" test -n "$(grep 'Un passage est en cours, attente' /root/sc1.txt)" -a "$(vue "d['passages'][0]['declencheur']['type']")" = ligne-de-commande -a "$(derniers 2)" = "deploye deploye"
+
+  echo "--- CA9 : Docker arrêté, .env illisible ---"
+  sed -i '1d' /srv/travail/tools/test-store.js; (cd /srv/travail && git commit -qam "fix: test-store rapide" && git push -q origin main)
+  passe
+  systemctl stop docker.socket docker.service
+  mkdir -p $VOL/demandes; printf 'action=reprendre\ncommit=\npar=adm@yeita.fr\nle=2026-10-28T15:00:00Z\n' > $VOL/demandes/deploiement.demande; chown -R 1000:1000 $VOL/demandes
+  sleep 150
+  verifie "Docker arrêté : l'unité path reste active (pas de unit-start-limit-hit)" test "$(systemctl show -p ActiveState --value recrutement-deploy.path)" = active -o "$(systemctl show -p ActiveState --value recrutement-deploy.path)" = activating
+  n=$(journalctl -u recrutement-deploy.service --since "-150s" --no-pager | grep -c 'Docker ne répond pas')
+  verifie "au plus un essai par minute (≤ 3 en 150 s)" test "$n" -ge 1 -a "$n" -le 3
+  echo "     (essais en 150 s : $n)"
+  systemctl start docker.socket docker.service; sleep 10; (cd $P && D docker compose up -d >/dev/null 2>&1); sleep 20
+  attendre_demande_traitee
+  verifie "Docker revenu : la demande laissée est traitée" test ! -e $VOL/demandes/deploiement.demande
+  chmod 000 $P/.env
+  printf 'action=reprendre\ncommit=\npar=adm@yeita.fr\nle=2026-10-28T15:00:00Z\n' > $VOL/demandes/deploiement.demande; chown -R 1000:1000 $VOL/demandes
+  sleep 100
+  verifie ".env illisible : l'unité path reste active" test "$(systemctl show -p ActiveState --value recrutement-deploy.path)" != failed
+  n=$(journalctl -u recrutement-deploy.service --since "-100s" --no-pager | grep -c 'Demande non retirée')
+  verifie ".env illisible : « Demande non retirée », au plus un essai par minute" test "$n" -ge 1 -a "$n" -le 2
+  chmod 600 $P/.env; attendre_fin 120; attendre_demande_traitee
+
+  echo "--- CA14 : l'unité path après suppression et recréation du volume ---"
+  (cd $P && D docker compose down >/dev/null 2>&1 && docker volume rm recrutement_data >/dev/null && D docker compose up -d >/dev/null 2>&1); sleep 25
+  (cd $P && D docker compose exec -T api node api/equipe.js add adm@yeita.fr Sacha admin >/dev/null)
+  post '{"action":"deployer","commit":"main"}' >/dev/null
+  attendre_demande_traitee
+  verifie "volume recréé : une demande déclenche encore le service" test "$(vue "d['passages'][0]['declencheur']['type']")" = demande
+  verifie "systemd-analyze verify" systemd-analyze verify /etc/systemd/system/recrutement-deploy.service /etc/systemd/system/recrutement-deploy.timer /etc/systemd/system/recrutement-deploy.path
+
+  echo
+  if [ "$ECHECS" = 0 ]; then echo "TOUT OK"; exit 0; else echo "ÉCHECS : $ECHECS"; exit 1; fi
+fi
+
 id deploy >/dev/null 2>&1 || useradd -m -s /bin/bash deploy
 
 T=$(mktemp -d /tmp/test-auto-deploy.XXXXXX); chmod 755 "$T"; chown deploy:deploy "$T"
