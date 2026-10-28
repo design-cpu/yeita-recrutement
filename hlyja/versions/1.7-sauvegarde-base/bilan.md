@@ -5,82 +5,86 @@ statut: terminee
 mode: complexe
 type_version: livrable
 score: 87
-taches_ok: 7
+taches_ok: 8
 taches_echec: 0
-qa_taux: 100
-date: 2026-10-27
+qa_taux: 92
+date: 2026-10-28
 ---
 
 # Bilan — Version 1.7
 
-> **Terminée** · spec validée au tour 2 (score 44 → 87) · 7/7 tâches ok · QA 23/23 scénarios (100 %, S18 en partie) · revue de code : 0 bloquant, 1 majeur corrigé
-> Avant de merger : partie A du guide de test humain (~5 min). Après le déploiement : mise en service des sauvegardes (`deploy/README.md` § 14), puis partie B du guide. Rien n'est poussé.
+> **Terminée** (avec la reprise du 2026-10-28) · spec validée au tour 2 (87), puis réécrite pour la reprise et relue · 8/8 tâches ok · QA de la reprise 22/24 scénarios, les 2 restants corrigés · revues de code : 0 bloquant
+> Avant de merger : partie A du guide de test humain (~10 min). Après le merge : `deploy/METTRE-A-JOUR.md` (§ 5 « 1.7 »), puis partie B du guide. La branche est poussée jusqu'au bilan d'avant la reprise ; les commits de la reprise ne sont pas encore poussés.
 
 ## Résultat
 | Étape | Résultat |
 |---|---|
-| Démarrage | `main` déjà à jour avec `origin/main` (`7e6c346`, PR #7 et #8) ; le seul commit de `version/1.5-guide-deploiement-ovh` absent de `main` y est sous un autre sha |
-| Vérifications | 20 (V1 à V20), 6 écarts, sur un banc `ubuntu:26.04` (le système du serveur) avec son dockerd, puis une variante avec systemd |
-| Spec | tour 1 : 44 (21 majeurs) ; tour 2 : **87**, validée ; 2 décisions de l'utilisateur au cadrage, 1 au tour 1 (utilisateur S3 en lecture seule) |
-| Tâches | 7 ok, 0 échec ; 28 mutations, toutes détectées (une équivalente) |
-| Revue de code | 0 bloquant, 1 majeur (masque `umask 077` laissé dans le shell par le README) corrigé, 6 mineurs corrigés, 3 au backlog |
-| QA | 23/23 scénarios, dont une restauration de bout en bout en suivant `deploy/RESTAURER.md` à la lettre (4 cas) ; 2 bugs mineurs corrigés |
-| Non-régression | `api npm test` « ℹ tests 55 / ℹ pass 55 / ℹ fail 0 » · `test-store` « TOUT OK » · `test-serveur` « TOUT OK (87 vérifications) » · `tools/test-sauvegarde.sh` « TOUT OK » (125 vérifications, banc systemd et conteneur simple) · shellcheck 0.10.0 sans remarque · e2e Playwright non relancés : aucune page ni route ne change |
-| Doc | 5 pages du référentiel, 1 page produit, glossaire (+6 termes) ; relecture : 3 majeurs corrigés, dont `read -p` qui échouait sous zsh dans `RESTAURER.md` |
+| Démarrage | `main` déjà à jour avec `origin/main` (`7e6c346`) |
+| Spec | tours 1 et 2 (44 → 87, validée) ; **reprise du 2026-10-28** (décisions de l'utilisateur) : spec réécrite d'un seul tenant (`spec/spec-finale.md`, l'ancienne dans `spec-avant-reprise.md`), relue (7 majeurs intégrés) |
+| Tâches | 8 ok (7 + la reprise) ; mutations : 28 avant la reprise, 12 pour la reprise, toutes détectées (une équivalente) |
+| Revues de code | avant la reprise : 1 majeur corrigé ; reprise : 0 majeur, 12 mineurs (10 corrigés, 2 laissés et notés) |
+| QA | avant la reprise : 23/23 ; reprise : 22/24, puis B2 (majeur) et les autres bugs corrigés et revérifiés |
+| Non-régression | `api npm test` « ℹ tests 58 / ℹ pass 58 / ℹ fail 0 » · `test-store` « TOUT OK » · `test-serveur` « TOUT OK (87 vérifications) » · `tools/test-sauvegarde.sh` « TOUT OK » (102 vérifications, banc systemd et conteneur simple) · shellcheck 0.10.0 sans remarque sur les scripts livrés · e2e Playwright des pages Candidatures non relancés : ces pages ne changent pas |
+| Doc | 5 pages du référentiel, 1 page produit, glossaire, vues humaines réécrites ; pages projet : `deploy/README.md` § 14, `RESTAURER.md`, **`CLE-SAUVEGARDE.md`**, **`METTRE-A-JOUR.md`** (nouvelles) |
 | Fiche demandée | 1.2-5 → fait |
+
+## Ce que fait la version (après la reprise)
+- Chaque nuit, la base est copiée, contrôlée, chiffrée avec age et gardée 30 jours **sur le serveur** (`/var/backups/recrutement`). Pas de copie ailleurs : la perte du serveur emporte les sauvegardes (choix assumé).
+- Aucune alerte n'est envoyée : l'état (dernière sauvegarde, dernière tentative, disques) se lit sur **`/admin/sauvegardes.html`**, réservée aux admins (vert, ou rouge avec la raison).
+- La clé privée est un fichier `.txt` gardé et partagé en main propre (`deploy/CLE-SAUVEGARDE.md`).
+- La mise à jour du site en production se fait à la main, avec `deploy/METTRE-A-JOUR.md`.
 
 ## Tester en local
 ```bash
 git switch version/1.7-sauvegarde-base
 cd api && npm test 2>&1 | grep -E "^ℹ (tests|fail)"; cd ..
 ```
-Puis la partie A de `qa/guide-test-humain.md` (125 vérifications des scripts dans un conteneur Ubuntu 26.04).
+Puis la partie A de `qa/guide-test-humain.md` (scripts dans un conteneur Ubuntu 26.04, page d'état sur le Mac).
 
 ## Reste à faire avant de merger
 - Partie A du guide de test humain.
+- Pousser les commits de la reprise, puis ouvrir la pull request (le texte préparé avant la reprise est à refaire : il parle encore d'OVH et de healthchecks.io).
 
 ## Après le merge (sur le serveur)
-- Déployer (`deploy/deploy.sh`), installer `age` et `rclone` (`sudo apt install age rclone`), puis la mise en service de `deploy/README.md` § 14 (clé au coffre, bucket OVH et trois utilisateurs S3, cycle de vie, remote rclone, deux contrôles healthchecks.io, `.env`, unités systemd).
-- Partie B du guide de test humain : seule preuve du vrai OVH (droits des comptes, 30 jours), du vrai healthchecks.io et de la clé du coffre.
-- Tant que ce n'est pas fait, le volume `recrutement_data` reste la seule copie des candidatures.
+- `deploy/METTRE-A-JOUR.md` : mise à jour, puis § 5 « 1.7 » (age, clé, minuteries, rôle admin, première sauvegarde, page verte, vérification de la clé) ; c'est aussi la partie B du guide.
 
 ## Réserves
-Aucune (spec validée).
+Aucune sur la spec. Choix de l'utilisateur à garder en tête : pas de copie hors du serveur (1.7-8), pas d'alerte (1.7-6), clé en fichier `.txt` sans phrase de passe (1.7-9).
 
 ## Écarts avec la spec
-- R14 : `Wants=docker.service` retiré des deux unités après le curateur (une vérification horaire relancerait un Docker arrêté pour une maintenance du serveur partagé) ; `After=docker.service` gardé ; maintenance de Docker documentée (arrêter les timers).
-- CA15 : `deploy.sh` n'a pas été lancé de bout en bout avec un `.env` sans les 4 variables (son contrôle final demande un domaine en HTTPS) ; vérifié par la lecture de Compose et l'absence de ces variables dans `deploy.sh`, inchangé.
-- CA19 : reste manuel, partie B du guide.
-- Points d'appui de test dans `backup.sh` : `RECRUTEMENT_ATTENTE_DEPLOIEMENT` et `RECRUTEMENT_ATTENTE_API` (durées, validées : entier ≥ 2).
-- Effort : 28 mutations pour un repère de 10 à 15 (chef d'équipe, P4) ; outillage de test lourd (325 lignes) mais rangé dans le projet et documenté.
-- Fichiers hors de la liste de la spec, tracés en P3 : `deploy/healthchecks.sh`, `tools/test-sauvegarde.sh`.
+- CA15 : `deploy.sh` non lancé de bout en bout sur le banc (son contrôle final exige un domaine en HTTPS).
+- CA19 et la redirection de `/admin/sauvegardes.html` vers Google : seulement sur le vrai serveur (pas d'oauth2-proxy sur le banc).
+- CA25 : page vérifiée au navigateur (vert, rouge, recruteur, session expirée, API absente, réseau), sans test automatisé (1.7-11).
+- Effort : mutations au-delà du repère (40 au total pour 10 à 15 prévues) ; reprise importante après la livraison (voir Étonnements).
+- `umask 022 &&` ajouté devant `deploy.sh` dans la doc (contournement de 1.7-1, hors périmètre : `deploy.sh` n'est pas modifié).
+- IP du serveur et comptes SSH écrits dans les nouvelles pages (déjà présents dans la doc existante).
 
 ## Tâches en échec
 Aucune.
 
 ## Changelog
-- Ajouté : sauvegarde chaque nuit (3 h–3 h 15) de la base des candidatures, copiée et vérifiée dans le conteneur, chiffrée avec age pour une clé gardée hors du serveur, envoyée sur OVH Object Storage, gardée 30 jours sur le serveur et 30 jours chez OVH (`deploy/backup.sh`, `api/sauvegarde.js`).
-- Ajouté : alertes healthchecks.io quand une sauvegarde échoue, quand un disque dépasse 80 % (`deploy/verif-disque.sh`), ou quand l'un des deux ne donne plus de nouvelles.
-- Ajouté : `deploy/RESTAURER.md`, restaurer la base (y compris après la perte du serveur) ou ouvrir une copie sur un Mac, sans jamais déchiffrer sur le serveur.
-- Ajouté : unités systemd `recrutement-backup` et `recrutement-verif-disque` (service et timer), et leur installation dans `deploy/README.md` § 14.
-- Modifié : `deploy/prepare-serveur.sh` exige `age` et `rclone` (sans les installer) ; `.env.example` a 4 variables de sauvegarde.
-- Technique : `deploy/healthchecks.sh` (réglages et pings communs) ; `tools/test-sauvegarde.sh` (125 vérifications à faux outils) ; 3 tests de `sauvegarde.js` dans `api/test/equipe.test.js`.
+- Ajouté : sauvegarde chaque nuit (3 h–3 h 15) de la base des candidatures, copiée et vérifiée dans le conteneur, chiffrée avec age, gardée 30 jours sur le serveur (`deploy/backup.sh`, `api/sauvegarde.js`).
+- Ajouté : page d'état des sauvegardes `/admin/sauvegardes.html`, réservée aux admins, et sa route `GET /api/sauvegardes` ; vérification horaire des disques (`deploy/verif-disque.sh`) affichée sur la même page.
+- Ajouté : `deploy/RESTAURER.md` (restaurer la base, ou ouvrir une copie sur un Mac), `deploy/CLE-SAUVEGARDE.md` (créer, garder, partager, changer la clé), `deploy/METTRE-A-JOUR.md` (mettre à jour le site en production).
+- Ajouté : minuteries systemd `recrutement-backup` et `recrutement-verif-disque`.
+- Modifié : `deploy/prepare-serveur.sh` exige `age` ; `.env.example` a `AGE_RECIPIENT` ; `tools/check-site.sh` a un 7e contrôle (`/admin/sauvegardes.html` protégée).
+- Technique : `deploy/commun.sh` ; `tools/test-sauvegarde.sh` (102 vérifications, `BANC_JETABLE=oui`) ; tests de `sauvegarde.js` et de la route.
 
 ## Backlog
-- Ajoutées : [1.7-1](../../backlog/1.7-1-deploy-sans-umask.md) `deploy.sh` ne fixe pas son masque : lancé depuis un shell à `umask 077`, l'API ne démarre plus (bug, **haute**, reproduit) ; [1.7-2](../../backlog/1.7-2-dossier-copies-absent-sans-alerte.md) dossier des copies absent : pas de `/fail` immédiat (évolution, basse) ; [1.7-3](../../backlog/1.7-3-test-nom-copie-deja-pris.md) pas de test du refus d'écraser une copie du même nom (dette, basse) ; [1.7-4](../../backlog/1.7-4-banc-reel-sauvegarde-rejouable.md) essais réels du banc non rejouables depuis le dépôt (dette, basse) ; [1.7-5](../../backlog/1.7-5-rclone-paquet-universe.md) rclone 1.60.1 du dépôt *universe* (dette, basse).
-- Nouvelles occurrences : [1.1-6](../../backlog/1.1-6-scripts-deploiement-controles-dupliques.md) (`reglage()` en double entre `deploy.sh` et `healthchecks.sh`).
-- Traitée par cette version : [1.2-5](../../backlog/1.2-5-sauvegarde-base-sqlite.md) → fait.
-- Remarqué par le curateur, non corrigé : les fiches 1.6-1 à 1.6-4 portent `nature: amelioration` (à lire `evolution`).
+- Ajoutées : [1.7-1](../../backlog/1.7-1-deploy-sans-umask.md) `deploy.sh` lancé avec un masque 077 : l'API ne démarre plus (bug, **haute**, reproduit ; contourné dans la doc par `umask 022 &&`) ; [1.7-6](../../backlog/1.7-6-alertes-email-sauvegardes.md) alertes par email (évolution, moyenne) ; [1.7-7](../../backlog/1.7-7-tableau-de-bord-admin.md) tableau de bord sous `/admin/` (évolution, basse) ; [1.7-8](../../backlog/1.7-8-copie-hors-du-serveur.md) copie hors du serveur (évolution, moyenne) ; [1.7-9](../../backlog/1.7-9-cle-sauvegarde-coffre.md) coffre pour la clé (évolution, moyenne) ; [1.7-10](../../backlog/1.7-10-installation-unites-dupliquee.md) installation des unités recopiée dans deux pages (dette, basse) ; [1.7-11](../../backlog/1.7-11-page-admin-sans-test-automatique.md) page admin sans test automatique (dette, moyenne) ; [1.7-3](../../backlog/1.7-3-test-nom-copie-deja-pris.md), [1.7-4](../../backlog/1.7-4-banc-reel-sauvegarde-rejouable.md) (dette, basse).
+- Faites dans la version : [1.7-2](../../backlog/1.7-2-dossier-copies-absent-sans-alerte.md) (l'état « echec » est écrit), [1.7-5](../../backlog/1.7-5-rclone-paquet-universe.md) (rclone retiré), [1.2-5](../../backlog/1.2-5-sauvegarde-base-sqlite.md).
+- Nouvelle occurrence : [1.1-6](../../backlog/1.1-6-scripts-deploiement-controles-dupliques.md).
+- Remarqué : les fiches 1.6-1 à 1.6-4 portent `nature: amelioration` (à lire `evolution`).
 
 ## Étonnements
-3 retenus sur 4 (`etonnements/1.7-sauvegarde-base.md`) : parade ajoutée en challenge essayée contre les exécutions concurrentes (fusion avec la règle 2 de la 1.3), tests depuis un état de processus neutre, commandes du poste essayées sous son shell (zsh). **Règles récurrentes signalées par le validateur** (le skill devrait évoluer) : vérification faite dans des conditions plus favorables que la cible (5e version) ; contrôle qui ne peut pas échouer (4e) ; règle de concurrence non exercée (2e) ; `controles.md` n'a toujours ni colonne « conditions » au § 1, ni classement « bloque / plantage » au § 6.
+Voir `etonnements/1.7-sauvegarde-base.md` (premier passage : 3 retenus sur 4 ; reprise : candidats ci-dessous validés à part). Règles récurrentes signalées par le validateur au premier passage : vérification faite dans des conditions plus favorables que la cible (5e version), contrôle qui ne peut pas échouer (4e), concurrence non exercée (2e).
 
 ## Couverture de la doc
 | Élément | Page |
 |---|---|
-| R1 à R4 (copie) | [API de stockage](../../technique/api.md) ; `api/README.md` |
-| R5 à R11, R14 (scripts, unités) | [Architecture](../../technique/architecture.md#scripts) ; `deploy/README.md` § 14 |
-| R12 (rétention), R16 (restauration) | [Candidatures partagées](../../doc/produit/stockage-partage.md#règles-métier) ; [Décisions](../../technique/decisions.md) ; `deploy/RESTAURER.md` ; `api/README.md` |
-| R13, R15, R17 à R19 (mise en service) | `deploy/README.md` § 14 ; [Déployer sur OVH](../../technique/deploiement-ovh.md) (étapes 2 et 11) |
+| R1 à R4 (copie), R22 (route) | [API de stockage](../../technique/api.md) ; `api/README.md` |
+| R5 à R11, R14, R21, R24 (scripts, unités, état, contrôle) | [Architecture](../../technique/architecture.md#scripts) ; `deploy/README.md` § 14 |
+| R12 (rétention), R16 (restauration), R23 (page) | [Candidatures partagées](../../doc/produit/stockage-partage.md#règles-métier) ; [Décisions](../../technique/decisions.md) ; `deploy/RESTAURER.md` |
+| R13, R17, R19, R25, R26 (mise en service, clé, mise à jour) | `deploy/CLE-SAUVEGARDE.md`, `deploy/METTRE-A-JOUR.md` ; [Déployer sur OVH](../../technique/deploiement-ovh.md) (étapes 2 et 11) |
 | Tests | [Conventions](../../technique/conventions.md#tests) |
-| Termes | [Glossaire](../../glossaire.md) : age, Bucket, Clé de sauvegarde, healthchecks.io, rclone, Restauration, Sauvegarde, Timer systemd |
+| Termes | [Glossaire](../../glossaire.md) : age, Clé de sauvegarde, Page d'état des sauvegardes, Restauration, Sauvegarde, Timer systemd |

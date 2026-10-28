@@ -7,13 +7,13 @@ branche: version/1.7-sauvegarde-base
 base: main
 mode: complexe
 type_version: livrable
-statut: en-cours
+statut: terminee
 date: 2026-10-27
 ---
 
 # Version 1.7 — Sauvegarde chiffrée de la base chaque nuit, sur le serveur, avec page d'état
 
-> **Statut** : en cours (reprise du 2026-10-28) · **Branche** : `version/1.7-sauvegarde-base`
+> **Statut** : terminée (reprise du 2026-10-28 comprise) · **Branche** : `version/1.7-sauvegarde-base`
 > Objectif : la base SQLite de l'API est copiée chaque nuit, chiffrée et gardée 30 jours sur le serveur ; un admin en voit l'état sur `/admin/sauvegardes.html` ; une restauration se fait pas à pas. (Avant la reprise du 2026-10-28 : envoi sur OVH Object Storage et alertes healthchecks.io, abandonnés.)
 
 ## Objectif
