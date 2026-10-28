@@ -31,7 +31,10 @@ function docHTML(c, champ, ro, p, ctx){
       + '<span class="docacts">' + (f && d ? '<a class="btn small" href="' + E(d.fichierUrl(c.id, f.id)) + '" target="_blank" rel="noopener">' + E(t("docs.ouvrir")) + '<span class="sr-only"> ' + E(nom) + ', ' + E(t("docs.nouvelOnglet")) + '</span></a>' : '')
       + (ro ? '' : '<button type="button" class="btn small quiet" data-doc-act="retirer">' + E(t("docs.retirer")) + '<span class="sr-only"> ' + E(nom) + '</span></button>') + '</span>';
   } else if(lien){
-    h = '<a class="doclien" href="' + E(lien) + '" target="_blank" rel="noopener">' + YEITA.icon("Link", 15, 2.2) + '<span>' + E(lienCourt(lien)) + '</span><span class="sr-only"> (' + E(t("docs.nouvelOnglet")) + ')</span></a>'
+    /* R20 : seul un lien http(s) est cliquable, quelle que soit sa source (saisie, import, dossier ancien). */
+    h = (/^https?:\/\//i.test(lien)
+      ? '<a class="doclien" href="' + E(lien) + '" target="_blank" rel="noopener">' + YEITA.icon("Link", 15, 2.2) + '<span>' + E(lienCourt(lien)) + '</span><span class="sr-only"> (' + E(t("docs.nouvelOnglet")) + ')</span></a>'
+      : '<span class="doclien">' + YEITA.icon("Link", 15, 2.2) + '<span>' + E(lien) + '</span></span>')
       + (ro ? '' : '<span class="docacts"><button type="button" class="btn small quiet" data-doc-act="lien">' + E(t("docs.modifier")) + '</button><button type="button" class="btn small quiet" data-doc-act="retirer">' + E(t("docs.retirer")) + '</button></span>');
   } else if(ro){
     h = '<span class="docvide">' + E(t("bilan.nonRenseigne")) + '</span>';
@@ -134,7 +137,9 @@ function fermerFenetre(silencieux){
 }
 /* Fermer : en consultation, la fiche enregistre ce qui reste puis rend le dossier à la page ; en création, rien n'est gardé. */
 function fermer(){
+  if(operation || creation) return;
   var c = copie;
+  if(mode === "creation" && cree){ fermerApresCreation(); return; }
   if(!c || mode === "creation"){ copie = null; attente = {}; mode = "fiche"; fermerFenetre(); return; }
   copie = null;
   enregistrer().then(function(x){ fermerFenetre(); if(opts.apres) opts.apres(x || c); }, function(){ fermerFenetre(); });
@@ -145,7 +150,7 @@ function enregistrer(){
   return S.saveCandidate(c).then(function(x){ enCours = x; if(copie) copie = x; var s = document.getElementById("mf-saved"); if(s) s.textContent = t("commun.enregistreA", {heure: UI.heure()}); return x; },
     function(e){ var s = document.getElementById("mf-saved"); if(s) s.textContent = t("serveur.nonEnregistre"); throw e; });
 }
-function plusTard(){ if(mode === "creation") return; clearTimeout(saveT); saveT = setTimeout(function(){ enregistrer().catch(function(){}); }, 400); }
+function plusTard(){ if(mode === "creation") return; clearTimeout(saveT); saveT = setTimeout(function(){ if(operation){ plusTard(); return; } enregistrer().catch(function(){}); }, 400); }
 
 function ficheHTML(c){ return '<div class="infos plain">' + infosHTML(c, false, {id: "mf-", a: "mfiche"}, "modal") + '</div>'; }
 function lire(id){ return Promise.resolve(opts.avant ? opts.avant() : null).then(function(){ return S.getCandidate(id); }); }
@@ -169,18 +174,40 @@ function action(quoi, id, btn){
     }
   });
 }
-/* « Ajouter un candidat » : la même fenêtre, en création. Rien n'est enregistré avant l'une des deux actions du pied. */
+/* « Ajouter un candidat » : la même fenêtre, en création. Rien n'est enregistré avant l'une des deux actions du pied.
+   Spec 1.10 R3 : un seul candidat quoi qu'il arrive. Dès le premier clic, les deux actions et la fermeture sont bloquées
+   jusqu'à la fin ; une fois le candidat créé (cree), la fenêtre travaille sur lui : un nouveau clic enregistre les champs,
+   envoie les seuls fichiers encore en attente, puis fait l'action. */
+var cree = null, creation = false;
 function creer(btn){
   if(opts.avantCreer && opts.avantCreer() === false) return;
   retour = btn || document.activeElement;
-  mode = "creation"; attente = {};
+  mode = "creation"; attente = {}; cree = null; creation = false;
   var c = D.blank(""); c.identite.recruteurs = S.me() ? [S.me()] : []; c.identite.dateDebutProcess = new Date().toISOString().slice(0, 10);
   copie = c;
   fenetre(t("ajout.titre"), ficheHTML(c),
     '<button type="button" class="btn" data-mc-creer="liste">' + E(t("ajout.enregistrer")) + '</button><button type="button" class="btn primary" data-mc-creer="appel">' + E(t("ajout.ouvrirAppel")) + '</button>', true);
   dlg.querySelector("#mf-personne").focus();
 }
+function piedActif(oui){ if(dlg) dlg.querySelectorAll("[data-mc-creer], [data-mc-close]").forEach(function(b){ b.disabled = !oui; }); }
+/* Crée le candidat s'il ne l'est pas, sinon enregistre les champs modifiés ; puis envoie les fichiers en attente un par un.
+   Rend {c, echecs: {champ: message}} ; un fichier envoyé sort de l'attente, un échec y reste. */
+function enregistrerCreation(){
+  var f = Object.assign({}, copie.identite); delete f.fichiers;
+  var p = cree ? S.saveCandidate(copie) : S.createCandidate(f, S.me()).then(function(n){ cree = n; copie = n; return n; });
+  return p.then(function(n){
+    var echecs = {};
+    return CHAMPS.reduce(function(q, champ){
+      return q.then(function(x){
+        if(!attente[champ]) return x;
+        return deposer(x, champ, attente[champ]).then(function(y){ delete attente[champ]; return y; },
+          function(e){ echecs[champ] = e.message; return x; });
+      });
+    }, Promise.resolve(n)).then(function(x){ copie = x; return {c: x, echecs: echecs}; });
+  });
+}
 function valider(quoi, btn){
+  if(creation) return;
   var c = copie, err = document.getElementById("mf-err");
   var box = dlg.querySelector('[data-tags="mf-rec"]'), pending = box && box.querySelector("input").value;
   if(pending && pending.trim()){ UI.tagsAdd(box, pending); box.querySelector("input").value = ""; c.identite.recruteurs = UI.tagsValues(box); }
@@ -190,70 +217,148 @@ function valider(quoi, btn){
     var bad = dlg.querySelector(!String(c.identite.personne || "").trim() ? "#mf-personne" : (/e-mail/.test(e) ? "#mf-email" : (/années/.test(e) ? "#mf-xp" : "#mf-personne")));
     bad.setAttribute("aria-invalid", "true"); bad.setAttribute("aria-describedby", "mf-err"); bad.focus(); return;
   }
-  btn.disabled = true;
-  var f = Object.assign({}, c.identite); delete f.fichiers;
-  S.createCandidate(f, S.me()).then(function(n){
-    /* Les fichiers choisis pendant la création partent une fois le candidat créé. */
-    return CHAMPS.reduce(function(p, champ){ return p.then(function(x){ return attente[champ] ? deposer(x, champ, attente[champ]) : x; }); }, Promise.resolve(n));
-  }).then(function(n){
-    copie = null; attente = {}; mode = "fiche";
+  creation = true; piedActif(false); err.hidden = true;
+  CHAMPS.forEach(function(ch){ var el = dlg.querySelector('[data-doc="' + ch + '"]'); if(el && attente[ch]) message(el, t("docs.envoi", {nom: attente[ch].name})); });
+  enregistrerCreation().then(function(r){
+    creation = false;
+    var champs = Object.keys(r.echecs);
+    if(champs.length){
+      piedActif(true); redessinerModal();
+      champs.forEach(function(ch){ message(dlg.querySelector('[data-doc="' + ch + '"]'), r.echecs[ch] + " " + t("docs.relance")); });
+      dlg.querySelector('[data-doc="' + champs[0] + '"] .docbox button').focus();
+      return;
+    }
+    var n = r.c; copie = null; attente = {}; mode = "fiche"; cree = null;
     if(quoi === "appel") return S.startStep(n.id, S.me()).then(function(){ location.href = UI.urlCandidat(n.id, "appel"); });
     fermerFenetre(true);
     if(opts.cree) opts.cree(n);
-  }).catch(function(x){ btn.disabled = false; err.textContent = x.message; err.hidden = false; });
+  }).catch(function(x){ creation = false; piedActif(true); err.textContent = x.message; err.hidden = false; });
+}
+/* Fermer après la création = « Enregistrer et revenir à la liste » : la fenêtre se ferme, les fichiers en attente partent,
+   un échec s'affiche dans un bandeau de la page (spec 1.10 R3, R7). */
+function fermerApresCreation(){
+  var nom = cree.candidat.nom;
+  fermerFenetre();
+  enregistrerCreation().then(function(r){
+    var n = r.c; copie = null; attente = {}; mode = "fiche"; cree = null;
+    Object.keys(r.echecs).forEach(function(ch){ bandeau(t("docs.bandeau", {champ: t("ajout." + ch), nom: nom, raison: r.echecs[ch]})); });
+    if(opts.cree) opts.cree(n);
+  }, function(x){ copie = null; attente = {}; mode = "fiche"; cree = null; bandeau(x.message); });
+}
+/* Un bandeau en tête de la page, annoncé, qui reste jusqu'à ce qu'on le ferme. */
+function bandeau(m){
+  var b = document.createElement("div");
+  b.className = "callout mc-bandeau"; b.setAttribute("role", "alert");
+  b.innerHTML = '<p>' + E(m) + '</p><button type="button" class="btn quiet small" data-mc-bandeau>' + E(t("menu.fermer")) + '</button>';
+  var w = document.querySelector(".wrap") || document.body; w.insertBefore(b, w.firstChild.nextSibling);
 }
 
-/* ---------- CV et Portfolio : déposer, coller un lien, retirer ---------- */
+/* ---------- CV et Portfolio : déposer, coller un lien, retirer (spec 1.10 R4, R5, R7, R19) ----------
+   Une opération de fichier à la fois : pendant qu'elle tourne, les commandes du champ sont désactivées et les
+   enregistrements différés de la page attendent (MC.occupe()) ; ils partent ensuite avec les saisies faites entre-temps.
+   Un échec remet le champ (référence, lien, ligne d'historique) dans son état d'avant. */
+var operation = null;
+function occupe(){ return !!operation; }
 function hote(el){
   var ctx = el.closest("[data-doc-ctx]").dataset.docCtx;
-  if(ctx === "modal") return {get: function(){ return copie; }, changer: plusTard, redessiner: redessinerModal};
-  return opts.page;
+  if(ctx === "modal") return {get: function(){ return copie; }, changer: plusTard, redessiner: redessinerModal, p: {id: "mf-", a: "mfiche"}};
+  return Object.assign({p: {id: "i-", a: "fiche"}}, opts.page);
 }
 function redessinerModal(){
   if(!dlg || !copie) return;
   CHAMPS.forEach(function(ch){ var el = dlg.querySelector('[data-doc="' + ch + '"]'); if(el) el.outerHTML = docHTML(copie, ch, false, {id: "mf-", a: "mfiche"}, "modal"); });
 }
-function message(champEl, m){ var x = champEl.querySelector(".docmsg"); if(x) x.textContent = m || ""; }
+function champDe(ctx, champ){ return document.querySelector('[data-doc-ctx="' + ctx + '"][data-doc="' + champ + '"]'); }
+/* Redessine un seul champ (le reste de la page garde sa saisie et son focus). */
+function redessinerChamp(h, ctx, champ){
+  var el = champDe(ctx, champ), c = h.get(); if(el && c) el.outerHTML = docHTML(c, champ, false, h.p, ctx);
+  return champDe(ctx, champ);
+}
+function message(champEl, m){ var x = champEl && champEl.querySelector(".docmsg"); if(x) x.textContent = m || ""; }
+function focusChamp(champEl){ var n = champEl && champEl.querySelector(".docbox a, .docbox button"); if(n) n.focus(); }
 function controle(file){
   if(TYPES.indexOf(file.type) < 0) return t("docs.erreurType");
   if(file.size > MAX) return t("docs.erreurTaille");
   if(!file.size) return t("docs.erreurVide");
   return "";
 }
-function trace(c, action, champ, nom){ c.historique = c.historique || []; c.historique.push({type: "fichier", action: action, champ: champ, nom: nom, le: D.now(), par: S.me() || ""}); }
-/* Dépose le fichier, retire l'ancien s'il y en avait un, garde ses informations sur le dossier et le trace dans l'historique. */
+function trace(c, action, champ, nom){ var l = {type: "fichier", action: action, champ: champ, nom: nom, le: D.now(), par: S.me() || ""}; c.historique = c.historique || []; c.historique.push(l); return l; }
+/* L'état d'un champ, pour le remettre tel quel après un échec (R19). */
+function etatChamp(c, champ){ return {fichier: (c.identite.fichiers || {})[champ] || null, lien: c.identite[champ] || ""}; }
+function poserFichier(c, champ, f){ c.identite.fichiers = Object.assign({cv: null, portfolio: null}, c.identite.fichiers); c.identite.fichiers[champ] = f; }
+function remettre(c, champ, avant, lignes){
+  poserFichier(c, champ, avant.fichier); c.identite[champ] = avant.lien;
+  lignes.forEach(function(l){ var i = (c.historique || []).indexOf(l); if(i >= 0) c.historique.splice(i, 1); });
+}
+/* R7 : messages d'un dépôt. envoi : l'échec vient de l'envoi du fichier (sinon de l'enregistrement du dossier). */
+function messageDepot(e, champ, envoi){
+  var nom = t("ajout." + champ);
+  if(envoi && e.status === 413) return e.code === "fichier-trop-gros" ? t("docs.erreurTaille") : t("docs.erreurServeur");
+  if(envoi && e.code === "type-fichier") return t("docs.erreurType");
+  if(!envoi && e.code === "conflit") return t("docs.nonEnregistreConflit", {champ: nom});
+  return e.message;
+}
+function erreurDepot(e, champ, envoi){ var x = new Error(messageDepot(e, champ, envoi)); x.code = e.code; x.envoi = envoi; return x; }
+/* Un refus lu (réponse de l'API) : le fichier envoyé peut être retiré. Panne réseau : l'issue est inconnue, rien n'est retiré (R4). */
+function refusExplicite(e){ return !!e && e.code !== "reseau"; }
+function auMieux(id, fid){ var d = depot(); if(d && fid) d.retirerFichier(id, fid).catch(function(){}); }
+/* R4 : envoi du fichier, puis enregistrement du dossier qui le référence ; l'ancien fichier n'est retiré qu'après. */
 function deposer(c, champ, file){
   var d = depot(); if(!d) return Promise.reject(new Error(t("docs.indispo")));
-  var ancien = (c.identite.fichiers || {})[champ];
+  var avant = etatChamp(c, champ);
   return d.deposer(c.id, champ, file).then(function(m){
-    c.identite.fichiers = Object.assign({cv: null, portfolio: null}, c.identite.fichiers);
-    c.identite.fichiers[champ] = {id: m.id, nom: m.nom, type: m.type, taille: m.taille, le: m.deposeLe, par: S.me() || ""};
+    poserFichier(c, champ, {id: m.id, nom: m.nom, type: m.type, taille: m.taille, le: m.deposeLe, par: S.me() || ""});
     c.identite[champ] = "";
-    trace(c, "depot", champ, m.nom);
-    return (ancien ? d.retirerFichier(c.id, ancien.id).catch(function(){}) : Promise.resolve()).then(function(){ return S.saveCandidate(c); });
+    var ligne = trace(c, "depot", champ, m.nom);
+    return S.saveCandidate(c).then(function(x){
+      if(avant.fichier && avant.fichier.id !== m.id) auMieux(c.id, avant.fichier.id);
+      return x;
+    }, function(e){
+      remettre(c, champ, avant, [ligne]);
+      if(refusExplicite(e)) auMieux(c.id, m.id);
+      throw erreurDepot(e, champ, false);
+    });
+  }, function(e){ throw erreurDepot(e, champ, true); });
+}
+/* R5 : le dossier est enregistré sans le fichier (lien compris), puis le fichier est retiré de l'API, au mieux. */
+function enleverFichier(c, champ, lien){
+  var avant = etatChamp(c, champ), f = avant.fichier, lignes = [];
+  poserFichier(c, champ, null); lignes.push(trace(c, "retrait", champ, f.nom));
+  if(lien){ c.identite[champ] = lien; lignes.push(trace(c, "lien", champ, lienCourt(lien))); }
+  return S.saveCandidate(c).then(function(x){ auMieux(c.id, f.id); return x; },
+    function(e){ remettre(c, champ, avant, lignes); throw e; });
+}
+/* Une opération sur un champ : champ occupé, enregistrement différé en attente compris dedans, rien d'autre ne s'enregistre avant la fin. */
+function operer(champEl, enCoursMsg, faire, okMsg){
+  var h = hote(champEl), ctx = champEl.dataset.docCtx, champ = champEl.dataset.doc;
+  if(operation || !h.get()) return;
+  champEl.classList.add("busy");
+  champEl.querySelectorAll("button, input").forEach(function(b){ b.disabled = true; });
+  message(champEl, enCoursMsg || "");
+  if(ctx === "modal"){ clearTimeout(saveT); saveT = null; }
+  var p = Promise.resolve(h.avant ? h.avant() : null).then(function(){ return faire(h.get()); });
+  operation = p;
+  p.then(function(x){ if(h.relu && x) h.relu(x); return null; }, function(e){ return e.message; }).then(function(m){
+    operation = null;
+    var el = redessinerChamp(h, ctx, champ);
+    if(m) message(el, m); else YEITA.flash(null, okMsg);
+    focusChamp(el);
   });
 }
 function choisir(champEl, file){
   var h = hote(champEl), c = h && h.get(), champ = champEl.dataset.doc, m = controle(file);
-  if(!c) return;
+  if(!c || operation) return;
   if(m){ message(champEl, m); return; }
   if(mode === "creation" && champEl.dataset.docCtx === "modal"){ attente[champ] = file; c.identite[champ] = ""; redessinerModal(); return; }
-  message(champEl, t("docs.envoi", {nom: file.name}));
-  champEl.classList.add("busy");
-  Promise.resolve(h.avant ? h.avant() : null).then(function(){ return deposer(c, champ, file); }).then(function(x){
-    if(h.relu) h.relu(x); h.redessiner(); YEITA.flash(null, t("docs.depose", {champ: t("ajout." + champ)}));
-  }, function(e){ champEl.classList.remove("busy"); message(champEl, e.message); });
+  operer(champEl, t("docs.envoi", {nom: file.name}), function(c){ return deposer(c, champ, file); }, t("docs.depose", {champ: t("ajout." + champ)}));
 }
 function retirer(champEl){
-  var h = hote(champEl), c = h && h.get(), champ = champEl.dataset.doc; if(!c) return;
+  var h = hote(champEl), c = h && h.get(), champ = champEl.dataset.doc; if(!c || operation) return;
   var f = (c.identite.fichiers || {})[champ];
-  if(mode === "creation" && champEl.dataset.docCtx === "modal"){ delete attente[champ]; c.identite[champ] = ""; redessinerModal(); return; }
-  if(!f){ c.identite[champ] = ""; trace(c, "retraitLien", champ, ""); h.changer(); h.redessiner(); return; }
-  Promise.resolve(h.avant ? h.avant() : null).then(function(){ return depot().retirerFichier(c.id, f.id); }).then(function(){
-    c.identite.fichiers[champ] = null; trace(c, "retrait", champ, f.nom);
-    return S.saveCandidate(c);
-  }).then(function(x){ if(h.relu) h.relu(x); h.redessiner(); YEITA.flash(null, t("docs.retire", {champ: t("ajout." + champ)})); },
-    function(e){ message(champEl, e.message); });
+  /* En création : un fichier en attente ou un lien sort simplement de la fenêtre ; un fichier déjà envoyé (candidat créé) se retire. */
+  if(mode === "creation" && champEl.dataset.docCtx === "modal" && !(f && cree)){ delete attente[champ]; c.identite[champ] = ""; message(champEl, ""); redessinerModal(); return; }
+  if(!f){ c.identite[champ] = ""; trace(c, "retraitLien", champ, ""); h.changer(); focusChamp(redessinerChamp(h, champEl.dataset.docCtx, champ)); return; }
+  operer(champEl, "", function(c){ return enleverFichier(c, champ, ""); }, t("docs.retire", {champ: t("ajout." + champ)}));
 }
 function editerLien(champEl){
   var h = hote(champEl), c = h && h.get(), champ = champEl.dataset.doc; if(!c) return;
@@ -263,14 +368,16 @@ function editerLien(champEl){
   box.querySelector("input").focus();
 }
 function validerLien(champEl){
-  var h = hote(champEl), c = h.get(), champ = champEl.dataset.doc, v = champEl.querySelector("[data-doc-url]").value.trim();
+  var h = hote(champEl), c = h.get(), champ = champEl.dataset.doc, ctx = champEl.dataset.docCtx, v = champEl.querySelector("[data-doc-url]").value.trim();
+  if(operation) return;
   if(v && !/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(v)){ message(champEl, t("docs.erreurLien")); champEl.querySelector("[data-doc-url]").focus(); return; }
   var f = (c.identite.fichiers || {})[champ];
+  if(mode === "creation"){ c.identite[champ] = v; if(v) delete attente[champ]; focusChamp(redessinerChamp(h, ctx, champ)); return; }
+  /* Un lien à la place d'un fichier : enregistrement immédiat, puis retrait du fichier (R5). */
+  if(v && f && depot()){ operer(champEl, "", function(c){ return enleverFichier(c, champ, v); }, t("docs.lienPose", {champ: t("ajout." + champ)})); return; }
   c.identite[champ] = v;
-  if(v && mode !== "creation") trace(c, "lien", champ, lienCourt(v));
-  if(v && mode === "creation") delete attente[champ];
-  var suite = (v && f && depot()) ? depot().retirerFichier(c.id, f.id).then(function(){ c.identite.fichiers[champ] = null; trace(c, "retrait", champ, f.nom); }, function(){}) : Promise.resolve();
-  suite.then(function(){ h.changer(); h.redessiner(); var n = document.querySelector('[data-doc-ctx="' + champEl.dataset.docCtx + '"][data-doc="' + champ + '"] .docbox a, [data-doc-ctx="' + champEl.dataset.docCtx + '"][data-doc="' + champ + '"] .docbtn'); if(n) n.focus(); });
+  if(v) trace(c, "lien", champ, lienCourt(v));
+  h.changer(); focusChamp(redessinerChamp(h, ctx, champ));
 }
 
 function init(o){
@@ -282,6 +389,7 @@ function init(o){
     if(it && menuEl){ var id = menuEl.dataset.for, src = menuBtn; fermerMenu(false); action(it.dataset.mc, id, src); return; }
     if(menuEl && !e.target.closest(".mcmenu")) fermerMenu(false);
     if(e.target.closest("[data-mc-close]")){ fermer(); return; }
+    var bd = e.target.closest("[data-mc-bandeau]"); if(bd){ bd.closest(".mc-bandeau").remove(); return; }
     var cr = e.target.closest("[data-mc-creer]"); if(cr && dlg){ valider(cr.dataset.mcCreer, cr); return; }
     var da = e.target.closest("[data-doc-act]");
     if(da){
@@ -349,5 +457,5 @@ function init(o){
   window.addEventListener("pagehide", function(){ if(saveT && copie && mode !== "creation"){ clearTimeout(saveT); saveT = null; D.partir(copie); } });
 }
 
-window.MC = {bouton: bouton, init: init, creer: creer, infosHTML: infosHTML, appliquer: appliquer, histHTML: histHTML, docHTML: docHTML, fermerMenu: fermerMenu};
+window.MC = {occupe: occupe, bouton: bouton, init: init, creer: creer, infosHTML: infosHTML, appliquer: appliquer, histHTML: histHTML, docHTML: docHTML, fermerMenu: fermerMenu};
 })();

@@ -149,6 +149,16 @@ function AdaptateurServeur(opts){
       return faire(adresse(id) + "/fichiers?champ=" + encodeURIComponent(champ), o).then(lire, function(){ return {type: "erreur", erreur: erreur("reseau", texte("reseau"))}; })
         .then(function(r){ var s = suite(r, function(r){ return r.json; }); return s || Promise.reject(r.erreur); });
     },
+    /* Les fichiers d'un candidat (métadonnées) ; [] s'il n'existe pas. */
+    fichiers: function(id){
+      if(!MOTIF_ID.test(String(id || ""))) return Promise.resolve([]);
+      return envoyer("GET", adresse(id) + "/fichiers").then(function(r){
+        var s = suite(r, function(r){ return r.json; });
+        if(s) return s;
+        if(r.erreur.code === "introuvable") return [];
+        return Promise.reject(r.erreur);
+      });
+    },
     fichierUrl: function(id, fid){ return adresse(id) + "/fichiers/" + encodeURIComponent(fid); },
     retirerFichier: function(id, fid){
       return envoyer("DELETE", adresse(id) + "/fichiers/" + encodeURIComponent(fid)).then(function(r){

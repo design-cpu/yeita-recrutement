@@ -351,7 +351,7 @@ body.np-on .np-toggle{right:min(420px, 100vw)}
 .docacts{display:inline-flex; gap:6px; margin-left:auto}
 .docvide{font-size:14px; color:var(--muted)}
 .docmsg{font-size:13px; color:var(--stop); min-height:0}
-.docmsg:empty{display:none}
+.docmsg:empty{margin:0}
 .infos .field label{font-size:13px}
 .infos input, .infos select{min-height:38px; padding:6px 10px; font-size:15px}
 .infos .wide{grid-column:1 / -1}

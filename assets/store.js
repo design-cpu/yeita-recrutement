@@ -279,6 +279,19 @@ function exportAll(){
   });
 }
 function lastExport(){ return (window.YEITA && YEITA.store.get(EXPORT_KEY, null)) || null; }
+/* Spec 1.10 R21 : un export ne porte jamais le contenu des fichiers ; une référence à un fichier absent de l'API pour ce
+   candidat est remise à null avant l'enregistrement (sinon l'API refuserait le dossier). */
+function sansFichiersAbsents(c){
+  var a = D.adapter(), f = c.identite && c.identite.fichiers;
+  if(!f || !(f.cv || f.portfolio)) return Promise.resolve(c);
+  if(!a.fichiers){ c.identite.fichiers = {cv: null, portfolio: null}; return Promise.resolve(c); }
+  return a.fichiers(c.id).then(function(liste){
+    ["cv", "portfolio"].forEach(function(k){
+      if(f[k] && !liste.some(function(x){ return x.id === f[k].id && x.champ === k; })) f[k] = null;
+    });
+    return c;
+  });
+}
 /* « fusion » : on garde, pour chaque candidat, la version la plus récente. « remplacement » : la base importée remplace tout. */
 function importAll(text, mode){
   var o;
@@ -295,7 +308,7 @@ function importAll(text, mode){
           var c = D.upgrade(raw), old = byId[c.id];
           if(old && mode !== "remplacement" && (old.meta.modifieLe || "") >= (c.meta.modifieLe || "")){ res.ignores++; return; }
           if(old) res.misAJour++; else res.ajoutes++;
-          return D.adapter().put(c);
+          return sansFichiersAbsents(c).then(function(c){ return D.adapter().put(c); });
         });
       }, Promise.resolve());
     });

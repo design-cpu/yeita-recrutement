@@ -204,6 +204,12 @@ window.WORDING = {
     erreurTaille: "Ce fichier dépasse 10 Mo. Compresse-le ou colle plutôt un lien.",
     erreurVide: "Ce fichier est vide.",
     erreurLien: "Ce lien n'est pas valide. Colle une adresse qui commence par https://.",
+    /* Spec 1.10 R7 : le 413 de nginx (réglage du serveur absent), le conflit pendant un dépôt. */
+    erreurServeur: "Le serveur refuse ce fichier. Colle plutôt un lien et préviens Sofiane ou Léo.",
+    nonEnregistreConflit: "{champ} non enregistré : la candidature a été modifiée par quelqu'un d'autre. Recharge la page, puis dépose-le à nouveau.",
+    lienPose: "{champ} : lien enregistré",
+    relance: "Réessaie, ou retire-le pour continuer sans.",
+    bandeau: "{champ} de {nom} non enregistré : {raison} Ouvre sa fiche pour le déposer à nouveau.",
     histo: {depot: "{champ} déposé : {nom}", retrait: "{champ} retiré : {nom}", lien: "{champ} : lien ajouté ({nom})", retraitLien: "{champ} : lien retiré"}
   },
 
