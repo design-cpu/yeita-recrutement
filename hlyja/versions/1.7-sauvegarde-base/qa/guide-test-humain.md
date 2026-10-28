@@ -38,7 +38,7 @@ docker build -q -t banc-sauvegarde - <<'FIN'
 FROM ubuntu:26.04
 RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq docker.io docker-compose-v2 age python3 util-linux git iproute2 curl >/dev/null && useradd -m deploy && install -d -m 700 -o deploy -g deploy /var/backups/recrutement
 FIN
-docker run --rm -v "$PWD:/depot:ro" banc-sauvegarde bash /depot/tools/test-sauvegarde.sh /depot | tail -1
+docker run --rm -e BANC_JETABLE=oui -v "$PWD:/depot:ro" banc-sauvegarde bash /depot/tools/test-sauvegarde.sh /depot | tail -1
 ```
 
 - [ ] Tu dois voir, en dernière ligne : `TOUT OK`.
@@ -125,7 +125,7 @@ age-keygen -y ~/cles-yeita/cle-sauvegarde-recrutement.txt | pbcopy
 - [ ] Sur le serveur, en `deploy` : taper `CLE='`, coller (`Cmd+V`), taper `'`, Entrée. Puis :
 
 ```bash
-cd /opt/recrutement && [[ "$CLE" =~ ^age1[a-z0-9]+$ ]] && cp -p .env .env.avant-cle && sed -i '/^AGE_RECIPIENT=/d' .env && { [ -z "$(tail -c 1 .env)" ] || echo >> .env; } && echo "AGE_RECIPIENT=$CLE" >> .env && grep '^AGE_RECIPIENT=' .env || echo "RIEN N'A ÉTÉ CHANGÉ : la clé collée n'est pas une clé publique age (age1…)."
+cd /opt/recrutement && [[ "$CLE" =~ ^age1[a-z0-9]+$ ]] && cp -p .env ~/env-avant-cle && sed -i '/^AGE_RECIPIENT=/d' .env && { [ -z "$(tail -c 1 .env)" ] || echo >> .env; } && echo "AGE_RECIPIENT=$CLE" >> .env && grep '^AGE_RECIPIENT=' .env || echo "RIEN N'A ÉTÉ CHANGÉ : la clé collée n'est pas une clé publique age (age1…)."
 ```
 
 - [ ] Tu dois voir une seule ligne `AGE_RECIPIENT=age1…`, la même clé qu'en B3.
@@ -209,7 +209,7 @@ rm -rf "$d"
 ## B10. Le lendemain matin : la sauvegarde de la nuit
 
 - [ ] Ouvrir `https://recrutement.yeita.fr/admin/sauvegardes.html`.
-- [ ] Tu dois voir l'encadré **vert**, et « Dernière réussite » cette nuit entre 3 h et 3 h 15 (heure de Paris), « Copies sur le serveur » à 2.
+- [ ] Tu dois voir l'encadré **vert**, et « Dernière réussite » cette nuit, à l'heure du prochain passage affiché en B5 (colonne `NEXT`, heure du serveur ; la page l'affiche en heure de Paris : 1 h ou 2 h plus tard si le serveur est réglé en UTC), « Copies sur le serveur » à 2.
 
 **Sinon** : en `ubuntu`, lancer `sudo journalctl -u recrutement-backup --since "today 02:00" --no-pager | tail -15` et m'envoyer le résultat.
 

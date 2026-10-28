@@ -2,8 +2,6 @@
 # Installation et mise à jour : deploy/README.md, « Sauvegardes ».
 [Unit]
 Description=Vérification de l'occupation des disques (recrutement)
-# Après Docker s'il démarre, sans jamais le démarrer : un Docker arrêté pour une maintenance du serveur partagé
-# n'est pas relancé par une sauvegarde ou une vérification (qui échoue alors et le signale).
 # Après Docker s'il démarre ; les unités ne le demandent pas, mais docker.socket relance Docker au premier appel
 # d'une commande docker : arrêter les timers avant une maintenance de Docker (deploy/README.md § 14).
 After=docker.service

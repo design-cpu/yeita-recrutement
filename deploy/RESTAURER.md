@@ -101,9 +101,8 @@ EOF
 1 bis. **Volume intact, copie de `/data/sauvegardes`** (à la place de 1 à 3, et avant l'étape 4, qui remplacerait la copie du jour) : mettre la copie de côté dans le volume, la contrôler, noter son empreinte.
 
    ```bash
-   ssh deploy@SERVEUR 'cd /opt/recrutement && docker compose run --rm --no-deps -T api sh -c "umask 077 && cp /data/sauvegardes/recrutement-AAAA-MM-JJ.db /data/restauration.tmp && sha256sum /data/restauration.tmp"'
+   EMPREINTE=$(ssh deploy@SERVEUR 'cd /opt/recrutement && docker compose run --rm --no-deps -T api sh -c "umask 077 && cp /data/sauvegardes/recrutement-AAAA-MM-JJ.db /data/restauration.tmp && sha256sum /data/restauration.tmp"' | cut -d' ' -f1); echo "$EMPREINTE"
    ssh deploy@SERVEUR 'cd /opt/recrutement && docker compose run --rm --no-deps -T -e FICHIER=/data/restauration.tmp api node --input-type=module' < "$d/controle.mjs"
-   EMPREINTE=<l'empreinte affichée par sha256sum>
    ```
 
 4. **Garder l'état actuel** (si l'api est saine) : une sauvegarde chiffrée, avec son propre nom ; noter ce nom. Pour annuler la restauration, refaire la procédure avec cette copie.
@@ -144,7 +143,7 @@ EOF
    ssh deploy@SERVEUR 'cd /opt/recrutement && docker compose exec -T -e FICHIER=/data/recrutement.sqlite api node --input-type=module' < "$d/controle.mjs"
    "$depot/tools/check-site.sh" https://DOMAINE
    IDS=$(cut -d' ' -f1 "$d/suppressions.txt" | grep -E '^cand-[a-z0-9]{1,16}-[a-z0-9]{1,16}$' | tr '\n' ' ')
-   ssh deploy@SERVEUR "cd /opt/recrutement && docker compose exec -T -e IDS='$IDS' -e DOMAINE=DOMAINE api node --input-type=module" < "$d/suppressions.mjs"
+   if [ -n "$IDS" ]; then ssh deploy@SERVEUR "cd /opt/recrutement && docker compose exec -T -e IDS='$IDS' -e DOMAINE=DOMAINE api node --input-type=module" < "$d/suppressions.mjs"; else echo "Aucune suppression à refaire."; fi
    ```
 
    - Les comptes sont ceux de l'étape 3 (ou 1 bis) ; `check-site.sh` finit par `Tout est OK`.

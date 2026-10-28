@@ -3,7 +3,7 @@
 # À lancer en root dans un conteneur jetable ubuntu:26.04 qui a l'utilisateur deploy, /var/backups/recrutement
 # (deploy, 700), docker (CLI et plugin compose : « docker compose config » est le vrai), age, python3 — jamais sur
 # le serveur. Exemple depuis la racine du dépôt :
-#   docker run --rm -v "$PWD:/depot:ro" <image du banc> bash /depot/tools/test-sauvegarde.sh /depot
+#   docker run --rm -e BANC_JETABLE=oui -v "$PWD:/depot:ro" <image du banc> bash /depot/tools/test-sauvegarde.sh /depot
 # Simulés : docker compose exec/cp/ps/run (l'état des sauvegardes est écrit dans un faux volume), docker inspect/info,
 # df (verif-disque). Réels : docker compose config, age, flock, find.
 # Affiche OK/FAIL par vérification et finit par « TOUT OK » (code 0) ou « ÉCHECS : n » (code 1).
@@ -18,6 +18,9 @@ ko() { echo "FAIL $*"; sed 's/^/       | /' "$T/sortie" 2>/dev/null | tail -n 4;
 verifie() { local nom=$1; shift; if "$@"; then ok "$nom"; else ko "$nom"; fi; }
 
 [ "$(id -u)" -eq 0 ] || { echo "À lancer en root dans le banc jetable." >&2; exit 2; }
+# Le lanceur vide /var/backups/recrutement : jamais sans BANC_JETABLE=oui, jamais là où des unités sont installées.
+[ "${BANC_JETABLE:-}" = oui ] || { echo "Refusé : ce lanceur efface /var/backups/recrutement. Le lancer seulement dans un conteneur jetable, avec -e BANC_JETABLE=oui." >&2; exit 2; }
+[ ! -e /etc/systemd/system/recrutement-backup.service ] || [ -f /.dockerenv ] || { echo "Refusé : unités de sauvegarde installées et pas dans un conteneur : serveur réel ?" >&2; exit 2; }
 id deploy >/dev/null 2>&1 && [ -d "$COPIES" ] || { echo "Banc incomplet : utilisateur deploy et $COPIES attendus." >&2; exit 2; }
 grep -q 'ID=ubuntu' /etc/os-release || { echo "Banc ubuntu attendu." >&2; exit 2; }
 
