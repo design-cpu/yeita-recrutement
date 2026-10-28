@@ -45,7 +45,7 @@ export const MEMBRES = [
 ];
 
 /* Base temporaire avec l'équipe de test, et l'application construite dessus. logger : un flux pour capturer le journal. */
-export function creerApp(t, { config = {}, flux = null } = {}) {
+export function creerApp(t, { config = {}, flux = null, maintenant } = {}) {
   const dossierBase = dossierTemporaire(t);
   const dbPath = path.join(dossierBase, "r.sqlite");
   const { db } = ouvrirBase(dbPath);
@@ -53,7 +53,7 @@ export function creerApp(t, { config = {}, flux = null } = {}) {
   for (const m of MEMBRES) ins.run(...m);
   const conf = { host: "127.0.0.1", port: 8000, local: true, production: false, dbPath, devEmail: null, devStatic: null, ...config };
   const logger = flux ? { level: "info", stream: flux } : false;
-  const app = construireApp({ config: conf, db, logger, routes: routesApi });
+  const app = construireApp({ config: conf, db, logger, routes: routesApi, ...(maintenant ? { maintenant } : {}) });
   t.after(async () => { await app.close(); db.close(); });
   return { app, db, dbPath };
 }

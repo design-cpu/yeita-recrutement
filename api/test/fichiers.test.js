@@ -94,3 +94,87 @@ test("retrait puis suppression du candidat : fichiers effacés, y compris sur le
   assert.equal(db.prepare("SELECT count(*) n FROM fichiers").get().n, 0);
   assert.deepEqual(fichiersContiennent(dbPath, "CV-SECRET-MARQUEUR"), []);
 });
+
+/* ---- 1.10, spec R6 : l'enregistrement du dossier garantit ses références et nettoie les fichiers non référencés ---- */
+const HEURE = 3600 * 1000;
+function horloge(depart = Date.parse("2026-10-28T10:00:00.000Z")) {
+  let t = depart;
+  const h = () => new Date(t);
+  h.avancer = ms => { t += ms; };
+  return h;
+}
+async function lire(app, id = ID) { return json(await requete(app, "rec@yeita.fr", { method: "GET", url: `/api/candidats/${id}` })); }
+async function enregistrer(app, d, refs, { email = "rec@yeita.fr", version = d.version } = {}) {
+  const data = structuredClone(d.data);
+  data.identite.fichiers = { cv: null, portfolio: null, ...refs };
+  return requete(app, email, { method: "PUT", url: `/api/candidats/${data.id}`, payload: { version, data } });
+}
+const ref = m => ({ id: m.id, nom: m.nom, type: m.type, taille: m.taille, le: m.deposeLe, par: m.deposePar });
+
+test("R6 : un dossier qui référence un fichier absent, d'un autre candidat ou d'un autre champ est refusé (409), rien n'est écrit", async t => {
+  const { app } = await avecCandidat(t);
+  const AUTRE = "cand-mh3k2x1-zz99z";
+  await requete(app, "rec@yeita.fr", { method: "PUT", url: `/api/candidats/${AUTRE}`, payload: { version: null, data: dossier(AUTRE) } });
+  const ailleurs = json(await envoyer(app, PDF, { id: AUTRE }));
+  const cv = json(await envoyer(app, PDF));
+  const avant = await lire(app);
+  for (const refs of [{ cv: { id: "fic-000000000000000000" } }, { cv: ref(ailleurs) }, { portfolio: ref(cv) }]) {
+    const r = await enregistrer(app, avant, refs);
+    assert.equal(r.statusCode, 409, JSON.stringify(refs));
+    assert.deepEqual(json(r), { erreur: "Le CV ou le portfolio de cette fiche n'existe plus. Recharge la page.", code: "fichier-introuvable" });
+  }
+  assert.equal((await lire(app)).version, avant.version);
+  assert.equal((await enregistrer(app, avant, { cv: ref(cv) })).statusCode, 200);
+  for (const mauvais of [{ cv: "fic-x" }, { cv: { id: "../x" } }]) assert.equal((await enregistrer(app, await lire(app), mauvais)).statusCode, 400);
+});
+
+test("R6 : deux recruteurs, B retire le CV pendant que A enregistre sur une version prédite → 409 pour A, aucune référence absente", async t => {
+  const { app } = await avecCandidat(t);
+  const cv = json(await envoyer(app, PDF));
+  assert.equal((await enregistrer(app, await lire(app), { cv: ref(cv) })).statusCode, 200);
+  const vueA = await lire(app);
+  /* B : enregistre sans le CV, puis le retire de l'API (ordre de la spec R5). */
+  assert.equal((await enregistrer(app, vueA, {}, { email: "adm@yeita.fr" })).statusCode, 200);
+  assert.equal((await requete(app, "adm@yeita.fr", { method: "DELETE", url: `/api/candidats/${ID}/fichiers/${cv.id}` })).statusCode, 204);
+  /* A : départ de la page sur la version suivante prédite, avec sa copie qui référence encore le CV. */
+  const r = await enregistrer(app, vueA, { cv: ref(cv) }, { version: vueA.version + 1 });
+  assert.equal(r.statusCode, 409);
+  assert.equal(json(r).code, "fichier-introuvable");
+  assert.equal((await lire(app)).data.identite.fichiers.cv, null);
+});
+
+test("R6 : un fichier non référencé est gardé moins d'une heure, puis effacé (y compris des fichiers bruts) au premier enregistrement suivant", async t => {
+  const h = horloge();
+  const c = creerApp(t, { maintenant: h });
+  await requete(c.app, "rec@yeita.fr", { method: "PUT", url: `/api/candidats/${ID}`, payload: { version: null, data: dossier(ID) } });
+  const AUTRE = "cand-mh3k2x1-zz99z";
+  await requete(c.app, "rec@yeita.fr", { method: "PUT", url: `/api/candidats/${AUTRE}`, payload: { version: null, data: dossier(AUTRE) } });
+  const voisin = json(await envoyer(c.app, PDF, { id: AUTRE }));
+  const garde = json(await envoyer(c.app, PDF));
+  const orphelin = json(await envoyer(c.app, Buffer.concat([Buffer.from("%PDF-1.4\nORPHELIN-MARQUEUR "), Buffer.alloc(3000, 0x41)]), { champ: "portfolio" }));
+  assert.equal((await enregistrer(c.app, await lire(c.app), { cv: ref(garde) })).statusCode, 200);
+  h.avancer(59 * 60 * 1000);
+  assert.equal((await enregistrer(c.app, await lire(c.app), { cv: ref(garde) })).statusCode, 200);
+  assert.deepEqual(json(await requete(c.app, "rec@yeita.fr", { method: "GET", url: `/api/candidats/${ID}/fichiers` })).map(x => x.id).sort(), [garde.id, orphelin.id].sort());
+  h.avancer(2 * 60 * 1000);
+  assert.equal((await enregistrer(c.app, await lire(c.app), { cv: ref(garde) })).statusCode, 200);
+  assert.deepEqual(json(await requete(c.app, "rec@yeita.fr", { method: "GET", url: `/api/candidats/${ID}/fichiers` })).map(x => x.id), [garde.id]);
+  assert.deepEqual(fichiersContiennent(c.dbPath, "ORPHELIN-MARQUEUR"), []);
+  /* Le fichier non référencé d'un autre candidat n'est pas touché par l'enregistrement de celui-ci. */
+  assert.equal((await requete(c.app, "rec@yeita.fr", { method: "GET", url: `/api/candidats/${AUTRE}/fichiers/${voisin.id}` })).statusCode, 200);
+  /* Le fichier référencé, lui, n'est jamais effacé, quel que soit son âge. */
+  h.avancer(48 * HEURE);
+  assert.equal((await enregistrer(c.app, await lire(c.app), { cv: ref(garde) })).statusCode, 200);
+  assert.equal((await requete(c.app, "rec@yeita.fr", { method: "GET", url: `/api/candidats/${ID}/fichiers/${garde.id}` })).statusCode, 200);
+});
+
+test("limites et accès (CA9) : 10 Mo pile acceptés ; lecture : HEAD 200, POST par une adresse encodée refusé", async t => {
+  const { app } = await avecCandidat(t);
+  const pile = Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.alloc(10 * 1048576 - 9, 0x41)]);
+  const m = await envoyer(app, pile);
+  assert.equal(m.statusCode, 201);
+  assert.equal(json(m).taille, 10 * 1048576);
+  assert.equal((await requete(app, "lec@yeita.fr", { method: "HEAD", url: `/api/candidats/${ID}/fichiers/${json(m).id}` })).statusCode, 200);
+  const enc = await requete(app, "lec@yeita.fr", { method: "POST", url: `/api/candidats/${ID}/%66ichiers?champ=cv`, payload: PDF, headers: { "content-type": "application/pdf" } });
+  assert.equal(enc.statusCode, 403);
+});

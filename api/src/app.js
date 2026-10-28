@@ -23,7 +23,8 @@ export function adminRequis(req) {
   if (req.membre.role !== "admin") throw new ErreurHttp(403, "Réservé aux admins de l'équipe.", "admin-requis");
 }
 
-export function construireApp({ config, db, logger = false, routes = [] }) {
+/* maintenant : l'horloge des écritures (dates de dépôt, nettoyage des fichiers non référencés) ; les tests la remplacent. */
+export function construireApp({ config, db, logger = false, routes = [], maintenant = () => new Date() }) {
   /* maxParamLength : un :id trop long reste un « Identifiant invalide. » (400) jusqu'à 200 caractères. */
   const app = Fastify({ logger, bodyLimit: LIMITE_CORPS, routerOptions: { maxParamLength: 200 } });
 
@@ -33,6 +34,8 @@ export function construireApp({ config, db, logger = false, routes = [] }) {
   app.removeAllContentTypeParsers();
   app.addContentTypeParser("application/json", { parseAs: "string" }, (req, corps, fini) =>
     corps === "" ? fini(null, undefined) : analyseurJson(req, corps, fini));
+
+  app.decorate("maintenant", maintenant);
 
   const membre = db.prepare("SELECT email, prenom, role, actif FROM equipe WHERE email = ?");
 

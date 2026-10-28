@@ -57,7 +57,7 @@ export function routesFichiers(app, db, pointDeControle) {
       const corps = req.body;
       if (!Buffer.isBuffer(corps) || !corps.length) throw new ErreurHttp(400, "Fichier vide.");
       if (!SIGNATURES[type] || !SIGNATURES[type](corps)) throw new ErreurHttp(415, "Seuls les fichiers PDF, PNG et JPG sont acceptés.", "type-fichier");
-      const f = { id: "fic-" + crypto.randomBytes(9).toString("hex"), nom: nomPropre(req.headers["x-nom-fichier"], type), le: new Date().toISOString(), par: req.membre.email };
+      const f = { id: "fic-" + crypto.randomBytes(9).toString("hex"), nom: nomPropre(req.headers["x-nom-fichier"], type), le: app.maintenant().toISOString(), par: req.membre.email };
       db.transaction(() => {
         if (!q.candidat.get(id)) throw INTROUVABLE();
         q.ajouter.run(f.id, id, champ, f.nom, type, corps.length, corps, f.le, f.par);
