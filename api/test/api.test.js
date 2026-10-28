@@ -206,4 +206,8 @@ test("sauvegardes : états lus, seuils de 26 h et 2 h, fichier illisible (CA22)"
   assert.equal(json(await requete(app, "adm@yeita.fr", { url: "/api/sauvegardes" })).disque.en_retard, true, "2,1 h : en retard");
   etat(dbPath, "sauvegarde-reussie.json", { ...reussie, le: "pas une date" });
   assert.equal(json(await requete(app, "adm@yeita.fr", { url: "/api/sauvegardes" })).sauvegarde.en_retard, true, "date invalide : en retard");
+  for (const contenu of ["[1, 2]", "42", "null"]) {
+    etat(dbPath, "sauvegarde-derniere.json", contenu);
+    assert.deepEqual(json(await requete(app, "adm@yeita.fr", { url: "/api/sauvegardes" })).sauvegarde.derniere, { illisible: true }, `JSON valide mais pas un objet : ${contenu}`);
+  }
 });
