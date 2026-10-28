@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
 
-export const VERSION_SCHEMA = 2;
+export const VERSION_SCHEMA = 1;
 export const ATTENTE_MS = 5000;
 
 export const SCHEMA = `
@@ -36,11 +36,12 @@ CREATE TABLE options_disponibilite (
   ajoute_le TEXT NOT NULL
 );`;
 
-/* Les évolutions du schéma, appliquées dans l'ordre à partir de la version de la base (1.10 : fichiers des candidats).
-   Les fichiers (CV, portfolio) sont dans la base, avec le dossier : même accès réservé à l'équipe, même effacement réel. */
-export const MIGRATIONS = {
-  2: `
-CREATE TABLE fichiers (
+/* Tables ajoutées sans changer user_version (1.10, décision de l'utilisateur) : créées si elles manquent à chaque ouverture,
+   pour que l'API de la version d'avant relise toujours la base (retour arrière). Une table ajoutée ici ne fait qu'ajouter :
+   jamais de colonne retirée ni de donnée réécrite ; un changement qui casserait la lecture par l'ancienne version passe user_version.
+   fichiers : les CV et portfolios des candidats, dans la base avec le dossier (même accès, même effacement réel). */
+export const AJOUTS = `
+CREATE TABLE IF NOT EXISTS fichiers (
   id          TEXT PRIMARY KEY,
   candidat_id TEXT NOT NULL REFERENCES candidats (id) ON DELETE CASCADE,
   champ       TEXT NOT NULL CHECK (champ IN ('cv','portfolio')),
@@ -51,8 +52,8 @@ CREATE TABLE fichiers (
   depose_le   TEXT NOT NULL,
   depose_par  TEXT NOT NULL
 );
-CREATE INDEX fichiers_candidat ON fichiers (candidat_id);`
-};
+CREATE INDEX IF NOT EXISTS fichiers_candidat ON fichiers (candidat_id);`;
+const TABLES_AJOUTEES = ["fichiers"];
 
 export class ErreurBase extends Error {}
 
@@ -90,14 +91,16 @@ export function ouvrirBase(chemin) {
 
 function appliquerSchema(db) {
   const lue = () => db.pragma("user_version", { simple: true });
+  const complete = () => TABLES_AJOUTEES.every(t => db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
   const v = lue();
   if (v > VERSION_SCHEMA) throw new ErreurBase(`Base d'une version plus récente (user_version ${v}).`);
-  if (v === VERSION_SCHEMA) return;
+  /* Base à jour : aucune écriture, donc aucun verrou pris à l'ouverture. */
+  if (v === VERSION_SCHEMA && complete()) return;
   db.transaction(() => {
-    let w = lue();
-    if (w === VERSION_SCHEMA) return;
-    if (w === 0) { db.exec(SCHEMA); w = 1; }
-    for (let n = w + 1; n <= VERSION_SCHEMA; n++) db.exec(MIGRATIONS[n]);
-    db.pragma(`user_version = ${VERSION_SCHEMA}`);
+    const w = lue();
+    if (w > VERSION_SCHEMA) throw new ErreurBase(`Base d'une version plus récente (user_version ${w}).`);
+    if (w === 0) db.exec(SCHEMA);
+    db.exec(AJOUTS);
+    if (w !== VERSION_SCHEMA) db.pragma(`user_version = ${VERSION_SCHEMA}`);
   }).immediate();
 }
