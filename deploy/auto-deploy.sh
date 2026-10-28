@@ -207,11 +207,12 @@ prendre_demande() {
     nom=${ligne%%=*}
     [ "$nom" != "$ligne" ] || return
     case "$nom" in action|commit|par|le) ;; *) return ;; esac
-    case "$vus" in *" $nom "*) return ;; esac
     vus+="$nom "
     printf -v "D_${nom^^}" '%s' "${ligne#*=}"
   done <<<"$brut"
-  [ "$(wc -w <<<"$vus")" -eq 4 ] || return   # les quatre clés, une fois chacune
+  # Quatre clés connues : exactement quatre lignes, sinon une clé est en double ; une clé manquante laisse sa valeur
+  # vide, refusée ci-dessous.
+  [ "$(wc -w <<<"$vus")" -eq 4 ] || return
   [[ $D_PAR =~ $MOTIF_PAR ]] && [ ${#D_PAR} -le 254 ] && [[ $D_LE =~ $MOTIF_LE ]] || return
   case "$D_ACTION" in
     deployer) [ "$D_COMMIT" = main ] || [[ $D_COMMIT =~ $MOTIF_COMMIT ]] || return ;;
