@@ -62,7 +62,7 @@ sudo apt install -y age
 
 Tu dois voir à la fin : `age` installé (ou « déjà la version la plus récente »).
 
-2. **Créer la clé et la mettre sur le serveur** : `deploy/CLE-SAUVEGARDE.md`, étapes 1 et 2 (sur le Mac, puis une commande en `deploy`).
+2. **Créer la clé et la mettre sur le serveur** : suivre `deploy/CLE-SAUVEGARDE.md`, étapes 1 à 6 (sur ton Mac, puis sur le serveur : la page dit exactement quoi copier-coller).
 
 3. **Installer les minuteries** (compte `ubuntu`) :
 
@@ -95,7 +95,7 @@ cd /opt/recrutement && deploy/backup.sh && deploy/verif-disque.sh
 
 Tu dois voir `Sauvegarde réussie : recrutement-…Z.db.age (… octets) ; 1 copies sur le serveur.` puis `Disque racine : … % ; dossier Docker : … % ; seuil : 80 %.`. Ensuite, `https://recrutement.yeita.fr/admin/sauvegardes.html` affiche un verdict **vert**.
 
-6. **Vérifier la clé** : `deploy/CLE-SAUVEGARDE.md`, étape 4.
+6. **Vérifier la clé** : `deploy/CLE-SAUVEGARDE.md`, étape 7.
 
 ### Revenir avant la 1.7
 

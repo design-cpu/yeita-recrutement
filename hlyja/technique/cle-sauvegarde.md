@@ -3,7 +3,7 @@ type: technique
 page: cle-sauvegarde
 titre: La clé des sauvegardes
 maj: 1.7
-commit: e005282
+commit: 287c215
 sources: deploy/CLE-SAUVEGARDE.md, deploy/backup.sh, deploy/commun.sh, .env.example
 date: 2026-10-28
 ---
@@ -15,10 +15,11 @@ date: 2026-10-28
 ## Gestes
 | Geste | Commande | Contrôle |
 |---|---|---|
+| Installer (Mac) | `brew install age` ; `age --version` | un numéro de version |
 | Créer (Mac) | `mkdir -p ~/cles-yeita && chmod 700 ~/cles-yeita && age-keygen -o ~/cles-yeita/cle-sauvegarde-recrutement.txt && chmod 600 …` | `age-keygen` refuse d'écraser un fichier existant (vérifié) |
 | Clé publique | `age-keygen -y ~/cles-yeita/cle-sauvegarde-recrutement.txt` | ligne `age1…` |
-| Mettre sur le serveur (`deploy`) | `CLE='age1…'` puis contrôle `^age1[a-z0-9]+$`, copie `.env` → `~/env-avant-cle` (hors du dépôt), suppression de l'ancienne ligne, saut de ligne garanti, ajout | une seule ligne `AGE_RECIPIENT=` ; sinon « RIEN N'A ÉTÉ CHANGÉ » |
-| Vérifier (Mac) | `scp` de la dernière copie, `age -d -i …`, `sqlite3 -readonly … "PRAGMA integrity_check"` | `ok` ; sinon `no identity matched any of the recipients` |
+| Mettre sur le serveur (`deploy`) | `read -r -p "Colle ta clé publique (age1…) puis appuie sur Entrée : " CLE` (ligne seule : un `read` dans un collage de plusieurs lignes lirait la ligne suivante), puis un bloc `if` : contrôle `^age1[a-z0-9]+$`, copie de `.env` dans `~/env-avant-cle` (hors du dépôt), suppression de l'ancienne ligne, saut de ligne garanti, ajout | « C'EST FAIT. Clé enregistrée : » et la ligne `AGE_RECIPIENT=` ; sinon « RIEN N'A ÉTÉ CHANGÉ » (essayé : clé valide, clé mal collée, `.env` sans saut de ligne final) |
+| Vérifier (Mac) | `scp` de la dernière copie, `age -d -i …`, `sqlite3 -readonly … "SELECT 'Copie lisible : ' || count(*) …"`, dossier temporaire effacé | « Copie lisible : N candidature(s). » ; sinon `no identity matched any of the recipients` |
 | Perdre / changer | nouvelle clé, nouvelle clé publique dans `.env`, sauvegarde, vérification ; ancien fichier gardé 30 jours | — |
 
 ## Refus de `backup.sh`

@@ -524,68 +524,138 @@ sudo apt install -y age
 exit
 ```
 
-### 11.2 — Créer la clé des sauvegardes (sur ton Mac)
+### 11.2 et 11.3 — La clé des sauvegardes (sur ton Mac, puis sur le serveur)
 
-Il y a deux clés. La **clé publique** (`age1…`) va sur le serveur : elle sert à chiffrer et n'est pas secrète. La **clé privée** (`AGE-SECRET-KEY-1…`) ouvre les sauvegardes : elle ne va **jamais** sur le serveur.
+**Ouvrir le Terminal sur le Mac** : appuie sur `Cmd + Espace`, tape `Terminal`, appuie sur `Entrée`.
 
-> Qui a le fichier de la clé privée peut lire **toutes** les sauvegardes. Si plus personne ne l'a, **toutes** les sauvegardes sont illisibles.
+**Lancer une commande de cette page** : copie le texte de l'encadré gris (sélectionne-le puis `Cmd + C`), clique dans la fenêtre du Terminal, colle avec `Cmd + V`, puis appuie sur `Entrée`.
 
-- [ ] Dans le Terminal de ton Mac, installe age :
+#### Clé, étape 1 — Installer age sur ton Mac
+
+À faire une seule fois par Mac.
+
+- [ ] **Où** : dans le Terminal de ton Mac.
+- [ ] **Copie-colle** :
 
 ```bash
 brew install age
 ```
 
-- [ ] **Tu dois voir** le retour à l'invite, sans ligne `Error:`.
+- [ ] **Puis copie-colle** :
 
-**Sinon** (`brew: command not found`) : Homebrew n'est pas installé sur ton Mac. Demande à l'équipe technique.
+```bash
+age --version
+```
 
-- [ ] Crée la clé, dans un dossier qui n'est pas synchronisé et que toi seul peux lire :
+- [ ] **Tu dois voir** un numéro de version, par exemple `1.2.1`.
+
+**Si tu vois `command not found: brew`** : Homebrew n'est pas installé sur ce Mac. Va sur https://brew.sh, copie-colle la commande indiquée sur la page dans le Terminal, attends la fin, puis recommence l'étape 1.
+
+
+#### Clé, étape 2 — Créer la clé
+
+À faire **une seule fois** (pas une fois par personne, pas une fois par Mac).
+
+- [ ] **Où** : dans le Terminal de ton Mac.
+- [ ] **Copie-colle** :
 
 ```bash
 mkdir -p ~/cles-yeita && chmod 700 ~/cles-yeita && age-keygen -o ~/cles-yeita/cle-sauvegarde-recrutement.txt && chmod 600 ~/cles-yeita/cle-sauvegarde-recrutement.txt
 ```
 
-- [ ] **Tu dois voir** une ligne `Public key: age1…` : c'est la clé publique.
+- [ ] **Tu dois voir** une ligne `Public key: age1…` (une longue suite de lettres et de chiffres).
 
-**Sinon** (le fichier existe déjà) : une clé a déjà été créée. **Ne l'écrase pas** (les sauvegardes faites avec elle deviendraient illisibles) : passe à la case suivante.
+Cette commande a créé le fichier `cle-sauvegarde-recrutement.txt` dans un dossier `cles-yeita` de ton dossier personnel. Ce dossier n'est pas synchronisé avec iCloud (ce n'est ni le Bureau, ni Documents).
 
-- [ ] Range le fichier comme il faut :
-  - garde-le dans `~/cles-yeita/`, sur un Mac au disque chiffré (FileVault activé) ;
-  - fais-en une seconde copie hors de ton Mac : une clé USB chiffrée rangée en lieu sûr, ou le Mac d'une seconde personne de confiance ;
-  - donne-le seulement à 1 ou 2 personnes qui doivent pouvoir restaurer, **en main propre** (AirDrop entre deux Mac côte à côte, ou une clé USB) ; note qui l'a et depuis quand.
-- [ ] Ne le mets **jamais** sur le serveur, dans le dépôt Git, dans iCloud, Google Drive ou Dropbox, en pièce jointe d'un email ou d'un message, ni dans un document partagé. Ne l'imprime pas.
+**Si tu vois `file exists`** : la clé existe déjà. **Ne la recrée pas** : les sauvegardes faites avec l'ancienne deviendraient illisibles. Passe directement à l'étape 3.
 
-### 11.3 — Mettre la clé publique sur le serveur (Mac, puis compte `deploy`)
 
-- [ ] Sur ton Mac, copie la clé publique (rien ne s'affiche, c'est normal) :
+#### Clé, étape 3 — Faire une copie de secours du fichier
 
-```bash
-age-keygen -y ~/cles-yeita/cle-sauvegarde-recrutement.txt | pbcopy
-```
+Si ton Mac est perdu ou cassé et que personne d'autre n'a le fichier, les sauvegardes sont perdues. Il faut donc une seconde copie.
 
-- [ ] Connecte-toi en `deploy` :
+- [ ] **Où** : sur ton Mac.
+- [ ] **Copie-colle** dans le Terminal, pour ouvrir le dossier de la clé dans le Finder :
 
 ```bash
-ssh -i ~/.ssh/id_ed25519 deploy@51.75.252.121
+open ~/cles-yeita
 ```
 
-- [ ] Tape `CLE='` (avec l'apostrophe), colle la clé avec `Cmd+V`, tape `'`, puis `Entrée`. La ligne ressemble à `CLE='age1qyqszqgpqyqszqgp…'`.
-- [ ] Copie-colle cette commande, puis `Entrée` :
+- [ ] **Tu dois voir** une fenêtre du Finder avec le fichier `cle-sauvegarde-recrutement.txt`.
+- [ ] **Fais une des deux choses suivantes** (ou les deux) :
+  - copie ce fichier sur une clé USB chiffrée, que tu ranges en lieu sûr ;
+  - donne-le à une personne de confiance, **en face à face**, par AirDrop d'un Mac à l'autre. Cette personne le range comme toi : dans un dossier `cles-yeita` de son dossier personnel.
+- [ ] **Note** quelque part qui a le fichier, et depuis quand.
+
+**À ne jamais faire avec ce fichier** : l'envoyer par email, Slack, WhatsApp ou tout autre message ; le mettre dans iCloud, Google Drive ou Dropbox ; le mettre sur le serveur ou dans le dépôt Git ; l'imprimer ; le coller dans un document.
+
+
+#### Clé, étape 4 — Copier la clé publique
+
+- [ ] **Où** : dans le Terminal de ton Mac.
+- [ ] **Copie-colle** :
 
 ```bash
-cd /opt/recrutement && [[ "$CLE" =~ ^age1[a-z0-9]+$ ]] && cp -p .env ~/env-avant-cle && sed -i '/^AGE_RECIPIENT=/d' .env && { [ -z "$(tail -c 1 .env)" ] || echo >> .env; } && echo "AGE_RECIPIENT=$CLE" >> .env && grep '^AGE_RECIPIENT=' .env || echo "RIEN N'A ÉTÉ CHANGÉ : la clé collée n'est pas une clé publique age (age1…)."
+age-keygen -y ~/cles-yeita/cle-sauvegarde-recrutement.txt
 ```
 
-- [ ] **Tu dois voir** une seule ligne `AGE_RECIPIENT=age1…`, identique à la clé publique de ton Mac. L'ancien `.env` est gardé dans `~/env-avant-cle`, hors du dépôt : le déploiement exige un dépôt sans fichier en trop.
+- [ ] **Tu dois voir** une seule ligne qui commence par `age1`, par exemple :
 
-**Sinon** (`RIEN N'A ÉTÉ CHANGÉ`) : la ligne `CLE='…'` est vide ou mal collée. Refais les deux cases précédentes.
+```
+age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+```
 
-- [ ] Quitte le serveur :
+- [ ] **Sélectionne toute cette ligne** avec la souris (du `a` de `age1` jusqu'au dernier caractère), puis copie-la avec `Cmd + C`.
+
+C'est la clé publique : tu vas la donner au serveur à l'étape 6.
+
+
+#### Clé, étape 5 — Se connecter au serveur
+
+- [ ] **Où** : ouvre une **nouvelle fenêtre** de Terminal sur ton Mac (`Cmd + N` dans le Terminal).
+- [ ] **Copie-colle** :
 
 ```bash
-exit
+ssh deploy@51.75.252.121
 ```
+
+- [ ] **Tu dois voir** une ligne qui se termine par `$`, par exemple `deploy@vps-…:~$`. Tu es maintenant sur le serveur : les commandes que tu tapes dans **cette fenêtre** s'exécutent sur le serveur.
+
+**Si tu vois `Permission denied`** : ton Mac n'a pas l'accès au compte `deploy` du serveur. Demande-le à la personne qui administre le serveur.
+
+
+#### Clé, étape 6 — Donner la clé publique au serveur
+
+- [ ] **Où** : dans la fenêtre connectée au serveur (étape 5).
+- [ ] **Copie-colle cette ligne seule**, puis `Entrée` :
+
+```bash
+read -r -p "Colle ta clé publique (age1…) puis appuie sur Entrée : " CLE
+```
+
+- [ ] **Tu dois voir** la question : `Colle ta clé publique (age1…) puis appuie sur Entrée :`
+- [ ] **Colle la clé** copiée à l'étape 4 (`Cmd + V`), puis appuie sur `Entrée`. Rien d'autre ne s'affiche : c'est normal, le serveur a gardé la clé pour la commande suivante.
+- [ ] **Copie-colle tout l'encadré ci-dessous**, puis `Entrée`. Il vérifie que c'est bien une clé publique, garde une copie de l'ancien fichier de réglages, puis enregistre la clé dans les réglages du site :
+
+```bash
+cd /opt/recrutement
+if [[ "$CLE" =~ ^age1[a-z0-9]+$ ]]; then
+  cp -p .env ~/env-avant-cle
+  sed -i '/^AGE_RECIPIENT=/d' .env
+  [ -z "$(tail -c 1 .env)" ] || echo >> .env
+  echo "AGE_RECIPIENT=$CLE" >> .env
+  echo "C'EST FAIT. Clé enregistrée :"
+  grep '^AGE_RECIPIENT=' .env
+else
+  echo "RIEN N'A ÉTÉ CHANGÉ : ce qui a été collé n'est pas une clé publique (elle doit commencer par age1)."
+fi
+```
+
+- [ ] **Tu dois voir** `C'EST FAIT. Clé enregistrée :`, puis une ligne `AGE_RECIPIENT=age1…` avec la même clé qu'à l'étape 4.
+
+**Si tu vois `RIEN N'A ÉTÉ CHANGÉ`** : la clé n'a pas été collée en entier, ou autre chose a été collé. Reviens à l'étape 4, recopie la ligne en entier, puis refais l'étape 6 depuis le début.
+
+- [ ] **Quitte le serveur** : copie-colle `exit` puis `Entrée`. Tu peux fermer cette fenêtre.
 
 ### 11.4 — Installer les minuteries (compte `ubuntu`)
 
@@ -690,23 +760,25 @@ exit
 
 ### 11.8 — Vérifier que ta clé ouvre bien les sauvegardes (sur ton Mac)
 
-C'est la seule preuve que le fichier gardé est le bon.
+#### Clé, étape 7 — Vérifier que ta clé ouvre bien les sauvegardes
 
-- [ ] Dans le Terminal de ton Mac, copie-colle **tout** le bloc d'un coup :
+À faire **après la première sauvegarde** (une fois les sauvegardes installées sur le serveur), puis de temps en temps. C'est la seule preuve que ton fichier ouvre vraiment les sauvegardes.
+
+- [ ] **Où** : dans le Terminal de ton Mac (pas sur le serveur).
+- [ ] **Copie-colle tout l'encadré**, puis `Entrée` :
 
 ```bash
-d=$(mktemp -d); F=$(ssh deploy@51.75.252.121 'ls -t /var/backups/recrutement/*.db.age | head -n 1'); echo "$F"
-scp "deploy@51.75.252.121:$F" "$d/copie.db.age" && age -d -i ~/cles-yeita/cle-sauvegarde-recrutement.txt -o "$d/copie.db" "$d/copie.db.age" && sqlite3 -readonly "$d/copie.db" "PRAGMA integrity_check; SELECT count(*) FROM candidats;"
+d=$(mktemp -d)
+F=$(ssh deploy@51.75.252.121 'ls -t /var/backups/recrutement/*.db.age | head -n 1'); echo "Dernière copie : $F"
+scp -q "deploy@51.75.252.121:$F" "$d/copie.db.age" && age -d -i ~/cles-yeita/cle-sauvegarde-recrutement.txt -o "$d/copie.db" "$d/copie.db.age" && sqlite3 -readonly "$d/copie.db" "SELECT 'Copie lisible : ' || count(*) || ' candidature(s).' FROM candidats;"
 rm -rf "$d"
 ```
 
-- [ ] **Tu dois voir** le nom de la dernière copie (`/var/backups/recrutement/recrutement-…Z.db.age`), puis `ok`, puis le nombre de candidatures.
+- [ ] **Tu dois voir** `Dernière copie : /var/backups/recrutement/recrutement-…`, puis `Copie lisible : N candidature(s).` Le nombre doit correspondre à peu près à ce que tu vois dans l'espace Candidatures. La copie déchiffrée est effacée tout de suite après.
 
-**Sinon** (`no identity matched any of the recipients`) : ce fichier n'est pas la clé qui chiffre les sauvegardes. Refais l'étape 11.3 avec la clé publique de ce fichier, puis l'étape 11.6, puis cette case.
+**Si tu vois `no identity matched any of the recipients`** : le serveur chiffre avec une autre clé que la tienne. Refais les étapes 4, 5 et 6, lance une sauvegarde à la main (sur le serveur : `cd /opt/recrutement && deploy/backup.sh`), puis refais l'étape 7.
 
-C'est fait : la base est sauvegardée chaque nuit. Ouvre la page d'état de temps en temps, par exemple chaque lundi.
-
----
+**Si tu vois `No such file or directory`** : aucune sauvegarde n'a encore été faite sur le serveur.
 
 ## Pour plus tard (compte `deploy`, dans `/opt/recrutement`)
 

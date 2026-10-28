@@ -362,7 +362,7 @@ cd /opt/recrutement && deploy/backup.sh       # attendu : « Sauvegarde réussie
 deploy/verif-disque.sh                         # attendu : « Disque racine : … % ; dossier Docker : … % ; seuil : 80 %. »
 ```
 
-Puis ouvrir la page d'état (connecté avec un compte admin) : verdict vert. Enfin, depuis le Mac, déchiffrer la copie qui vient d'être faite (`deploy/CLE-SAUVEGARDE.md`, « Vérifier la clé ») : c'est la seule preuve que la clé gardée est la bonne.
+Puis ouvrir la page d'état (connecté avec un compte admin) : verdict vert. Enfin, depuis le Mac, déchiffrer la copie qui vient d'être faite (`deploy/CLE-SAUVEGARDE.md`, étape 7) : c'est la seule preuve que la clé gardée est la bonne.
 
 **Mettre à jour une unité** (quand la commande de l'étape 3 affiche « DIFFÉRENTE », après un déploiement qui l'a changée) : relire la différence affichée, puis `sudo install -m 644 deploy/systemd/<unité> /etc/systemd/system/<unité> && sudo systemctl daemon-reload`.
 
