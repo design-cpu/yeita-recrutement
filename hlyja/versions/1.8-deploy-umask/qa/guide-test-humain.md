@@ -1,137 +1,167 @@
 ---
-type: guide-test-humain
+type: guide-test
 version: 1.8
 date: 2026-10-28
 ---
 
-# Guide de test humain — deploy.sh fixe lui-même le masque des fichiers qu'il écrit
+# Tester le réglage des droits dans deploy.sh
 
-> But : voir de tes yeux qu'un fichier réécrit par git sous un réglage « fichiers privés » (`umask 077`) reste lisible dans l'image de l'API quand c'est le début du nouveau `deploy.sh` qui lance git, alors qu'il devient illisible avec l'ancien.
-> Tout se passe sur ton Mac, dans une copie jetable du dépôt : rien n'est modifié dans ton dossier de travail, rien ne touche le serveur. Compte 10 minutes.
-> En option, un contrôle de 2 minutes sur le serveur après la prochaine mise à jour réelle.
-> Chaque bloc se copie en entier dans le Terminal (zsh) et se valide par Entrée.
+Suivre les étapes dans l'ordre et cocher. Chaque étape dit quoi lancer, ce que tu dois voir, et quoi faire sinon.
 
-## Préparer
+- **Partie A — sur le Mac, avant le merge** : 10 minutes.
+- **Partie B — sur le serveur, à la prochaine mise à jour après le merge** : 5 minutes.
 
-1. **Docker Desktop est lancé.** Copie :
+Il te faut : le Terminal du Mac, Docker Desktop lancé, et pour la partie B l'accès SSH au serveur en `deploy`.
 
-   ```zsh
-   docker info --format '{{.ServerVersion}}'
-   ```
+Tout ce qui se fait sur le Mac a lieu dans une copie jetable du dépôt : ton dossier de travail n'est pas touché. Les parenthèses de certains blocs gardent le réglage « fichiers privés » (`umask 077`) à l'intérieur du bloc : ton Terminal n'est pas modifié.
 
-   Tu dois voir un numéro de version, par exemple `29.9.2`.
-   Sinon (message « Cannot connect to the Docker daemon ») : ouvre l'application Docker Desktop, attends que la baleine de la barre de menus ne bouge plus, relance la commande.
+---
 
-2. **Copie jetable du dépôt**, dans le même Terminal que la suite (le bloc retient le dossier dans `$d`) :
+# Partie A — sur le Mac, avant le merge
 
-   ```zsh
-   cd ~/Documents/Yeita/Projects/Github/yeita-recrutement && d=$(mktemp -d) && git clone --quiet --branch version/1.8-deploy-umask . "$d/r" && cd "$d/r" && grep -n '^umask' deploy/deploy.sh
-   ```
+## A1. Docker répond
 
-   Tu dois voir `9:umask 022` : la ligne ajoutée par la 1.8, en 9e ligne du script.
-   Sinon :
-   - « no such file or directory » : ton dépôt est ailleurs ; remplace `~/Documents/Yeita/Projects/Github/yeita-recrutement` par son chemin et relance.
-   - « Remote branch version/1.8-deploy-umask not found » : la version a déjà été fusionnée ; fais `git pull` sur `main` dans ton dépôt, remplace `version/1.8-deploy-umask` par `main` dans le bloc et relance.
-   - rien ne s'affiche après le clone : la copie ne contient pas la correction (mauvaise branche) ; arrête-toi là et signale-le.
+- [ ] Lancer :
 
-## Parcours essentiels
+```bash
+docker info --format '{{.ServerVersion}}'
+```
 
-### P1 — Témoin : l'ancien script laisse git écrire un fichier privé
+- [ ] Tu dois voir : un numéro de version, par exemple `29.9.2`.
 
-Ce bloc rejoue, avec l'en-tête du `deploy.sh` d'avant la 1.8 (commit `b1f3567`), ce que fait une mise à jour : git réécrit `api/server.js`. Les parenthèses gardent le réglage `umask 077` à l'intérieur du bloc : ton Terminal n'est pas modifié.
+**Sinon** : « Cannot connect to the Docker daemon » → ouvrir Docker Desktop, attendre que la baleine de la barre de menus ne bouge plus, relancer.
 
-```zsh
+## A2. Préparer une copie jetable du dépôt
+
+- [ ] Lancer, **dans le même Terminal que la suite** (le bloc retient le dossier de la copie) :
+
+```bash
+cd ~/Documents/Yeita/Projects/Github/yeita-recrutement && d=$(mktemp -d) && git clone --quiet --branch version/1.8-deploy-umask . "$d/r" && cd "$d/r" && grep -n '^umask' deploy/deploy.sh
+```
+
+- [ ] Tu dois voir : `9:umask 022` (la ligne ajoutée par la 1.8).
+
+**Sinon** :
+- « no such file or directory » → ton dépôt est ailleurs : remplacer `~/Documents/Yeita/Projects/Github/yeita-recrutement` par son chemin et relancer.
+- « Remote branch version/1.8-deploy-umask not found » → la version est déjà mergée : faire `git pull` sur `main` dans ton dépôt, remplacer `version/1.8-deploy-umask` par `main` dans le bloc et relancer.
+- rien ne s'affiche → la copie n'a pas la correction : s'arrêter là et me le signaler.
+
+## A3. Avec l'ancien script, le bug apparaît
+
+- [ ] Lancer (rejoue, avec le début du `deploy.sh` d'avant la 1.8, la réécriture d'un fichier par git sous un terminal en « fichiers privés ») :
+
+```bash
 ( umask 077; bash -c "$(git show b1f3567:deploy/deploy.sh | sed -n '1,/^set -euo pipefail/p'); rm api/server.js; git checkout -- api/server.js"; stat -f '%Lp %N' api/server.js )
 ```
 
-Tu dois voir `600 api/server.js` (lisible par son seul propriétaire).
-Sinon : `644 api/server.js` veut dire que le réglage n'a pas joué ; vérifie que tu as copié le bloc en entier, parenthèses comprises, et relance. « bad revision » : ta copie ne connaît pas `b1f3567` ; refais l'étape 2 de « Préparer ».
+- [ ] Tu dois voir : `600 api/server.js` (lisible par son seul propriétaire).
+- [ ] Puis lancer (construit l'image de l'API avec ce fichier et lui demande de le lire ; 1 à 3 minutes la première fois) :
 
-Puis construis l'image de l'API avec ce fichier et demande à l'API de le lire (1 à 3 minutes la première fois) :
-
-```zsh
+```bash
 docker build -q -f docker/api.Dockerfile -t qa18-essai-api . >/dev/null && docker run --rm --entrypoint node qa18-essai-api -e "require('fs').readFileSync('/app/api/server.js'); console.log('lisible')" 2>&1 | grep -E 'lisible|EACCES' | head -1
 ```
 
-Tu dois voir `Error: EACCES: permission denied, open '/app/api/server.js'` : c'est le bug, l'API ne pourrait pas démarrer.
-Sinon : `lisible` veut dire que le fichier n'était pas en 600 ; refais le bloc précédent. Une erreur de construction (« failed to solve ») : vérifie ta connexion Internet (l'image télécharge ses dépendances) et relance.
+- [ ] Tu dois voir : `Error: EACCES: permission denied, open '/app/api/server.js'`. C'est le bug : l'API ne pourrait pas démarrer.
 
-### P2 — Correction : le nouveau script fixe le réglage pour git, pas pour toi
+**Sinon** :
+- `644 api/server.js` ou `lisible` → le réglage n'a pas joué : vérifier que le premier bloc a été copié en entier, parenthèses comprises, et relancer les deux blocs.
+- « bad revision » → la copie ne connaît pas l'ancien commit : refaire A2.
+- « failed to solve » → la construction n'a pas pu télécharger ses dépendances : vérifier la connexion Internet et relancer.
 
-Même essai, mais avec le début du `deploy.sh` de la 1.8 (jusqu'à sa ligne `umask 022`) :
+## A4. Avec le nouveau script, le fichier reste lisible
 
-```zsh
+- [ ] Lancer (même essai, avec le début du `deploy.sh` de la 1.8) :
+
+```bash
 ( umask 077; bash -c "$(sed -n '1,/^umask 022/p' deploy/deploy.sh); rm api/server.js; git checkout -- api/server.js; echo \"masque dans le script : \$(umask)\""; stat -f '%Lp %N' api/server.js; echo "masque du shell qui a lancé le script : $(umask)" )
 ```
 
-Tu dois voir, dans l'ordre :
-- `masque dans le script : 0022` (le script s'est réglé lui-même) ;
-- `644 api/server.js` (lisible par tous) ;
-- `masque du shell qui a lancé le script : 077` (le shell qui l'a lancé garde son réglage).
+- [ ] Tu dois voir, dans l'ordre :
+  - `masque dans le script : 0022` (le script s'est réglé lui-même) ;
+  - `644 api/server.js` (lisible par tous) ;
+  - `masque du shell qui a lancé le script : 077` (le terminal qui l'a lancé garde son réglage).
+- [ ] Puis lancer :
 
-Sinon : `600 api/server.js` ou `masque dans le script : 0077` : la correction n'est pas dans ta copie ; refais l'étape 2 de « Préparer » et vérifie `9:umask 022`, puis signale-le.
-
-Puis la même image, reconstruite avec ce fichier :
-
-```zsh
+```bash
 docker build -q -f docker/api.Dockerfile -t qa18-essai-api . >/dev/null && docker run --rm --entrypoint node qa18-essai-api -e "require('fs').readFileSync('/app/api/server.js'); console.log('lisible')" 2>&1 | grep -E 'lisible|EACCES' | head -1
 ```
 
-Tu dois voir `lisible`.
-Sinon : `EACCES` veut dire que l'image a gardé l'ancien fichier ; vérifie que le bloc précédent affichait bien `644`, puis relance celui-ci.
+- [ ] Tu dois voir : `lisible`.
 
-Enfin, ton Terminal n'a pas changé :
+**Sinon** :
+- `600 api/server.js` ou `masque dans le script : 0077` → la copie n'a pas la correction : refaire A2, vérifier `9:umask 022`, puis me le signaler.
+- `EACCES` au second bloc → l'image a gardé l'ancien fichier : vérifier que le premier bloc affichait bien `644`, puis relancer le second.
 
-```zsh
-echo "masque de ton Terminal : $(umask)"
+## A5. Ton Terminal n'a pas changé, et on range
+
+- [ ] Lancer :
+
+```bash
+echo "masque de ton Terminal : $(umask)"; cd ~ && docker image rm qa18-essai-api >/dev/null && rm -rf "$d" && echo "rangé"
 ```
 
-Tu dois voir ton réglage habituel, en général `022`. Sinon (`077`) : tu as copié un bloc sans ses parenthèses ; ferme ce Terminal et ouvre-en un nouveau.
+- [ ] Tu dois voir : `masque de ton Terminal : 022` (ou ton réglage habituel), puis `rangé`.
 
-### P3 — Ranger
+**Sinon** :
+- `077` → un bloc a été copié sans ses parenthèses : fermer ce Terminal et en ouvrir un nouveau.
+- « No such image » → l'image n'existait plus : lancer seulement `rm -rf "$d" && echo "rangé"`.
+- le Terminal a été fermé entre-temps → rien à supprimer à la main : macOS vide ce dossier temporaire tout seul.
 
-```zsh
-cd ~ && docker image rm qa18-essai-api >/dev/null && rm -rf "$d" && echo "rangé"
+## A6. Tout est bon : la pull request peut être mergée
+
+- [ ] A1 à A5 sont cochés.
+
+---
+
+# Partie B — sur le serveur, à la prochaine mise à jour après le merge
+
+À faire quand une mise à jour du site est prévue de toute façon. Serveur : `51.75.252.121`, en `deploy` :
+
+```bash
+ssh deploy@51.75.252.121
 ```
 
-Tu dois voir `rangé`.
-Sinon : « No such image » : l'image n'existait plus, lance seulement `rm -rf "$d" && echo "rangé"`. Si `$d` est vide (Terminal fermé entre-temps), il n'y a rien à supprimer à la main : macOS vide ce dossier temporaire tout seul.
+## B1. Mettre à jour, avec le préfixe
 
-### P4 — En option : sur le serveur, juste après la prochaine mise à jour réelle
-
-À faire seulement quand une mise à jour du site est prévue de toute façon, connecté en `deploy` sur le serveur (`ssh deploy@51.75.252.121`). Lance la mise à jour **avec le préfixe**, comme d'habitude :
+- [ ] Lancer, **en gardant `umask 022 &&` au début** (cette première mise à jour vers la 1.8 est encore faite par l'ancien script) :
 
 ```bash
 umask 022 && cd /opt/recrutement && deploy/deploy.sh
 ```
 
-Tu dois voir en dernière ligne `Déploiement réussi : <commit> sur https://recrutement.yeita.fr`.
-Sinon : si la dernière ligne commence par `ÉCHEC :`, lance tout de suite la commande affichée juste en dessous (`deploy/deploy.sh <commit>`), puis transmets le message à la personne responsable du site ; si elle commence par `ARRÊT : un déploiement est déjà en cours`, attends 5 minutes et relance.
+- [ ] Tu dois voir, en dernière ligne : `Déploiement réussi : <commit> sur https://recrutement.yeita.fr`.
 
-Puis, toujours sur le serveur :
+**Sinon** :
+- la dernière ligne commence par `ÉCHEC :` → lancer tout de suite la commande affichée juste en dessous (`deploy/deploy.sh <commit>`), telle quelle, puis m'envoyer le message `ÉCHEC`.
+- `ARRÊT : un déploiement est déjà en cours` → attendre 5 minutes et relancer.
+
+## B2. Le serveur a la correction et aucun fichier n'est resté privé
+
+- [ ] Lancer :
 
 ```bash
 cd /opt/recrutement && grep -n '^umask' deploy/deploy.sh && find . -path ./.git -prune -o -type f ! -perm -o=r -print && docker compose ps api
 ```
 
-Tu dois voir :
-- `9:umask 022` (le serveur a la 1.8) ;
-- une seule ligne de fichier : `./.env` (le seul fichier privé voulu) ;
-- une ligne `recrutement-api-1` dont la colonne STATUS finit par `(healthy)`.
+- [ ] Tu dois voir :
+  - `9:umask 022` (le serveur a la 1.8) ;
+  - une seule ligne de fichier : `./.env` (le seul fichier qui doit rester privé) ;
+  - une ligne `recrutement-api-1` dont la colonne STATUS finit par `(healthy)`.
 
-Sinon :
-- pas de `9:umask 022` : le serveur n'est pas encore en 1.8 (la version n'était pas dans `main`) ; rien d'anormal, refais ce contrôle après la mise à jour qui l'apportera.
-- d'autres fichiers que `./.env` sont listés : ils sont illisibles pour l'API ou le site ; ne touche à rien et envoie la liste à la personne responsable du site.
-- `(unhealthy)` ou `(health: starting)` : attends une minute et relance `docker compose ps api` ; toujours pas `(healthy)` : envoie le résultat de `docker compose logs --tail 20 api` à la personne responsable du site.
+**Sinon** :
+- pas de `9:umask 022` → la mise à jour n'a pas apporté la 1.8 (pas encore dans `main`) : rien d'anormal, refaire B1 et B2 à la mise à jour qui l'apportera.
+- d'autres fichiers que `./.env` sont listés → ils sont illisibles pour l'API ou le site : ne toucher à rien et m'envoyer la liste.
+- `(unhealthy)` ou `(health: starting)` → attendre une minute et relancer `docker compose ps api` ; toujours pas `(healthy)` → m'envoyer ce qu'affiche `docker compose logs --tail 20 api`.
 
-## Points d'attention
+## B3. À retenir pour les prochaines fois
 
-- **Le préfixe `umask 022 &&` reste** dans les commandes de mise à jour : la toute première mise à jour vers la 1.8 est lancée par l'ancien `deploy.sh` (le script est lu avant que git le remplace). Ne le retire pas de tes habitudes.
-- **Commande de retour après un échec** : lance-la telle qu'elle est affichée. Seule exception : si l'échec est arrivé pendant un retour vers une version d'avant la 1.8, ajoute `umask 022 &&` devant.
-- Les blocs P1 et P2 n'exécutent que le **début** de `deploy.sh` (ses réglages), suivi de la réécriture d'un fichier par git : c'est exactement l'endroit corrigé. Le déploiement complet a été essayé par la QA sur une copie de serveur jetable.
+- [ ] Garder l'habitude du préfixe `umask 022 &&` devant `deploy/deploy.sh` : il protège aussi le cas où l'on revient à une version d'avant la 1.8.
+- [ ] Après un `ÉCHEC`, la commande de retour affichée se lance telle quelle. Seule exception : si l'échec est arrivé pendant un retour vers une version d'avant la 1.8, ajouter `umask 022 &&` devant.
+
+---
 
 ## Inutile de tester
 
-- Le parcours dans le navigateur (connexion Google, candidatures) : aucune page ni l'API ne changent.
-- Les sauvegardes (`backup.sh`, `verif-disque.sh`) : elles gardent volontairement leur propre réglage de fichiers privés, sans lien avec `deploy.sh`.
-- Un vrai `deploy/deploy.sh` sur le Mac : il est fait pour le serveur (Linux, compte `deploy`, `.env` du serveur) et s'arrêterait avant d'agir.
+- Le parcours dans le navigateur (connexion Google, candidatures) : ni les pages ni l'API ne changent.
+- Les sauvegardes : elles gardent volontairement leur propre réglage « fichiers privés », sans lien avec `deploy.sh`.
+- Un vrai `deploy/deploy.sh` sur le Mac : il est fait pour le serveur et s'arrêterait avant d'agir. Le déploiement complet a été essayé sur une copie de serveur jetable.
