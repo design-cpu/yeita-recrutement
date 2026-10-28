@@ -91,3 +91,6 @@ Aucune.
 | nginx, taille des copies | [Architecture](../../technique/architecture.md) |
 | Avant le merge, retour avant la 1.10 | [Mettre à jour le site en production](../../technique/mise-a-jour-production.md) |
 | Tests et verdicts | [Conventions](../../technique/conventions.md) |
+
+## Étonnements
+4 retenus, 1 fusionné : [1.10](../../etonnements/1.10-fiche-candidat-harmonisation.md). Règles récurrentes signalées par le validateur : mutations (7e occurrence) et vérifications dans des conditions plus favorables que la réalité (7e version) — le skill lui-même devrait évoluer (`controles.md` § 1 et § 6).
