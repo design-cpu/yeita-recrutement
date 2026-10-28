@@ -338,12 +338,14 @@ function operer(champEl, enCoursMsg, faire, okMsg){
   if(operation || !h.get()) return;
   champEl.classList.add("busy");
   champEl.querySelectorAll("button, input").forEach(function(b){ b.disabled = true; });
+  if(ctx === "modal" && dlg) dlg.querySelectorAll("[data-mc-close]").forEach(function(b){ b.disabled = true; });
   message(champEl, enCoursMsg || "");
   if(ctx === "modal"){ clearTimeout(saveT); saveT = null; }
   var p = Promise.resolve(h.avant ? h.avant() : null).then(function(){ return faire(h.get()); });
   operation = p;
   p.then(function(x){ if(h.relu && x) h.relu(x); return null; }, function(e){ return e.message; }).then(function(m){
     operation = null;
+    if(dlg) dlg.querySelectorAll("[data-mc-close]").forEach(function(b){ b.disabled = false; });
     var el = redessinerChamp(h, ctx, champ);
     if(m) message(el, m); else YEITA.flash(null, okMsg);
     focusChamp(el);

@@ -610,8 +610,8 @@ async def qa_110(b, base, etat):
     await ctx.unroute("**/fichiers?champ=*", lent_envoi)
     depose = ref(cid) is not None
     await pa.keyboard.press("Escape"); await pa.wait_for_timeout(300)
-    check("QA 1.10, fenêtre ⋯ : pendant un envoi ralenti, Échap, la croix et un clic à côté ne ferment pas ; après le dépôt, Échap ferme",
-          pendant == 1 and depose and await pa.locator("dialog.mdlg[open]").count() == 0, "ouverte pendant : %s · croix désactivée : %s · déposé : %s" % (pendant, x_off, depose))
+    check("QA 1.10, fenêtre ⋯ : pendant un envoi ralenti, Échap, la croix (désactivée) et un clic à côté ne ferment pas ; après le dépôt, Échap ferme",
+          pendant == 1 and x_off is True and depose and await pa.locator("dialog.mdlg[open]").count() == 0, "ouverte pendant : %s · croix désactivée : %s · déposé : %s" % (pendant, x_off, depose))
     await pa.close()
 
     # 375 px : champ rempli (nom de fichier long, lien long), fenêtre de création en mode serveur, sans défilement horizontal
