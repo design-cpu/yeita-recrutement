@@ -56,3 +56,15 @@ Copie hors du dépôt, `node --test --test-timeout=30000 test/fichiers.test.js`.
 
 ## Spec couverte
 R6, R8, R9, R10, R12, CA6 (b, c côté API), CA9, CA10, CA12
+
+## Addendum — corrections de la revue de code (`56eefd7`)
+`cd api && npm test` → `ℹ tests 82 · ℹ pass 82 · ℹ fail 0`.
+| Contrôle | Mutation | Attendu | Obtenu |
+|---|---|---|---|
+| R12 `inline` | `attachment` | échec | détectée (« envoi d'un PDF … ») |
+| R12 `nosniff` | en-tête retiré | échec | détectée |
+| Lecture sous son candidat | `candidat_id = ?` neutralisée (lecture) | échec | détectée (« accès … ») |
+| Rôle lecture (CA9) | refus d'écriture du rôle lecture retiré | échec | détectée (« accès … », « limites et accès … ») |
+| R6 côté DELETE | garde `fichier-cite` retirée | échec | détectée |
+| R6 côté DELETE | citation lue sur tous les candidats | échec | détectée |
+| R6 côté DELETE | portfolio non vérifié | échec | survivante, puis détectée après ajout du cas portfolio au test |

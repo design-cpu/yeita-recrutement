@@ -1,7 +1,7 @@
 ---
 type: pilote
 version: 1.10
-points: 4
+points: 5
 dernier: ajuster
 date: 2026-10-28
 ---
@@ -35,3 +35,13 @@ Actions appliquées : une règle par décision ou défaut (R19 pour C1, R6 réé
 ## P3 — après le découpage · ajuster
 Constats : 7 tâches (plan : 6 à 9), ordre justifié, chaque R et CA rattaché ; R14 en double (05 et 07) ; fichiers de test non fixés ; la tâche 06 a déjà été jouée une fois (V20), un outil dans `tools/` serait faux après le merge.
 Actions appliquées : tâche 06 sans outil, essai de QA documenté dans sa fiche ; R14 seulement en tâche 05 ; tests de l'API dans les fichiers existants de `api/test/` (`base.test.js`, `fichiers.test.js`), e2e existants complétés (`e2e-serveur.py`, `e2e-candidatures.py`, `e2e-parcours.py`), aucun nouveau fichier de test.
+
+## P4 — avant la QA · ajuster
+| Mesure | Valeur | Repère du plan |
+|---|---|---|
+| Tâches | 7, toutes `ok` | 6 à 9 |
+| Fichiers touchés après le diff de Léo (`69ec434..HEAD`, hors `hlyja/`) | 22 (+788 / −150) | 12 à 20 |
+| Outils ajoutés au projet | 0 | 0 |
+| Corrections de revue | 1 majeur, 6 mineurs | bloquants et majeurs |
+Constats : dépassement léger dû au nettoyage du code mort (revue), proportionné ; le 409 `fichier-cite` tient l'invariant de R6 (pas un ajout) mais manquait au contrat ; 1.10-3 à prouver sur `main`.
+Actions appliquées : 409 `fichier-cite` ajouté à la spec finale (R6, tableau des routes) et à reporter dans `technique/api.md` ; V21 (1.10-3 échoue 3 fois sur 3 sur `main`) ; QA ciblée (20 à 26 scénarios) sur ce que les e2e ne couvrent pas : deux recruteurs réels avec DELETE d'un fichier cité, pannes réseau réelles, nginx réel, aller-retour 1.9 → 1.10 → 1.9 avec restauration, repère dans un CV, clavier et lecteur d'écran, 375 px et 1360 px.
