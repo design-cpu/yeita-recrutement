@@ -1,8 +1,8 @@
 ---
 type: pilote
 version: 1.10
-points: 2
-dernier: question
+points: 3
+dernier: ajuster
 date: 2026-10-28
 ---
 
@@ -22,3 +22,12 @@ Plan écrit dans `version.md` (section « Plan d'équipe »).
 | Vérifications | 17 | — |
 Constats : spec dans le plan ; R1b (remise à 1 d'une base v2) est un vrai ajout, hors plan, qui frôle l'exclusion « pas de changement de `user_version` » ; R15 n'est pas un ajout (RESTAURER.md déjà prévu) ; R1 décrit le comment ; CA16 risque de dépasser le volume de QA.
 Actions : question à l'utilisateur sur R1b → « une ligne de doc » (R1b réécrite : base v2 refusée, guide de test) ; étiquette `[ajout]` retirée de R15 ; R1 ramenée au comportement ; CA16 limitée aux points non couverts par les e2e de Léo.
+
+## P2 — après le tour 1 · ajuster
+| Mesure | Valeur | Repère |
+|---|---|---|
+| Retours recevables | 27 (1 bloquant, 14 majeurs, 12 mineurs) | ~20 |
+| Score | 69 (C à 33) | — |
+| Spec v2 visée | 170 lignes au plus, 18 CA au plus | — |
+Constats : rendement faible sur la dimension concurrence ; la matrice des pannes (C7) et les deux acteurs (C9) feraient gonfler la version ; la spec nomme des fonctions et des variables.
+Actions appliquées : une règle par décision ou défaut (R19 pour C1, R6 réécrite, R3 réécrite) ; chemin « remplacer » retiré (U1) ; matrice des pannes ramenée à CA6 et CA7, le reste en scénarios QA ; un seul CA à deux acteurs (CA5) ; Ops en corrections du guide et de `RESTAURER.md` ; aucun nom de fonction dans la spec ; aucune modification de `auto-deploy.sh` (O9 en ligne de guide). Si la concurrence reste sous 60 au tour 2, tour 3 ciblé sur elle seule.
