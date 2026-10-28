@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { ErreurHttp } from "./app.js";
+import { ErreurHttp, adminRequis } from "./app.js";
 import { lire } from "./sauvegardes.js";
 
 /* Format de la demande : une ligne clé=valeur par champ, lu de la même façon par deploy/auto-deploy.sh. */
@@ -54,10 +54,6 @@ export function routesDeploiement(app, db) {
   const fichierEtat = path.join(base, "etat", "deploiement.json");
   const dossierDemandes = path.join(base, "demandes");
   const fichierDemande = path.join(dossierDemandes, "deploiement.demande");
-
-  function adminRequis(req) {
-    if (req.membre.role !== "admin") throw new ErreurHttp(403, "Réservé aux admins de l'équipe.", "admin-requis");
-  }
 
   app.get("/api/deploiement", async req => {
     adminRequis(req);

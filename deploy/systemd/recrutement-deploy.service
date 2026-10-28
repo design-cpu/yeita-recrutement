@@ -17,7 +17,8 @@ WorkingDirectory=/opt/recrutement
 ExecStart=/opt/recrutement/deploy/auto-deploy.sh --auto
 # Après tout arrêt, même forcé : conteneurs, worktree et images d'essai retirés. Rien n'est touché si un passage lancé
 # à la main tient le verrou : ce sont ses fichiers.
-ExecStopPost=-/usr/bin/flock -n %h/.recrutement-auto-deploy.lock /opt/recrutement/deploy/auto-deploy.sh --nettoyer
+# $HOME est celui de deploy (User=) ; %h vaudrait /root, celui du gestionnaire système.
+ExecStopPost=-/bin/sh -c 'exec /usr/bin/flock -n "$HOME/.recrutement-auto-deploy.lock" /opt/recrutement/deploy/auto-deploy.sh --nettoyer'
 # Attentes bornées par auto-deploy.sh : verrou 30 min + 3 étapes de test × 20 min + verrou de deploy.sh 15 min
 # + deploy.sh ~30 min + verrou 15 min + retour ~30 min = 3 h ; une heure de marge.
 TimeoutStartSec=4h

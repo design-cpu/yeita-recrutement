@@ -84,7 +84,7 @@ ecrire_vue() {
   [ -n "$(lire_fichier echec)" ] && echec=$(json_commit "$(lire_fichier echec)")
   main_json=$(json_commit "$(git rev-parse --verify --quiet origin/main)")
   passages=""
-  # shellcheck disable=SC2012 # noms écrits par ce script : AAAAMMJJTHHMMSSZ-pid-n.json
+  # shellcheck disable=SC2012 # noms écrits par ce script : AAAAMMJJTHHMMSS.NNNNNNNNNZ-pid.json
   for f in $(ls -1 "$ETAT/passages" 2>/dev/null | sort -r | head -n "$MAX_PASSAGES"); do
     [ $premier = 1 ] || passages+=","
     passages+=$(cat "$ETAT/passages/$f"); premier=0
@@ -104,7 +104,7 @@ debut_passage() {   # debut_passage <déclencheur> <par> <commit complet ou vide
 }
 etape_json() {   # etape_json <nom> <statut> <durée> <fichier de sortie ou vide>
   local sortie=""
-  [ -n "$4" ] && [ -f "$4" ] && sortie=$(tail -n "$MAX_LIGNES" "$4")
+  [ -n "$4" ] && [ -f "$4" ] && sortie=$(tail -n "$MAX_LIGNES" "$4" | cut -c1-2000)   # 300 lignes de 2 000 caractères au plus
   [ -z "$P_ETAPES" ] || P_ETAPES+=","
   P_ETAPES+=$(printf '{"nom":%s,"statut":%s,"duree_s":%s,"sortie":%s}' "$(js "$1")" "$(js "$2")" "$3" "$(js "$sortie")")
 }
@@ -118,7 +118,7 @@ fin_passage() {   # fin_passage <résultat> <motif>
   ls -1 "$ETAT/passages" | sort -r | tail -n "+$((MAX_PASSAGES + 1))" | while read -r vieux; do rm -f "$ETAT/passages/$vieux"; done
   rm -f "$ETAT/en-cours"
   info "Passage $P_ID : $P_RESULTAT${P_MOTIF:+ ($P_MOTIF)}"
-  case "$P_RESULTAT" in deploye) ;; *) CODE=1 ;; esac
+  case "$P_RESULTAT" in tests-ko|deploiement-ko|interrompu) CODE=1 ;; esac   # annulé, refusé : issues normales
 }
 en_cours() {   # en_cours <étape> : passage en cours, gardé par l'hôte (lu par R20 au passage suivant)
   { echo "debut=$P_DEBUT"; echo "etape=$1"; echo "etape_debut=$(maintenant)"; echo "commit=$P_COMMIT"; echo "avant=$AVANT"
@@ -165,7 +165,7 @@ lancer_tests() {   # lancer_tests <commit complet> : 0 si les trois étapes pass
     etape_json test-store ko 0 "$ETAT/.sortie-test-store"; etapes_non_lancees npm-test build; return 1
   fi
   image=$(sed -n 's/^FROM \([^ ]*\).*/\1/p' "$ESSAI/docker/api.Dockerfile" 2>/dev/null | head -n 1)
-  case "$image" in ''|*[!A-Za-z0-9._/:@-]*) echo "Image Node introuvable dans docker/api.Dockerfile : « $image »." > "$ETAT/.sortie-test-store"
+  case "$image" in ''|-*|*[!A-Za-z0-9._/:@-]*) echo "Image Node introuvable dans docker/api.Dockerfile : « $image »." > "$ETAT/.sortie-test-store"
     etape_json test-store ko 0 "$ETAT/.sortie-test-store"; etapes_non_lancees npm-test build; return 1 ;; esac
   moi="$(id -u):$(id -g)"
   # Seul le worktree est monté : ni socket Docker, ni volume, ni .env, ni réseau de l'hôte, ni --privileged.
@@ -183,20 +183,24 @@ lancer_tests() {   # lancer_tests <commit complet> : 0 si les trois étapes pass
 }
 
 # --- Demande déposée par la page ---
-D_ACTION=""; D_COMMIT=""; D_PAR=""; D_LE=""; DEMANDE=""   # DEMANDE : vide, prise, illisible
+D_ACTION=""; D_COMMIT=""; D_PAR=""; D_LE=""; DEMANDE=""   # DEMANDE : vide, prise, illisible, non-retiree
 ATTENDRE_FIN=0
 # Prise par un conteneur jetable (deploy ne lit pas le volume, V5) : renommage d'abord (aucune demande perdue entre
 # lecture et retrait), puis lecture d'un fichier ordinaire seulement, 1 025 octets au plus (au-delà : refusée).
 prendre_demande() {
   local brut code
   docker compose run --rm --no-deps -T api sh -c '
-    f=/data/demandes/deploiement.demande; p=/data/demandes/.prise
+    d=/data/demandes; f=$d/deploiement.demande; p=$d/.prise
+    # Un lien à la place du dossier mènerait l unité path (sur l hôte) ailleurs que ce conteneur : retiré, et refusé.
+    if [ -L "$d" ] || { [ -e "$d" ] && [ ! -d "$d" ]; }; then rm -f "$d"; exit 3; fi
     [ -e "$f" ] || [ -L "$f" ] || exit 0
     rm -rf "$p" && mv -f "$f" "$p" || exit 3
-    if [ -f "$p" ] && [ ! -L "$p" ]; then printf "["; head -c 1025 "$p"; printf "]"; else printf "?"; fi
+    if [ -f "$p" ] && [ ! -L "$p" ] && [ "$(tr -d "\\000" < "$p" | wc -c)" = "$(wc -c < "$p")" ]; then printf "["; head -c 1025 "$p"; printf "]"; else printf "?"; fi
     rm -rf "$p"' > "$ETAT/.demande" 2>/dev/null; code=$?
   brut=$(cat "$ETAT/.demande"; echo x); brut=${brut%x}; rm -f "$ETAT/.demande"
-  if [ $code != 0 ]; then DEMANDE=illisible; info "Demande illisible : le conteneur n'a pas pu la retirer."; ATTENDRE_FIN=1; return; fi
+  # Non retirée (dossier abîmé, .env illisible par Compose) : journal seulement, aucun passage enregistré (sinon une
+  # demande qu'on ne peut pas retirer remplacerait l'historique de la page en 30 minutes).
+  if [ $code != 0 ]; then DEMANDE=non-retiree; info "Demande non retirée : le conteneur n'a pas pu la prendre."; ATTENDRE_FIN=1; return; fi
   [ -z "$brut" ] && return
   DEMANDE=illisible
   case "$brut" in "["*"]") brut=${brut#[}; brut=${brut%]} ;; *) return ;; esac
@@ -207,12 +211,11 @@ prendre_demande() {
     nom=${ligne%%=*}
     [ "$nom" != "$ligne" ] || return
     case "$nom" in action|commit|par|le) ;; *) return ;; esac
+    case "$vus" in *" $nom "*) return ;; esac   # clé en double
     vus+="$nom "
     printf -v "D_${nom^^}" '%s' "${ligne#*=}"
   done <<<"$brut"
-  # Quatre clés connues : exactement quatre lignes, sinon une clé est en double ; une clé manquante laisse sa valeur
-  # vide, refusée ci-dessous.
-  [ "$(wc -w <<<"$vus")" -eq 4 ] || return
+  [ "$(wc -w <<<"$vus")" -eq 4 ] || return   # les quatre clés, une fois chacune
   [[ $D_PAR =~ $MOTIF_PAR ]] && [ ${#D_PAR} -le 254 ] && [[ $D_LE =~ $MOTIF_LE ]] || return
   case "$D_ACTION" in
     deployer) [ "$D_COMMIT" = main ] || [[ $D_COMMIT =~ $MOTIF_COMMIT ]] || return ;;
@@ -234,7 +237,7 @@ valider_commit() {
 }
 
 ecrire_pause() {   # ecrire_pause <par> <commit>
-  printf 'le=%s\npar=%s\ncommit=%s\n' "$(maintenant)" "$1" "$2" > deploy/PAUSE
+  (umask 077; printf 'le=%s\npar=%s\ncommit=%s\n' "$(maintenant)" "$1" "$2" > deploy/PAUSE)   # porte l'email de l'admin
   info "Déploiement automatique en pause (commit $(court "$2") demandé par $1)."
 }
 
@@ -273,7 +276,10 @@ passage() {   # passage <déclencheur> <par> <commit complet> <pause : oui/non>
 
   # Arrêt avant changement de commit : deploy.sh n'a pas écrit « · Dépôt sur » (R10).
   if ! grep -q '^· Dépôt sur' "$sortie"; then
-    grep -q 'un déploiement est déjà en cours' "$sortie" || ecrire_fichier echec "$cible"
+    if grep -q 'un déploiement est déjà en cours' "$sortie"; then
+      fin_passage annule "verrou de deploy.sh occupé (sauvegarde ou déploiement à la main)"; return
+    fi
+    ecrire_fichier echec "$cible"
     fin_passage deploiement-ko "$(grep -m 1 '^ARRÊT' "$sortie" || echo "arrêt avant changement de commit")"; return
   fi
   ecrire_fichier echec "$cible"
@@ -299,11 +305,19 @@ retour() {
     *) etapes_non_lancees retour; signaler_incertain retour-ko retour "$cible" "$AVANT"
        fin_passage deploiement-ko "mise en ligne ratée, retour à $(court "$AVANT") impossible (${pris##*$'\n'})"; return ;;
   esac
-  if etape retour env RECRUTEMENT_PAR_AUTO=1 deploy/deploy.sh "$AVANT"; then
+  local essai=1 ok=non
+  while :; do
+    if etape retour env RECRUTEMENT_PAR_AUTO=1 deploy/deploy.sh "$AVANT"; then ok=oui; break; fi
+    if [ $essai != 1 ] || ! grep -q 'un déploiement est déjà en cours' "$sortie"; then break; fi
+    # Le verrou a été repris entre le checkout et ce deploy.sh (une sauvegarde l'attendait) : l'attendre ; si personne
+    # n'a changé de commit entre-temps, rejouer le retour une fois.
+    essai=2
+    (exec 8>"$VERROU_DEPLOY"; flock -w "$ATTENTE_DEPLOY" 8) || break
+    if [ "$(git rev-parse HEAD)" != "$AVANT" ]; then fin_passage annule "déploiement fait à la main pendant le passage"; return; fi
+  done
+  if [ $ok = oui ]; then
     rm -f "$ETAT/incertain" "$ETAT/retour-ko"
     fin_passage deploiement-ko "mise en ligne ratée, retour à $(court "$AVANT") réussi"
-  elif grep -q 'un déploiement est déjà en cours' "$sortie"; then
-    fin_passage annule "déploiement fait à la main pendant le passage"
   else
     signaler_incertain retour-ko retour "$cible" "$AVANT"
     fin_passage deploiement-ko "mise en ligne ratée, retour à $(court "$AVANT") raté"
@@ -379,7 +393,7 @@ main() {
     elif [ $FETCH != ok ]; then
       refuser demande "$D_PAR" "GitHub injoignable"
     elif [ "$D_COMMIT" = main ]; then
-      [ -n "$main_c" ] && passage demande "$D_PAR" "$main_c" non
+      if [ -n "$main_c" ]; then passage demande "$D_PAR" "$main_c" non; else refuser demande "$D_PAR" "dernier commit de main introuvable"; fi
     elif valider_commit "$D_COMMIT"; then
       passage demande "$D_PAR" "$CIBLE" "$([ "$CIBLE" != "$main_c" ] && echo oui || echo non)"
     else

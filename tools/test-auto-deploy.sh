@@ -94,6 +94,8 @@ cd "$(dirname "$0")/.."
 exec 9>"$HOME/.recrutement-deploy.lock"
 flock -n 9 || { echo "ARRÊT : un déploiement est déjà en cours (verrou)." >&2; exit 1; }
 echo "$(git rev-parse --short HEAD) -> $(git rev-parse --short "$1") PAR_AUTO=${RECRUTEMENT_PAR_AUTO:-}" >> "$FAUX_JOURNAL/deploy.log"
+n=$(( $(cat "$FAUX_JOURNAL/appels" 2>/dev/null || echo 0) + 1 )); echo $n > "$FAUX_JOURNAL/appels"
+grep -qx "$n" "$FAUX_JOURNAL/occupe" 2>/dev/null && { echo "ARRÊT : un déploiement est déjà en cours (verrou)." >&2; exit 1; }
 mode=$(git show "$1:.essai/deploy" 2>/dev/null || echo ok)
 [ -e "$FAUX_JOURNAL/deploy-ko" ] && mode=apres
 [ "$mode" = avant ] && { echo "ARRÊT : réglage refusé (factice)." >&2; exit 1; }
@@ -123,11 +125,12 @@ sans_marqueurs() { rm -rf "$TRAVAIL/.essai"; }
 D git clone -q "$ORIGINE" "$PROD"
 D mkdir -m 700 "$ETATH"; echo "$BASE" | D tee "$ETATH/deploye" >/dev/null
 D git -C "$PROD" checkout -q --detach "$BASE"
-[ -n "$BASE" ] && [ -d "$PROD/.git" ] || { echo "Mise en place du banc impossible (voir ci-dessus)." >&2; exit 2; }
+if [ -z "$BASE" ] || [ ! -d "$PROD/.git" ]; then echo "Mise en place du banc impossible (voir ci-dessus)." >&2; exit 2; fi
 
 ENV_FAUX=(HOME="$HOMED" PATH="$FAUX:/usr/sbin:/usr/bin:/sbin:/bin" FAUX_JOURNAL="$J" FAUX_VOLUME="$VOLUME"
   AUTO_DEPLOY_ATTENTE_DOCKER=1 AUTO_DEPLOY_ATTENTE_VERROU=20 AUTO_DEPLOY_ATTENTE_DEPLOY=2 AUTO_DEPLOY_DUREE_ETAPE=20 LANG=C.UTF-8)
 # lancer [options auto-deploy] : en tant que deploy, depuis un état neutre (env -i, umask 022), échéance de 60 s.
+# shellcheck disable=SC2086 # EXTRA : affectations VAR=valeur, séparées exprès
 lancer() { (cd "$PROD" && runuser -u deploy -- env -i "${ENV_FAUX[@]}" ${EXTRA:-} bash -c 'umask 022; exec timeout 60 deploy/auto-deploy.sh "$@"' _ "$@") > "$T/sortie" 2>&1; echo $? > "$T/code"; }
 code() { cat "$T/code"; }
 vue() { python3 -c "import json,sys; d=json.load(open('$VOLUME/etat/deploiement.json')); print(eval(sys.argv[1]))" "$1" 2>/dev/null; }
@@ -203,7 +206,7 @@ sans_marqueurs
 AVANT_B=$(cat "$ETATH/deploye")
 mkdir -p "$TRAVAIL/.essai"; echo apres > "$TRAVAIL/.essai/deploy"
 cp "$TRAVAIL/deploy/deploy.sh" "$T/deploy.sh.factice"; echo 'if then fi' > "$TRAVAIL/deploy/deploy.sh"
-CB=$(commit_main "deploy: échec après changement, deploy.sh du commit cassé")
+commit_main "deploy: échec après changement, deploy.sh du commit cassé" >/dev/null
 cp "$T/deploy.sh.factice" "$TRAVAIL/deploy/deploy.sh"; chown deploy:deploy "$TRAVAIL/deploy/deploy.sh"
 lancer --auto
 verifie "(b) échec après changement : retour par le deploy.sh du commit d'avant, réussi" test "$(dernier "p['resultat'], p['motif'][-6:], [e['nom']+':'+e['statut'] for e in p['etapes']][-2:]")" = "('deploiement-ko', 'réussi', ['deploy:ko', 'retour:ok'])"
@@ -212,7 +215,7 @@ verifie "(b) pause inchangée (aucune), pas d'incertain" test ! -e "$PROD/deploy
 n=$(deploys); lancer --auto
 verifie "(e) passage suivant sans nouveau commit : aucun deploy.sh" test "$(deploys)" = "$n"
 sans_marqueurs
-CC=$(commit_main "deploy: échec et retour raté")
+commit_main "deploy: échec et retour raté" >/dev/null
 touch "$J/deploy-ko"; lancer --auto; rm -f "$J/deploy-ko"
 verifie "(c) retour raté : retour_ko, incertain, motif" test "$(vue "d['retour_ko']['type'], d['incertain']")" = "('retour-ko', True)" -a -e "$ETATH/incertain"
 verifie "(c) résultat deploiement-ko « raté »" test "$(dernier "p['resultat'], p['motif'][-4:]")" = "('deploiement-ko', 'raté')"
@@ -225,6 +228,19 @@ place=$(en_place); touch "$J/deploy-ko"; demande_ok deployer "$(D git -C "$PROD"
 verifie "(d) redéploiement du commit en place raté : pas de retour, incertain" test "$(dernier "p['resultat'], [e['nom'] for e in p['etapes']][-1]")" = "('deploiement-ko', 'deploy')" -a -e "$ETATH/incertain" -a "$(vue "d['retour_ko']['type']")" = redeploiement-ko
 demande_ok deployer main; lancer --auto
 verifie "remise en état" test "$(dernier "p['resultat']")" = deploye
+
+echo "--- SC8 (A), Q4 : verrou de deploy.sh repris pendant le retour ; refus « déjà en cours » ---"
+sans_marqueurs; mkdir -p "$TRAVAIL/.essai"; echo apres > "$TRAVAIL/.essai/deploy"
+AV=$(cat "$ETATH/deploye"); commit_main "deploy: échec, verrou repris au premier retour" >/dev/null
+rm -f "$J/appels"; echo 2 > "$J/occupe"; chown deploy:deploy "$J/occupe"
+lancer --auto; rm -f "$J/occupe"
+verifie "SC8 : retour refusé « déjà en cours », verrou attendu, retour rejoué une fois et réussi" test "$(dernier "p['motif'][-6:], [e['nom']+':'+e['statut'] for e in p['etapes']][-3:]")" = "('réussi', ['deploy:ko', 'retour:ko', 'retour:ok'])" -a "$(en_place)" = "$AV"
+sans_marqueurs; C9=$(commit_main "feat: deploy.sh refuse déjà en cours")
+rm -f "$J/appels"; echo 1 > "$J/occupe"; chown deploy:deploy "$J/occupe"
+lancer --auto; rm -f "$J/occupe" "$J/appels"
+verifie "Q4 : deploy.sh refuse « déjà en cours » avant de changer : annulé, motif neutre, non noté en échec, code 0" test "$(dernier "p['resultat'] + '|' + p['motif']")" = "annule|verrou de deploy.sh occupé (sauvegarde ou déploiement à la main)" -a "$(cat "$ETATH/echec")" != "$C9" -a "$(code)" = 0
+lancer --auto
+verifie "passage suivant : le commit est mis en ligne" test "$(en_place)" = "$C9"
 
 echo "--- CA4 / CA5 : pause ---"
 sans_marqueurs
@@ -277,6 +293,10 @@ refus "commit introuvable" "action=deployer${L}commit=deadbeef00${L}par=adm@yeit
 refus "commit mal formé" "action=deployer${L}commit=HEAD${L}par=adm@yeita.fr${L}le=2026-10-28T13:00:02Z${L}" "demande illisible"
 refus "clé en double" "action=deployer${L}commit=main${L}commit=main${L}par=adm@yeita.fr${L}le=2026-10-28T13:00:02Z${L}" "demande illisible"
 refus "action inconnue" "action=detruire${L}commit=main${L}par=adm@yeita.fr${L}le=2026-10-28T13:00:02Z${L}" "demande illisible"
+refus "clé en double et clé manquante (4 lignes)" "action=reprendre${L}par=adm@yeita.fr${L}le=2026-10-28T13:00:02Z${L}le=2026-10-28T13:00:03Z${L}" "demande illisible"
+printf 'action=deployer\ncommit=main\npar=adm@yeita.fr\0\nle=2026-10-28T13:00:02Z\n' > "$T/nul"
+mkdir -p "$VOLUME/demandes"; cp "$T/nul" "$VOLUME/demandes/deploiement.demande"; chown -R deploy:deploy "$VOLUME"; lancer --auto
+verifie "octet NUL dans la demande : refusée" test "$(derniere_demande "p['resultat'] + '|' + p['motif']")" = "demande-refusee|demande illisible"
 refus "clé manquante" "action=deployer${L}commit=main${L}par=adm@yeita.fr${L}" "demande illisible"
 refus "par invalide" "action=deployer${L}commit=main${L}par=\$(id)${L}le=2026-10-28T13:00:02Z${L}" "demande illisible"
 python3 -c "open('$T/grande','w').write('action=deployer\ncommit=main\npar=adm@yeita.fr\nle=2026-10-28T13:00:02Z\n' + '\n' * 1100)"
@@ -286,6 +306,11 @@ lancer --auto
 verifie "lien symbolique : refusé, lien retiré, cible intacte" test "$(dernier "p['motif']")" = "demande illisible" -a ! -L "$VOLUME/demandes/deploiement.demande" -a -f "$T/cible-lien"
 mkdir -p "$VOLUME/demandes/deploiement.demande"; chown -R deploy:deploy "$VOLUME"; lancer --auto
 verifie "dossier à la place de la demande : refusé, retiré" test "$(dernier "p['motif']")" = "demande illisible" -a ! -e "$VOLUME/demandes/deploiement.demande"
+rm -rf "$VOLUME/demandes"; mkdir -p "$T/ailleurs"; printf 'action=deployer\ncommit=main\npar=adm@yeita.fr\nle=2026-10-28T13:00:02Z\n' > "$T/ailleurs/deploiement.demande"
+ln -s "$T/ailleurs" "$VOLUME/demandes"; chown -hR deploy:deploy "$VOLUME" "$T/ailleurs"
+n=$(nb_passages); t0=$(date +%s); lancer --auto
+verifie "dossier des demandes remplacé par un lien : lien retiré, rien d'enregistré, attente avant de sortir, cible intacte" test ! -L "$VOLUME/demandes" -a "$(nb_passages)" = "$n" -a "$(( $(date +%s) - t0 ))" -ge 1 -a -f "$T/ailleurs/deploiement.demande"
+mkdir -p "$VOLUME/demandes"; chown deploy:deploy "$VOLUME/demandes"
 echo "Préfixe ambigu de 7 caractères : non observable sur ce banc (il faudrait ~16 000 commits) ; vérifié par lecture (git rev-parse --verify, V13)."
 
 echo "--- CA7 : demande déposée pendant la prise ; deux demandes ---"
@@ -306,7 +331,9 @@ t0=$(date +%s); EXTRA="FAUX_DOCKER=muet" lancer --auto
 verifie "Docker muet : attente puis code 1, demande laissée" test "$(code)" = 1 -a "$(( $(date +%s) - t0 ))" -ge 1 -a -f "$VOLUME/demandes/deploiement.demande"
 sans_marqueurs; CR=$(commit_main "feat: pendant que la demande est illisible")
 t0=$(date +%s); EXTRA="FAUX_DOCKER=run-ko" lancer --auto
-verifie "retrait impossible (Docker répond) : demande illisible, l'automatisme continue, attente avant de sortir" test "$(en_place)" = "$CR" -a "$(( $(date +%s) - t0 ))" -ge 1 -a -n "$(grep 'Demande illisible' "$T/sortie")"
+verifie "retrait impossible (Docker répond) : journal seulement, l'automatisme continue, attente avant de sortir" test "$(en_place)" = "$CR" -a "$(( $(date +%s) - t0 ))" -ge 1 -a -n "$(grep 'Demande non retirée' "$T/sortie")" -a "$(dernier "p['resultat']")" != demande-refusee
+n=$(nb_passages); EXTRA="FAUX_DOCKER=run-ko" lancer --auto
+verifie "demande non retirée : aucun passage enregistré (l'historique n'est pas remplacé)" test "$(nb_passages)" = "$n"
 rm -f "$VOLUME/demandes/deploiement.demande"
 
 echo "--- CA11 / R13 / R20 : vue falsifiée, passage interrompu ---"
@@ -337,6 +364,7 @@ lancer --auto; wait
 verifie "SC3 (A) : deploy.sh à la main pendant les tests → annulé, l'ancien reste en ligne, pause présente" test "$(dernier "p['resultat'], p['motif']")" = "('annule', 'déploiement fait à la main pendant le passage')" -a "$(en_place)" = "$CQ" -a -e "$PROD/deploy/PAUSE"
 verifie "SC3 (A) : commit non noté en échec" test "$(cat "$ETATH/echec" 2>/dev/null)" != "$CS"
 demande_ok reprendre ""; sans_marqueurs; lancer --auto
+# shellcheck disable=SC2016 # développé dans le shell de deploy
 ( cd "$PROD" && runuser -u deploy -- env -i "${ENV_FAUX[@]}" bash -c 'exec 8>"$HOME/.recrutement-deploy.lock"; flock 8; sleep 5' ) & sleep 0.5
 CV=$(commit_main "feat: verrou de deploy.sh occupé")
 lancer --auto; wait
@@ -346,6 +374,7 @@ mkdir -p "$TRAVAIL/.essai"; printf 'sleep=4\n' > "$TRAVAIL/.essai/test-store"; C
 cp "$T/sortie" "$T/sortie.1" 2>/dev/null
 (cd "$PROD" && runuser -u deploy -- env -i "${ENV_FAUX[@]}" bash -c 'umask 022; exec timeout 60 deploy/auto-deploy.sh --auto') > "$T/sortie2" 2>&1; wait
 verifie "SC1 (A) : le second passage attend le premier puis ne refait rien" test -n "$(grep 'Un passage est en cours, attente' "$T/sortie2")" -a "$(grep -c "$(D git -C "$PROD" rev-parse --short "$CW")" "$J/deploy.log")" = 1
+# shellcheck disable=SC2016 # idem
 ( cd "$PROD" && runuser -u deploy -- env -i "${ENV_FAUX[@]}" bash -c 'exec 9>"$HOME/.recrutement-auto-deploy.lock"; flock 9; sleep 4' ) & sleep 0.5
 EXTRA="AUTO_DEPLOY_ATTENTE_VERROU=1" lancer --auto; wait
 verifie "R7 : attente du verrou de passage expirée → code 1, message" test "$(code)" = 1 -a -n "$(grep 'tient le verrou' "$T/sortie")"
@@ -379,6 +408,7 @@ case "$1 ${2:-}" in
 esac
 EOF
 chmod 755 "$FAUX/docker-vrai-deploy"; mkdir -p "$T/faux-d"; cp "$FAUX/docker-vrai-deploy" "$T/faux-d/docker"; cp "$FAUX/curl" "$T/faux-d/curl"
+# shellcheck disable=SC2086 # idem
 vrai() { (cd "$DD" && runuser -u deploy -- env -i HOME="$T/home-d" PATH="$T/faux-d:/usr/bin:/bin" FAUX_JOURNAL="$J" ${EXTRA:-} bash -c 'umask 022; exec timeout 60 deploy/deploy.sh "$@"' _ "$@") > "$T/sortie" 2>&1; echo $? > "$T/code"; }
 mkdir -p "$T/home-d"; chown deploy:deploy "$T/home-d"
 MAIN_D=$(D git -C "$DD" rev-parse HEAD); ANC_D=$(D git -C "$DD" rev-parse HEAD~1)

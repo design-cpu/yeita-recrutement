@@ -2,7 +2,7 @@
    deploy/verif-disque.sh (en production : /data/etat). Lecture seule ; aucune donnée de candidat. */
 import fs from "node:fs";
 import path from "node:path";
-import { ErreurHttp } from "./app.js";
+import { adminRequis } from "./app.js";
 
 /* Au-delà, l'état est « en retard » : une nuit manquée (24 h + 2 h de marge), deux mesures du disque manquées. */
 export const RETARD_SAUVEGARDE_MS = 26 * 3600 * 1000;
@@ -28,7 +28,7 @@ export function routesSauvegardes(app, db) {
   const dossier = path.join(path.dirname(db.name), "etat");
 
   app.get("/api/sauvegardes", async req => {
-    if (req.membre.role !== "admin") throw new ErreurHttp(403, "Réservé aux admins de l'équipe.", "admin-requis");
+    adminRequis(req);
     const maintenant = Date.now();
     const reussie = lire(path.join(dossier, "sauvegarde-reussie.json"));
     const derniere = lire(path.join(dossier, "sauvegarde-derniere.json"));
