@@ -3,8 +3,8 @@ type: technique
 vue: humaine
 page: deploiement-ovh
 titre: Déployer sur OVH et tester avec Google, pas à pas
-maj: 1.7
-commit: 8db372f
+maj: 1.8
+commit: df8a1fd
 sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js, deploy/README.md, deploy/backup.sh, deploy/verif-disque.sh, deploy/commun.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, deploy/RESTAURER.md, deploy/METTRE-A-JOUR.md, deploy/CLE-SAUVEGARDE.md, admin/sauvegardes.html
 date: 2026-10-28
 ---
@@ -371,6 +371,8 @@ tmux new -s deploy
 ```bash
 umask 022 && cd /opt/recrutement && deploy/deploy.sh
 ```
+
+> Le `umask 022` du début règle les droits des fichiers pour que le site et l'API puissent les lire. Depuis la v1.8, `deploy.sh` le fait lui-même ; on le garde dans les commandes de ce guide pour le cas où le `deploy.sh` du serveur serait plus ancien que la v1.8 (par exemple après un retour vers une version d'avant). Il ne gêne jamais.
 
 - [ ] **Tu dois voir**, à la fin : `· API saine.`, sept lignes qui commencent par `OK`, `Tout est OK sur https://recrutement.yeita.fr`, puis `Déploiement réussi : …`.
 

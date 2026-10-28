@@ -3,8 +3,8 @@ type: technique
 vue: humaine
 page: mise-a-jour-production
 titre: Mettre à jour le site en production
-maj: 1.7
-commit: e005282
+maj: 1.8
+commit: df8a1fd
 sources: deploy/METTRE-A-JOUR.md, deploy/deploy.sh, deploy/CLE-SAUVEGARDE.md
 date: 2026-10-28
 ---
@@ -31,11 +31,13 @@ Serveur : `51.75.252.121` (compte `deploy` pour mettre à jour, compte `ubuntu` 
 ssh deploy@51.75.252.121
 ```
 
-- [ ] Sur le serveur, lancer la mise à jour (le `umask 022` garantit que les fichiers mis à jour restent lisibles par l'application) :
+- [ ] Sur le serveur, lancer la mise à jour :
 
 ```bash
 umask 022 && cd /opt/recrutement && deploy/deploy.sh
 ```
+
+> **Pourquoi `umask 022` au début ?** Ce réglage décide des droits des fichiers que la mise à jour réécrit : avec lui, l'application peut les lire. Depuis la v1.8, `deploy.sh` le règle lui-même. On le garde quand même en tête de commande : il protège le cas où le `deploy.sh` du serveur est plus ancien que la v1.8 (le tout premier passage à la v1.8, ou après un retour vers une version d'avant).
 
 - [ ] Tu dois voir, dans l'ordre : `Commit en place : …`, `· Dépôt sur main : <commit>`, la construction des images, `· Conteneurs à jour ; anciennes images du projet supprimées.`, `· API saine.`, 7 lignes `OK`, `Tout est OK sur https://recrutement.yeita.fr`, et en dernier **`Déploiement réussi : <commit> sur https://recrutement.yeita.fr`**.
 
@@ -56,6 +58,8 @@ umask 022 && cd /opt/recrutement && deploy/deploy.sh
 | `ARRÊT : le dépôt contient des modifications ou des fichiers en trop` | Quelqu'un a modifié un fichier sur le serveur : ne rien supprimer ; transmettre la liste affichée à la personne responsable du site. |
 | `ARRÊT : … a encore sa valeur d'exemple` ou `… est vide` | Un réglage de `/opt/recrutement/.env` est à remplir : transmettre le nom affiché à la personne responsable du site. |
 | Le site affiche une erreur après `Déploiement réussi` | Revenir à la version d'avant : `deploy/deploy.sh <commit précédent>` (le commit est sur la ligne `Commit en place : …` affichée au début). |
+
+La commande de retour se lance **telle qu'elle est affichée**, sans rien ajouter devant : `deploy.sh` règle lui-même les droits des fichiers. Seule exception : si tu étais justement en train de revenir vers une version d'avant la v1.8, ajoute `umask 022 &&` devant la commande affichée.
 
 Après un retour en arrière, le dépôt reste sur ce commit : la prochaine mise à jour (section 2) reprendra le dernier `main`, une fois le problème corrigé.
 

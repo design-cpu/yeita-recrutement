@@ -4,7 +4,7 @@ page: deploiement-ovh
 titre: Déployer sur OVH et tester avec Google, pas à pas
 maj: 1.8
 commit: df8a1fd
-sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js, deploy/README.md, deploy/backup.sh, deploy/verif-disque.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, deploy/RESTAURER.md, deploy/METTRE-A-JOUR.md, deploy/CLE-SAUVEGARDE.md
+sources: deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/oauth2-proxy.cfg, compose.yaml, .env.example, tools/check-site.sh, api/src/app.js, assets/wording.fr.js, deploy/README.md, deploy/backup.sh, deploy/verif-disque.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, deploy/RESTAURER.md, deploy/METTRE-A-JOUR.md, deploy/CLE-SAUVEGARDE.md, deploy/commun.sh, admin/sauvegardes.html
 date: 2026-10-28
 ---
 
@@ -35,7 +35,8 @@ date: 2026-10-28
 | Serveur relevé le 2026-10-27 | un seul site nginx (`mamie.yeita.fr` → `localhost:3000`, plus `default`), pm2 `yeita-agents` (`yeita-web-backend/server.js`, port 3000) et `mamie-discord` (`bot-discord.js`) ; certbot déjà installé (timer actif) ; mises à jour automatiques actives (`apt` peut trouver le verrou pris pendant l'étape 2 : attendre et relancer) |
 | Redémarrage en attente | le serveur affiche « System restart required » : non fait, pas nécessaire au déploiement (couperait les apps pm2) |
 | Secret client Google | affiché une seule fois à la création dans la console actuelle |
-| Libellés cités | `Connecté·e : ` et `Tu ne fais pas partie de l'équipe.` (`assets/wording.fr.js` l. 36, 42) ; `/api/moi` (`api/src/app.js` l. 77) |
+| Masque des fichiers | depuis la 1.8, `deploy.sh` fixe `umask 022` (l. 9) avant toute écriture ; sur un serveur neuf, le clone est en 1.8 ou plus et l'étape 7 n'a pas besoin de préfixe ; la vue garde `umask 022 &&` pour le cas d'un `deploy.sh` du disque antérieur à la 1.8 |
+| Libellés cités | `Connecté·e : ` et `Tu ne fais pas partie de l'équipe.` (`assets/wording.fr.js` l. 39, 45) ; `/api/moi` (`api/src/app.js` l. 77) |
 | Interdit sur le serveur | `docker compose down -v`, `docker volume prune` (volume `recrutement_data`) |
 | Sauvegardes (v1.7) | à mettre en place avant de vraies candidatures : jusque-là, le volume est la seule copie ; restaurer : `deploy/RESTAURER.md` |
 
@@ -49,4 +50,4 @@ date: 2026-10-28
 | 1.5 | Création : ordre de la première mise en ligne |
 | 1.6 | Relevé du serveur réel |
 | 1.7 | `age` à l'étape 2 ; étape 11 : sauvegardes (`deploy/METTRE-A-JOUR.md` § 5) ; mises à jour suivantes : `deploy/METTRE-A-JOUR.md` |
-| 1.8 | Numéros de ligne de `deploy.sh` recalés (`umask 022` ajouté en l. 9) |
+| 1.8 | `umask 022` dans `deploy.sh` (l. 9) : point « Masque des fichiers » ; numéros de ligne recalés ; libellés de `wording.fr.js` recalés (l. 39, 45) ; `sources` complétées |

@@ -3,8 +3,8 @@ type: technique
 vue: humaine
 page: architecture
 titre: Architecture et déploiement
-maj: 1.7
-commit: 8db372f
+maj: 1.8
+commit: df8a1fd
 sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, docker/api.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/backup.sh, deploy/verif-disque.sh, deploy/commun.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, tools/check-site.sh, tools/build.py, .env.example, .dockerignore, admin/sauvegardes.html, api/src/sauvegardes.js
 date: 2026-10-28
 ---
@@ -86,7 +86,7 @@ Chaque passage écrit son résultat dans l'état des sauvegardes, trois petits f
 | Script | Qui le lance | À quoi il sert |
 |---|---|---|
 | Préparation du serveur | l'administrateur, une fois | crée l'utilisateur `deploy`, clone le dépôt, sans rien installer ; depuis la v1.7, vérifie aussi qu'age est là |
-| Déploiement | `deploy`, à chaque mise à jour | met le serveur à jour, attend le site puis l'API, ou revient en arrière |
+| Déploiement | `deploy`, à chaque mise à jour | met le serveur à jour, attend le site puis l'API, ou revient en arrière ; depuis la v1.8, règle lui-même les droits des fichiers (`umask 022`) pour que le site et l'API puissent les lire |
 | Sauvegarde (v1.7) | le timer de la nuit, ou `deploy` à la main | copie, chiffre, fait le ménage, écrit le résultat |
 | Contrôle du disque (v1.7) | le timer horaire | mesure les deux disques, rouge au-delà de 80 % |
 | Contrôle du site | tout le monde | vérifie 7 adresses, dont la page d'état renvoyée vers Google et l'API refusée sans connexion |
