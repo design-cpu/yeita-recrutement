@@ -150,6 +150,39 @@ async def deploiement(b, base, env):
             check("passage en cours : bandeau « … — Tests de l'API (2/4) »", "ccccccc — Tests de l'API (2/4)" in t, t)
         await pg.close()
 
+    # Accessibilité (QA 1.9) : verdict et réponse annoncés (role=status), passages au clavier (Tab jusqu'au résumé,
+    # Entrée l'ouvre et le referme), contour de focus visible, étape et « Déployer ce commit » atteints au clavier.
+    pg = await page(etat_deploiement())
+    roles = await pg.evaluate("['verdict', 'retour'].map(i => [document.getElementById(i).getAttribute('role'), document.getElementById(i).getAttribute('aria-live')])")
+    check("accessibilité : #verdict et #retour en role=status, aria-live=polite", roles == [["status", "polite"], ["status", "polite"]], str(roles))
+    arbre = await pg.locator("#verdict").aria_snapshot()
+    check("accessibilité : le lecteur d'écran lit le verdict dans la zone d'état", arbre.startswith("- status:") and "À jour : le dernier commit de main est en ligne." in arbre, arbre)
+    async def tab_jusqu_a(selecteur, n=20):
+        vus = []
+        for _ in range(n):
+            await pg.keyboard.press("Tab")
+            vus.append(await pg.evaluate("(document.activeElement.id || document.activeElement.tagName) + ':' + (document.activeElement.textContent || '').trim().slice(0, 20)"))
+            if await pg.evaluate("(s) => document.activeElement.matches(s)", selecteur): return True, vus
+        return False, vus
+    await pg.locator("body").focus()
+    atteint, vus = await tab_jusqu_a("#passages details.passage > summary")
+    check("clavier : Tab atteint le premier passage après « Déployer maintenant » et « Actualiser »", atteint and vus[0].startswith("maintenant:") and any(v.startswith("relire:") for v in vus), str(vus))
+    premier = pg.locator("#passages details.passage").first
+    contour = await pg.evaluate("getComputedStyle(document.activeElement).outlineStyle")
+    check("clavier : contour de focus visible sur le résumé du passage", contour == "solid", contour)
+    await pg.keyboard.press("Enter"); ouvert = await premier.evaluate("d => d.open")
+    await pg.keyboard.press("Enter"); referme = not await premier.evaluate("d => d.open")
+    check("clavier : Entrée ouvre le passage, puis le referme", ouvert and referme, "ouvert=%s refermé=%s" % (ouvert, referme))
+    await pg.keyboard.press("Enter")
+    atteint, vus = await tab_jusqu_a("#passages details.etape > summary", 3)
+    await pg.keyboard.press("Enter")
+    check("clavier : Tab atteint l'étape du passage ouvert, Entrée montre sa sortie", atteint and await premier.locator("details.etape pre.sortie").first.is_visible(), str(vus))
+    second = pg.locator("#passages details.passage").nth(1)
+    await second.locator(":scope > summary").focus(); await pg.keyboard.press("Enter")
+    atteint, vus = await tab_jusqu_a("#passages button[data-demande=commit]", 6)
+    check("clavier : « Déployer ce commit » atteint au clavier dans le passage ouvert", atteint, str(vus))
+    await pg.close()
+
     # Demande en attente : neutre récente, rouge au-delà de 5 min sans passage, neutre pendant un passage.
     os.makedirs(os.path.dirname(demandes), exist_ok=True)
     for nom, minutes, en_cours, rouge, attendu in [("récente", 1, None, False, "Demande en attente : déployer le dernier commit de main par adm2@yeita.fr"),
@@ -194,6 +227,21 @@ async def deploiement(b, base, env):
     check("réponse 202 : « Demande envoyée … »", await pg.locator("#retour").inner_text() == "Demande envoyée : le serveur la prend en charge dans quelques secondes.")
     contenu = open(demandes).read()
     check("demande écrite par l'API : commit du passage, par l'admin connecté", contenu.startswith("action=deployer\ncommit=" + "b" * 40 + "\npar=adm@yeita.fr\n"), contenu)
+    await pg.close()
+    # Relecture automatique (passage en cours) : focus clavier gardé, verdict non réécrit s'il ne change pas, étape en minuscules (QA 1.9 : B1, B2, B4)
+    if os.path.exists(demandes): os.remove(demandes)
+    interrompu = passage("20261028T131000.000000001Z-1", "c", "interrompu", ["ok", "ko", "non-lancee", "non-lancee"], motif="interrompu pendant npm-test")
+    pg = await page(etat_deploiement(dernier_main=commit("c"), en_cours={"depuis": iso(2), "etape": "build", "etape_depuis": iso(1), "commit": commit("c"), "declencheur": {"type": "automatique"}},
+                                     passages=[interrompu] + etat_deploiement()["passages"]))
+    texte = await pg.locator("#passages details.passage").first.locator(":scope > summary").inner_text()
+    check("passage interrompu : « Interrompu pendant tests de l'API » (première lettre seule en minuscule)", "Interrompu pendant tests de l'API" in texte, texte[:80])
+    await pg.evaluate("window.__mutations = 0; new MutationObserver(m => window.__mutations += m.length).observe(document.getElementById('verdict'), {childList: true, subtree: true, characterData: true, attributes: true})")
+    await pg.locator("#passages details.passage").nth(1).locator(":scope > summary").focus()
+    await pg.wait_for_timeout(11500)
+    focus = await pg.evaluate("(() => { const a = document.activeElement; const d = a && a.closest('details[data-cle]'); return [a && a.tagName, d && d.getAttribute('data-cle')]; })()")
+    check("relecture automatique : le focus clavier reste sur le même passage", focus == ["SUMMARY", "20261028T120000.000000001Z-1"], str(focus))
+    check("relecture automatique : le verdict inchangé n'est pas réécrit (lecteur d'écran)", await pg.evaluate("window.__mutations") == 0, str(await pg.evaluate("window.__mutations")))
+    check("bandeaux annoncés (role=status)", await pg.locator("#bandeaux").get_attribute("role") == "status")
     await pg.close()
     lec = await contexte(b, "lea@yeita.fr")
     pg = await ouvrir(lec, B + "admin/deploiement.html"); await pg.wait_for_timeout(500)

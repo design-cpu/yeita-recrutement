@@ -3,15 +3,16 @@ type: technique
 vue: humaine
 page: architecture
 titre: Architecture et déploiement
-maj: 1.8
-commit: df8a1fd
-sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, docker/api.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/backup.sh, deploy/verif-disque.sh, deploy/commun.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, tools/check-site.sh, tools/build.py, .env.example, .dockerignore, admin/sauvegardes.html, api/src/sauvegardes.js
+maj: 1.9
+commit: 5e41a2d
+sources: api/server.js, api/package.json, deploy/README.md, assets/config.js, docker/front.Dockerfile, docker/api.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/Caddyfile, deploy/prepare-serveur.sh, deploy/deploy.sh, deploy/backup.sh, deploy/verif-disque.sh, deploy/commun.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, tools/check-site.sh, tools/build.py, .env.example, .dockerignore, admin/sauvegardes.html, api/src/sauvegardes.js, deploy/auto-deploy.sh, deploy/systemd/recrutement-deploy.service, deploy/systemd/recrutement-deploy.timer, deploy/systemd/recrutement-deploy.path, admin/deploiement.html, api/src/deploiement.js
 date: 2026-10-28
 ---
 
+
 # Architecture et déploiement
 
-> Le site tourne dans Docker sur le serveur OVH de Yeita, derrière une connexion Google @yeita.fr. L'API de stockage tourne à côté, dans son propre conteneur, et seul oauth2-proxy peut lui parler. Depuis la v1.7, la base est sauvegardée chaque nuit, chiffrée, **sur le serveur lui-même**, et une page réservée aux admins dit si tout va bien.
+> Le site tourne dans Docker sur le serveur OVH de Yeita, derrière une connexion Google @yeita.fr. L'API de stockage tourne à côté, dans son propre conteneur, et seul oauth2-proxy peut lui parler. Depuis la v1.7, la base est sauvegardée chaque nuit, chiffrée, **sur le serveur lui-même**. Depuis la v1.9, le serveur met lui-même `main` en ligne, après les tests. Deux pages réservées aux admins disent où en sont les sauvegardes et les mises en ligne.
 
 ## En un coup d'œil
 
@@ -47,7 +48,7 @@ L'image de l'API ne tourne pas en administrateur. Elle se dit saine seulement si
 Le réseau interne n'a ni sortie vers Internet, ni adresse sur le serveur. Même un programme du serveur ne peut pas joindre l'API directement. C'est essentiel : l'API croit l'email que lui transmet oauth2-proxy.
 
 ### La base dans un volume
-La base SQLite vit dans le volume `recrutement_data`. Il survit aux arrêts, aux mises à jour et aux retours en arrière. Depuis la v1.7, il contient aussi la copie de travail de la nuit et l'état des sauvegardes.
+La base SQLite vit dans le volume `recrutement_data`. Il survit aux arrêts, aux mises à jour et aux retours en arrière. Depuis la v1.7, il contient aussi la copie de travail de la nuit et l'état des sauvegardes ; depuis la v1.9, l'état du déploiement automatique et la demande déposée par la page.
 
 > Jamais `docker compose down -v` ni `docker volume prune` sur le serveur : la base partirait avec.
 
@@ -86,17 +87,32 @@ Chaque passage écrit son résultat dans l'état des sauvegardes, trois petits f
 | Script | Qui le lance | À quoi il sert |
 |---|---|---|
 | Préparation du serveur | l'administrateur, une fois | crée l'utilisateur `deploy`, clone le dépôt, sans rien installer ; depuis la v1.7, vérifie aussi qu'age est là |
-| Déploiement | `deploy`, à chaque mise à jour | met le serveur à jour, attend le site puis l'API, ou revient en arrière ; depuis la v1.8, règle lui-même les droits des fichiers (`umask 022`) pour que le site et l'API puissent les lire |
+| Déploiement | `deploy`, à la main ; depuis la v1.9, surtout le déploiement automatique | met le serveur à jour, attend le site puis l'API, ou revient en arrière ; depuis la v1.8, règle lui-même les droits des fichiers (`umask 022`) ; depuis la v1.9, note le commit mis en ligne et, lancé à la main sur un ancien commit, met l'automatisme en pause |
+| Déploiement automatique (v1.9) | un timer toutes les 10 minutes, une demande de la page, ou `deploy` à la main | teste le dernier commit de `main` à part, le met en ligne par le script de déploiement, revient en arrière s'il le faut |
 | Sauvegarde (v1.7) | le timer de la nuit, ou `deploy` à la main | copie, chiffre, fait le ménage, écrit le résultat |
 | Contrôle du disque (v1.7) | le timer horaire | mesure les deux disques, rouge au-delà de 80 % |
-| Contrôle du site | tout le monde | vérifie 7 adresses, dont la page d'état renvoyée vers Google et l'API refusée sans connexion |
+| Contrôle du site | tout le monde | vérifie 8 adresses, dont les deux pages d'administration renvoyées vers Google et l'API refusée sans connexion |
 
-Une sauvegarde et un déploiement ne se chevauchent jamais : la sauvegarde attend jusqu'à 10 minutes la fin d'un déploiement, et un déploiement lancé pendant une sauvegarde s'arrête en le disant.
+Une sauvegarde et un déploiement ne se chevauchent jamais : la sauvegarde attend jusqu'à 10 minutes la fin d'un déploiement, et un déploiement lancé pendant une sauvegarde s'arrête en le disant. Le déploiement automatique, lui, attend jusqu'à 15 minutes la fin d'une sauvegarde.
+
+### Le déploiement automatique (v1.9)
+
+```mermaid
+flowchart LR
+  P[Page des déploiements] -->|demande| V[(Volume)]
+  V -->|réveille| S[Service systemd]
+  T[Timer, 10 min] --> S
+  S --> X[Tests à part]
+  X -->|OK| D[Script de déploiement]
+  S -->|résumé| E[(État de la page)]
+```
+
+Trois unités systemd font tourner `deploy/auto-deploy.sh` sous le compte `deploy` : un service, un timer de 10 minutes et une unité qui se réveille quand une demande arrive dans le volume. Les tests et la construction tournent dans des conteneurs et des images d'essai : le site en ligne n'est jamais touché. Le serveur garde ses décisions dans son propre dossier ; l'application ne fait que déposer des demandes. Le détail est dans [Déploiement automatique](deploiement-automatique.md).
 
 ### Où ça tourne
 | Endroit | Adresse | Pour quoi |
 |---|---|---|
-| Serveur OVH | `https://recrutement.yeita.fr` | la production, en mode serveur |
+| Serveur OVH | `https://recrutement.yeita.fr` | la production, en mode serveur, mise à jour toute seule depuis la v1.9 |
 | Poste, avec Docker | `https://localhost` | la pile complète, API comprise |
 | Poste, API et site sans Docker | `http://127.0.0.1:8000/candidatures/` | essayer le mode serveur, identité choisie au lancement |
 | Poste, site seul | `http://localhost:8765` | les tests de navigateur, en mode navigateur |
@@ -106,10 +122,12 @@ Une sauvegarde et un déploiement ne se chevauchent jamais : la sauvegarde atten
 - **Ne jamais publier de port pour l'API.** Elle ne doit rester joignable que par oauth2-proxy.
 - **Ne pas toucher au réseau interne sans refaire les essais.** Ses réglages ont été vérifiés sur la version de Docker du serveur.
 - **Ne toucher qu'au projet.** Le serveur est partagé : le nettoyage ne vise que les images du projet, et les unités systemd portent le préfixe `recrutement-`.
-- **Ajouter une page publique, c'est modifier la liste** dans la configuration d'oauth2-proxy. La page d'état, elle, doit rester protégée.
+- **Ajouter une page publique, c'est modifier la liste** dans la configuration d'oauth2-proxy. Les pages d'administration, elles, doivent rester protégées.
 - **Le dépôt du serveur doit rester propre.** Un fichier en trop entrerait dans l'image : le déploiement refuse de partir.
 - **Une unité systemd changée n'est jamais écrasée** par la commande d'installation : elle affiche la différence, et l'administrateur décide.
-- **Avant une maintenance de Docker, arrête les timers.** Les unités ne demandent pas Docker, mais la première commande `docker` d'une sauvegarde le relancerait.
+- **Avant une maintenance de Docker, arrête les timers et l'unité des demandes, puis attends la fin d'un passage.** Les unités ne demandent pas Docker, mais la première commande `docker` d'une sauvegarde ou d'un passage le relancerait.
+- **Le déploiement automatique décide sur ses propres fichiers**, jamais sur ce qu'écrit l'application. Il ne lit dans le volume que la demande, par un conteneur jetable.
+- **Le volume doit rester là où l'unité des demandes le surveille** (`/var/lib/docker/volumes/…`). La commande d'installation le vérifie et refuse sinon.
 - **La clé secrète de sauvegarde ne va jamais sur le serveur.** C'est un fichier gardé hors du serveur par une ou deux personnes ; sans lui, les copies sont illisibles.
 - **Les scripts écrivent l'état dans `/data/etat`.** Si le chemin de la base change dans l'image, il faut les changer avec.
 
@@ -120,5 +138,7 @@ Une sauvegarde et un déploiement ne se chevauchent jamais : la sauvegarde atten
 - [Conventions et tests](conventions.md)
 - [Déployer sur OVH, pas à pas](deploiement-ovh.md)
 - [Lancer le site avec Docker sur ton poste](docker-local.md)
+- [Le déploiement automatique](deploiement-automatique.md)
+- [Mettre à jour le site en production](mise-a-jour-production.md)
 - Le mode d'emploi du serveur : `deploy/README.md` ; mettre à jour : `deploy/METTRE-A-JOUR.md` ; la clé : `deploy/CLE-SAUVEGARDE.md` ; restaurer : `deploy/RESTAURER.md`
 - Le détail (réglages, versions exactes, garde-fous de chaque script) est dans la version complète.

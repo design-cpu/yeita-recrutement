@@ -115,7 +115,7 @@ Les écoutes `storage` existantes restent (mode navigateur).
 Rien n'est écrit dans `yeita-dossiers`, `yeita-equipe-ajouts`, `yeita-recruteur`, `yeita-options-disponibilite`. Restent : `yeita-dossier-courant` (un identifiant), `yeita-dernier-export` (date du dernier export, `store.js`), `yeita-candidatures-ui`, `yeita-carte-identite`, `yeita-match-resultat` (relais hors périmètre), `sessionStorage` `yeita-notice`, `yeita-rechargement-401`.
 
 ## Tests
-`node tools/test-serveur.js` (87 vérifications, fausse API, contexte `vm` comme `tools/test-store.js`) ; `tools/e2e-serveur.py` (51 vérifications, API réelle) : voir [Conventions](conventions.md#tests).
+`node tools/test-serveur.js` (87 vérifications, fausse API, contexte `vm` comme `tools/test-store.js`) ; `tools/e2e-serveur.py` (92 vérifications (41 pour la page des déploiements, v1.9), API réelle) : voir [Conventions](conventions.md#tests).
 
 ## Voir aussi
 - [API de stockage](api.md)

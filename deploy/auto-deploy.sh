@@ -369,6 +369,7 @@ main() {
     flock -w "$ATTENTE_VERROU" 9 || arret "un passage tient le verrou depuis plus de $ATTENTE_VERROU s ($VERROU)."
   fi
   trap sur_arret TERM INT
+  info "auto-deploy.sh du commit $(git rev-parse --short HEAD) (mode $mode)."   # version du script qui tourne (R15)
   mkdir -p .git/info
   grep -qx '/deploy/PAUSE' .git/info/exclude 2>/dev/null || echo '/deploy/PAUSE' >> .git/info/exclude
   reprendre_interrompu

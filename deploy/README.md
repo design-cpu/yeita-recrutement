@@ -378,7 +378,7 @@ Puis ouvrir la page d'état (connecté avec un compte admin) : verdict vert. Enf
 
 ```bash
 sudo systemctl stop recrutement-backup.timer recrutement-verif-disque.timer recrutement-deploy.timer recrutement-deploy.path
-while systemctl is-active -q recrutement-deploy recrutement-backup; do sleep 10; done; echo "Plus rien ne tourne : Docker peut être arrêté."
+while systemctl show -p ActiveState --value recrutement-deploy recrutement-backup | grep -qxE 'activating|active|deactivating'; do sleep 10; done; echo "Plus rien ne tourne : Docker peut être arrêté."
 ```
 
 Après la maintenance : `sudo systemctl start recrutement-backup.timer recrutement-verif-disque.timer recrutement-deploy.timer recrutement-deploy.path`.
@@ -475,7 +475,7 @@ Attendu : 3 lignes « copiée » (ou « identique »), le timer avec son prochai
 | « La demande n'a pas été prise en charge » | L'unité path ne réagit plus | `sudo systemctl reset-failed recrutement-deploy.service recrutement-deploy.path && sudo systemctl start recrutement-deploy.path` |
 | `Un passage est en cours, attente…` | Un passage (timer ou à la main) tourne | Attendre ; au-delà de 30 minutes : `ARRÊT : un passage tient le verrou…` |
 | `Docker ne répond pas : nouvel essai au prochain passage.` | Docker arrêté | `systemctl status docker` |
-| `Demande illisible : le conteneur n'a pas pu la retirer.` | `.env` illisible par Compose, ou dossier des demandes abîmé | `docker compose config >/dev/null` ; le passage continue sans la demande |
+| `Demande non retirée : le conteneur n'a pas pu la prendre.` | `.env` illisible par Compose, ou dossier des demandes abîmé | `docker compose config >/dev/null` ; le passage continue sans la demande, et le service ne repart qu'une fois par minute |
 
 Retirer le déploiement automatique : `sudo systemctl disable --now recrutement-deploy.timer recrutement-deploy.path`, puis `sudo rm /etc/systemd/system/recrutement-deploy.service /etc/systemd/system/recrutement-deploy.timer /etc/systemd/system/recrutement-deploy.path && sudo systemctl daemon-reload`.
 

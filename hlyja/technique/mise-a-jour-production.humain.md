@@ -3,25 +3,40 @@ type: technique
 vue: humaine
 page: mise-a-jour-production
 titre: Mettre à jour le site en production
-maj: 1.8
-commit: df8a1fd
-sources: deploy/METTRE-A-JOUR.md, deploy/deploy.sh, deploy/CLE-SAUVEGARDE.md
+maj: 1.9
+commit: 5e41a2d
+sources: deploy/METTRE-A-JOUR.md, deploy/deploy.sh, tools/check-site.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, deploy/backup.sh, deploy/verif-disque.sh, api/equipe.js, deploy/CLE-SAUVEGARDE.md, deploy/auto-deploy.sh, deploy/systemd/recrutement-deploy.service, deploy/systemd/recrutement-deploy.timer, deploy/systemd/recrutement-deploy.path, deploy/README.md
 date: 2026-10-28
 ---
 
+
 # Mettre à jour le site en production
 
-Il n'y a pas encore de déploiement automatique : après chaque pull request mergée dans `main`, quelqu'un met le serveur à jour à la main, en suivant cette page. Compter 10 minutes, plus les gestes propres à certaines versions (section 5).
+Depuis la v1.9, **le serveur met `main` en ligne tout seul**, sous 10 minutes, si les tests passent : après un merge, il n'y a rien à faire, sauf suivre `https://recrutement.yeita.fr/admin/deploiement.html`.
+
+Cette page sert dans trois cas : le **premier passage à la v1.9** (section 5), le **secours sans tests** (quand le déploiement automatique ne peut pas servir), et les gestes propres à certaines versions. Compter 10 minutes.
 
 Serveur : `51.75.252.121` (compte `deploy` pour mettre à jour, compte `ubuntu` pour les gestes administrateur avec `sudo`). Site : `https://recrutement.yeita.fr`.
 
 ## 1. Avant
 
 - [ ] La pull request est **mergée dans `main`** sur GitHub (pas seulement approuvée). `deploy.sh` prend toujours le dernier `main`.
+- [ ] Depuis la v1.9 : ouvrir `https://recrutement.yeita.fr/admin/deploiement.html` (compte admin) et vérifier qu'aucun passage n'est en cours. Sinon `deploy.sh` attend, ou s'arrête sur « déjà en cours ». Lancer `deploy.sh` à la main pendant un passage annule ce passage.
 - [ ] Lire la section 5 : la version demande-t-elle des gestes en plus ? Si oui, les prévoir dans le même créneau.
 - [ ] Éviter 3 h–3 h 15 (sauvegarde de la nuit). En dehors, une sauvegarde lancée à la main peut aussi être en cours : `deploy.sh` le dira (voir section 4).
 - [ ] Prévenir l'équipe : le site est coupé une quinzaine de secondes ; les pages ouvertes affichent alors le message réseau, il suffit de recharger.
-- [ ] Si tu dois arrêter Docker lui-même (maintenance du serveur, rare) : arrêter d'abord les minuteries des sauvegardes (compte `ubuntu`) : `sudo systemctl stop recrutement-backup.timer recrutement-verif-disque.timer`, et les relancer après avec `start` au lieu de `stop`. Sinon une commande `docker` des sauvegardes le redémarrerait.
+- [ ] Si tu dois arrêter Docker lui-même (maintenance du serveur, rare) : arrêter d'abord les minuteries des sauvegardes et du déploiement automatique, puis attendre la fin d'un passage en cours (compte `ubuntu`). Sinon une commande `docker` le redémarrerait.
+
+```bash
+sudo systemctl stop recrutement-backup.timer recrutement-verif-disque.timer recrutement-deploy.timer recrutement-deploy.path
+while systemctl show -p ActiveState --value recrutement-deploy.service recrutement-backup.service | grep -qE '^(activating|active|deactivating)$'; do sleep 10; done; echo "Plus rien ne tourne : Docker peut être arrêté."
+```
+
+Tu dois voir `Plus rien ne tourne : Docker peut être arrêté.` (au bout de quelques minutes si un passage tournait). Après la maintenance, relancer :
+
+```bash
+sudo systemctl start recrutement-backup.timer recrutement-verif-disque.timer recrutement-deploy.timer recrutement-deploy.path
+```
 
 ## 2. Mettre à jour
 
@@ -39,7 +54,7 @@ umask 022 && cd /opt/recrutement && deploy/deploy.sh
 
 > **Pourquoi `umask 022` au début ?** Ce réglage décide des droits des fichiers que la mise à jour réécrit : avec lui, l'application peut les lire. Depuis la v1.8, `deploy.sh` le règle lui-même. On le garde quand même en tête de commande : il protège le cas où le `deploy.sh` du serveur est plus ancien que la v1.8 (le tout premier passage à la v1.8, ou après un retour vers une version d'avant).
 
-- [ ] Tu dois voir, dans l'ordre : `Commit en place : …`, `· Dépôt sur main : <commit>`, la construction des images, `· Conteneurs à jour ; anciennes images du projet supprimées.`, `· API saine.`, 7 lignes `OK`, `Tout est OK sur https://recrutement.yeita.fr`, et en dernier **`Déploiement réussi : <commit> sur https://recrutement.yeita.fr`**.
+- [ ] Tu dois voir, dans l'ordre : `Commit en place : …`, `· Dépôt sur main : <commit>`, la construction des images, `· Conteneurs à jour ; anciennes images du projet supprimées.`, `· API saine.`, 8 lignes `OK`, `Tout est OK sur https://recrutement.yeita.fr`, et en dernier **`Déploiement réussi : <commit> sur https://recrutement.yeita.fr`**.
 
 **Sinon** : la dernière ligne commence par `ÉCHEC :` ou `ARRÊT :` → section 4.
 
@@ -47,14 +62,15 @@ umask 022 && cd /opt/recrutement && deploy/deploy.sh
 
 - [ ] Dans un navigateur, ouvrir `https://recrutement.yeita.fr/candidatures/` : la connexion Google, puis le tableau des candidatures avec « Connecté·e : <prénom> ».
 - [ ] Ouvrir `https://recrutement.yeita.fr/admin/sauvegardes.html` (compte admin) : la page d'état des sauvegardes s'affiche (le verdict peut être rouge juste après une version qui installe les sauvegardes : c'est normal tant que la première n'est pas faite).
-- [ ] Optionnel, depuis le Mac, dans le dossier du dépôt : `tools/check-site.sh https://recrutement.yeita.fr` → 7 `OK` et `Tout est OK sur https://recrutement.yeita.fr`.
+- [ ] Depuis la v1.9 : ouvrir `https://recrutement.yeita.fr/admin/deploiement.html` (compte admin) : la page des déploiements s'affiche.
+- [ ] Optionnel, depuis le Mac, dans le dossier du dépôt : `tools/check-site.sh https://recrutement.yeita.fr` → 8 `OK` et `Tout est OK sur https://recrutement.yeita.fr`.
 
 ## 4. Si ça ne va pas
 
 | Dernière ligne affichée | Que faire |
 |---|---|
 | `ÉCHEC : …` puis `Pour revenir à la version précédente : deploy/deploy.sh <commit>` | Lancer **tout de suite** la commande affichée (`deploy/deploy.sh <commit>`), puis transmettre le message `ÉCHEC` à la personne responsable du site. Le site revient à la version d'avant. |
-| `ARRÊT : un déploiement est déjà en cours` | Une sauvegarde ou un autre déploiement tourne : attendre 5 minutes et relancer la commande de la section 2. |
+| `ARRÊT : un déploiement est déjà en cours` | Une sauvegarde, un autre déploiement ou un passage du déploiement automatique tourne : attendre 5 minutes et relancer la commande de la section 2. |
 | `ARRÊT : le dépôt contient des modifications ou des fichiers en trop` | Quelqu'un a modifié un fichier sur le serveur : ne rien supprimer ; transmettre la liste affichée à la personne responsable du site. |
 | `ARRÊT : … a encore sa valeur d'exemple` ou `… est vide` | Un réglage de `/opt/recrutement/.env` est à remplir : transmettre le nom affiché à la personne responsable du site. |
 | Le site affiche une erreur après `Déploiement réussi` | Revenir à la version d'avant : `deploy/deploy.sh <commit précédent>` (le commit est sur la ligne `Commit en place : …` affichée au début). |
@@ -62,6 +78,8 @@ umask 022 && cd /opt/recrutement && deploy/deploy.sh
 La commande de retour se lance **telle qu'elle est affichée**, sans rien ajouter devant : `deploy.sh` règle lui-même les droits des fichiers. Seule exception : si tu étais justement en train de revenir vers une version d'avant la v1.8, ajoute `umask 022 &&` devant la commande affichée.
 
 Après un retour en arrière, le dépôt reste sur ce commit : la prochaine mise à jour (section 2) reprendra le dernier `main`, une fois le problème corrigé.
+
+> **Depuis la v1.9, un retour en arrière met le déploiement automatique en pause.** `deploy/deploy.sh <commit>`, sur un autre commit que le dernier de `main`, affiche `· Déploiement automatique en pause …`. Sans cette pause, le serveur remettrait `main` par-dessus dans les 10 minutes. Une fois `main` corrigé, cliquer « Reprendre » sur `/admin/deploiement.html`.
 
 ## 5. Gestes propres à une version
 
@@ -262,6 +280,47 @@ rm -rf "$d"
 **Si tu vois `no identity matched any of the recipients`** : le serveur chiffre avec une autre clé que la tienne. Refais les étapes 4, 5 et 6, lance une sauvegarde à la main (sur le serveur : `cd /opt/recrutement && deploy/backup.sh`), puis refais l'étape 7.
 
 **Si tu vois `No such file or directory`** : aucune sauvegarde n'a encore été faite sur le serveur.
+
+### 1.9 — déploiement automatique
+
+1. **Déployer la 1.9 à la main** : section 2. C'est encore le `deploy.sh` de la 1.8 qui tourne. Tu dois voir à la fin `Déploiement réussi : <commit> sur https://recrutement.yeita.fr`, et 8 lignes `OK` (dont `/admin/deploiement.html → 302`).
+
+2. **Installer le déploiement automatique** (compte `ubuntu`). Copie le bloc **en entier**. Il vérifie d'abord que le volume est là où le serveur le surveille, copie les trois unités (sans jamais en écraser une différente), note le commit en place comme « mis en ligne », puis les démarre :
+
+```bash
+cd /opt/recrutement && sudo bash -c 'set -e
+m=$(docker volume inspect recrutement_data -f "{{.Mountpoint}}")
+attendu=$(sed -n "s#^PathExists=\(.*\)/demandes/deploiement.demande\$#\1#p" deploy/systemd/recrutement-deploy.path)
+[ -n "$m" ] && [ "$m" = "$attendu" ] || { echo "ARRÊT : le volume recrutement_data est dans « $m », pas dans « $attendu » : rien n est installé (voir deploy/README.md)."; exit 1; }
+for u in recrutement-deploy.service recrutement-deploy.timer recrutement-deploy.path; do
+  if [ ! -e /etc/systemd/system/$u ]; then install -m 644 deploy/systemd/$u /etc/systemd/system/$u; echo "copiée : $u"
+  elif cmp -s deploy/systemd/$u /etc/systemd/system/$u; then echo "identique : $u"
+  else echo "DIFFÉRENTE : $u (rien n est écrasé)"; diff /etc/systemd/system/$u deploy/systemd/$u || true; exit 1; fi
+done
+runuser -u deploy -- sh -c "d=\$HOME/.recrutement-deploiement; [ -d \$d ] || mkdir -m 700 \$d; [ -f \$d/deploye ] || git -C /opt/recrutement rev-parse HEAD > \$d/deploye"
+systemctl daemon-reload
+systemctl enable --now recrutement-deploy.timer recrutement-deploy.path' && systemctl list-timers 'recrutement-deploy*' && systemctl is-active recrutement-deploy.path
+```
+
+Tu dois voir 3 lignes `copiée : recrutement-deploy.…`, le timer avec son prochain passage (dans 10 minutes au plus), puis `active`.
+
+**Si tu vois `ARRÊT : le volume recrutement_data est dans …`** : ne rien installer ; transmettre le message à la personne responsable du site.
+
+**Si tu vois `DIFFÉRENTE : …`** : une unité installée a changé ; transmettre la différence affichée à la personne responsable du site.
+
+3. **Vérifier**, après 10 minutes au plus : `https://recrutement.yeita.fr/admin/deploiement.html` (compte admin) affiche en vert « À jour : le dernier commit de main est en ligne. ».
+
+**Si tu vois « Aucun passage enregistré »** au-delà de 10 minutes : `systemctl list-timers 'recrutement-*'` doit montrer `recrutement-deploy.timer` ; `sudo journalctl -u recrutement-deploy -n 50` donne la cause.
+
+### Revenir avant la 1.9
+
+Avant un `deploy/deploy.sh <commit>` vers un commit antérieur à la 1.9, arrêter le déploiement automatique (compte `ubuntu`) :
+
+```bash
+sudo systemctl disable --now recrutement-deploy.timer recrutement-deploy.path
+```
+
+Au retour vers une version 1.9 ou après : refaire l'étape 2 de la section « 1.9 » (elle affiche alors « identique »), puis « Reprendre » sur la page : la pause posée par le retour est toujours là.
 
 ### Revenir avant la 1.7
 

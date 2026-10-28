@@ -58,7 +58,7 @@
     <h1 id="titre">Déploiement du site</h1>
     <p class="sous">Toutes les 10 minutes, le serveur teste le dernier commit de main et le met en ligne si les tests passent.</p>
     <div id="verdict" class="verdict neutre" role="status" aria-live="polite"><h2>Chargement de l'état…</h2></div>
-    <div id="bandeaux"></div>
+    <div id="bandeaux" role="status" aria-live="polite"></div>
     <dl class="etat" id="details" hidden></dl>
     <div class="actions" id="actions" hidden>
       <button class="btn primary" type="button" id="maintenant">Déployer maintenant</button>
@@ -114,6 +114,8 @@
   function c(x) { return x && x.court ? x.court : "?"; }
   function commitTexte(x) { return x ? c(x) + " — " + (x.message || "") + (x.auteur ? " (" + x.auteur + ")" : "") : "inconnu"; }
   function etapeTexte(nom) { return ETAPES[nom] || nom || "?"; }
+  /* Dans une phrase : première lettre en minuscule seulement (« tests de l'API »). */
+  function etapeDansPhrase(nom) { var t = etapeTexte(nom); return t.charAt(0).toLowerCase() + t.slice(1); }
   function demandeValide() { return demande && !demande.illisible ? demande : null; }
 
   function libelleResultat(p) {
@@ -126,7 +128,7 @@
         return "Mise en ligne ratée — " + m.replace(/^mise en ligne ratée, /, "");
       case "demande-refusee": return "Demande refusée : " + m;
       case "annule": return "Annulé : " + m;
-      case "interrompu": return "Interrompu pendant " + etapeTexte(m.replace(/^interrompu pendant /, "")).toLowerCase();
+      case "interrompu": return "Interrompu pendant " + etapeDansPhrase(m.replace(/^interrompu pendant /, ""));
       default: return p.resultat || "?";
     }
   }
@@ -139,7 +141,11 @@
     return d.type || "?";
   }
 
+  /* Réécrit seulement si le contenu change : un lecteur d'écran ne relit pas le même verdict à chaque relecture. */
   function afficherVerdict(classe, titre, motifs) {
+    var signature = classe + "|" + titre + "|" + (motifs || []).join("|");
+    if (verdict.getAttribute("data-signature") === signature) return;
+    verdict.setAttribute("data-signature", signature);
     verdict.className = "verdict " + classe;
     verdict.replaceChildren(el("h2", titre));
     if (motifs && motifs.length) { var ul = el("ul"); motifs.forEach(function (m) { ul.appendChild(el("li", m)); }); verdict.appendChild(ul); }
@@ -147,7 +153,7 @@
   function message(texte) {
     afficherVerdict("neutre", texte);
     [details, actions, aide].forEach(function (x) { x.hidden = true; });
-    bandeaux.replaceChildren(); liste.replaceChildren();
+    nouveauxBandeaux = []; poserBandeaux(); liste.replaceChildren();
     document.getElementById("titre-liste").hidden = true; document.getElementById("note-liste").hidden = true;
   }
 
@@ -155,7 +161,7 @@
   function calculerVerdict(e) {
     var rk = e.retour_ko, avant = rk && rk.avant ? rk.avant.court : (e.en_ligne ? c(e.en_ligne) : "?");
     if (rk && rk.type === "retour-ko") return ["rouge", "Retour arrière raté : le site est peut-être hors service. En SSH : deploy/deploy.sh " + avant, ["Commit en ligne : incertain"]];
-    if (rk && rk.type === "interrompu") return ["rouge", "Mise en ligne interrompue pendant " + etapeTexte(rk.etape).toLowerCase() + " : le site est peut-être hors service. En SSH : deploy/deploy.sh " + avant, ["Commit en ligne : incertain"]];
+    if (rk && rk.type === "interrompu") return ["rouge", "Mise en ligne interrompue pendant " + etapeDansPhrase(rk.etape) + " : le site est peut-être hors service. En SSH : deploy/deploy.sh " + avant, ["Commit en ligne : incertain"]];
     if (e.incertain) return ["rouge", "Commit en ligne : incertain (une mise en ligne n'a pas abouti).", []];
     var ec = e.en_cours, controle = e.dernier_controle || {};
     if (ilYA(controle.le) > 25 * MIN && !(ec && ilYA(ec.etape_depuis) < 45 * MIN)) {
@@ -174,7 +180,13 @@
   }
 
   function ligne(dt, dd) { details.appendChild(el("dt", dt)); details.appendChild(el("dd", dd)); }
-  function bandeau(texte, rouge) { var b = el("div", texte, "bandeau" + (rouge ? " rouge" : "")); bandeaux.appendChild(b); }
+  var nouveauxBandeaux = [];
+  function bandeau(texte, rouge) { nouveauxBandeaux.push(el("div", texte, "bandeau" + (rouge ? " rouge" : ""))); }
+  function poserBandeaux() {
+    var signature = nouveauxBandeaux.map(function (b) { return b.className + "|" + b.textContent; }).join("\n");
+    if (bandeaux.getAttribute("data-signature") !== signature) { bandeaux.setAttribute("data-signature", signature); bandeaux.replaceChildren.apply(bandeaux, nouveauxBandeaux); }
+    nouveauxBandeaux = [];
+  }
 
   function confirmationMaintenant() {
     var e = etat || {}, main = e.dernier_main, t = ["Le dernier commit de main (" + (main ? c(main) + " " + (main.message || "") : "?") + ") sera testé puis mis en ligne."];
@@ -252,7 +264,13 @@
   function afficher(v) {
     etat = v.etat; demande = v.demande; maintenant = v.maintenant;
     if (liste.children.length) noterOuverts();
-    bandeaux.replaceChildren(); details.replaceChildren(); liste.replaceChildren();
+    /* Focus clavier gardé d'une relecture à l'autre : passage ou étape (résumé) ou bouton d'un passage. */
+    var actif = document.activeElement, focusCle = null, focusBouton = false;
+    if (actif && liste.contains(actif)) {
+      var porteur = actif.closest("details[data-cle]");
+      if (porteur) { focusCle = porteur.getAttribute("data-cle"); focusBouton = actif.tagName === "BUTTON"; }
+    }
+    details.replaceChildren(); liste.replaceChildren();
     if (!etat || etat.illisible) {
       afficherVerdict("neutre", etat ? "L'état du déploiement est illisible." : "Aucun passage enregistré : le déploiement automatique n'est peut-être pas installé (deploy/README.md).");
       etat = etat && etat.illisible ? {} : etat;
@@ -288,6 +306,12 @@
     var passages = e.passages || [];
     document.getElementById("titre-liste").hidden = !passages.length; document.getElementById("note-liste").hidden = !passages.length;
     passages.forEach(function (p, i) { liste.appendChild(passageEl(p, i === 0 && p.resultat !== "deploye")); });
+    poserBandeaux();
+    if (focusCle) {
+      var cible = liste.querySelector('details[data-cle="' + (window.CSS && CSS.escape ? CSS.escape(focusCle) : focusCle) + '"]');
+      var f = cible && (focusBouton ? cible.querySelector(":scope > .corps > p > button") : cible.querySelector(":scope > summary"));
+      if (f) f.focus();
+    }
     boutonsActifs(!envoi);
     /* Relecture toutes les 10 s tant qu'une demande attend ou qu'un passage est en cours. */
     clearTimeout(minuterie);

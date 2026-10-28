@@ -106,7 +106,7 @@ Proxy de l'hôte conteneurisé ou inconnu : rien n'est modifié, décision du re
 | Poste, cas B | `cp .env.example .env && docker compose up -d --build` | `https://localhost` |
 | Poste, cas A | `COMPOSE_PROFILES=` vide, `docker compose up -d` | `http://127.0.0.1:4180` |
 | Poste, sans Docker | `python3 tools/build.py _site && python3 -m http.server 8765 --directory _site` | `http://localhost:8765` (pas d'authentification ; tests de navigateur) |
-| Serveur OVH | `deploy/deploy.sh` | `https://recrutement.yeita.fr` |
+| Serveur OVH | v1.9 : `recrutement-deploy.timer` → `deploy/auto-deploy.sh --auto` (et les demandes de `/admin/deploiement.html`) ; `deploy/deploy.sh` en secours sans tests | `https://recrutement.yeita.fr` |
 | Poste, pile Docker avec l'API (v1.3) | `docker compose up -d --build` (`.env` d'exemple) | l'api n'a aucun port : la joindre par `front` (`/api/…`, 401 sans session) ([Lancer le site avec Docker](docker-local.md)) |
 | Poste, API et site en mode serveur (v1.3) | `python3 tools/build.py _site && cd api && DEV_EMAIL=moi@yeita.fr DEV_STATIC=../_site npm start` | `http://127.0.0.1:8000/candidatures/` (pages en mode serveur, identité `DEV_EMAIL`) |
 | Poste, API seule (v1.2) | `cd api && npm ci && DEV_EMAIL=moi@yeita.fr npm start` (après `node equipe.js add moi@yeita.fr Moi admin`) | `http://127.0.0.1:8000/api/…` ; avec `DEV_STATIC=../_site`, le site à `/` |

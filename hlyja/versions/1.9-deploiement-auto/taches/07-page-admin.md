@@ -28,7 +28,7 @@ Commits : `09aac70`, `805b43c` (`adminRequis` partagé, côté API).
 ## Résultat QA
 | Vérification | Résultat |
 |---|---|
-| `tools/e2e-serveur.py` | 80 `OK`, 1 `FAIL`, ligne finale **`ÉCHECS`** |
+| `tools/e2e-serveur.py` | 80 `OK`, 1 `FAIL`, ligne finale **`ÉCHECS`** ; après la QA (7 vérifications d'accessibilité) et les corrections B1, B2, B4 (4 vérifications) : **91 `OK`, 1 `FAIL`**, `ÉCHECS` |
 Le seul `FAIL` (« départ de la page (candidat.html), PUT précédent lent … 409 ») **existe déjà sur `main`** (rejoué deux fois sur un worktree de `main` : même échec) : hors de cette version, candidat au backlog. Les 29 vérifications de la page passent.
 Corrections pendant la tâche : sélecteurs du test (bouton dans un passage replié, `inner_text` d'un repli fermé, résumés imbriqués).
 
@@ -37,6 +37,8 @@ Corrections pendant la tâche : sélecteurs du test (bouton dans un passage repl
 |---|---|---|
 | texte comme texte | `textContent` remplacé par `innerHTML` dans `el()` | détectée (« sortie hostile affichée comme texte ») |
 | envoi protégé | garde `envoi` et désactivation des boutons retirées | détectée (« double clic → une seule demande ») |
+| focus gardé (après QA, B1) | focus non rendu après la relecture | détectée (« le focus clavier reste sur le même passage », `['BODY', None]`) |
+| verdict non réécrit (après QA, B2) | contrôle de signature retiré | détectée (« le verdict inchangé n'est pas réécrit », 3 mutations) |
 
 ## Spec couverte
 UX/UI, R16, R17 (côté page), CA13, CA16

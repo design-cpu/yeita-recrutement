@@ -51,8 +51,8 @@ La page ne lance rien : elle dépose une demande, le serveur la vérifie puis ag
 | Verdict | vert « À jour » ; neutre « main a avancé », « En pause », « Passage en cours » ; rouge « Retour arrière raté », « Mise en ligne interrompue », « Commit en ligne : incertain », « Le serveur ne vérifie plus main » (plus de 25 min), « Le serveur ne joint pas GitHub », « Le dernier commit de main a échoué » |
 | Bandeaux | demande en attente (rouge si elle n'est pas prise en charge en 5 min hors passage) ; passage en cours avec son étape (k/4) |
 | Boutons | « Déployer maintenant », « Reprendre » (en pause), « Déployer ce commit » (passage aux tests OK, commit pas en ligne) ; chacun avec une confirmation qui dit ce qui va se passer |
-| Liste | passages repliés, le plus récent en haut ; étapes dépliables, l'étape en échec ouverte |
-Seuls les commits passés par l'automatisme figurent dans la liste ; pour un autre : `deploy.sh <hash>` en SSH.
+| Liste | les 30 derniers passages, quel que soit leur déclencheur (automatique, demande, ligne de commande), le plus récent en haut et ouvert s'il n'a pas mis en ligne ; étapes dépliables, l'étape en échec ouverte |
+« Déployer ce commit » n'existe que pour un commit dont un passage a réussi les tests ; pour un autre commit : `deploy.sh <hash>` en SSH.
 
 ## Cas particuliers
 - Une panne réseau pendant les tests donne « Tests en échec » : « Déployer maintenant » relance.
