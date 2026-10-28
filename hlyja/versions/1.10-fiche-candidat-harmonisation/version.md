@@ -2,42 +2,61 @@
 type: version
 version: 1.10
 slug: fiche-candidat-harmonisation
-titre: Fiche du candidat, dépôt de fichiers et harmonisation des étapes
-branche: feat/fiche-candidat-harmonisation
+titre: Fiche du candidat, dépôt de fichiers et harmonisation des étapes (reprise de la branche de Léo)
+branche: version/1.10-fiche-candidat-harmonisation
 base: main
-mode: express
-statut: terminee
-date: 2026-10-27
+mode: complexe
+type_version: livrable
+statut: en-cours
+date: 2026-10-28
 ---
 
 # Version 1.10 — Fiche du candidat, dépôt de fichiers et harmonisation des étapes
 
-> **Terminée** · express · pages de l'espace Candidatures, API (fichiers), guide inchangé · aucun changement d'authentification, de Docker ni de déploiement
+> **Statut** : en cours · **Branche** : `version/1.10-fiche-candidat-harmonisation` (base `main` à `b727ded`)
+> Objectif : rendre la branche `feat/fiche-candidat-harmonisation` de Léo fonctionnelle et déployable sur `main` (1.7 à 1.9 comprises), avec ses tests et sa documentation.
 
-## Demande
-- Création d'un candidat = la fenêtre « Fiche du candidat », en création (« Passer à l'appel de découverte », « Enregistrer et revenir à la liste ») ; même composant que le bloc Infos de l'appel (champs, ordre, groupes, grille).
-- CV et Portfolio : déposer un fichier ou coller un lien, explicitement ; espace de dépôt par candidat dans le stockage sécurisé ; RGPD (même durée, supprimés avec le candidat, tracés).
-- Étapes : liens utiles de l'appel retirés ; EC1 sans « Liens et outils », « Yeita Match », bouton du jeu en ligne en visio ; EC2 : grille en icône, palier sans retour à la ligne, mention de séniorité ; Bilans : partie interne sous la carte.
-- Règles communes : plus de sélecteur d'État dans les étapes ; noms complets partout sauf la carte du kanban.
-- À discuter (backlog) : sortir l'Onboarding du funnel.
-- Largeur et layout identiques sur toutes les étapes, panneau Notes à côté sur grand écran.
-- Durée de conservation RGPD : 22 mois.
+## Objectif
+Reprendre le travail de Léo (2 commits, faits avant les versions 1.7 à 1.9 de `main`), le rejouer sur `main`, établir ce qui va et ce qui ne va pas, corriger ce qui empêche de le faire passer en production (déploiement automatique, retour arrière, sauvegardes, restauration, nginx), compléter les tests et mettre la doc hlyja à jour.
 
-## Plan
-État des lieux validé par Léo : fichiers dans la base SQLite existante (table `fichiers`, schéma v2), 4 routes, sans dépendance nouvelle, 10 Mo ; « Copier pour Notion » et « Vider la fiche » retirés. Fait par groupes : sections 1, 2 et 6 ; 3 et 4 ; 5 et documentation.
+## Pitch d'origine
+Demande de l'utilisateur (Sofiane), 2026-10-28 :
+> J'ai une branch sur Github "feat/fiche-candidat-harmonisation". Elle a été faite par un collègue et elle apporte des modifications assez importantes. […] Je voudrais que tu la rebase avec la main dans une nouvelle branch avec une nouvelle version et que tu listes tout ce qui va et tout ce qui ne va pas, on va voir pour la faire passer.
+> Il faut que son truc fonctionne et que ça puisse être déployé donc il va falloir écrire les tests, la doc dans ton dossier comme d'habitude.
 
-## Résultat
-- API : `api/src/fichiers.js` (nouveau), `base.js` (`VERSION_SCHEMA` 2, `MIGRATIONS`), `candidats.js` (fichiers effacés avec le dossier), `app.js` (route d'envoi hors JSON, messages 413/415), `valeurs.js` ; tests `api/test/fichiers.test.js` (7), `base.test.js` (migration v1 → v2).
-- Pages : `candidatures/menu-candidat.js` (fiche en création et en consultation, champs CV et Portfolio), `index.html` (formulaire d'ajout retiré), `candidat.html`, `ec1.html`, `ec2.html`, `carte.html` (`interne=1`), `parcours-ui.js`, `ui.js` (`nomComplet`, initiales sur le kanban), `style.css` (`.wrap.etape`, grille, documents) ; `assets/adapter-serveur.js` (`deposer`, `fichierUrl`, `retirerFichier`), `dossier.js` (`identite.fichiers`), `store.js` (`estPassage`), `config.js` (`equipeNoms`, RGPD 22 mois), `wording.fr.js`, `yeita.js` (icônes Paperclip, ExternalLink) ; `one-pager.html` (22 mois).
-- Largeur commune : **1120 px** (`.wrap.etape`, `--etape-max`) ; panneau Notes à côté dès 1360 px, par-dessus en dessous (documenté dans [Conventions](../../technique/conventions.md)).
-- Tests : `cd api && npm test` 60/60 · `node tools/test-store.js` TOUT OK · `node tools/test-serveur.js` TOUT OK (87) · `e2e-candidatures`, `e2e-parcours`, `e2e-liens`, `e2e-pdf` ALL OK · `e2e-serveur` TOUT OK, hors deux contrôles « départ de la page » instables, qui échouent aussi sur `main` (backlog 1.10-3).
-- Non vérifié ici : Docker (`docker compose up -d --build`), à lancer par Léo ; derrière un nginx existant (cas A), `client_max_body_size 10m`.
-- Backlog : 1.10-1 (Onboarding hors du funnel, à discuter), 1.10-2 (purge RGPD 22 mois, à discuter), 1.10-3 (tests instables), 1.10-4 (feuille de décompte depuis l'EC1, fait), 1.10-5 (noms complets : les prénoms suffisent, fait) ; 1.6-2 mis à jour (22 mois).
+Description de la branche par Léo (résumée ; texte complet : `Claude outputs/pr-1.10-fiche-candidat.md`) :
+- Création = la fenêtre « Fiche du candidat » (« Passer à l'appel de découverte », « Enregistrer et revenir à la liste ») ; un seul composant avec le bloc de l'appel (4 groupes, grille de 3 colonnes).
+- CV et Portfolio : « Déposer un fichier » ou « Coller un lien » ; fichier : nom, taille, « Ouvrir », « Retirer » ; lien : cliquable, « Modifier », « Retirer ».
+- Stockage : table `fichiers` dans la base SQLite (schéma v2), 4 routes sous `/api/candidats/:id/fichiers`, PDF/PNG/JPG vérifiés sur leur contenu, 10 Mo, noms nettoyés, effacés avec le candidat, dépôt et retrait dans l'historique.
+- Largeur commune 1120 px ; panneau Notes à côté dès 1360 px.
+- Appel sans liens utiles ; EC1 sans « Liens et outils » (Tout déplier, Copier pour Notion, Vider la fiche), section « Yeita Match », bouton du jeu en ligne en visio, feuille de décompte en présentiel ; EC2 : grille de salaire en icône, palier sur une ligne, mention de séniorité, sans « Liens et outils » ; Bilans : partie interne sous la carte.
+- Sélecteur d'État retiré des étapes ; noms tels que saisis partout, initiales sur la carte du kanban ; RGPD 22 mois.
 
-## Comment tester
-`python3 tools/build.py _site && cd api && DEV_EMAIL=moi@yeita.fr DEV_STATIC=../_site npm start` (ajouter d'abord `moi@yeita.fr` avec `node equipe.js add`), puis http://127.0.0.1:8000/candidatures/ : « Ajouter un candidat », déposer un CV en PDF, coller un lien de portfolio, « Passer à l'appel de découverte » ; un second en « Enregistrer et revenir à la liste » ; supprimer un candidat avec ses fichiers (menu ⋯) ; EC1 en visio ; EC2 sur chaque palier ; Bilans EC1 et EC2 avec la partie interne. La base passe d'elle-même en version 2 au premier démarrage.
+## Décisions de l'utilisateur
+| Date | Question | Réponse |
+|---|---|---|
+| 2026-10-28 | Niveau | Complexe |
+| 2026-10-28 | Base | `main` (la branche `version/1.5-guide-deploiement-ovh`, non mergée, est ancienne et sans rapport) |
+| 2026-10-28 | Retour arrière après la migration (une base v2 est refusée par l'API de la 1.9, reproduit) | Table `fichiers` ajoutée sans changer `user_version` (reste 1) : la 1.9 relit la base |
+| 2026-10-28 | `client_max_body_size` du nginx de production (cas A) | Étape du guide de mise en production, appliquée sur le serveur par Sofiane ou Léo avant le merge |
 
-## Changelog
-- Ajouté : dépôt de fichiers (CV, Portfolio) par candidat, PDF/PNG/JPG, 10 Mo, dans la base sécurisée, effacés avec le candidat, tracés dans l'historique ; bouton « Ouvrir Yeita Match en ligne » en visio et « Ouvrir la feuille de décompte » en présentiel ; partie interne de la carte dans les Bilans ; mention de séniorité sous le barème EC2.
-- Modifié : « Ajouter un candidat » ouvre la fenêtre Fiche du candidat (« Passer à l'appel de découverte », « Enregistrer et revenir à la liste ») ; un seul composant de fiche (4 groupes, 3 colonnes) ; une seule largeur pour toutes les étapes ; grille de salaire en icône ; sélecteur de palier sur une ligne ; noms tels que saisis partout (prénoms), initiales sur la carte du kanban ; RGPD : 22 mois.
-- Retiré : formulaire d'ajout du tableau ; liens utiles de l'appel ; « Liens et outils » de l'EC1 et de l'EC2 (avec « Tout déplier », « Copier pour Notion », « Vider la fiche ») ; sélecteur d'État dans les étapes.
+## Reprise de la branche
+| Étape | Commit | Note |
+|---|---|---|
+| Rejeu du commit 1 de Léo | `a8195d5` (origine `becf443`) | 4 conflits, tous dans la doc hlyja (`glossaire.md`, `technique/api.md`, `conventions.md`, `decisions.md`) : les deux côtés gardés |
+| Rejeu du commit 2 de Léo | `7533be6` (origine `650c648`) | sans conflit |
+| Renumérotation 1.7 → 1.10 | `69ec434` | le numéro 1.7 est pris sur `main` (`1.7-sauvegarde-base`) ; fiches `1.7-1` à `1.7-5` de Léo → `1.10-1` à `1.10-5` |
+
+## Plan d'équipe
+Écrit par le chef d'équipe (reprise de code existant : vérifier, corriger, tester, documenter).
+- Étapes et sous-agents : cadrage (inventaire de ce qui va et ne va pas) → vérifications → P1 → spec v1 → jury de 5 + arbitre (3 tours au plus) → découpage → P3 → réalisation → revue de code et sécurité → P4 → QA en couches → doc → backlog → bilan → étonnements.
+- Jury : Lead dev (API, SQLite, schéma), Sécurité et données personnelles, Ops / déploiement (1.9, retour arrière, sauvegardes, nginx), Testabilité et concurrence (client : orphelins, doublon), Utilisateur recruteur.
+- Vérifications avant la spec v1 : repère dans un CV puis suppression et retrait, recherche dans base, WAL, temporaires ; scénario à deux acteurs dépôt × enregistrement du dossier ; aller-retour 1.9 → 1.10 → 1.9 avec restauration ; dépôt > 1 Mo derrière un nginx réglé comme en production ; essais d'attaque sur les routes de fichiers.
+- Ordres de grandeur : spec 140 à 200 lignes, 14 à 18 CA (tableau commande × version 1.9 ↔ 1.10, tableau des commandes de la fiche pendant un dépôt) ; 6 à 9 tâches ; 12 à 20 fichiers en plus du diff de Léo, aucune dépendance ; 1 à 2 fichiers de test API au plus, e2e existants complétés ; QA 20 à 26 scénarios ; mutations 12 à 18 ; doc : 8 pages `technique/` + `deploy/RESTAURER.md` + une page produit.
+- Pas fait : choix d'interface de Léo non rediscutés (corrigés seulement s'ils sont cassés) ; fiches 1.10-1 à 1.10-5 laissées au backlog ; pas de stockage hors SQLite, d'antivirus ni d'aperçu ; pas de changement de `user_version` ; aucun essai sur le serveur réel ; pas de doc produit de tout l'espace Candidatures.
+- Vigilance : pas de refonte de `menu-candidat.js` hors défaut constaté ; cohérence dépôt / dossier par une règle simple et testée (pas de doublon, pas d'orphelin durable) ; doc : seulement les paragraphes rendus faux.
+
+## Liens
+- Cadrage : spec/cadrage.md
+- Spec finale : spec/spec-finale.md
+- Bilan : bilan.md
