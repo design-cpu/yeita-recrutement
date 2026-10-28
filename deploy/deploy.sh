@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Déploiement, lancé par l'utilisateur deploy depuis le dépôt du serveur :
 #   deploy/deploy.sh            met à jour sur le dernier commit de main
-#   deploy/deploy.sh <commit>   revient à un commit de main (retour arrière)
+#   deploy/deploy.sh <commit>   revient à un commit de main (retour arrière) ; un autre commit que le dernier de main
+#                               met le déploiement automatique en pause (deploy/PAUSE, v1.9), sauf quand c'est
+#                               deploy/auto-deploy.sh qui l'appelle (RECRUTEMENT_PAR_AUTO=1 : il décide lui-même)
 # Tout est vérifié avant de toucher au dépôt ou aux conteneurs ; seules les images étiquetées
 # fr.yeita.projet=recrutement sont nettoyées (le serveur est partagé). Relancer après une interruption est sûr.
 set -euo pipefail
@@ -11,6 +13,7 @@ umask 022
 PROJET=recrutement
 ETIQUETTE=fr.yeita.projet=recrutement
 VERROU="$HOME/.recrutement-deploy.lock"   # hors du dépôt
+ETAT_AUTO="$HOME/.recrutement-deploiement"   # fichiers de décision de deploy/auto-deploy.sh (v1.9)
 
 arret() { echo "ARRÊT : $*" >&2; exit 1; }
 info() { echo "· $*"; }
@@ -62,6 +65,10 @@ main() {
   local avant; avant=$(git rev-parse --short HEAD)
 
   # --- Dépôt propre : un fichier en trop entrerait dans l'image et serait servi aux comptes connectés ---
+  # deploy/PAUSE (déploiement automatique en pause, v1.9) n'est pas un fichier en trop : exclusion locale au dépôt,
+  # qui vaut quel que soit le commit en place (un .gitignore disparaîtrait en revenant à un commit plus ancien).
+  mkdir -p .git/info
+  grep -qx '/deploy/PAUSE' .git/info/exclude 2>/dev/null || echo '/deploy/PAUSE' >> .git/info/exclude
   [ -z "$(git status --porcelain)" ] || arret "le dépôt contient des modifications ou des fichiers en trop (une copie de .env serait publiée) :
 $(git status --short)"
 
@@ -96,6 +103,12 @@ $etrangers"
     fi
     git checkout --quiet --detach "$cible"
     info "Dépôt sur $(git rev-parse --short HEAD) (détaché ; « deploy/deploy.sh » sans argument reprend main)."
+    # Lancé à la main sur un autre commit que le dernier de main : le déploiement automatique se met en pause
+    # (il ne redéploierait pas main par-dessus) ; « Reprendre » sur /admin/deploiement.html la retire.
+    if [ "${RECRUTEMENT_PAR_AUTO:-}" != 1 ] && [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+      printf 'le=%s\npar=deploy.sh (%s)\ncommit=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(id -un)" "$(git rev-parse HEAD)" > deploy/PAUSE
+      info "Déploiement automatique en pause (deploy/PAUSE) : « Reprendre » sur /admin/deploiement.html pour le relancer."
+    fi
   else
     git checkout --quiet main
     git pull --quiet --ff-only origin main
@@ -136,7 +149,13 @@ $etrangers"
   local essais=1
   [ "$caddy" = oui ] && essais=6   # le temps que Caddy obtienne le certificat
   for i in $(seq 1 "$essais"); do
-    tools/check-site.sh "https://$domaine" && { echo "Déploiement réussi : $(git rev-parse --short HEAD) sur https://$domaine"; return 0; }
+    if tools/check-site.sh "https://$domaine"; then
+      # Commit en ligne, pour deploy/auto-deploy.sh (v1.9) : écrit quel que soit le lanceur.
+      { [ -d "$ETAT_AUTO" ] || mkdir -m 700 "$ETAT_AUTO"; } && (umask 077 && git rev-parse HEAD > "$ETAT_AUTO/deploye.tmp" && mv "$ETAT_AUTO/deploye.tmp" "$ETAT_AUTO/deploye") \
+        || echo "Attention : $ETAT_AUTO/deploye n'a pas pu être écrit (déploiement automatique : commit en ligne incertain)." >&2
+      echo "Déploiement réussi : $(git rev-parse --short HEAD) sur https://$domaine"
+      return 0
+    fi
     [ "$i" -lt "$essais" ] && { echo "Nouvel essai dans 10 s…"; sleep 10; }
   done
   echec "$avant" "le contrôle du site échoue (deploy/README.md, lire un échec)."
