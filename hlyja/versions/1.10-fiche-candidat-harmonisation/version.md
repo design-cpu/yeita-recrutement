@@ -7,13 +7,13 @@ branche: version/1.10-fiche-candidat-harmonisation
 base: main
 mode: complexe
 type_version: livrable
-statut: en-cours
+statut: terminee
 date: 2026-10-28
 ---
 
 # Version 1.10 — Fiche du candidat, dépôt de fichiers et harmonisation des étapes
 
-> **Statut** : en cours · **Branche** : `version/1.10-fiche-candidat-harmonisation` (base `main` à `b727ded`)
+> **Statut** : terminée · **Branche** : `version/1.10-fiche-candidat-harmonisation` (base `main` à `b727ded`)
 > Objectif : rendre la branche `feat/fiche-candidat-harmonisation` de Léo fonctionnelle et déployable sur `main` (1.7 à 1.9 comprises), avec ses tests et sa documentation.
 
 ## Objectif
@@ -60,4 +60,5 @@ Description de la branche par Léo (résumée ; texte complet : `Claude outputs/
 ## Liens
 - Cadrage : spec/cadrage.md
 - Spec finale : spec/spec-finale.md
+- Guide de test : qa/guide-test-humain.md
 - Bilan : bilan.md
