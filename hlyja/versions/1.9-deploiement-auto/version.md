@@ -7,13 +7,13 @@ branche: version/1.9-deploiement-auto
 base: main
 mode: complexe
 type_version: livrable
-statut: en-cours
+statut: terminee
 date: 2026-10-28
 ---
 
 # Version 1.9 — Déploiement automatique de main après les tests, avec page d'état et de demande
 
-> **Statut** : en cours · **Branche** : `version/1.9-deploiement-auto`
+> **Statut** : terminée · **Branche** : `version/1.9-deploiement-auto` · spec 86/100 en 2 tours · 8/8 tâches · QA 100 % après corrections
 > Objectif : le serveur déploie seul, toutes les 10 minutes, le dernier commit de `main` dont les tests passent ; un admin suit les passages et demande un déploiement depuis `/admin/deploiement.html`.
 
 ## Objectif
@@ -75,6 +75,7 @@ Décisions de l'utilisateur (2026-10-28) :
 - Base : `main` (la branche `version/1.5-guide-deploiement-ovh`, un commit de doc, reste à part).
 - Déploiement KO pendant un passage : **retour automatique** au commit précédent (`deploy.sh <précédent>`, sans tests), commit noté en échec ; pas de pause.
 - Demande visant un commit de main antérieur à la 1.9 (sans `deploy/auto-deploy.sh`) : **refusée** et enregistrée (« antérieur au déploiement automatique : deploy.sh <hash> en SSH »).
+- Après le tour 1 : demandes depuis la page limitées à la **ligne principale** de `main` (`git rev-list --first-parent`) ; `deploy.sh <hash>` en SSH garde la règle large.
 
 ## Niveau
 Complexe, recommandé et confirmé : nouvelle route d'API en écriture, nouveau parcours admin, script système qui déploie seul en production (sécurité de la frontière application → hôte, retour arrière).
