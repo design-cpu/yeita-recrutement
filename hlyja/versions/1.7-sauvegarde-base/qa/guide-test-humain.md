@@ -1,221 +1,140 @@
 ---
 type: guide-test
 version: 1.7
-date: 2026-10-27
+date: 2026-10-28
 ---
 
-# Tester les sauvegardes sur le vrai serveur
+# Tester les sauvegardes
 
-Partie A : 5 minutes sur le Mac, avant de merger. Partie B : ce que les essais automatiques n'ont pas pu prouver (le vrai stockage OVH, le vrai healthchecks.io, les droits des comptes S3, la clé du coffre, une vraie nuit), à faire une fois le site déployé avec cette version et les sauvegardes installées ; compter 45 minutes, plus un coup d'œil le lendemain matin.
+Suivre les étapes dans l'ordre et cocher. Chaque étape dit quoi lancer, ce que tu dois voir, et quoi faire sinon.
 
-Il te faut :
-- le terminal du Mac, avec `age`, `rclone`, `sqlite3` et le client `aws` (`brew install age rclone sqlite awscli`) ;
-- l'accès SSH au serveur en `deploy` (`ssh deploy@51.75.252.121`) et en `ubuntu` (pour `sudo`) ;
-- le coffre de mots de passe : clé privée age, identifiants S3 « administrateur » et « restauration », nom du bucket ;
-- l'accès à healthchecks.io.
+- **Partie A — sur le Mac, avant le merge** : 10 minutes.
+- **Partie B — sur le serveur, après le merge** : 30 minutes, puis un coup d'œil le lendemain matin.
 
-Dans les commandes, remplace `BUCKET` par le nom du bucket (par exemple `recrutement-sauvegardes`).
+Il te faut : le Terminal du Mac (dans le dossier du dépôt, sur la branche `version/1.7-sauvegarde-base`), Docker Desktop lancé, l'accès SSH au serveur en `deploy` et en `ubuntu`.
 
 ---
 
 # Partie A — sur le Mac, avant le merge
-
-Docker Desktop lancé, dans le dossier du dépôt, sur la branche `version/1.7-sauvegarde-base`.
 
 ## A1. Les tests de l'API passent
 
 - [ ] Lancer :
 
 ```bash
-cd api && npm test 2>&1 | grep -E "^ℹ (tests|fail)"; cd ..
+cd api && npm ci >/dev/null && npm test 2>&1 | grep -E "^ℹ (tests|fail)"; cd ..
 ```
 
-- [ ] Tu dois voir : `ℹ tests 55` puis `ℹ fail 0`.
+- [ ] Tu dois voir : `ℹ tests 58` puis `ℹ fail 0`.
 
-**Sinon** : une ligne `ℹ fail` différente de 0 → copier les lignes `✖` (`cd api && npm test 2>&1 | grep -A8 "✖"`) et me les envoyer.
+**Sinon** : m'envoyer ce qu'affiche `cd api && npm test 2>&1 | grep -A8 "✖"; cd ..`.
 
-## A2. Les scripts de sauvegarde passent leurs 125 vérifications
+## A2. Les scripts de sauvegarde passent leurs vérifications
 
-- [ ] Construire le banc (une fois, ~2 min), puis lancer les vérifications (~3 min) :
+- [ ] Lancer (la première fois ~2 min pour préparer, puis ~2 min de vérifications) :
 
 ```bash
 docker build -q -t banc-sauvegarde - <<'FIN'
 FROM ubuntu:26.04
-RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq docker.io docker-compose-v2 age rclone curl openssl python3 util-linux git iproute2 >/dev/null && useradd -m deploy && install -d -m 700 -o deploy -g deploy /var/backups/recrutement
+RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq docker.io docker-compose-v2 age python3 util-linux git iproute2 curl >/dev/null && useradd -m deploy && install -d -m 700 -o deploy -g deploy /var/backups/recrutement
 FIN
 docker run --rm -v "$PWD:/depot:ro" banc-sauvegarde bash /depot/tools/test-sauvegarde.sh /depot | tail -1
 ```
 
 - [ ] Tu dois voir, en dernière ligne : `TOUT OK`.
 
-**Sinon** : `ÉCHECS : n` → relancer sans `| tail -1` et m'envoyer les lignes qui commencent par `FAIL` (avec les 4 lignes en dessous).
+**Sinon** : `ÉCHECS : n` → relancer la dernière ligne sans `| tail -1` et m'envoyer les lignes qui commencent par `FAIL` (avec les 4 lignes en dessous).
+
+## A3. Voir la page d'état sur le Mac
+
+- [ ] Lancer (la commande ne rend pas la main : c'est normal, le serveur tourne) :
+
+```bash
+python3 tools/build.py _site >/dev/null && d=$(mktemp -d) && DB_PATH=$d/r.sqlite node api/equipe.js add moi@yeita.fr Moi admin >/dev/null && mkdir $d/etat && N=$(date -u +%Y-%m-%dT%H:%M:%SZ) && echo "{\"le\": \"$N\", \"resultat\": \"reussie\", \"fichier\": \"recrutement-essai.db.age\", \"taille\": 32968, \"copies\": 3}" | tee $d/etat/sauvegarde-reussie.json > $d/etat/sauvegarde-derniere.json && echo "{\"le\": \"$N\", \"resultat\": \"normal\", \"racine\": 34, \"docker\": 34, \"seuil\": 80}" > $d/etat/disque.json && echo "Ouvrir http://127.0.0.1:18766/admin/sauvegardes.html" && DB_PATH=$d/r.sqlite DEV_EMAIL=moi@yeita.fr DEV_STATIC=../_site PORT=18766 node api/server.js
+```
+
+- [ ] Ouvrir `http://127.0.0.1:18766/admin/sauvegardes.html` dans le navigateur.
+- [ ] Tu dois voir : un encadré **vert** « Tout va bien : la dernière sauvegarde a réussi et les disques ont de la place. », puis Dernière réussite (aujourd'hui, `recrutement-essai.db.age`, 32 Ko), Dernière tentative « réussie », Copies sur le serveur « 3 », Disques « racine 34 %, Docker 34 % ».
+- [ ] Revenir au Terminal et arrêter avec `Ctrl+C`.
+
+**Sinon** : la page dit « État indisponible ici » → l'adresse n'est pas la bonne : vérifier le port `18766` ; une erreur dans le Terminal → me l'envoyer.
+
+## A4. Tout est bon : la pull request peut être mergée
+
+- [ ] A1, A2 et A3 sont cochés.
 
 ---
 
-# Partie B — sur le serveur, après le déploiement et la mise en service des sauvegardes
+# Partie B — sur le serveur, après le merge
 
+Serveur : `51.75.252.121`. Les commandes « en `deploy` » se lancent après `ssh deploy@51.75.252.121`, celles « en `ubuntu` » après `ssh ubuntu@51.75.252.121`.
 
-## B1. healthchecks.io répond `OK` à nos deux adresses
+## B1. Mettre à jour le site
+
+- [ ] Ouvrir un **nouveau** Terminal, puis :
+
+```bash
+ssh deploy@51.75.252.121
+```
 
 - [ ] Sur le serveur, en `deploy` :
 
 ```bash
-cd /opt/recrutement && for v in HEALTHCHECK_SAUVEGARDE_URL HEALTHCHECK_DISQUE_URL; do u=$(docker compose config --environment | sed -n "s/^$v=//p"); printf '%s : ' "$v"; curl -sS -m 10 -K <(printf 'url = "%s"\n' "$u"); echo; done
+umask 022 && cd /opt/recrutement && deploy/deploy.sh
 ```
 
-- [ ] Tu dois voir : deux lignes qui finissent exactement par `OK` (rien après).
-**Sinon** : `OK (not found)` → l'adresse ne correspond à aucun contrôle : recopier l'adresse de ping depuis healthchecks.io dans `/opt/recrutement/.env`. `OK (rate limited)` → attendre une minute et recommencer. Erreur de connexion → le serveur ne sort pas vers Internet en HTTPS : le dire à l'administrateur du serveur.
+- [ ] Tu dois voir 7 lignes `OK`, puis `Tout est OK sur https://recrutement.yeita.fr`, et en dernier `Déploiement réussi : <commit> sur https://recrutement.yeita.fr`.
 
-## B2. Une sauvegarde à la main passe le contrôle au vert
+**Sinon** : une ligne `ÉCHEC : …` suivie de `Pour revenir à la version précédente : deploy/deploy.sh <commit>` → lancer tout de suite cette commande `deploy/deploy.sh <commit>`, puis m'envoyer la ligne `ÉCHEC`. `ARRÊT : un déploiement est déjà en cours` → attendre 5 minutes et relancer.
 
-- [ ] Attendre une minute après B1, puis, en `deploy` :
+## B2. Installer age sur le serveur
+
+- [ ] Dans un autre Terminal, en `ubuntu` :
 
 ```bash
-cd /opt/recrutement && deploy/backup.sh
+ssh ubuntu@51.75.252.121 'sudo apt install -y age && age --version'
 ```
 
-- [ ] Tu dois voir : la dernière ligne est `Sauvegarde réussie : recrutement-…Z.db.age (… octets), envoyée.` ; sur healthchecks.io, le contrôle « Sauvegarde » est vert, avec le message « Sauvegarde réussie (code 0, … octets chiffrés). ».
-**Sinon** : lire la ligne `ÉCHEC (…)` ou `ARRÊT : …` :
+- [ ] Tu dois voir en dernière ligne un numéro de version, par exemple `1.2.1`.
 
-| Début du message | Que faire |
-|---|---|
-| `… est vide`, `… valeur d'exemple`, `… https://`, `… identiques`, `… clé publique age` | corriger la variable nommée dans `/opt/recrutement/.env` (`nano .env`), relancer |
-| `ÉCHEC (api non saine)` | `docker compose ps api` doit dire `healthy` ; sinon `docker compose logs --tail 50 api` |
-| `ÉCHEC (envoi (rclone))` | `rclone lsd ovh:BUCKET` : une erreur `403` ou `AccessDenied` → revoir la politique du compte « serveur » chez OVH |
-| `… existe déjà : rien n'est écrasé` | deux essais dans la même seconde : relancer |
+**Sinon** : `Could not get lock` → les mises à jour automatiques tournent : attendre 2 minutes et relancer.
 
-## B3. La vérification du disque passe au vert
+## B3. Créer la clé sur le Mac
 
-- [ ] Une minute après B2, en `deploy` :
+- [ ] Sur le Mac (pas sur le serveur) :
 
 ```bash
-cd /opt/recrutement && deploy/verif-disque.sh
+brew install age
+mkdir -p ~/cles-yeita && chmod 700 ~/cles-yeita && age-keygen -o ~/cles-yeita/cle-sauvegarde-recrutement.txt && chmod 600 ~/cles-yeita/cle-sauvegarde-recrutement.txt
 ```
 
-- [ ] Tu dois voir : `Disque racine : N % ; dossier Docker : N % ; seuil : 80 %.` avec des nombres sous 80 ; contrôle « Disque » vert sur healthchecks.io.
-**Sinon** : un nombre au-dessus de 80 → le disque est vraiment presque plein : `df -h` et `docker system df` pour voir ce qui prend la place ; le dire à l'administrateur du serveur.
+- [ ] Tu dois voir : `Public key: age1…` (une longue ligne qui commence par `age1`).
 
-## B4. La copie est bien chez OVH
+**Sinon** : `file exists` → une clé existe déjà : **ne rien écraser**, passer à B4.
 
-- [ ] En `deploy` :
+- [ ] Garder ce fichier : en faire une seconde copie sur une clé USB chiffrée, ou le donner en main propre (AirDrop côte à côte) à une personne de confiance. Jamais par email, Slack, Drive ou sur le serveur.
+
+## B4. Mettre la clé publique sur le serveur
+
+- [ ] Sur le Mac, copier la clé publique :
 
 ```bash
-cd /opt/recrutement && rclone lsl "$(docker compose config --environment | sed -n 's/^RCLONE_DEST=//p')"
+age-keygen -y ~/cles-yeita/cle-sauvegarde-recrutement.txt | pbcopy
 ```
 
-- [ ] Tu dois voir : au moins une ligne `… recrutement-AAAA-MM-JJTHHMMSSZ.db.age` à l'heure de B2.
-**Sinon** : liste vide → `RCLONE_DEST` ne pointe pas où l'envoi a lieu : comparer avec la ligne `RCLONE_DEST` de `.env`.
-
-## B5. Le serveur ne peut pas effacer chez OVH
-
-- [ ] En `deploy`, avec le nom de fichier affiché en B4 :
+- [ ] Sur le serveur, en `deploy` : taper `CLE='`, coller (`Cmd+V`), taper `'`, Entrée. Puis :
 
 ```bash
-cd /opt/recrutement && D=$(docker compose config --environment | sed -n 's/^RCLONE_DEST=//p'); rclone deletefile "$D/recrutement-AAAA-MM-JJTHHMMSSZ.db.age"; echo "code $?"; rclone lsl "$D" | tail -3
+cd /opt/recrutement && sed -i '/^AGE_RECIPIENT=/d' .env && echo "AGE_RECIPIENT=$CLE" >> .env && grep '^AGE_RECIPIENT=' .env
 ```
 
-- [ ] Tu dois voir : une erreur `AccessDenied` (ou `403`), `code 1`, et le fichier toujours listé.
-**Sinon** : le fichier a disparu → **le compte « serveur » a le droit d'effacer** : chez OVH, réimporter sa politique (refus de `s3:DeleteObject`) et vérifier que le bucket a été créé par le compte « administrateur », pas par celui-là. Relancer B2 pour remettre une copie.
+- [ ] Tu dois voir une seule ligne `AGE_RECIPIENT=age1…`, la même clé qu'en B3.
 
-- [ ] Toujours en `deploy`, aucun autre identifiant S3 sur le serveur :
+**Sinon** : `AGE_RECIPIENT=` sans rien après → la variable `CLE` est vide : refaire la ligne `CLE='…'` puis la commande.
 
-```bash
-ls -a ~ ~/.config; ls ~/.aws 2>&1
-```
+## B5. Installer les minuteries
 
-- [ ] Tu dois voir : pas de dossier `.aws` (`No such file or directory`), seulement `rclone` dans `.config`.
-**Sinon** : supprimer `~/.aws` (`rm -r ~/.aws`) : les identifiants « administrateur » ne doivent jamais être sur le serveur.
-
-## B6. Les 30 jours sont réglés chez OVH (depuis le Mac)
-
-- [ ] Sur le Mac, avec les identifiants « administrateur » du coffre (`printf` puis `read` : marche sous zsh) :
-
-```bash
-printf "Clé d'accès (administrateur) : "; read -r AWS_ACCESS_KEY_ID; printf "Secret : "; read -r -s AWS_SECRET_ACCESS_KEY; echo; export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION=gra
-aws s3api get-bucket-lifecycle-configuration --bucket BUCKET --endpoint-url https://s3.gra.io.cloud.ovh.net
-aws s3api get-bucket-versioning --bucket BUCKET --endpoint-url https://s3.gra.io.cloud.ovh.net
-unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
-```
-
-- [ ] Tu dois voir : une règle avec `"Expiration": {"Days": 30}` et `"Status": "Enabled"` ; pour le versionnage, rien (ou pas de `"Status": "Enabled"`).
-**Sinon** : `NoSuchLifecycleConfiguration` → poser la règle :
-
-```bash
-printf '%s' '{"Rules": [{"ID": "expiration-30-jours", "Status": "Enabled", "Filter": {"Prefix": ""}, "Expiration": {"Days": 30}}]}' > /tmp/lifecycle.json
-aws s3api put-bucket-lifecycle-configuration --bucket BUCKET --lifecycle-configuration file:///tmp/lifecycle.json --endpoint-url https://s3.gra.io.cloud.ovh.net && rm /tmp/lifecycle.json
-```
-
-(à lancer avant le `unset`). Versionnage `Enabled` → le dire : les copies effacées resteraient en versions cachées.
-
-## B7. La clé du coffre ouvre la copie, avec le compte « restauration » (depuis le Mac)
-
-- [ ] Sur le Mac, dans un dossier temporaire effacé à la fin :
-
-```bash
-umask 077; d=$(mktemp -d); cd "$d"
-pbpaste > cle.txt; pbcopy </dev/null; age-keygen -y cle.txt
-```
-
-(Avant la seconde ligne : copier la clé privée `AGE-SECRET-KEY-…` depuis le coffre.)
-- [ ] Tu dois voir : la ligne affichée (`age1…`) est **exactement** la valeur `AGE_RECIPIENT` du serveur (`ssh deploy@51.75.252.121 "cd /opt/recrutement && docker compose config --environment | grep AGE_RECIPIENT"`).
-**Sinon** : **arrêter tout** : les copies sont chiffrées pour une autre clé que celle du coffre, donc illisibles. Créer une nouvelle clé sur le Mac : `age-keygen -o nouvelle.key` (la ligne `Public key: age1…` est la clé publique) ; ranger la clé privée (`AGE-SECRET-KEY-…`, dans `nouvelle.key`) et la clé publique au coffre, puis `rm nouvelle.key` ; sur le serveur, en `deploy`, `nano /opt/recrutement/.env` et remplacer la valeur de `AGE_RECIPIENT` par la nouvelle clé publique ; refaire B2 et B7.
-
-- [ ] Toujours dans `$d`, récupérer et ouvrir la copie de B2 :
-
-```bash
-printf "Clé d'accès S3 (restauration) : "; read -r RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID; printf "Secret S3 : "; read -r -s RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY; echo
-export RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY RCLONE_CONFIG_RESTAU_TYPE=s3 RCLONE_CONFIG_RESTAU_PROVIDER=Other RCLONE_CONFIG_RESTAU_ENDPOINT=https://s3.gra.io.cloud.ovh.net RCLONE_CONFIG_RESTAU_REGION=gra
-rclone lsl restau:BUCKET/recrutement
-rclone copy restau:BUCKET/recrutement/recrutement-AAAA-MM-JJTHHMMSSZ.db.age .
-age -d -i cle.txt -o copie.db recrutement-AAAA-MM-JJTHHMMSSZ.db.age
-sqlite3 -readonly copie.db "PRAGMA integrity_check; SELECT count(*) FROM candidats; SELECT count(*) FROM equipe;"
-```
-
-- [ ] Tu dois voir : la liste des copies ; puis `ok`, le nombre de candidatures et le nombre de membres de l'équipe tels que tu les connais.
-**Sinon** : `AccessDenied` sur `lsl` → revoir la politique du compte « restauration » chez OVH (lecture du bucket) ; `no identity matched` sur `age` → la clé n'est pas la bonne (point précédent).
-
-- [ ] Le compte « restauration » ne peut ni déposer ni effacer :
-
-```bash
-echo essai > essai.txt; rclone copyto essai.txt restau:BUCKET/recrutement/essai.txt; echo "copie : code $?"
-rclone deletefile restau:BUCKET/recrutement/recrutement-AAAA-MM-JJTHHMMSSZ.db.age; echo "effacement : code $?"
-```
-
-- [ ] Tu dois voir : deux erreurs `AccessDenied` (ou `403`), `code 1` les deux fois.
-**Sinon** : chez OVH, réimporter la politique « lecture seule » du compte « restauration » ; si `essai.txt` a été déposé, le retirer avec le compte « administrateur ».
-
-- [ ] Tout effacer du Mac :
-
-```bash
-cd / && rm -rf "$d"; pbcopy </dev/null; unset RCLONE_CONFIG_RESTAU_ACCESS_KEY_ID RCLONE_CONFIG_RESTAU_SECRET_ACCESS_KEY
-```
-
-- [ ] Tu dois voir : aucune sortie.
-
-## B8. Une alerte arrive vraiment
-
-- [ ] En `deploy`, signaler un faux échec :
-
-```bash
-cd /opt/recrutement && u=$(docker compose config --environment | sed -n 's/^HEALTHCHECK_SAUVEGARDE_URL=//p'); curl -sS -m 10 -K <(printf 'url = "%s/fail"\n' "$u") --data-binary "Essai d'alerte (guide de test)"; echo
-```
-
-- [ ] Tu dois voir : `OK` ; le contrôle « Sauvegarde » passe au rouge et un email d'alerte arrive dans les minutes qui suivent.
-**Sinon** : pas d'email → dans healthchecks.io, vérifier l'intégration email du contrôle et l'adresse de l'équipe.
-
-- [ ] Une minute après, remettre au vert par une vraie sauvegarde : `deploy/backup.sh`.
-- [ ] Tu dois voir : `Sauvegarde réussie …`, contrôle vert, email « revenu ».
-
-## B9. Les deux minuteries sont en place
-
-- [ ] Sur le serveur (n'importe quel compte) :
-
-```bash
-systemctl list-timers 'recrutement-*' --no-pager
-```
-
-- [ ] Tu dois voir : deux lignes, `recrutement-backup.timer` avec un prochain passage entre 3 h et 3 h 15, `recrutement-verif-disque.timer` à la prochaine heure pleine.
-**Sinon** : moins de deux lignes → en `ubuntu`, installer les unités (une unité déjà présente et différente n'est jamais écrasée : la commande affiche la différence et s'arrête) :
+- [ ] En `ubuntu` (sur le serveur) :
 
 ```bash
 cd /opt/recrutement && sudo bash -c 'set -e
@@ -228,19 +147,71 @@ systemctl daemon-reload
 systemctl enable --now recrutement-backup.timer recrutement-verif-disque.timer' && systemctl list-timers 'recrutement-*' --no-pager
 ```
 
-Une ligne `DIFFÉRENTE` → me l'envoyer avec la différence affichée.
+- [ ] Tu dois voir 4 lignes `copiée : …`, puis un tableau avec `recrutement-backup.timer` (prochain passage vers 3 h) et `recrutement-verif-disque.timer` (prochaine heure pleine).
+
+**Sinon** : une ligne `DIFFÉRENTE` → m'envoyer la différence affichée.
+
+## B6. Te donner le rôle admin
+
+- [ ] En `deploy`, avec ton adresse :
+
+```bash
+cd /opt/recrutement && docker compose exec api node api/equipe.js role prenom.nom@yeita.fr admin
+```
+
+- [ ] Tu dois voir : `Rôle changé : prenom.nom@yeita.fr · <ton prénom> · admin · actif`.
+
+**Sinon** : `Membre inconnu` → t'ajouter d'abord : `docker compose exec api node api/equipe.js add prenom.nom@yeita.fr Prénom admin`.
+
+## B7. Première sauvegarde
+
+- [ ] En `deploy` :
+
+```bash
+cd /opt/recrutement && deploy/backup.sh && deploy/verif-disque.sh
+```
+
+- [ ] Tu dois voir : `Sauvegarde réussie : recrutement-…Z.db.age (… octets) ; 1 copies sur le serveur.`, puis `Disque racine : … % ; dossier Docker : … % ; seuil : 80 %.`.
+
+**Sinon** :
+
+| Message | Que faire |
+|---|---|
+| `AGE_RECIPIENT …` | refaire B4 |
+| `« age » est absent` | refaire B2 |
+| `ÉCHEC (api non saine)` | `docker compose ps api` doit dire `healthy` ; sinon m'envoyer `docker compose logs --tail 30 api` |
+| `disque presque plein` | `df -h` et me l'envoyer |
+| autre | me l'envoyer |
+
+## B8. La page d'état est verte
+
+- [ ] Dans le navigateur, connecté avec ton compte Google @yeita.fr : `https://recrutement.yeita.fr/admin/sauvegardes.html`.
+- [ ] Tu dois voir l'encadré **vert** « Tout va bien… », la dernière réussite à l'heure de B7, « Copies sur le serveur » à 1, et l'occupation des disques.
+
+**Sinon** : « Réservé aux admins de l'équipe. » → refaire B6 puis recharger ; encadré rouge → lire les motifs affichés et me les envoyer.
+
+- [ ] Si un collègue recruteur (non admin) est disponible : il ouvre la même adresse et doit voir « Réservé aux admins de l'équipe. » et aucune autre information.
+
+## B9. La clé ouvre bien les sauvegardes
+
+- [ ] Sur le Mac :
+
+```bash
+d=$(mktemp -d); F=$(ssh deploy@51.75.252.121 'ls -t /var/backups/recrutement/*.db.age | head -n 1'); echo "$F"
+scp "deploy@51.75.252.121:$F" "$d/copie.db.age" && age -d -i ~/cles-yeita/cle-sauvegarde-recrutement.txt -o "$d/copie.db" "$d/copie.db.age" && sqlite3 -readonly "$d/copie.db" "PRAGMA integrity_check; SELECT count(*) FROM candidats;"
+rm -rf "$d"
+```
+
+- [ ] Tu dois voir : le nom de la copie de B7, puis `ok`, puis le nombre de candidatures que tu connais.
+
+**Sinon** : `no identity matched any of the recipients` → la clé du serveur n'est pas celle du Mac : refaire B4, puis B7, puis B9.
 
 ## B10. Le lendemain matin : la sauvegarde de la nuit
 
-- [ ] En `ubuntu` :
+- [ ] Ouvrir `https://recrutement.yeita.fr/admin/sauvegardes.html`.
+- [ ] Tu dois voir l'encadré **vert**, et « Dernière réussite » cette nuit entre 3 h et 3 h 15 (heure de Paris), « Copies sur le serveur » à 2.
 
-```bash
-sudo journalctl -u recrutement-backup --since "today 02:00" --no-pager | tail -15
-sudo grep -c hc-ping /var/log/syslog 2>/dev/null; sudo journalctl -u recrutement-backup --no-pager | grep -c hc-ping
-```
-
-- [ ] Tu dois voir : un passage entre 3 h et 3 h 15, qui finit par `Sauvegarde réussie : …` et `Deactivated successfully` ; les deux compteurs à `0` (l'adresse de ping n'apparaît jamais dans les journaux) ; contrôle « Sauvegarde » vert, dernier ping de la nuit.
-**Sinon** : aucune ligne → la minuterie n'a pas tourné : `systemctl status recrutement-backup.timer` ; une ligne `ÉCHEC` → tableau de B2 ; un compteur au-dessus de 0 → le signaler : l'adresse de ping ne doit jamais être écrite dans un journal.
+**Sinon** : en `ubuntu`, lancer `sudo journalctl -u recrutement-backup --since "today 02:00" --no-pager | tail -15` et m'envoyer le résultat.
 
 ---
 
