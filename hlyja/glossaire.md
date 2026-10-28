@@ -1,6 +1,6 @@
 ---
 type: glossaire
-maj: 1.7
+maj: 1.9
 ---
 
 # Glossaire
@@ -34,6 +34,10 @@ Aussi : cas A, cas B.
 La clé secrète qui ouvre les sauvegardes. Elle n'est jamais sur le serveur : c'est un fichier `.txt` gardé sur un Mac et confié en main propre à une ou deux personnes de confiance (en attendant un coffre de mots de passe). La perdre rend toutes les sauvegardes illisibles.
 Aussi : clé privée age.
 
+## Commit en ligne incertain
+Le serveur ne sait plus avec certitude quelle version tourne, parce qu'une mise en ligne a été arrêtée ou qu'un retour a raté. La page l'affiche en rouge ; le passage suivant remet le dernier commit de main en ligne, sauf s'il a échoué.
+Aussi : incertain.
+
 ## Conflit d'écriture
 Ce qui arrive quand deux personnes modifient le même dossier en même temps. Chaque dossier porte un numéro de version : un enregistrement fait à partir d'une version dépassée est refusé, et la personne doit recharger la page au lieu d'écraser le travail de l'autre. Cette méthode s'appelle la « version optimiste ».
 Aussi : conflit, conflits, version optimiste.
@@ -41,6 +45,10 @@ Aussi : conflit, conflits, version optimiste.
 ## Conteneur
 Un programme qui tourne isolé du reste du serveur, avec tout ce dont il a besoin. On le démarre à partir d'une image Docker, on peut l'arrêter et le recréer sans rien casser autour.
 Aussi : conteneurs.
+
+## Demande de déploiement
+Ce qu'un admin dépose depuis la page des déploiements : mettre en ligne le dernier commit de main, un commit précis, ou reprendre l'automatisme. La page ne lance rien elle-même ; le serveur vérifie la demande puis agit.
+Aussi : demande.
 
 ## Docker Compose
 L'outil qui décrit et lance ensemble les conteneurs d'un projet, à partir d'un seul fichier (`compose.yaml`). Une commande démarre tout, une autre arrête tout.
@@ -65,6 +73,9 @@ Aussi : image, image front.
 ## Journal
 La liste, tenue par l'API, de qui a créé, modifié ou supprimé quel dossier, quand, et à quelle étape. Il ne contient jamais le contenu des dossiers. À ne pas confondre avec le journal du serveur, qui note les demandes reçues.
 Aussi : journal des actions.
+
+## Ligne principale de main
+Les commits qui ont été, à un moment, le dernier commit de main : en pratique, les merges des pull requests. Les commits intermédiaires d'une branche n'en font pas partie et ne peuvent pas être demandés depuis la page.
 
 ## Menu ⋯
 Le bouton à trois points sur chaque candidat (carte du tableau, ligne de la liste, en-tête de son parcours). Il ouvre la fiche du candidat, son historique, copie le lien de sa candidature, ou la supprime après confirmation. Chacun s'ouvre dans une fenêtre, sans quitter la page.
@@ -108,6 +119,14 @@ Aussi : suggéré.
 Le panneau qui s'ouvre à droite avec le bouton « Notes », à tout moment, sans perdre l'endroit où on était dans la page. On y écrit en vrac pendant l'entretien, une note par étape ; rien ne part chez le candidat. Les notes des autres étapes s'y relisent.
 Aussi : Notes, notes libres.
 
+## Passage
+Un tour du déploiement automatique : le serveur regarde s'il a quelque chose à faire (une demande, un nouveau commit de main), teste le commit, le met en ligne ou explique pourquoi il ne l'a pas fait. Seuls les passages qui font quelque chose sont gardés, les 30 derniers.
+Aussi : passages.
+
+## Pause
+L'état où le déploiement automatique ne met plus les nouveaux commits de main en ligne. Elle arrive quand quelqu'un met en ligne un autre commit que le dernier de main (un retour en arrière) ; seul « Reprendre » sur la page des déploiements la retire.
+Aussi : en pause.
+
 ## Profil Compose
 Un interrupteur dans Docker Compose qui active des conteneurs optionnels. Le profil `caddy` allume le Caddy du projet (cas B) ; laissé vide, seul le site tourne (cas A).
 Aussi : profil caddy, COMPOSE_PROFILES.
@@ -122,6 +141,9 @@ Aussi : réseau back.
 
 ## Restauration
 Remettre la base des candidatures dans l'état d'une sauvegarde, après une panne ou une erreur. Ce qui a été saisi depuis la date de la copie est perdu, et les suppressions faites depuis sont à refaire.
+
+## Retour automatique
+Quand une mise en ligne rate après avoir changé de version, le serveur remet tout seul la version d'avant en ligne. S'il n'y arrive pas, la page affiche une alerte rouge avec la commande à lancer.
 
 ## Sauvegarde
 La copie de la base des candidatures faite chaque nuit, vérifiée puis chiffrée : sans la clé de sauvegarde, personne ne peut la lire. Elle est gardée 30 jours sur le serveur ; son état se lit sur la page d'état des sauvegardes.
