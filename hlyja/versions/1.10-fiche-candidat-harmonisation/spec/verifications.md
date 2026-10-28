@@ -1,14 +1,14 @@
 ---
 type: verifications
 version: 1.10
-total: 19
+total: 20
 ecarts: 7
 date: 2026-10-28
 ---
 
 # Vérifications — Fiche du candidat, dépôt de fichiers et harmonisation des étapes
 
-> 19 vérifications (V18, V19 ajoutées au tour 1) sur la branche rejouée (`7533be6`, puis `69ec434`) et sur `main` (`b727ded`).
+> 20 vérifications (V18, V19 ajoutées au tour 1, V20 au tour 2) sur la branche rejouée (`7533be6`, puis `69ec434`) et sur `main` (`b727ded`).
 > 7 écarts avec la description de la branche : retour arrière vers la 1.9 refusé (V4), nginx de production à 1 Mo (V9, V11), 413 de nginx affiché comme une panne réseau (V13), doublon de candidat et fichier orphelin reproduits dans le navigateur (V14), description périmée (V15), un contrôle e2e instable (V3).
 
 | # | Ce qu'on vérifie | Comment (commande, essai) | Résultat | Conséquence pour la spec |
@@ -32,6 +32,7 @@ date: 2026-10-28
 | V17 | Clés étrangères actives | `new Database(...).pragma("foreign_keys")` (better-sqlite3 13.0.3) | `1` | La suppression d'un candidat par le code de la 1.9 entraîne ses fichiers (`ON DELETE CASCADE`) : à prouver par test une fois R1 appliquée (R2) |
 | V18 | Caddy (cas B) et la taille des corps | banc Docker : `caddy:2.11.7` (`reverse_proxy` vers le compteur d'octets) | 10 485 760 et 10 485 769 o reçus en entier (200) : aucune limite | R13 (O7) |
 | V19 | Pages de la 1.9 devant une ligne `type: "fichier"` | `git show main:candidatures/menu-candidat.js` (`histHTML` l. 52-60) ; `git show main:assets/store.js` l. 240-246 (`undoLast`) | toute ligne autre que `etat` est lue comme un passage : `histHTML` affiche « <étape vide> → <étape vide> » ; `undoLast` prend la ligne pour le dernier passage et refuse (« ne correspond plus à l'étape en cours ») | R2 : dégradation décrite (O1) |
+| V20 | Les pages et l'API de la 1.9 gardent la référence d'un fichier | Playwright contre l'API et les pages de `main` (worktree `b727ded`), base avec la table `fichiers` et un dossier qui référence `fic-…01` plus une ligne `type: "fichier"` ; saisie du téléphone dans la fiche, enregistrement ; historique ouvert | téléphone enregistré, **`identite.fichiers` gardé** (même `id`), version 6 ; historique : « 1 janvier à 00:00 undefined → undefined, Alice », aucune erreur de script | R2 confirmée : rien n'est perdu ; l'affichage dégradé est celui que R2 décrit (T11) |
 
 ## Détail
 V4 :
