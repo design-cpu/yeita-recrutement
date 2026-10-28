@@ -7,13 +7,13 @@ branche: version/1.8-deploy-umask
 base: main
 mode: standard
 type_version: livrable
-statut: en-cours
+statut: terminee
 date: 2026-10-28
 ---
 
 # Version 1.8 — deploy.sh fixe lui-même le masque des fichiers qu'il écrit
 
-> **Statut** : en cours · **Branche** : `version/1.8-deploy-umask`
+> **Statut** : terminée · **Branche** : `version/1.8-deploy-umask`
 > Objectif : un `deploy/deploy.sh` lancé depuis un shell à `umask 077` produit quand même des images que l'API et le site peuvent lire (fiche 1.7-1).
 
 ## Objectif
