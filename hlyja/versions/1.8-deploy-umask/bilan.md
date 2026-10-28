@@ -65,3 +65,6 @@ Aucune.
 | R4 (numéros de ligne) | [Mise à jour en production](../../technique/mise-a-jour-production.md), [Déploiement OVH](../../technique/deploiement-ovh.md) |
 | R5 et son exception | [Mise à jour en production](../../technique/mise-a-jour-production.md), `deploy/METTRE-A-JOUR.md` § 4 |
 Aucune règle métier : pas de doc produit concernée.
+
+## Étonnements
+2 apprentissages retenus (`etonnements/1.8-deploy-umask.md`). Règle récurrente signalée par le validateur : comme en 1.4, la spec v1 ne décrivait que le chemin normal d'un comportement qui dépend d'un état inconnu à l'écriture (ici, la version du script présente sur le disque) ; le skill gagnerait une section « Commandes × états » obligatoire dans le template de spec.
