@@ -23,6 +23,8 @@ function lienCourt(u){ try{ var x = new URL(u); return (x.hostname.replace(/^www
 
 /* Un champ CV ou Portfolio. ctx : "page" (bloc de l'appel) ou "modal" ; p : préfixe des identifiants. */
 function docHTML(c, champ, ro, p, ctx){
+  /* Spec 1.10 : un lecteur ouvre les documents, sans aucune action (l'API refuse de toute façon). */
+  if(window.QUI && QUI.lectureSeule && QUI.lectureSeule()) ro = true;
   var i = c.identite, f = (i.fichiers || {})[champ], lien = String(i[champ] || "").trim(), att = ctx === "modal" && mode === "creation" ? attente[champ] : null;
   var label = t("ajout." + champ), id = p.id + champ, d = depot(), h;
   if(f || att){

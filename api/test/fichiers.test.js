@@ -196,3 +196,46 @@ test("R6 : un fichier encore cité par le dossier enregistré ne se retire pas (
   assert.equal((await enregistrer(app, await lire(app), {})).statusCode, 200);
   for (const f of [cv, pf]) assert.equal((await requete(app, "rec@yeita.fr", { method: "DELETE", url: `/api/candidats/${ID}/fichiers/${f.id}` })).statusCode, 204);
 });
+
+/* ---- QA 1.10 : contrôles ajoutés par la QA de version ---- */
+test("QA R10 (CA10) : le repère d'un CV disparaît des fichiers bruts dès son retrait, puis à la suppression d'un candidat dont le CV est référencé", async t => {
+  const { app, dbPath } = await avecCandidat(t);
+  const marque = n => Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.from(`QA-REPERE-${n} `.repeat(50))]);
+  const a = json(await envoyer(app, marque("RETRAIT")));
+  assert.ok(fichiersContiennent(dbPath, "QA-REPERE-RETRAIT").length > 0, "le repère est bien écrit avant le retrait");
+  /* Retrait seul (dossier jamais enregistré avec lui) : aucune autre écriture après. */
+  assert.equal((await requete(app, "rec@yeita.fr", { method: "DELETE", url: `/api/candidats/${ID}/fichiers/${a.id}` })).statusCode, 204);
+  assert.deepEqual(fichiersContiennent(dbPath, "QA-REPERE-RETRAIT"), []);
+  /* Suppression d'un candidat dont le dossier référence le CV. */
+  const b = json(await envoyer(app, marque("SUPPRESSION")));
+  assert.equal((await enregistrer(app, await lire(app), { cv: ref(b) })).statusCode, 200);
+  assert.ok(fichiersContiennent(dbPath, "QA-REPERE-SUPPRESSION").length > 0);
+  assert.equal((await requete(app, "rec@yeita.fr", { method: "DELETE", url: `/api/candidats/${ID}` })).statusCode, 204);
+  assert.deepEqual(fichiersContiennent(dbPath, "QA-REPERE-SUPPRESSION"), []);
+});
+
+test("QA R6 (deux recruteurs) : B retire un CV que le dossier enregistré par A cite → 409 fichier-cite, dossier intact (version, données), CV lisible, y compris par une adresse encodée", async t => {
+  const { app } = await avecCandidat(t);
+  const cv = json(await envoyer(app, PDF));
+  assert.equal((await enregistrer(app, await lire(app), { cv: ref(cv) })).statusCode, 200);
+  const avant = await lire(app);
+  for (const url of [`/api/candidats/${ID}/fichiers/${cv.id}`, `/api/candidats/${ID}/%66ichiers/${cv.id}`]) {
+    const r = await requete(app, "adm@yeita.fr", { method: "DELETE", url });
+    assert.equal(r.statusCode, 409, url);
+    assert.equal(json(r).code, "fichier-cite");
+  }
+  assert.deepEqual(await lire(app), avant);
+  const g = await requete(app, "adm@yeita.fr", { method: "GET", url: `/api/candidats/${ID}/fichiers/${cv.id}` });
+  assert.equal(g.statusCode, 200);
+  assert.ok(g.rawPayload.equals(PDF));
+});
+
+test("QA CA9 : rôle lecture par une adresse encodée (%66ichiers) : GET et HEAD 200, DELETE 403, fichier intact", async t => {
+  const { app } = await avecCandidat(t);
+  const m = json(await envoyer(app, PDF));
+  const enc = `/api/candidats/${ID}/%66ichiers/${m.id}`;
+  assert.equal((await requete(app, "lec@yeita.fr", { method: "GET", url: enc })).statusCode, 200);
+  assert.equal((await requete(app, "lec@yeita.fr", { method: "HEAD", url: enc })).statusCode, 200);
+  assert.equal((await requete(app, "lec@yeita.fr", { method: "DELETE", url: enc })).statusCode, 403);
+  assert.equal((await requete(app, "lec@yeita.fr", { method: "GET", url: `/api/candidats/${ID}/fichiers/${m.id}` })).statusCode, 200);
+});
