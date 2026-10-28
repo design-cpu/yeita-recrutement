@@ -9,7 +9,7 @@ export const RETARD_SAUVEGARDE_MS = 26 * 3600 * 1000;
 export const RETARD_DISQUE_MS = 2 * 3600 * 1000;
 
 /* Contenu d'un fichier d'état : null s'il est absent ; {illisible: true} s'il n'est pas un objet JSON. */
-function lire(fichier) {
+export function lire(fichier) {
   let texte;
   try { texte = fs.readFileSync(fichier, "utf8"); } catch (e) { if (e.code === "ENOENT") return null; return { illisible: true }; }
   try {
