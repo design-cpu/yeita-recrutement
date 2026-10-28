@@ -110,7 +110,7 @@ echo "Ouvrir http://127.0.0.1:18769/admin/deploiement.html" && DB_PATH="$p/r.sql
   - en dessous : Commit en ligne, Dernier commit de main, Automatisme « actif », Dernier commit en échec, Dernière vérification (maintenant) ;
   - les boutons « Déployer maintenant » et « Actualiser » (pas de « Reprendre ») ;
   - sous « Passages », le premier ouvert : « Tests en échec : pas mis en ligne », avec l'étape « Tests de l'API : en échec » ouverte et sa sortie ; le second replié : « Mis en ligne ».
-- [ ] Au clavier seulement : appuyer sur `Tab` jusqu'au passage « Mis en ligne » (un contour noir l'entoure), puis `Entrée` : il s'ouvre et montre ses quatre étapes et le bouton « Déployer ce commit ». `Entrée` encore : il se referme.
+- [ ] Au clavier seulement (sur Safari : `Option`+`Tab` au lieu de `Tab`) : appuyer plusieurs fois sur `Tab` (il passe par « Déployer maintenant », « Actualiser », le premier passage et ses étapes) jusqu'au deuxième passage, « Mis en ligne » (un contour noir l'entoure), puis `Entrée` : il s'ouvre et montre ses quatre étapes, toutes « réussie ». Pas de bouton « Déployer ce commit » : ce passage est celui du commit déjà en ligne. `Entrée` encore : il se referme.
 - [ ] Cliquer « Déployer maintenant ». Une fenêtre de confirmation dit « Le dernier commit de main (…) sera testé puis mis en ligne. » puis « Il a échoué la dernière fois. ». Cliquer **OK**.
 - [ ] Tu dois voir : « Demande envoyée : le serveur la prend en charge dans quelques secondes. », et en haut un bandeau « Demande en attente : déployer le dernier commit de main par moi@yeita.fr à <heure>. ». Sur le Mac, personne ne prend la demande : elle reste en attente, c'est normal.
 - [ ] Revenir au Terminal et arrêter avec `Ctrl+C`.
