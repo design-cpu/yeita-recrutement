@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Contrôle d'un site déployé : pages publiques servies, pages protégées renvoyées vers Google, API protégée.
+# Contrôle d'un site déployé : pages publiques servies, pages protégées renvoyées vers Google (dont /admin/), API protégée.
 # Usage : tools/check-site.sh BASE_URL   (ex. https://recrutement.yeita.fr, https://localhost, http://127.0.0.1:4180)
 # Sortie : une ligne OK/FAIL par contrôle ; code 0 si tout passe, 1 si un contrôle échoue, 2 si l'appel est mal formé.
 set -u
@@ -40,6 +40,7 @@ controle /one-pager.html 200
 controle /index.html 200
 controle /candidatures/ 302 "$GOOGLE"
 controle /assets/data-diamants.js 302 "$GOOGLE"
+controle /admin/sauvegardes.html 302 "$GOOGLE"   # v1.7 : page d'état des sauvegardes, jamais publique
 controle /ping 200
 controle /api/moi 401   # sans session, oauth2-proxy refuse la route d'API (api_routes) sans renvoyer vers Google
 

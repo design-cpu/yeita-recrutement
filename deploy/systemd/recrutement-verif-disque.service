@@ -4,8 +4,7 @@
 Description=Vérification de l'occupation des disques (recrutement)
 # Après Docker s'il démarre, sans jamais le démarrer : un Docker arrêté pour une maintenance du serveur partagé
 # n'est pas relancé par une sauvegarde ou une vérification (qui échoue alors et le signale).
-Wants=network-online.target
-After=docker.service network-online.target
+After=docker.service
 
 [Service]
 Type=oneshot
