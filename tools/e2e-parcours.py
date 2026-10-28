@@ -275,6 +275,8 @@ async def main():
             cols[w] = await pg.evaluate("getComputedStyle(document.querySelector('dialog .igrid')).gridTemplateColumns.split(' ').length")
         await pg.set_viewport_size({"width": 1440, "height": 900}); await pg.keyboard.press("Escape"); await pg.wait_for_timeout(150)
         check("1.10 R17 : grille de la fiche du candidat en 3 colonnes, puis 2, puis 1", cols == {1440: 3, 700: 2, 390: 1}, str(cols))
+        await pg.goto(C + "carte.html?id=" + hugo, wait_until="networkidle"); await pg.wait_for_timeout(200)
+        check("1.10 : en-tête de la carte d'identité en ligne (style partagé intact après le retrait de « Liens et outils »)", await pg.evaluate("getComputedStyle(document.querySelector('.carte-h')).display") == "flex")
 
         # 9. Téléphone
         m = await b.new_context(viewport={"width": 390, "height": 844}, color_scheme="dark")

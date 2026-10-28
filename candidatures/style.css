@@ -370,7 +370,7 @@ body.np-on .np-toggle{right:min(420px, 100vw)}
 .ym-fmt{border:0; padding:0; margin:0 0 14px}
 .ym-fmt legend{font-weight:650; font-size:15px; margin-bottom:8px; padding:0}
 #sheet .sec-aide{display:flex; justify-content:flex-end; align-items:center; gap:6px; font-size:13.5px; color:var(--muted); margin-bottom:-4px}
-details.carte-h{display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; justify-content:space-between}
+.carte-h{display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; justify-content:space-between}
 .carte-h h1{margin:0}
 
 /* Récap de la carte (Bilans, EC3, Décision) */
