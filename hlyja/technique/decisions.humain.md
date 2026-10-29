@@ -3,16 +3,16 @@ type: technique
 vue: humaine
 page: decisions
 titre: Décisions techniques
-maj: 1.9
-commit: 5e41a2d
-sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md, deploy/commun.sh, deploy/verif-disque.sh, deploy/auto-deploy.sh, api/src/deploiement.js, deploy/systemd/recrutement-deploy.path
+maj: 1.10
+commit: 08ae3e2
+sources: assets/demarrage.js, assets/adapter-serveur.js, candidatures/index.html, docker/api.Dockerfile, api/src/app.js, api/src/base.js, api/src/candidats.js, api/src/config.js, api/package-lock.json, docs/backend/MODELE.md, assets/dossier.js, CONTRIBUER.md, docker/front.Dockerfile, compose.yaml, deploy/oauth2-proxy.cfg, deploy/deploy.sh, api/sauvegarde.js, deploy/backup.sh, deploy/RESTAURER.md, deploy/README.md, deploy/commun.sh, deploy/verif-disque.sh, deploy/auto-deploy.sh, api/src/deploiement.js, deploy/systemd/recrutement-deploy.path, api/src/fichiers.js, api/src/valeurs.js
 date: 2026-10-28
 ---
 
 
 # Décisions techniques
 
-> Les grands choix du dépôt et ce qu'ils écartent. En v1.1, le site est hébergé chez Yeita derrière une connexion Google. En v1.2, une API garde les dossiers dans SQLite. En v1.3, les pages l'utilisent. En v1.7, la base est sauvegardée chaque nuit, chiffrée, sur le serveur, et une page d'état remplace les alertes. En v1.9, le serveur met lui-même `main` en ligne après les tests ; l'application ne peut que le lui demander.
+> Les grands choix du dépôt et ce qu'ils écartent. En v1.1, le site est hébergé chez Yeita derrière une connexion Google. En v1.2, une API garde les dossiers dans SQLite ; en v1.3, les pages l'utilisent. En v1.7, la base est sauvegardée chaque nuit, chiffrée, sur le serveur. En v1.9, le serveur met lui-même `main` en ligne après les tests. En v1.10, les CV et portfolios entrent dans la même base, sans casser le retour arrière.
 
 ## En un coup d'œil
 
@@ -44,73 +44,58 @@ date: 2026-10-28
 | Frontière application → serveur | La page dépose une demande ; le serveur décide sur ses propres fichiers | v1.9 |
 | Commits admis depuis la page | Seulement la ligne principale de main, depuis la v1.9 | v1.9 |
 | Retour automatique et pause | Revenir seul au commit d'avant ; un retour voulu n'est pas défait | v1.9 |
+| Fichiers des candidats dans SQLite | CV et portfolios dans la base, avec le dossier | v1.10 |
+| Ajout de table sans changer la version de la base | La v1.9 relit toujours la base : le retour arrière marche | v1.10 |
 
-Les décisions de v1.0 à v1.3 sont expliquées dans la version complète. Voici celles de v1.7, puis celles de v1.9.
+Les décisions de v1.0 à v1.3 sont expliquées dans la version complète. Voici celles de v1.10, puis de v1.9 et de v1.7.
 
-## Copier sans retarder l'effacement
+## Les CV et portfolios dans la base (v1.10)
 
-Une lecture longue de la base, par un autre outil, empêche l'API de nettoyer ses fichiers : un dossier supprimé y resterait lisible plus longtemps. La copie utilise donc la fonction de sauvegarde de SQLite, dans le conteneur, et ne garde la base ouverte que le temps de la copie.
+Depuis la v1.10, on peut déposer un CV ou un portfolio dans la fiche du candidat. Ces fichiers sont des données personnelles : ils doivent avoir le même accès, la même durée et le même effacement que le dossier.
 
-La copie est vérifiée avant de recevoir son nom définitif, et tient en un seul fichier. Copier les fichiers à chaud ou passer par l'outil `sqlite3` est écarté.
+Ils vont donc dans la base existante, dans une table à eux, servis sous l'adresse du candidat. Aucune bibliothèque n'a été ajoutée. La limite est de 10 Mo, et seuls les PDF, PNG et JPG passent, reconnus à leur contenu (validé par Léo).
 
-## Chiffrer pour une seule clé
-
-Les copies contiennent les dossiers candidat. Elles sont chiffrées avec age pour une seule clé publique, posée sur le serveur. La clé secrète est créée sur un Mac et n'existe que sous forme d'un fichier `.txt`, confié en main propre à une ou deux personnes, en attendant un coffre de mots de passe.
-
-> Perdre ce fichier rend toutes les copies illisibles. Après la première sauvegarde, on vérifie qu'il ouvre bien une vraie copie.
-
-Une clé SSH, que age accepterait aussi, est refusée par le script : une seule forme de clé, plus simple à contrôler.
-
-## Garder les copies sur le serveur
-
-La première spec envoyait les copies chez OVH Object Storage. Ce service est payant, et aucun stockage gratuit n'a été retenu. Pour cette version, les copies chiffrées restent donc 30 jours sur le serveur, dans `/var/backups/recrutement`.
-
-| Ce que ça permet | Ce que ça ne permet pas |
+| Écarté | Pourquoi |
 |---|---|
-| Revenir en arrière après une erreur, une base abîmée, un volume Docker perdu | Survivre à la perte du serveur : les copies partent avec lui |
+| Un dossier de fichiers sur un volume | hors de la base : accès, sauvegarde et effacement réel à refaire à part |
+| Les fichiers dans le dossier lui-même | le dossier est limité à 1 Mo, et chaque enregistrement renverrait les fichiers |
+| Une bibliothèque d'envoi de fichiers | une dépendance de plus ; le serveur sait déjà lire un fichier brut |
+| Laisser les fichiers oubliés jusqu'à la suppression du candidat | un fichier que plus rien ne cite resterait gardé jusque-là |
 
-Choix accepté par l'utilisateur. Un dossier supprimé reste au plus 3 jours dans la copie de travail et 31 jours dans les copies chiffrées.
+Deux règles, décidées par l'utilisateur, tiennent fichiers et fiche d'accord : un dossier enregistré ne cite jamais un fichier absent, et un fichier que plus rien ne cite est effacé passé une heure.
 
-## Une page plutôt que des alertes
+> Chaque sauvegarde contient désormais les fichiers. Mesure : 60 fichiers (116 Mo) donnent une copie de 117 Mo, gardée en 33 exemplaires. Et le nginx du serveur doit accepter 10 Mo par envoi.
 
-Pour savoir si les sauvegardes tournent sans dépendre d'un service tiers, les scripts écrivent leur résultat dans le volume de l'API. Une route réservée aux admins le lit, et la page `/admin/sauvegardes.html` l'affiche : vert, ou rouge avec la raison en clair.
+## Ajouter une table sans casser le retour arrière (v1.10)
 
-```mermaid
-flowchart LR
-  A[Scripts de la nuit et de l'heure] --> B[État dans le volume]
-  B --> C[Route admin]
-  C --> D[Page verte ou rouge]
-```
-
-Écartés : healthchecks.io (retiré avec la reprise), un lien depuis Candidatures (refusé), le nom `/dashboard/` (remplacé par `/admin/`, réservé au futur tableau de bord).
-
-> Aucune alerte n'est envoyée : si personne n'ouvre la page, personne ne voit une panne. Les emails viendront dans une évolution ultérieure.
-
-## Restaurer sans risque
-
-Une restauration ratée ne doit pas détruire la base, et la copie en clair ne doit jamais toucher le disque du serveur.
+La base porte un numéro de version. L'API d'une version refuse une base plus récente que la sienne. La branche d'origine passait ce numéro à 2 : l'API de la v1.9 n'aurait plus pu ouvrir la base. Le retour automatique et « Déployer ce commit » vers la v1.9 étaient cassés (vérifié).
 
 ```mermaid
 flowchart LR
-  A[Copie déchiffrée sur un Mac] --> B[Envoyée par SSH dans le volume]
-  B --> C{Empreinte et contrôle bons ?}
-  C -- oui --> D[Base remplacée]
-  C -- non --> E[Rien n'est touché]
-  D --> F[Suppressions refaites dans l'interface]
+  A[Ouverture de la base] --> B{Table des fichiers présente ?}
+  B -- non --> C[Créée, numéro inchangé]
+  B -- oui --> D[Rien à écrire]
+  C --> E[La v1.9 relit la base]
+  D --> E
 ```
 
-Avant de remplacer, l'état actuel est sauvegardé, pour pouvoir revenir en arrière. Après, l'équipe supprime à nouveau, dans l'interface, les dossiers supprimés depuis la date de la copie. Poser la copie avec `docker compose cp` est écarté : le fichier serait illisible par l'API. La procédure a été rejouée sur un serveur d'essai, dans trois situations.
+La table est donc créée « si elle manque », à chaque ouverture, et le numéro reste 1. C'est la règle pour la suite (décision de l'utilisateur) : un ajout qui ne casse pas la lecture par la version d'avant ne change pas le numéro.
+
+| Ce que ça coûte | Ce que ça apporte |
+|---|---|
+| Revenue à la v1.9, l'interface affiche mal les lignes de dépôt de l'historique (accepté, temporaire) | Le retour arrière reste possible, sans restauration |
+| Une base d'essai déjà passée en 2 est à recréer | Rien n'est perdu : tout revient avec la v1.10 |
 
 ## Mettre en ligne sans service tiers (v1.9)
 
-Le but : qu'un merge sur `main` parte en ligne sans connexion SSH, et jamais si un test échoue. Plutôt que GitHub Actions, c'est le serveur qui vérifie `main`, toutes les 10 minutes, avec un timer systemd. Une préproduction était hors du sujet.
+Le but : qu'un merge sur `main` parte en ligne sans connexion SSH, et jamais si un test échoue. Plutôt que GitHub Actions, c'est le serveur qui vérifie `main`, toutes les 10 minutes, avec un timer systemd.
 
-Les tests tournent dans une copie de travail à part et des conteneurs jetables. La construction d'essai prend d'autres noms d'image : sinon elle écraserait les images du site en ligne. Pas de Node, ni de jq, ni de python sur le serveur : le script écrit son JSON lui-même.
+Les tests tournent dans une copie de travail à part et des conteneurs jetables. La construction d'essai prend d'autres noms d'image : sinon elle écraserait les images du site en ligne.
 
 | Ce que ça coûte | Ce que ça apporte |
 |---|---|
 | Un passage dure de 35 secondes (avec le cache) à quelques minutes | Un merge est en ligne en 10 minutes, tests compris |
-| Le cache de construction reste sur le disque, surveillé par le contrôle du disque | Aucun compte ni service extérieur |
+| Le cache de construction reste sur le disque, surveillé | Aucun compte ni service extérieur |
 
 ## L'application demande, le serveur décide (v1.9)
 
@@ -124,34 +109,36 @@ flowchart LR
   S -->|copie lisible| E[(État de la page)]
 ```
 
-Ses décisions (commit en ligne, échec, pause, passages) vivent dans le dossier du compte `deploy`, jamais dans le volume. L'état que lit la page n'en est qu'une copie : si l'application le falsifiait, rien ne changerait.
+Ses décisions vivent dans le dossier du compte `deploy`, jamais dans le volume. L'état que lit la page n'en est qu'une copie : si l'application le falsifiait, rien ne changerait.
 
 > Même compromise, l'application ne peut que : mettre en ligne un commit testé de la ligne principale de main (v1.9 ou après), poser ou retirer la pause, et faire tourner le service.
 
-Elle peut aussi remplir de refus l'historique de la page : une demande illisible est refusée, et ce refus est noté comme un passage. Si l'application empêche le serveur de retirer la demande, le service ne tourne plus qu'une fois par minute. Écartés : un dossier partagé entre l'application et le serveur (il aurait fallu changer `compose.yaml` et mêler les droits), et des décisions relues dans l'état de la page.
-
 ## Quels commits on peut demander (v1.9)
 
-Le dépôt fusionne les branches par merge. `main` a 227 ancêtres, mais seulement 19 commits ont été, à un moment, son dernier commit. Seuls ces derniers (la ligne principale de main) peuvent être demandés depuis la page, et seulement s'ils datent de la v1.9 ou après. Choix de l'utilisateur.
-
-Les commits intermédiaires d'une branche n'ont jamais été relus ni mis en ligne seuls : ils sont refusés. En SSH, `deploy.sh <commit>` garde son ancienne règle (tout ancêtre de `main`).
+`main` a 227 ancêtres, mais seulement 19 commits ont été, à un moment, son dernier commit. Seuls ces derniers (la ligne principale de main) peuvent être demandés depuis la page, et seulement s'ils datent de la v1.9 ou après. Les commits intermédiaires d'une branche n'ont jamais été relus ni mis en ligne seuls : ils sont refusés.
 
 ## Revenir seul, et ne pas défaire un retour voulu (v1.9)
 
-```mermaid
-flowchart LR
-  A[Mise en ligne ratée] --> B[Retour par le deploy.sh du commit d'avant]
-  B -- réussi --> C[Site revenu]
-  B -- raté --> D[Alerte rouge, commande à lancer]
-```
+Quand la mise en ligne rate après avoir changé de version, le serveur revient tout seul au commit d'avant. Il utilise le `deploy.sh` **de ce commit-là** : celui du commit en échec peut être cassé avec lui.
 
-Quand la mise en ligne rate après avoir changé de version, le serveur revient tout seul au commit d'avant (choix de l'utilisateur). Il utilise le `deploy.sh` **de ce commit-là** : celui du commit en échec peut être cassé avec lui. Si `deploy.sh` s'arrête avant de rien changer, il n'y a pas de retour à faire.
-
-Un retour voulu par un admin ne doit pas être défait 10 minutes plus tard. Celui qui demande un ancien commit (la page, ou `deploy.sh` en SSH) pose donc une pause ; l'automatisme n'en pose jamais. La pause est un fichier ignoré par git par une exclusion locale : un `.gitignore` disparaîtrait en revenant à un commit plus ancien. Et si quelqu'un déploie à la main pendant les tests, son geste l'emporte : le passage s'annule.
+Un retour voulu par un admin ne doit pas être défait 10 minutes plus tard. Celui qui demande un ancien commit pose donc une pause ; l'automatisme n'en pose jamais. Si quelqu'un déploie à la main pendant les tests, son geste l'emporte.
 
 > Le pire cas (retour raté, passage tué pendant la mise en ligne) est une alerte rouge sur la page, avec la commande à lancer. Aucune notification n'est envoyée.
 
+## Les sauvegardes (v1.7)
+
+| Décision | En clair | Écarté |
+|---|---|---|
+| Copier par SQLite lui-même | une copie cohérente, vérifiée, en un seul fichier, sans retarder l'effacement | copier les fichiers à chaud, l'outil `sqlite3` |
+| Chiffrer pour une seule clé | age, une clé publique sur le serveur, la clé secrète dans un fichier gardé hors du serveur | GPG, une clé SSH |
+| Garder les copies sur le serveur | 30 jours dans `/var/backups/recrutement` | OVH Object Storage (payant) |
+| Une page plutôt que des alertes | `/admin/sauvegardes.html`, verte ou rouge | healthchecks.io, un lien depuis Candidatures |
+| Restaurer sans risque | la copie en clair ne touche jamais le disque du serveur ; empreinte et contrôle avant de remplacer | poser la copie avec `docker compose cp` |
+
+> Perdre le fichier de la clé rend toutes les copies illisibles. Et si le serveur est perdu, les copies partent avec lui : choix accepté.
+
 ## Voir aussi
+- [Fiche du candidat, CV et portfolio](../doc/produit/fiche-candidat.md)
 - [Comment les pages choisissent où ranger les dossiers](mode-serveur.md)
 - [L'API de stockage](api.md)
 - [Architecture et déploiement](architecture.md)

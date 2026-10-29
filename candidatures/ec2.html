@@ -20,6 +20,13 @@
 .seg button[disabled]{opacity:.6; text-decoration:line-through; text-decoration-thickness:1px}
 .group > .gl{font-size:14px; font-weight:650; color:var(--ink-2)}
 .soon{font-size:13.5px; color:var(--muted)}
+/* Le palier : jamais de retour à la ligne, quelle que soit la sélection ; sur petit écran, le sélecteur défile */
+.group.palier{flex-wrap:nowrap; min-width:0; max-width:100%}
+.group.palier .seg{flex-wrap:nowrap; white-space:nowrap; overflow-x:auto; max-width:100%}
+.group.palier .seg button{flex:none}
+.grille-lien{display:inline-grid; place-items:center; width:40px; height:40px; border-radius:10px; color:var(--violet); flex:none}
+.grille-lien:hover, .grille-lien:focus-visible{background:var(--violet-soft)}
+.seniorite{font-size:13.5px; color:var(--muted); margin-top:8px}
 .trame{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:10px; margin-top:14px; padding:0; list-style:none; counter-reset:t}
 .trame li{counter-increment:t; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px; display:grid; gap:4px}
 .trame li b{display:flex; justify-content:space-between; gap:8px}
@@ -132,7 +139,7 @@ details.crit[open] .cchev{transform:rotate(45deg)}
 </head>
 <body>
 <div id="live" aria-live="polite"></div>
-<div class="wrap">
+<div class="wrap etape">
   <header class="topbar">
     <a href="../index.html#guide" aria-label="Retour au hub Expérience collaborateur" style="padding:0" id="logo"></a>
     <span class="where" data-t="commun.espace">Candidatures</span>
@@ -143,35 +150,29 @@ details.crit[open] .cchev{transform:rotate(45deg)}
   <div id="missing" class="empty" hidden><p id="missing-t"></p><div class="actions"><a class="btn" href="index.html" data-t="commun.retourTableau"></a></div></div>
 </div>
 <div id="body" hidden>
-<div class="wrap">
+<div class="wrap etape">
   <div id="pu"></div>
   <div class="fiche-bar">
     <h2 class="fiche-t"><span data-t="ec.titre2"></span></h2>
-    <details class="other liens-fiche" id="liens"><summary data-t="ec.liens"></summary><div class="in"><div class="links" id="liens-in"></div>
-      <div class="actions"><button type="button" class="btn quiet small" id="copy-notion" data-t="ec.copierNotion"></button><button type="button" class="btn quiet small" id="reset" data-t="ec.vider"></button></div></div></details>
   </div>
 </div>
 <div class="controls">
-  <div class="wrap"><div class="in">
+  <div class="wrap etape"><div class="in">
     <div class="group"><span class="gl" id="role-l">Rôle</span>
       <span class="roleval" id="role-v" aria-labelledby="role-l"></span>
     </div>
-    <div class="group"><span class="gl" id="tier-l">Palier visé</span>
+    <div class="group palier"><span class="gl" id="tier-l">Palier visé</span>
       <div class="seg" role="radiogroup" aria-labelledby="tier-l" id="tierSeg"></div>
       <span class="sugg" id="tier-sugg" hidden></span>
-      <a class="grille" id="grille" href="https://app.notion.com/p/2564bfab78168099a8f0de61754e3242" target="_blank" rel="noopener">Grille de salaire</a>
+      <a class="grille-lien" id="grille" href="https://app.notion.com/p/2564bfab78168099a8f0de61754e3242" target="_blank" rel="noopener"></a>
     </div>
     <div class="group" hidden>
       <button type="button" class="btn small quiet" id="demo" hidden>Exemple</button>
     </div>
-  </div>
-  <div class="callout" id="confirm" hidden role="alertdialog" aria-labelledby="cf-t" style="margin-top:10px">
-    <p id="cf-t"><b>Effacer les notes, les exemples cités, les aspirations et les points en suspens ?</b> Ce qui a déjà été reporté vers la carte d'identité y reste.</p>
-    <div class="actions" style="margin-top:10px"><button type="button" class="btn small" id="cf-yes">Effacer</button><button type="button" class="btn quiet small" id="cf-no">Garder</button></div>
   </div></div>
 </div>
 
-<main class="wrap">
+<main class="wrap etape">
   <div class="candbar" id="candbar" hidden role="status"></div>
   <div class="grid-fields" style="margin-top:24px">
     <div class="field"><label for="f-nom">Candidat</label><input type="text" id="f-nom" autocomplete="off" placeholder="Prénom et nom"></div>
@@ -183,6 +184,7 @@ details.crit[open] .cchev{transform:rotate(45deg)}
   <section class="block">
     <h2>Barème</h2>
     <div class="legend" id="legend"></div>
+    <p class="seniorite" data-t="ec.seniorite"></p>
   </section>
 
   <div id="diamonds"></div>
@@ -238,7 +240,7 @@ details.crit[open] .cchev{transform:rotate(45deg)}
     <span>Ce que tu tapes reste dans ce navigateur : le report l'envoie vers la carte d'identité, sur cet ordinateur, et nulle part ailleurs.</span>
   </footer>
 </main>
-<div class="wrap" id="exits"></div>
+<div class="wrap etape" id="exits"></div>
 </div>
 
 <script src="../assets/yeita.js"></script>
@@ -565,7 +567,7 @@ function applyCand(c){
     tier = sg ? sg.palier : null; tierSugg = !!sg;
   }
   f["f-nom"] = c.candidat.nom;
-  if(!f["f-par"]) f["f-par"] = STORE.me() || "";
+  if(!f["f-par"]) f["f-par"] = UI.nomComplet(STORE.me()) || "";
   if(!f["f-date"]) f["f-date"] = new Date().toISOString().slice(0,10);
   rep = {dossierId: c.id, dossierNom: c.candidat.nom, reportedAt: null, dirty: false, passationDone: true};
 }
@@ -715,9 +717,6 @@ function renderRead(){
   }).join("");
   document.getElementById("radar").innerHTML = YEITA.radar(st, tv, {label:"Radar des douze étapes au palier "+Dm.TIERS[tv-1]});
   document.getElementById("code").textContent = (rated || gv("f-nom")) ? code() : "—";
-  var gl = document.getElementById("grille");
-  gl.textContent = tier ? "Grille de salaire, palier « " + Dm.TIERS[tier-1] + " »" : "Grille de salaire";
-  gl.setAttribute("aria-label", "Ouvrir la grille de salaire dans Notion" + (tier ? ", au palier « " + Dm.TIERS[tier-1] + " »" : "") + ", nouvel onglet");
   var sg = document.getElementById("tier-sugg"), rem = cand && cand.appel && cand.appel.reponses && cand.appel.reponses.remuneration;
   sg.hidden = !(tierSugg && tier); sg.textContent = UI.t("ec.suggere"); sg.title = rem ? UI.t("ec.suggereDepuis", {texte: rem}) : "";
   document.querySelectorAll("#tierSeg button").forEach(function(b){ b.setAttribute("aria-checked", String(+b.dataset.tier === tier)); });
@@ -754,10 +753,6 @@ document.addEventListener("click", function(e){
   if(e.target.id === "report" || e.target.id === "report-top"){ doReport(); return; }
   if(e.target.id === "take-name"){ DOSSIER.current().then(function(d){ if(!d) return; document.getElementById("f-nom").value = d.candidat.nom; f["f-nom"] = d.candidat.nom; save(); renderRead(); renderFrom1(); document.getElementById("f-date").focus(); }); return; }
   var dc = e.target.closest("[data-copy]"); if(dc){ var bb = dc; if(dc.dataset.copy === "notion") YEITA.copy(notionText(), function(ok){ YEITA.flash(bb, ok ? "Copié pour Notion" : "Copie refusée"); }); else if(steps().some(function(v){ return v!=null; })) YEITA.copy(code(), function(ok){ YEITA.flash(bb, ok ? "Code EC2 copié" : "Copie refusée : sélectionne le code"); }); else YEITA.flash(bb, "Aucune note"); return; }
-  if(e.target.id === "copy-notion"){ var b1 = e.target; YEITA.copy(notionText(), function(ok){ YEITA.flash(b1, ok ? "Copié pour Notion" : "Copie refusée"); }); return; }
-  if(e.target.id === "reset"){ document.getElementById("confirm").hidden = false; document.getElementById("cf-yes").focus(); return; }
-  if(e.target.id === "cf-no"){ document.getElementById("confirm").hidden = true; document.getElementById("reset").focus(); return; }
-  if(e.target.id === "cf-yes"){ scores = {}; notes = {}; f = {}; if(cand){ f["f-nom"] = cand.candidat.nom; rep = {dossierId:cand.id, dossierNom:cand.candidat.nom, reportedAt:null, dirty:false, passationDone:true}; } else rep = {dossierId:null, dossierNom:"", reportedAt:null, dirty:false, passationDone:true}; reportError = ""; persistAll(); document.querySelectorAll("textarea").forEach(function(x){ x.style.height = ""; }); load(); renderDiamonds(); renderRead(); renderReport(); renderFrom1(); document.getElementById("confirm").hidden = true; YEITA.flash(null, "Fiche vidée"); return; }
   if(e.target.id === "demo"){
     var s = [2,3,2, 4,3,2, 3,3,2, 3,2,null];
     scores = {}; s.forEach(function(v,i){ if(v!=null) scores[sid(Math.floor(i/3), i%3)] = v; });
@@ -806,6 +801,11 @@ function renderExits(){
 }
 function liens(){
   var C = YEITA_CONFIG.liens || {};
+  /* La grille de salaire : une icône seule, à côté du palier (1.10). */
+  var gl = document.getElementById("grille"), lab = UI.t("ec.grilleOuvrir");
+  gl.innerHTML = YEITA.icon("ExternalLink", 20, 2.2); gl.setAttribute("aria-label", lab); gl.title = lab;
+  if(C.grilleSalaire) gl.href = C.grilleSalaire;
+  if(!document.getElementById("liens-in")) return;
   var l = [[UI.t("ec.scorecard"), C.referentiel, true], [UI.t("ec.grille"), C.grilleSalaire, true], [UI.t("commun.guideEtape"), PARCOURS.guideHref("ec2"), true], [UI.t("ec.carte"), "carte.html?id=" + encodeURIComponent(cand.id)]];
   document.getElementById("liens-in").innerHTML = l.filter(function(x){ return x[1]; }).map(function(x){ return '<a href="' + E(x[1]) + '"' + (x[2] ? ' target="_blank" rel="noopener"' : '') + '>' + E(x[0]) + '</a>'; }).join("");
   if(C.grilleSalaire) document.getElementById("grille").href = C.grilleSalaire;
@@ -829,7 +829,7 @@ else DEMARRAGE.pret.then(function(){ return DOSSIER.get(candId); }).then(functio
   if(!c){ missing(UI.t("commun.introuvable")); return; }
   cand = c; applyCand(c);
   document.getElementById("f-nom").readOnly = true; document.getElementById("f-nom").closest(".field").hidden = true;
-  document.getElementById("cf-t").innerHTML = "<b>" + E(UI.t("ec.viderQuestion", {nom: c.candidat.nom})) + "</b> " + E(UI.t("ec.viderTexte"));
+  if(document.getElementById("cf-t")) document.getElementById("cf-t").innerHTML = "<b>" + E(UI.t("ec.viderQuestion", {nom: c.candidat.nom})) + "</b> " + E(UI.t("ec.viderTexte"));
   document.getElementById("body").hidden = false;
   PU.render(c, "ec2");
   try{ var n = JSON.parse(sessionStorage.getItem("yeita-notice") || "null"); if(n && n.id === c.id){ document.getElementById("notice").innerHTML = '<div class="notice" role="status"><span>' + E(n.msg) + '</span></div>'; } sessionStorage.removeItem("yeita-notice"); }catch(x){}

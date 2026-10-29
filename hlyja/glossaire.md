@@ -1,6 +1,6 @@
 ---
 type: glossaire
-maj: 1.9
+maj: 1.10
 ---
 
 # Glossaire
@@ -13,6 +13,10 @@ L'outil qui chiffre les sauvegardes. Il n'a besoin, sur le serveur, que de la pa
 ## API
 Un programme qui ne montre pas de pages : il répond aux demandes d'autres programmes, comme les pages du site. Celle du projet garde les dossiers candidat dans une base partagée et dit qui a le droit de les lire ou de les modifier.
 Aussi : API de stockage.
+
+## Avant le merge
+Une partie d'un guide de mise en production à faire sur le serveur avant de cliquer « Merge » sur GitHub : depuis le déploiement automatique, le merge met la version en ligne sous 10 minutes, donc un réglage du serveur dont elle a besoin doit être en place avant.
+Voir : [Mettre à jour le site en production](technique/mise-a-jour-production.md)
 
 ## Bandeau d'erreur
 Le message rouge qui s'affiche en haut de la page quand la base refuse ou ne répond pas : quelqu'un a modifié le dossier entre-temps, la connexion est coupée, ou le compte n'a pas le droit d'écrire. Il reste visible même en bas d'une longue fiche et propose de recharger la page.
@@ -37,6 +41,10 @@ Aussi : clé privée age.
 ## Commit en ligne incertain
 Le serveur ne sait plus avec certitude quelle version tourne : une mise en ligne a été arrêtée en cours, un retour ou un redéploiement a raté, ou la version du dépôt n'est pas celle notée comme mise en ligne. La page l'affiche en rouge ; le passage suivant remet le dernier commit de main en ligne, sauf en pause, sans accès à GitHub, ou si ce commit a échoué.
 
+## Compte en lecture
+Un membre de l'équipe qui peut tout consulter sans rien modifier. Il ouvre les dossiers et les documents du candidat, mais l'interface ne lui propose aucune action d'écriture, et l'API refuse toute modification de sa part. L'en-tête affiche « · lecture seule » à côté de son prénom.
+Aussi : rôle lecture.
+
 ## Conflit d'écriture
 Ce qui arrive quand deux personnes modifient le même dossier en même temps. Chaque dossier porte un numéro de version : un enregistrement fait à partir d'une version dépassée est refusé, et la personne doit recharger la page au lieu d'écraser le travail de l'autre. Cette méthode s'appelle la « version optimiste ».
 Aussi : conflit, conflits, version optimiste.
@@ -52,6 +60,11 @@ Ce qu'un admin dépose depuis la page des déploiements : mettre en ligne le der
 L'outil qui décrit et lance ensemble les conteneurs d'un projet, à partir d'un seul fichier (`compose.yaml`). Une commande démarre tout, une autre arrête tout.
 Aussi : Compose, pile Compose.
 
+## Documents du candidat
+Le CV et le portfolio, dans la fiche du candidat. Chacun est soit un fichier déposé (PDF, PNG ou JPG, 10 Mo au plus), gardé sur le serveur de l'équipe avec la candidature et effacé avec elle, soit un lien. Chaque dépôt et chaque retrait est noté dans l'historique. La fiche ne cite jamais un fichier qui n'existe pas.
+Aussi : dépôt de fichier, CV, portfolio.
+Voir : [Fiche du candidat, CV et portfolio](doc/produit/fiche-candidat.md)
+
 ## Effacement réel
 Supprimer un dossier de sorte qu'il ne reste plus lisible nulle part dans les fichiers de la base. Une base de données ordinaire marque souvent la place comme libre sans effacer le contenu ; l'API, elle, l'écrase.
 Aussi : effacement.
@@ -59,6 +72,16 @@ Aussi : effacement.
 ## En-tête
 Une information jointe à chaque demande envoyée à un serveur, invisible pour le visiteur. oauth2-proxy en ajoute une qui donne l'email du compte connecté ; l'API s'y fie pour savoir qui parle.
 Aussi : en-têtes, X-Forwarded-Email.
+
+## Fiche du candidat
+Le bloc qui rassemble les informations d'un candidat, en quatre groupes : identité, contact, documents (CV, portfolio, références) et suivi. Depuis la v1.10, c'est le même partout : en haut de l'appel de découverte, dans la fenêtre ouverte par le menu ⋯, et dans la fenêtre « Ajouter un candidat ».
+Aussi : Infos candidat, bloc Infos.
+Voir : [Fiche du candidat, CV et portfolio](doc/produit/fiche-candidat.md)
+
+## Fichier non référencé
+Un CV ou un portfolio gardé dans la base sans qu'aucune fiche ne le cite, par exemple après une panne réseau au mauvais moment. Il n'est jamais affiché, et il est effacé au premier enregistrement de la fiche passé une heure.
+Aussi : orphelin, fichier orphelin.
+Voir : [Fiche du candidat, CV et portfolio](doc/produit/fiche-candidat.md)
 
 ## HTTPS
 La version chiffrée d'une adresse web. Le navigateur affiche un cadenas ; il faut un certificat, que le proxy du serveur ou Caddy se charge d'obtenir.
@@ -71,6 +94,10 @@ Aussi : image, image front.
 ## Journal
 La liste, tenue par l'API, de qui a créé, modifié ou supprimé quel dossier, quand, et à quelle étape. Il ne contient jamais le contenu des dossiers. À ne pas confondre avec le journal du serveur, qui note les demandes reçues.
 Aussi : journal des actions.
+
+## Kanban
+Le tableau de l'espace Candidatures où chaque candidat est une carte, rangée dans la colonne de son étape. C'est là, et dans la liste, qu'on change l'État d'un candidat ; sur la carte, les recruteurs apparaissent par leurs initiales.
+Aussi : carte du kanban.
 
 ## Ligne principale de main
 Les commits qui ont été, à un moment, le dernier commit de main : en pratique, les merges des pull requests. Les commits intermédiaires d'une branche n'en font pas partie et ne peuvent pas être demandés depuis la page.
@@ -92,6 +119,10 @@ La façon de travailler quand il n'y a pas de base sur le site (poste local, tes
 ## Mode serveur
 La façon de travailler sur le site de production : les candidatures sont enregistrées dans la base partagée de l'équipe, chacun sous son compte Google. En haut de page s'affiche « Connecté·e : » suivi du prénom.
 Voir : [Mode serveur des pages](technique/mode-serveur.md)
+
+## nginx
+Le proxy déjà installé sur le serveur OVH de Yeita (cas A) : il reçoit les visites et les passe au site. Par défaut, il refuse tout envoi de plus de 1 Mo ; depuis la v1.10, un réglage (`client_max_body_size 10m`) lui fait accepter les CV et portfolios jusqu'à 10 Mo.
+Voir : [Mettre à jour le site en production](technique/mise-a-jour-production.md)
 
 ## Node.js
 Le logiciel qui fait tourner du JavaScript en dehors du navigateur. L'API du projet est écrite pour Node.js, version 22 ou plus récente.
@@ -155,6 +186,10 @@ Aussi : base SQLite.
 
 ## Timer systemd
 Le réveil du serveur qui lance une tâche à heure fixe : chaque nuit vers 3 h pour la sauvegarde, chaque heure pour le disque. Si le serveur était éteint, la tâche part à son redémarrage.
+
+## Version de la base
+Un numéro inscrit dans la base qui dit quelle forme elle a. L'API refuse une base d'une version plus récente que la sienne. Depuis la v1.10, une table qui ne fait qu'ajouter (comme celle des fichiers) s'ajoute sans changer ce numéro, pour que la version d'avant puisse toujours relire la base en cas de retour arrière.
+Aussi : user_version.
 
 ## Volume
 Un dossier géré par Docker, qui survit à l'arrêt et à la recréation des conteneurs. Le volume `recrutement_data` contient la base des candidatures, à ne jamais supprimer ; depuis la 1.7, elle est aussi sauvegardée chaque nuit, sur le même serveur.

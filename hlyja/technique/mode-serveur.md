@@ -2,10 +2,10 @@
 type: technique
 page: mode-serveur
 titre: Mode serveur des pages (démarrage, adaptateur, identité)
-maj: 1.4
-commit: c51ed2c
-sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, assets/qui.js, assets/store.js, assets/wording.fr.js, assets/yeita.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/decompte.html, candidatures/carte.html, tools/test-serveur.js, tools/e2e-serveur.py
-date: 2026-10-27
+maj: 1.10
+commit: ababdde
+sources: assets/demarrage.js, assets/adapter-serveur.js, assets/dossier.js, assets/qui.js, assets/store.js, assets/wording.fr.js, assets/yeita.js, candidatures/index.html, candidatures/candidat.html, candidatures/ec1.html, candidatures/ec2.html, candidatures/decompte.html, candidatures/carte.html, tools/test-serveur.js, tools/e2e-serveur.py, candidatures/menu-candidat.js
+date: 2026-10-28
 ---
 
 # Mode serveur des pages (démarrage, adaptateur, identité)
@@ -54,7 +54,7 @@ Au chargement : `D.use(adaptateur d'attente)` (chaque méthode attend `pret` pui
 | `navigateur()` | `D.use(LocalAdapter)`, `D.onRefus` (bandeau), `QUI.local()`, `STORE.sourceDispos(null)`, `pret` résolue |
 
 ## `assets/adapter-serveur.js` — `window.AdaptateurServeur(opts)`
-`opts` : `base` (`"../api/"`), `sur401()`, `surErreur(erreur)`, `fetch` (tests). Rend `{name: "serveur", volatile: false, list, get, put, remove, partir, enVol, version}`.
+`opts` : `base` (`"../api/"`), `sur401()`, `surErreur(erreur)`, `fetch` (tests). Rend `{name: "serveur", volatile: false, list, get, put, remove, partir, deposer, fichiers, fichierUrl, retirerFichier, enVol, version}`.
 
 | État interne | Contenu |
 |---|---|
@@ -71,10 +71,14 @@ Au chargement : `D.use(adaptateur d'attente)` (chaque méthode attend `pret` pui
 | `put(d)` | id hors motif → rejet `identifiant` (« Identifiant invalide pour « {nom} » … ») sans requête ; id supprimé → rejet `conflit` sans requête ; version = `parObjet(d)`, sinon `parId[id]`, sinon `null`, lue au départ de la requête ; 200/201 → version retenue, rend `d` |
 | `remove(id)` | hors motif → `null` ; 204 ou `introuvable` → id retenu comme supprimé |
 | `partir(d, base)` | `keepalive`, hors file ; version = celle du PUT en cours + 1 si `base` est son objet, sinon `parObjet(base)`, sinon `null` ; jamais la plus haute par id (revue v1.3, Q1) |
+| `deposer(id, champ, fichier)` (1.10) | `POST ../api/candidats/:id/fichiers?champ=…`, corps brut, `Content-Type` du fichier, nom dans `X-Nom-Fichier` ; hors file ; rend les métadonnées ; rejet sans bandeau (sauf identifiant hors motif : `surErreur`, comme `put`) (`e.status` gardé : un 413 sans JSON de nginx reste `reseau` avec `status` 413) |
+| `fichiers(id)` (1.10) | `GET …/fichiers` ; `[]` si le candidat n'existe pas |
+| `fichierUrl(id, fid)` (1.10) | adresse de lecture (lien « Ouvrir ») |
+| `retirerFichier(id, fid)` (1.10) | `DELETE …/fichiers/:fid` ; `fichier-introuvable` → résolu ; autre → rejet sans bandeau |
 | `enVol(id)` | objet du PUT en cours, ou `null` |
 | `AdaptateurServeur.lire(res)` | classement : 401 → `{type: "401"}` ; 204 → ok ; `Content-Type` sans `application/json` → `reseau` ; JSON illisible → `reseau` ; ok → `{type: "ok", json}` ; JSON avec `code` → erreur de ce code (texte de `wording` pour `conflit`, `hors-equipe`, `lecture-seule`) ; sans `code` → `api`, texte `erreur` |
 | `AdaptateurServeur.texte(cle, vars)` | texte de `WORDING.serveur`, repli interne |
-Tout rejet (hors 401) appelle `surErreur(e)` puis rejette ; `e.ecriture` vaut `true` pour `put` et `remove` ; un 401 appelle `sur401()` et ne se résout pas. Aucune nouvelle tentative.
+Tout rejet (hors 401) appelle `surErreur(e)` puis rejette, sauf ceux de `deposer`, `fichiers` et `retirerFichier` (le message s'affiche sur le champ) ; `e.ecriture` vaut `true` pour `put` et `remove` ; un 401 appelle `sur401()` et ne se résout pas. Aucune nouvelle tentative.
 
 ## `assets/dossier.js` (étendu)
 | Fonction | Rôle |
@@ -91,9 +95,10 @@ Tout rejet (hors 401) appelle `surErreur(e)` puis rejette ; `e.ecriture` vaut `t
 | `local` (défaut) | `yeita-recruteur` | `YEITA_CONFIG.equipe` + `yeita-equipe-ajouts` | localStorage | liste « Qui es-tu ? » |
 | `attente` (`QUI.attente()`) | `""` | — | mémoire de la page | vide |
 | `compte` (`QUI.compte(moi, prenoms)`) | `moi.prenom` | prénoms de `/api/equipe` + ajouts de la page | mémoire de la page | `<span class="qui-compte">` « Connecté·e : {prénom} » + « · lecture seule » si `role === "lecture"` |
-`choisir()` ne fait rien hors de l'état `local`. `monter` se redessine à chaque changement d'état (`emit`).
+`choisir()` ne fait rien hors de l'état `local`. v1.10 : `QUI.lectureSeule()` vrai pour un compte `lecture` ; `docHTML` rend alors les documents sans aucune action. `monter` se redessine à chaque changement d'état (`emit`).
 
 ## `assets/store.js` (étendu)
+v1.10 : `estPassage(h)` : une ligne d'historique `etat` ou `fichier` n'est pas un passage (`undoLast`, `enteredStepAt`) ; `importAll` passe chaque dossier par `sansFichiersAbsents`.
 `STORE.sourceDispos(src)` : `src = {ajouts(), ajouter(libelle)}` ou `null` (localStorage `yeita-options-disponibilite`). `dispos()` et `addDispo()` gardent leurs règles (base `D.DISPOS` + ajouts, sans doublon, synchrones).
 
 ## Pages
@@ -108,16 +113,32 @@ Tout rejet (hors 401) appelle `surErreur(e)` puis rejette ; `e.ecriture` vaut `t
 | `carte.html` | `pret`, puis `migrateCodes()` seulement hors mode serveur, puis `refresh` | relit, redessine si `meta.modifieLe` change | `store.js`, `setRestitution` |
 Les écoutes `storage` existantes restent (mode navigateur).
 
+## CV et portfolio (`candidatures/menu-candidat.js`, 1.10)
+Spec 1.10 R3 à R7, R19 à R21. Un champ (`docHTML`) vit dans le bloc Infos de l'appel (`data-doc-ctx="page"`, objet `cur` de `candidat.html`) ou dans la fenêtre du menu ⋯ (`"modal"`, objet `copie`).
+
+| Opération | Ordre | Échec |
+|---|---|---|
+| Dépôt (`deposer`, champ vide) | `deposer` (POST) → référence, lien vidé, ligne `fichier/depot` sur l'objet → `saveCandidate` → ancien fichier retiré au mieux | envoi : message R7 (`docs.erreurServeur` si 413 sans JSON, `docs.erreurTaille`, `docs.erreurType`) ; enregistrement : champ remis (`remettre`), refus lu (code ≠ `reseau`) → nouveau fichier retiré au mieux (`auMieux`), sinon rien ; 409 → `docs.nonEnregistreConflit` |
+| Retrait (`enleverFichier`) | référence ôtée, ligne `fichier/retrait` (et `lien` si un lien remplace) → `saveCandidate` → `retirerFichier` au mieux | champ remis, message |
+| Lien seul | `c.identite[champ] = v`, ligne `fichier/lien` ; enregistrement différé de la page (`plusTard` / `schedule`) | comme toute saisie |
+
+`operer` : une opération à la fois (`operation`), boutons du champ `disabled`, fenêtre impossible à fermer ; `h.avant()` enregistre d'abord une saisie en attente ; à la fin, seul le champ est redessiné (`redessinerChamp`), le focus y revient, le message (`.docmsg`, `aria-live`) est écrit au tour suivant. Les enregistrements différés ne sont pas retenus pendant l'opération : la file par dossier de l'adaptateur (`enFile`) fait partir le suivant après la réaction à l'échec du précédent, donc après `remettre` (mutation T5 survivante, garde-fou retiré, fiche de la tâche 03).
+
+Création (`creer`, `valider`, `enregistrerCreation`) : `creation` (pied et fermeture bloqués), `cree` (le candidat créé : un nouveau clic enregistre la fiche normalisée par `normFiche`, puis les seuls fichiers d'`attente`) ; un fichier en échec reste dans `attente` (message + `docs.relance`) ; fermer une fois créé → `fermerApresCreation` (envoi, puis `bandeau` en tête de page en cas d'échec, `role="alert"`).
+
+Liens (R20) : `docHTML` ne rend un `<a href>` que pour `^https?://`, sinon un texte. Import (R21) : `STORE.importAll` passe chaque dossier par `sansFichiersAbsents` (référence absente de `fichiers(id)` → `null`).
+
 ## Textes (`assets/wording.fr.js`)
-`qui.connecte` « Connecté·e : », `qui.lectureSeule` « · lecture seule » ; `commun.serveur` (bandeau jaune en mode serveur) et `tableau.vide.texteServeur` (v1.4) ; `serveur` : `conflit`, `horsEquipe`, `lectureSeule`, `reseau`, `session`, `identifiant`, `saisie`, `nonEnregistre`, `recharger`, `exportTexte`. `YEITA.SITE` = `https://recrutement.yeita.fr/` (`assets/yeita.js`) ; `wirePrint` y ajoute le nom de la page, précédé de `candidatures/` pour une page de ce dossier (lien « Ouvrir sur le site »).
+`qui.connecte` « Connecté·e : », `qui.lectureSeule` « · lecture seule » ; `commun.serveur` (bandeau jaune en mode serveur) et `tableau.vide.texteServeur` (v1.4) ; `serveur` : `conflit`, `horsEquipe`, `lectureSeule`, `reseau`, `session`, `identifiant`, `saisie`, `nonEnregistre`, `recharger`, `exportTexte`. `YEITA.SITE` = `https://recrutement.yeita.fr/` (`assets/yeita.js`) ; `wirePrint` y ajoute le nom de la page, précédé de `candidatures/` pour une page de ce dossier (lien « Ouvrir sur le site »). ; v1.10 : `docs.*` (dépôt, messages R7, `relance`, `bandeau`, historique `docs.histo.*`), `infos.supprimerFichiers`, `infos.groupes.*`
 
 ## Stockage du navigateur en mode serveur
 Rien n'est écrit dans `yeita-dossiers`, `yeita-equipe-ajouts`, `yeita-recruteur`, `yeita-options-disponibilite`. Restent : `yeita-dossier-courant` (un identifiant), `yeita-dernier-export` (date du dernier export, `store.js`), `yeita-candidatures-ui`, `yeita-carte-identite`, `yeita-match-resultat` (relais hors périmètre), `sessionStorage` `yeita-notice`, `yeita-rechargement-401`.
 
 ## Tests
-`node tools/test-serveur.js` (87 vérifications, fausse API, contexte `vm` comme `tools/test-store.js`) ; `tools/e2e-serveur.py` (92 vérifications (41 pour la page des déploiements, v1.9), API réelle) : voir [Conventions](conventions.md#tests).
+`node tools/test-serveur.js` (87 vérifications, fausse API, contexte `vm` comme `tools/test-store.js`) ; `tools/e2e-serveur.py` (135 vérifications (41 pour la page des déploiements, v1.9 ; 39 pour les CV et portfolios, v1.10), un `FAIL` attendu (1.9-1), API réelle) : voir [Conventions](conventions.md#tests).
 
 ## Voir aussi
+- [Fiche du candidat, CV et portfolio](../doc/produit/fiche-candidat.md)
 - [API de stockage](api.md)
 - [Architecture et déploiement](architecture.md)
 - [Décisions](decisions.md)
@@ -129,3 +150,4 @@ Rien n'est écrit dans `yeita-dossiers`, `yeita-equipe-ajouts`, `yeita-recruteur
 | 1.3 | Création : démarrage, adaptateur serveur, identité et options en mode serveur, écriture des fiches par partie |
 | 1.4 | Bandeau jaune en mode serveur (`commun.serveur`) ; boutons d'exemples de `index.html` selon le mode |
 | 1.6 | Deux écrivains de plus : le panneau Notes (`notesLibres[étape]`, par partie) et la fenêtre Fiche du candidat du menu ⋯ ; les fiches EC1 et EC2 travaillent sur une copie de leur partie |
+| 1.10 | Dépôt de fichiers : `AdaptateurServeur.deposer`, `fichiers`, `fichierUrl`, `retirerFichier` (hors de la file par dossier) ; en mode navigateur, CV et portfolio en lien seulement ; ordres de dépôt et de retrait, état d'avant après un échec, création sans doublon, liens filtrés, import sans référence absente (section « CV et portfolio ») |

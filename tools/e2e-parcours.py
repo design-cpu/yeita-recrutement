@@ -87,7 +87,9 @@ async def main():
         fr = pg.frame_locator("#carte-frame")
         rec = await fr.locator("#card").inner_text()
         check("Bilan EC1 : la carte d'identité dans la page, pleine largeur, avec Imprimer", "Part du terrain" in rec and "Explorateur" in rec and "imprimer=1" in await pg.locator("#panel a.print").get_attribute("href") and await pg.locator("#carte-frame").evaluate("f => f.offsetWidth >= f.parentElement.offsetWidth - 2"))
-        check("carte : mention RGPD (6 mois)", "6 mois après la fin de ton recrutement" in rec)
+        check("carte : mention RGPD (22 mois)", "22 mois après la fin de ton recrutement" in rec)
+        interne = await fr.locator("#interne").inner_text()
+        check("Bilan EC1 : la partie interne Yeita sous la carte, ouverte, en lecture", await fr.locator("#interne").is_visible() and await fr.locator("#interne").evaluate("e => e.open") and "EC1" in interne, interne[:120])
         check("Bilan EC1 : Continuer, Non retenu, Mettre en attente", await pg.locator("#next").count() == 1 and await pg.locator("#refuse").count() == 1 and "Mettre en attente (retour à faire)" in await pg.locator("#reflexion").inner_text())
         await pg.click("#next"); await pg.wait_for_url("**/ec2.html?id=*"); await pg.wait_for_timeout(400)
         check("Bilan EC1 → EC2 en pleine page", "ec2.html?id=" + ines in pg.url and await pg.locator("#diamonds").is_visible())
@@ -100,12 +102,23 @@ async def main():
         check("EC2 : notes dans le panneau Notes (notesLibres.ec2)", c["notesLibres"].get("ec2") == "Piste de mission santé.")
         check("EC2 : les notes de l'EC1 se relisent dans le panneau", "Pitch écouté" in await pg.locator("#np").text_content())
         await pg.click("#np-x")
-        hrefs = await pg.eval_on_selector_all("#liens-in a", "l => l.map(a => a.textContent + ' ' + a.getAttribute('href'))")
-        check("EC2 : liens scorecard, grille de salaire, guide, carte du candidat", len(hrefs) == 4 and any("carte.html?id=" + ines in h for h in hrefs), str(hrefs))
+        g = pg.locator("#grille")
+        check("EC2 : grille de salaire en icône seule, nouvel onglet, aria-label et infobulle", (await g.inner_text()).strip() == "" and await g.locator("svg").count() == 1 and await g.get_attribute("target") == "_blank"
+              and await g.get_attribute("rel") == "noopener" and await g.get_attribute("aria-label") == "Ouvrir la grille de salaire dans un nouvel onglet" and await g.get_attribute("title") == "Ouvrir la grille de salaire dans un nouvel onglet")
+        hauteurs = []
+        for n in range(1, 5):
+            await pg.click(f"#tierSeg [data-tier='{n}']"); await pg.wait_for_timeout(150)
+            hauteurs.append(await pg.evaluate("[document.getElementById('tierSeg').getBoundingClientRect().height, document.getElementById('tierSeg').getBoundingClientRect().width, document.getElementById('grille').getBoundingClientRect().top - document.getElementById('tierSeg').getBoundingClientRect().top]"))
+        check("EC2 : chaque palier, sans retour à la ligne, largeur stable, icône sur la même ligne", len(set(round(h[0]) for h in hauteurs)) == 1 and hauteurs[0][0] < 60 and len(set(round(h[1]) for h in hauteurs)) == 1 and all(abs(h[2]) < 30 for h in hauteurs), str(hauteurs))
+        check("EC2 : la mention de séniorité sous le barème", "Junior 0 à 1 · Intermédiaire 2 à 3 · Senior 3 à 4" in await pg.locator(".seniorite").inner_text())
+        check("EC2 : plus de « Liens et outils » ni « Copier pour Notion » / « Vider la fiche »", await pg.locator("#liens, #copy-notion, #reset, #confirm").count() == 0)
+        check("en-tête : l'État s'affiche sans sélecteur", await pg.locator("#c-side .etat").count() == 1 and await pg.locator("#c-side [data-etat-for]").count() == 0)
         await pg.click("#next"); await pg.wait_for_url("**/candidat.html?id=*etape=bilan-ec2"); await pg.wait_for_timeout(300)
+        await pg.wait_for_timeout(900); check("Bilan EC2 : la partie interne Yeita sous la carte", await pg.frame_locator("#carte-frame").locator("#interne").is_visible())
         imp = pg.locator("#panel a.print")
         check("Bilan EC2 : Imprimer la carte, en action secondaire", await imp.count() == 1 and "carte.html?id=" + ines + "&imprimer=1" in await imp.get_attribute("href") and "primary" not in await imp.get_attribute("class"))
         await pg.click("#next"); await pg.wait_for_timeout(400)
+        check("EC3 : la carte seule, sans la partie interne", "interne=1" not in await pg.locator("#carte-frame").get_attribute("src"))
         check("EC3 : la carte complète, Imprimer, Notes", await pg.locator("#carte-frame").count() == 1 and await pg.locator("#panel a.print").count() == 1 and await pg.locator("[data-open-notes]").count() == 1)
         check("EC3 : une seule action, pas de refus", "EC3" in await pg.locator("#panel h2").inner_text() and await pg.locator("#refuse").count() == 0 and "Envoyer en décision" in await pg.locator("#next").inner_text())
         await pg.click("[data-open-notes]"); await pg.fill("#np-text", "Échange sur la carte, rien à corriger."); await pg.wait_for_timeout(700); await pg.click("#np-x")
@@ -133,10 +146,11 @@ async def main():
         hugo = await pg.evaluate(NOUVEAU, ["Hugo Lenoir", "PrD", "ec1"])
         lena = await pg.evaluate(NOUVEAU, ["GARNIER Léna", "PrD", "ec1"])
         await pg.goto(C + "ec1.html?id=" + hugo, wait_until="networkidle"); await pg.wait_for_timeout(300)
-        await pg.click("#liens > summary")
-        dec = pg.locator("#liens-in a", has_text="Feuille de décompte")
-        check("EC1 : la feuille de décompte s'ouvre pour ce candidat", await dec.get_attribute("href") == "decompte.html?id=" + hugo)
-        await dec.click(); await pg.wait_for_url("**/decompte.html?id=*"); await pg.wait_for_timeout(300)
+        check("EC1 : plus d'encart « Liens et outils », ni « Tout déplier », « Copier pour Notion », « Vider la fiche » (1.10)", await pg.locator("#liens, #toggle-all, #copy-notion, #clear, #confirm").count() == 0)
+        check("EC1 : section « Yeita Match », en-tête « Guide de l'étape » gardé", "Yeita Match" == (await pg.locator("#yeita-match .stt").inner_text()).split("\n")[0].replace("Visible sur la carte du candidat", "").strip() and await pg.locator("#c-guide").count() == 1)
+        check("EC1 en présentiel : « Ouvrir la feuille de décompte » à côté du choix, pas de bouton du jeu en ligne", not await pg.locator("#ym-en-ligne").is_visible()
+              and await pg.locator("#ym-decompte").is_visible() and await pg.locator("#ym-decompte").get_attribute("href") == "decompte.html?id=" + hugo)
+        await pg.click("#ym-decompte"); await pg.wait_for_url("**/decompte.html?id=*"); await pg.wait_for_timeout(300)
         check("décompte : nom du candidat repris, en lecture seule", await pg.locator("#f-cand").input_value() == "Hugo Lenoir" and await pg.locator("#f-cand").get_attribute("readonly") is not None)
         sess = await pg.evaluate(SESSION)
         boxes = [cid for s in sess["answers"].values() for cid in s]
@@ -156,6 +170,10 @@ async def main():
         await pg.goto(C + "ec1.html?id=" + lena, wait_until="networkidle"); await pg.wait_for_timeout(300)
         await pg.click("label:has(input[name=ym-fmt][value=visio])"); await pg.wait_for_timeout(150)
         check("EC1 en visio : l'import du jeu en ligne apparaît", await pg.locator("#yeita-match .importer").is_visible())
+        check("EC1 en visio : plus de bouton de la feuille de décompte", not await pg.locator("#ym-decompte").is_visible())
+        en = pg.locator("#ym-en-ligne")
+        check("EC1 en visio : « Ouvrir Yeita Match en ligne » à côté du choix, nouvel onglet", await en.is_visible() and await en.get_attribute("target") == "_blank" and "Ouvrir Yeita Match en ligne" in await en.inner_text()
+              and await pg.evaluate("document.getElementById('ym-en-ligne').closest('.radios-inline') !== null"))
         f = os.path.join(tempfile.mkdtemp(), "partie.json"); open(f, "w").write(json.dumps(sess))
         await pg.set_input_files("#f-json", f); await pg.wait_for_timeout(800)
         l = await get(pg, lena)
@@ -225,6 +243,41 @@ async def main():
                     if "id=" + want not in h: bad.append(page.split("?")[0] + " → " + h)
         check("liens de l'espace : chacun propre au candidat", not bad, str(bad[:6]))
 
+        # 8 bis. Interface de Léo (1.10, R17) : largeur commune, Notes, grille, appel sans liens, État sans sélecteur, noms
+        larg = {}
+        for page in ["candidat.html?id=" + yanis, "ec1.html?id=" + hugo, "ec2.html?id=" + ines]:
+            await pg.goto(C + page, wait_until="networkidle"); await pg.wait_for_timeout(200)
+            larg[page.split("?")[0]] = await pg.evaluate("[...document.querySelectorAll('.wrap.etape')].map(w => getComputedStyle(w).maxWidth)")
+        check("1.10 R17 : une seule largeur, 1120 px, pour l'appel, l'EC1 et l'EC2", all(v and set(v) == {"1120px"} for v in larg.values()), str(larg))
+        zoe = await pg.evaluate(NOUVEAU, ["Zoé Marin", "PM / PO", "appel"])
+        await pg.goto(C + "candidat.html?id=" + zoe, wait_until="networkidle"); await pg.wait_for_timeout(200)
+        await pg.click("#np-toggle"); await pg.wait_for_timeout(300)
+        large = await pg.evaluate("({pad: getComputedStyle(document.body).paddingRight, contenu: document.querySelector('.wrap.etape').getBoundingClientRect().width, np: document.getElementById('np').getBoundingClientRect().left, fin: document.querySelector('.wrap.etape').getBoundingClientRect().right})")
+        await pg.set_viewport_size({"width": 1280, "height": 900}); await pg.wait_for_timeout(200)
+        etroit = await pg.evaluate("getComputedStyle(document.body).paddingRight")
+        await pg.set_viewport_size({"width": 1440, "height": 900}); await pg.click("#np-toggle"); await pg.wait_for_timeout(200)
+        check("1.10 R17 : Notes à côté dès 1360 px (au moins 900 px de contenu, sans chevauchement), par-dessus en dessous", large["pad"] == "420px" and large["contenu"] >= 900 and large["fin"] <= large["np"] + 1 and etroit == "0px", "%s · 1280 px : %s" % (large, etroit))
+        appel = await pg.evaluate("document.querySelector('#panel').innerText")
+        check("1.10 R17 : l'appel (en cours) n'a plus de « Liens utiles », la fiche du candidat est en tête", "Liens utiles" not in appel and await pg.locator("#panel .links").count() == 0 and await pg.locator("#panel .infos").count() == 1)
+        etats = []
+        for page in ["candidat.html?id=" + yanis, "ec1.html?id=" + hugo, "ec2.html?id=" + ines]:
+            await pg.goto(C + page, wait_until="networkidle"); await pg.wait_for_timeout(200)
+            etats.append(await pg.locator("[data-etat-for]").count())
+        check("1.10 R17 : aucun sélecteur d'État dans les étapes (appel, EC1, EC2)", etats == [0, 0, 0], str(etats))
+        await pg.goto(C, wait_until="networkidle"); await pg.wait_for_timeout(200)
+        ini = await pg.evaluate("[...document.querySelectorAll('.kc .ini.pastilles span')].map(s => s.textContent)")
+        sel = await pg.locator(".kc [data-etat-for]").count()
+        check("1.10 R17 : carte du kanban : recruteurs en initiales (« P » pour Pauline), sélecteur d'État gardé", "P" in ini and sel > 0, "%s · %d" % (ini[:6], sel))
+        await pg.click("#add-open"); await pg.wait_for_timeout(200)
+        cols = {}
+        for w in (1440, 700, 390):
+            await pg.set_viewport_size({"width": w, "height": 900}); await pg.wait_for_timeout(150)
+            cols[w] = await pg.evaluate("getComputedStyle(document.querySelector('dialog .igrid')).gridTemplateColumns.split(' ').length")
+        await pg.set_viewport_size({"width": 1440, "height": 900}); await pg.keyboard.press("Escape"); await pg.wait_for_timeout(150)
+        check("1.10 R17 : grille de la fiche du candidat en 3 colonnes, puis 2, puis 1", cols == {1440: 3, 700: 2, 390: 1}, str(cols))
+        await pg.goto(C + "carte.html?id=" + hugo, wait_until="networkidle"); await pg.wait_for_timeout(200)
+        check("1.10 : en-tête de la carte d'identité en ligne (style partagé intact après le retrait de « Liens et outils »)", await pg.evaluate("getComputedStyle(document.querySelector('.carte-h')).display") == "flex")
+
         # 9. Téléphone
         m = await b.new_context(viewport={"width": 390, "height": 844}, color_scheme="dark")
         await m.route("https://fonts.googleapis.com/**", lambda r: r.fulfill(body="", content_type="text/css"))
@@ -233,10 +286,12 @@ async def main():
         st = await pg.evaluate("localStorage.getItem('yeita-dossiers')")
         await mp.evaluate("s => localStorage.setItem('yeita-dossiers', s)", st)
         wide = []
-        for page in ["ec1.html?id=" + hugo, "ec2.html?id=" + ines, "carte.html?id=" + hugo, "decompte.html?id=" + hugo, "candidat.html?id=" + yanis]:
+        for page in ["", "ec1.html?id=" + hugo, "ec2.html?id=" + ines, "carte.html?id=" + hugo, "decompte.html?id=" + hugo, "candidat.html?id=" + yanis, "candidat.html?id=" + zoe]:
             await mp.goto(C + page, wait_until="networkidle"); await mp.wait_for_timeout(300)
-            if not await mp.evaluate("document.documentElement.scrollWidth <= innerWidth"): wide.append(page.split("?")[0])
-        check("téléphone : pas de défilement horizontal (EC1, EC2, carte, décompte, candidat)", not wide, str(wide))
+            if not await mp.evaluate("document.documentElement.scrollWidth <= innerWidth"): wide.append(page.split("?")[0] or "index")
+        await mp.goto(C, wait_until="networkidle"); await mp.evaluate("QUI.choisir('Pauline')"); await mp.click("#add-open"); await mp.wait_for_timeout(300)
+        if not await mp.evaluate("document.documentElement.scrollWidth <= innerWidth && document.querySelector('dialog').scrollWidth <= document.querySelector('dialog').clientWidth"): wide.append("fenêtre de création")
+        check("téléphone : pas de défilement horizontal (tableau, EC1, EC2, carte, décompte, candidat, appel, fenêtre de création)", not wide, str(wide))
         await m.close()
 
         print("errors:", errs)

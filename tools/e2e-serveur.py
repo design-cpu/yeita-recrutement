@@ -248,6 +248,433 @@ async def deploiement(b, base, env):
     check("page déploiement, rôle lecture : « Réservé aux admins de l'équipe. », aucun bouton", (await verdict(pg))[1] == "Réservé aux admins de l'équipe." and not await pg.locator("#maintenant").is_visible())
     await lec.close(); await adm.close()
 
+# --- 1.10 : CV et portfolio, cohérence entre le fichier et le dossier (spec 1.10 R3 à R7, R11, R19 à R21) ---
+async def fichiers_110(b):
+    dfic = tempfile.mkdtemp()
+    def pdf(nom, marque="x"):
+        f = os.path.join(dfic, nom); open(f, "wb").write(b"%PDF-1.4\n" + marque.encode() + b" " + b"x" * 4000); return f
+    def dossier(cid): return api("alice@yeita.fr", "GET", "candidats/" + cid)[1]
+    def fichiers(cid): return api("alice@yeita.fr", "GET", "candidats/" + cid + "/fichiers")[1]
+    def nb(nom): return sum(1 for x in api("alice@yeita.fr", "GET", "candidats")[1] if x["data"]["candidat"]["nom"] == nom)
+    def ref(cid, champ="cv"): return ((dossier(cid)["data"]["identite"].get("fichiers") or {}).get(champ) or {}).get("id")
+    async def nouveau(pg, nom):
+        return await pg.evaluate("n => STORE.createCandidate({personne: n}, 'Alice').then(c => c.id)", nom)
+    async def appel(ctx, cid):
+        pg = await ouvrir(ctx, C + "candidat.html?id=" + cid + "&etape=appel"); return pg
+    def json_err(statut, code, msg):
+        return lambda r: r.fulfill(status=statut, content_type="application/json", body=json.dumps({"erreur": msg, "code": code}))
+    async def apres(ms, route): await asyncio.sleep(ms / 1000); await route.continue_()
+    ctx = await contexte(b, "alice@yeita.fr"); ctxb = await contexte(b, "bob@yeita.fr")
+    pg = await ouvrir(ctx, C)
+    MSG_CV = 'dialog [data-doc="cv"] .docmsg'
+
+    # CA4 (a) : envoi du CV en échec, nom modifié, second clic → un seul candidat, nom modifié, un seul CV
+    panne = json_err(500, "panne", "panne simulée")
+    await ctx.route("**/fichiers?champ=*", panne)
+    await pg.click("#add-open"); await pg.fill("#mf-personne", "Doublon Un")
+    await pg.locator('dialog [data-doc="cv"] [data-doc-file]').set_input_files(pdf("a.pdf")); await pg.wait_for_timeout(200)
+    await pg.click('[data-mc-creer="liste"]'); await pg.wait_for_timeout(1200)
+    m1 = await pg.locator(MSG_CV).inner_text()
+    check("création (1.10 R3) : envoi du CV en échec → message avec « Réessaie, ou retire-le », fenêtre ouverte, un seul candidat", "Réessaie, ou retire-le pour continuer sans." in m1 and await pg.locator("dialog.mdlg[open]").count() == 1 and nb("Doublon Un") == 1, m1)
+    await pg.fill("#mf-personne", "Doublon Un Bis")
+    await ctx.unroute("**/fichiers?champ=*", panne)
+    await pg.click('[data-mc-creer="liste"]'); await pg.wait_for_timeout(1500)
+    liste = [x for x in api("alice@yeita.fr", "GET", "candidats")[1] if x["data"]["identite"]["personne"].startswith("Doublon Un")]
+    cid = liste[0]["id"] if liste else ""
+    check("création (1.10 CA4 a) : second clic → un seul candidat, nom modifié en base, un seul fichier cv, référencé", len(liste) == 1 and liste[0]["data"]["identite"]["personne"] == "Doublon Un Bis"
+          and len(fichiers(cid)) == 1 and ref(cid) == fichiers(cid)[0]["id"] and await pg.locator("dialog.mdlg[open]").count() == 0, str([x["data"]["identite"]["personne"] for x in liste]))
+
+    # CA4 (b) : clic sur l'autre action pendant une création ralentie → un seul candidat
+    lent = lambda r: asyncio.ensure_future(apres(1500, r)) if r.request.method == "PUT" else asyncio.ensure_future(r.continue_())
+    await ctx.route("**/api/candidats/cand-*", lent)
+    await pg.click("#add-open"); await pg.fill("#mf-personne", "Doublon Deux")
+    await pg.click('[data-mc-creer="liste"]'); await pg.wait_for_timeout(200)
+    desactives = await pg.evaluate("Array.from(document.querySelectorAll('dialog [data-mc-creer], dialog [data-mc-close]')).every(b => b.disabled)")
+    await pg.evaluate("document.querySelector('[data-mc-creer=\"appel\"]').click()")
+    await pg.keyboard.press("Escape"); await pg.wait_for_timeout(150)
+    ouverte = await pg.locator("dialog.mdlg[open]").count() == 1
+    await pg.wait_for_timeout(2500)
+    await ctx.unroute("**/api/candidats/cand-*", lent)
+    check("création (1.10 CA4 b, d) : pendant la création, les deux actions et la fermeture sont désactivées, Échap ne ferme pas, un seul candidat",
+          desactives and ouverte and nb("Doublon Deux") == 1, "désactivés %s, ouverte %s, nb %d" % (desactives, ouverte, nb("Doublon Deux")))
+
+    # CA4 (c) : fichier toujours en échec, « Retirer » puis action → appel ouvert, sans fichier
+    await ctx.route("**/fichiers?champ=*", panne)
+    await pg.click("#add-open"); await pg.fill("#mf-personne", "Sans CV")
+    await pg.locator('dialog [data-doc="cv"] [data-doc-file]').set_input_files(pdf("c.pdf")); await pg.wait_for_timeout(200)
+    await pg.click('[data-mc-creer="appel"]'); await pg.wait_for_timeout(1200)
+    await pg.click('dialog [data-doc="cv"] [data-doc-act="retirer"]'); await pg.wait_for_timeout(200)
+    await pg.click('[data-mc-creer="appel"]'); await pg.wait_for_url("**/candidat.html*", timeout=8000)
+    sid = [x["id"] for x in api("alice@yeita.fr", "GET", "candidats")[1] if x["data"]["identite"]["personne"] == "Sans CV"]
+    check("création (1.10 CA4 c) : CV en échec retiré, « Passer à l'appel » → appel ouvert, un seul candidat, aucun fichier", len(sid) == 1 and "etape=appel" in pg.url and fichiers(sid[0]) == [])
+    await ctx.unroute("**/fichiers?champ=*", panne)
+
+    # CA4 (d) : candidat créé, CV en échec, fermeture → bandeau sur la liste, candidat présent sans CV
+    pg = await ouvrir(ctx, C)
+    await ctx.route("**/fichiers?champ=*", panne)
+    await pg.click("#add-open"); await pg.fill("#mf-personne", "Bandeau Test")
+    await pg.locator('dialog [data-doc="cv"] [data-doc-file]').set_input_files(pdf("d.pdf")); await pg.wait_for_timeout(200)
+    await pg.click('[data-mc-creer="liste"]'); await pg.wait_for_timeout(1200)
+    await pg.click("dialog .mdlg-x"); await pg.wait_for_timeout(1500)
+    bd = await pg.locator(".mc-bandeau[role=alert]").all_inner_texts()
+    bid = [x["id"] for x in api("alice@yeita.fr", "GET", "candidats")[1] if x["data"]["identite"]["personne"] == "Bandeau Test"]
+    check("création (1.10 CA4 d) : fermeture après la création avec le CV en échec → bandeau annoncé « CV de Bandeau Test non enregistré », candidat présent sans CV",
+          any("CV de Bandeau Test non enregistré" in x for x in bd) and len(bid) == 1 and fichiers(bid[0]) == [] and await pg.locator("dialog.mdlg[open]").count() == 0, str(bd))
+    await ctx.unroute("**/fichiers?champ=*", panne)
+
+    # CA5 : deux recruteurs ; B dépose un CV avec une version périmée → 409, message, fichier retiré, page dans son état d'avant
+    cid = await nouveau(pg, "Deux Acteurs")
+    pb = await appel(ctxb, cid)
+    pa = await appel(ctx, cid)
+    await pa.fill("#i-telephone", "06 11 11 11 11"); await pa.locator("#i-telephone").blur(); await pa.wait_for_timeout(1200)
+    await pb.locator('#panel [data-doc="cv"] [data-doc-file]').set_input_files(pdf("b.pdf", "CV-BOB")); await pb.wait_for_timeout(2000)
+    mb = await pb.locator('#panel [data-doc="cv"] .docmsg').inner_text()
+    check("deux recruteurs (1.10 CA5) : dépôt de Bob sur une version périmée → « CV non enregistré : … modifiée par quelqu'un d'autre », fichier retiré, aucune référence, champ vide",
+          "CV non enregistré : la candidature a été modifiée par quelqu'un d'autre" in mb and fichiers(cid) == [] and ref(cid) is None
+          and await pb.locator('#panel [data-doc="cv"] [data-doc-act="fichier"]').count() == 1, mb)
+    await pb.reload(wait_until="networkidle")
+    await pb.fill("#i-telephone", "06 22 22 22 22"); await pb.locator("#i-telephone").blur(); await pb.wait_for_timeout(1200)
+    d = dossier(cid)["data"]
+    check("deux recruteurs (1.10 CA5) : après rechargement, la saisie de Bob est enregistrée, sans référence de fichier", d["identite"]["telephone"] == "06 22 22 22 22" and ref(cid) is None)
+    await pa.close(); await pb.close()
+
+    # CA6 (a) : PUT appliqué puis réponse coupée → le dossier référence un fichier présent
+    cid = await nouveau(pg, "Reponse Perdue")
+    pa = await appel(ctx, cid)
+    async def coupe(route):
+        if route.request.method == "PUT": await route.fetch(); await route.abort()
+        else: await route.continue_()
+    await ctx.route("**/api/candidats/" + cid, coupe)
+    await pa.locator('#panel [data-doc="cv"] [data-doc-file]').set_input_files(pdf("p.pdf")); await pa.wait_for_timeout(2000)
+    await ctx.unroute("**/api/candidats/" + cid, coupe)
+    r = ref(cid)
+    check("issue inconnue (1.10 CA6 a) : PUT appliqué, réponse coupée → rien n'est retiré, le dossier référence un fichier présent", r is not None and any(x["id"] == r for x in fichiers(cid)), str(fichiers(cid)))
+    await pa.close()
+
+    # CA6 (d) : import d'un export qui référence un fichier effacé → dossier sans référence
+    st, d = api("alice@yeita.fr", "GET", "candidats/" + cid)
+    data = d["data"]; fid = ref(cid)
+    data["identite"]["fichiers"] = {"cv": None, "portfolio": None}; api("alice@yeita.fr", "PUT", "candidats/" + cid, {"version": d["version"], "data": data})
+    api("alice@yeita.fr", "DELETE", "candidats/" + cid + "/fichiers/" + fid)
+    vieux = json.loads(json.dumps(data)); vieux["identite"]["fichiers"] = {"cv": {"id": fid, "nom": "p.pdf", "type": "application/pdf", "taille": 4000, "le": "x", "par": "Alice"}, "portfolio": None}
+    vieux["meta"]["modifieLe"] = "2031-01-01T00:00:00.000Z"
+    res = await pg.evaluate("t => STORE.importAll(t, 'fusion').then(r => r, e => ({erreur: e.message}))", json.dumps({"schema": "yeita-candidatures", "candidats": [vieux]}))
+    check("import (1.10 CA6 d, R21) : un export qui référence un fichier effacé → dossier mis à jour sans référence", ref(cid) is None and res.get("misAJour") == 1, str(res))
+
+    # CA7 (a) : retrait refusé (409) dans le bloc Infos et dans la fenêtre ⋯ → fichier présent et référencé, page dans son état d'avant
+    for ou in ("bloc", "fenêtre"):
+        cid = await nouveau(pg, "Retrait " + ou)
+        pa = await appel(ctx, cid)
+        zone = '#panel [data-doc="cv"]'
+        await pa.locator(zone + " [data-doc-file]").set_input_files(pdf("r.pdf")); await pa.wait_for_timeout(1500)
+        fid = ref(cid)
+        if ou == "fenêtre":
+            await pa.click("#c-side .morebtn"); await pa.click("[data-mc=fiche]"); await pa.wait_for_timeout(300); zone = 'dialog [data-doc="cv"]'
+        refus = lambda r: asyncio.ensure_future(json_err(409, "conflit", "conflit simulé")(r)) if r.request.method == "PUT" else asyncio.ensure_future(r.continue_())
+        await ctx.route("**/api/candidats/" + cid, refus)
+        await pa.click(zone + ' [data-doc-act="retirer"]'); await pa.wait_for_timeout(1200)
+        await ctx.unroute("**/api/candidats/" + cid, refus)
+        check("retrait refusé (1.10 CA7 a, %s) : fichier présent et référencé, le champ montre encore le fichier" % ou,
+              fid and ref(cid) == fid and any(x["id"] == fid for x in fichiers(cid)) and await pa.locator(zone + ' [data-doc-act="retirer"]').count() == 1)
+        ordre = []
+        pa.on("request", lambda q: ordre.append(q.method + " " + ("fichier" if "/fichiers/" in q.url else "dossier")) if "/api/candidats/" in q.url and q.method in ("PUT", "DELETE") else None)
+        await pa.click(zone + ' [data-doc-act="retirer"]'); await pa.wait_for_timeout(1500)
+        check("retrait réussi (1.10 CA7 a, %s) : PUT du dossier puis DELETE du fichier ; plus en base" % ou, ordre[:2] == ["PUT dossier", "DELETE fichier"] and fichiers(cid) == [] and ref(cid) is None, str(ordre))
+        await pa.close()
+
+    # CA7 (a) : pendant un envoi ralenti, les commandes du champ sont désactivées et n'envoient rien
+    cid = await nouveau(pg, "Envoi Lent")
+    pa = await appel(ctx, cid)
+    envoi_lent = lambda r: asyncio.ensure_future(apres(2000, r))
+    await ctx.route("**/fichiers?champ=*", envoi_lent)
+    posts = []
+    pa.on("request", lambda q: posts.append(q.url) if q.method == "POST" else None)
+    await pa.locator('#panel [data-doc="cv"] [data-doc-file]').set_input_files(pdf("l.pdf")); await pa.wait_for_timeout(300)
+    btns = await pa.evaluate("Array.from(document.querySelectorAll('#panel [data-doc=\"cv\"] button')).map(b => b.disabled)")
+    await pa.evaluate("document.querySelectorAll('#panel [data-doc=\"cv\"] button').forEach(b => b.click())")
+    # CA7 (c) : saisie dans un autre champ pendant le dépôt ralenti
+    await pa.fill("#i-telephone", "06 33 33 33 33"); await pa.locator("#i-telephone").blur()
+    await pa.wait_for_timeout(3500)
+    await ctx.unroute("**/fichiers?champ=*", envoi_lent)
+    d = dossier(cid)["data"]
+    check("envoi ralenti (1.10 CA7 a) : boutons du champ disabled, aucun autre envoi", btns and all(btns) and len(posts) == 1, "%s · %d POST" % (btns, len(posts)))
+    check("envoi ralenti (1.10 CA7 c) : saisie faite pendant le dépôt → fichier référencé et saisie en base, aucun conflit affiché",
+          ref(cid) is not None and d["identite"]["telephone"] == "06 33 33 33 33" and "modifiée par quelqu'un d'autre" not in await bandeau(pa))
+    # CA18 : focus rendu au champ, zone de message présente
+    focus = await pa.evaluate("document.activeElement && document.activeElement.closest('[data-doc=\"cv\"]') ? document.activeElement.textContent : ''")
+    msg_affiche = await pa.evaluate("getComputedStyle(document.querySelector('#panel [data-doc=\"portfolio\"] .docmsg')).display")
+    check("accessibilité (1.10 CA18) : après le dépôt, le focus est sur le champ (« Ouvrir ») ; la zone de message vide reste dans la page (aria-live)", "Ouvrir" in focus and msg_affiche != "none", "%s · %s" % (focus, msg_affiche))
+    await pa.close()
+
+    # CA7 (b) : retrait puis dépôt en échec réseau, saisie différée, départ de la page
+    cid = await nouveau(pg, "Depart Page")
+    pa = await appel(ctx, cid)
+    await pa.locator('#panel [data-doc="cv"] [data-doc-file]').set_input_files(pdf("q.pdf")); await pa.wait_for_timeout(1500)
+    fid = ref(cid)
+    reseau = lambda r: asyncio.ensure_future(r.abort()) if r.request.method == "PUT" else asyncio.ensure_future(r.continue_())
+    await ctx.route("**/api/candidats/" + cid, reseau)
+    await pa.click('#panel [data-doc="cv"] [data-doc-act="retirer"]'); await pa.wait_for_timeout(800)
+    await ctx.unroute("**/api/candidats/" + cid, reseau)
+    await pa.fill("#i-telephone", "06 44 44 44 44"); await pa.locator("#i-telephone").blur(); await pa.wait_for_timeout(100)
+    await pa.goto(C, wait_until="networkidle"); await pa.wait_for_timeout(800)
+    d = dossier(cid)["data"]
+    check("retrait en échec réseau puis saisie et départ (1.10 CA7 b) : fichier présent et référencé, saisie enregistrée", ref(cid) == fid and any(x["id"] == fid for x in fichiers(cid)) and d["identite"]["telephone"] == "06 44 44 44 44", "%s · %s" % (ref(cid), d["identite"].get("telephone")))
+    await pa.close()
+    cid = await nouveau(pg, "Depot Echec")
+    pa = await appel(ctx, cid)
+    await ctx.route("**/api/candidats/" + cid, reseau)
+    await pa.locator('#panel [data-doc="cv"] [data-doc-file]').set_input_files(pdf("s.pdf")); await pa.wait_for_timeout(1200)
+    await ctx.unroute("**/api/candidats/" + cid, reseau)
+    await pa.fill("#i-telephone", "06 55 55 55 55"); await pa.locator("#i-telephone").blur(); await pa.wait_for_timeout(100)
+    await pa.goto(C, wait_until="networkidle"); await pa.wait_for_timeout(800)
+    d = dossier(cid)["data"]
+    check("dépôt en échec réseau puis saisie et départ (1.10 CA7 b) : aucune référence au fichier, saisie enregistrée", ref(cid) is None and d["identite"]["telephone"] == "06 55 55 55 55", str(d["identite"].get("fichiers")))
+    await pa.close()
+
+    # CA8 : 413 de nginx (HTML) sur l'envoi d'un fichier → message du serveur ; sur un PUT de dossier → message inchangé
+    cid = await nouveau(pg, "Nginx")
+    pa = await appel(ctx, cid)
+    html413 = lambda r: asyncio.ensure_future(r.fulfill(status=413, content_type="text/html", body="<html><head><title>413 Request Entity Too Large</title></head></html>"))
+    await ctx.route("**/fichiers?champ=*", html413)
+    await pa.locator('#panel [data-doc="cv"] [data-doc-file]').set_input_files(pdf("n.pdf")); await pa.wait_for_timeout(1000)
+    mn = await pa.locator('#panel [data-doc="cv"] .docmsg').inner_text()
+    await ctx.unroute("**/fichiers?champ=*", html413)
+    await pa.reload(wait_until="networkidle")
+    check("nginx (1.10 CA8) : 413 HTML sur l'envoi → « Le serveur refuse ce fichier. Colle plutôt un lien et préviens Sofiane ou Léo. »", mn == "Le serveur refuse ce fichier. Colle plutôt un lien et préviens Sofiane ou Léo.", mn)
+    put413 = lambda r: asyncio.ensure_future(r.fulfill(status=413, content_type="text/html", body="<html>413</html>")) if r.request.method == "PUT" else asyncio.ensure_future(r.continue_())
+    await ctx.route("**/api/candidats/" + cid, put413)
+    await pa.fill("#i-telephone", "06 66 66 66 66"); await pa.locator("#i-telephone").blur(); await pa.wait_for_timeout(1200)
+    await ctx.unroute("**/api/candidats/" + cid, put413)
+    tout = await pa.evaluate("document.body.innerText")
+    check("nginx (1.10 CA8) : 413 HTML sur un PUT de dossier → pas le message des fichiers", "Le serveur refuse ce fichier" not in tout and "Colle plutôt un lien et préviens" not in tout)
+    await pa.close()
+
+    # CA11 : trace dans l'historique, seulement après un enregistrement réussi
+    cid = await nouveau(pg, "Historique")
+    pa = await appel(ctx, cid)
+    z = '#panel [data-doc="portfolio"]'
+    await pa.locator(z + " [data-doc-file]").set_input_files(pdf("h.pdf")); await pa.wait_for_timeout(1500)
+    await pa.click(z + ' [data-doc-act="retirer"]'); await pa.wait_for_timeout(1500)
+    await pa.click(z + ' [data-doc-act="lien"]'); await pa.fill(z + " [data-doc-url]", "https://exemple.design"); await pa.keyboard.press("Enter"); await pa.wait_for_timeout(1200)
+    await pa.click(z + ' [data-doc-act="retirer"]'); await pa.wait_for_timeout(1200)
+    await ctx.route("**/api/candidats/" + cid, refus)
+    await pa.locator(z + " [data-doc-file]").set_input_files(pdf("h2.pdf")); await pa.wait_for_timeout(1500)
+    await ctx.unroute("**/api/candidats/" + cid, refus)
+    actions = [h.get("action") for h in dossier(cid)["data"]["historique"] if h.get("type") == "fichier"]
+    check("historique (1.10 CA11) : dépôt, retrait, lien, retrait de lien tracés ; rien pour un dépôt refusé", actions == ["depot", "retrait", "lien", "retraitLien"], str(actions))
+    await pa.close()
+
+    # CA15 : un lien javascript: (import, dossier ancien) n'est jamais cliquable
+    cid = await nouveau(pg, "Lien Hostile")
+    st, d = api("alice@yeita.fr", "GET", "candidats/" + cid); d["data"]["identite"]["cv"] = "javascript:document.title='PIEGE'"
+    api("alice@yeita.fr", "PUT", "candidats/" + cid, {"version": d["version"], "data": d["data"]})
+    pa = await appel(ctx, cid)
+    dialogues = []; pa.on("dialog", lambda x: dialogues.append(x.message))
+    n_js = await pa.locator('a[href^="javascript:" i]').count()
+    txt = await pa.locator('#panel [data-doc="cv"]').inner_text()
+    await pa.locator('#panel [data-doc="cv"] .doclien').click(); await pa.wait_for_timeout(300)
+    check("lien hostile (1.10 CA15, R20) : « javascript: » affiché en texte, aucun lien cliquable, aucun script", n_js == 0 and "javascript:" in txt and await pa.title() != "PIEGE" and not dialogues, txt)
+    await pa.close()
+
+    await ctx.close(); await ctxb.close()
+    shutil.rmtree(dfic, ignore_errors=True)
+
+
+# --- QA 1.10 : ce que les contrôles des tâches ne couvrent pas (deux recruteurs réels avec un DELETE d'un fichier cité,
+#     panne réelle de l'API, clavier seul, lecteur d'écran, lecture seule, 375 px et 1360 px, repère après un retrait) ---
+def relancer_api(base):
+    env = dict(os.environ, HOST="127.0.0.1", PORT=str(PORT), DB_PATH=os.path.join(base, "e2e.sqlite"), DEV_STATIC=SITE, NODE_ENV="", DEV_EMAIL="alice@yeita.fr")
+    journal = open(os.path.join(base, "api.log"), "a")
+    p = subprocess.Popen(["node", os.path.join(RACINE, "api", "server.js")], env=env, stdout=journal, stderr=subprocess.STDOUT)
+    fin = time.time() + 10
+    while time.time() < fin:
+        try:
+            if urllib.request.urlopen(B + "api/sante", timeout=1).status == 200: return p
+        except Exception: time.sleep(0.2)
+    p.kill(); raise SystemExit("FAIL l'API ne redémarre pas sur %s en 10 s" % B)
+
+async def qa_110(b, base, etat):
+    dfic = tempfile.mkdtemp()
+    def pdf(nom, marque="x", n=4000):
+        f = os.path.join(dfic, nom); open(f, "wb").write(b"%PDF-1.4\n" + marque.encode() + b" " + b"x" * n); return f
+    def dossier(cid): return api("alice@yeita.fr", "GET", "candidats/" + cid)[1]
+    def fichiers(cid): return api("alice@yeita.fr", "GET", "candidats/" + cid + "/fichiers")[1]
+    def ref(cid, champ="cv"): return ((dossier(cid)["data"]["identite"].get("fichiers") or {}).get(champ) or {}).get("id")
+    async def nouveau(pg, nom):
+        return await pg.evaluate("n => STORE.createCandidate({personne: n}, 'Alice').then(c => c.id)", nom)
+    async def appel(ctx, cid): return await ouvrir(ctx, C + "candidat.html?id=" + cid + "&etape=appel")
+    async def deposer(pg, champ, f, attente=1500):
+        await pg.locator('#panel [data-doc="%s"] [data-doc-file]' % champ).set_input_files(f); await pg.wait_for_timeout(attente)
+    def bruts():
+        return b"".join(open(os.path.join(base, "e2e.sqlite" + s), "rb").read() for s in ("", "-wal", "-shm") if os.path.exists(os.path.join(base, "e2e.sqlite" + s)))
+    Z = '#panel [data-doc="cv"]'
+    ctx = await contexte(b, "alice@yeita.fr"); ctxb = await contexte(b, "bob@yeita.fr"); ctxl = await contexte(b, "lea@yeita.fr")
+    pg = await ouvrir(ctx, C)
+
+    # Deux recruteurs réels : Bob retire, depuis sa page, un CV que le dossier enregistré par Alice cite → 409 fichier-cite, dossier intact
+    cid = await nouveau(pg, "QA Cite")
+    pa = await appel(ctx, cid)
+    await deposer(pa, "cv", pdf("cite.pdf", "QA-CITE"))
+    fid = ref(cid); avant = dossier(cid)
+    pb = await appel(ctxb, cid)
+    r = await pb.evaluate("u => fetch(u, {method: 'DELETE'}).then(r => r.json().then(j => [r.status, j.code]))", "../api/candidats/%s/fichiers/%s" % (cid, fid))
+    apres = dossier(cid)
+    check("QA 1.10, deux recruteurs : DELETE par Bob d'un CV cité par le dossier d'Alice → 409 fichier-cite, dossier intact (version, données), CV présent",
+          r == [409, "fichier-cite"] and apres == avant and any(x["id"] == fid for x in fichiers(cid)), str(r))
+    # Page de Bob périmée : Alice retire le CV et en dépose un autre ; Bob clique « Retirer » sur l'ancien → refus, aucun DELETE, le nouveau intact
+    await pa.click(Z + ' [data-doc-act="retirer"]'); await pa.wait_for_timeout(1500)
+    await deposer(pa, "cv", pdf("nouveau.pdf", "QA-NOUVEAU"))
+    nouveau_id = ref(cid)
+    req_b = []
+    pb.on("request", lambda q: req_b.append(q.method + " " + q.url) if "/api/candidats/" in q.url and q.method in ("PUT", "DELETE") else None)
+    await pb.click(Z + ' [data-doc-act="retirer"]'); await pb.wait_for_timeout(1500)
+    mb = await pb.locator(Z + " .docmsg").inner_text()
+    check("QA 1.10, deux recruteurs : « Retirer » sur une page périmée → refus annoncé, aucun DELETE, le CV déposé entre-temps reste cité et présent, champ de Bob dans son état d'avant",
+          nouveau_id and nouveau_id != fid and not any(x.startswith("DELETE") for x in req_b) and ref(cid) == nouveau_id and any(x["id"] == nouveau_id for x in fichiers(cid))
+          and "modifiée par quelqu'un d'autre" in mb and await pb.locator(Z + ' [data-doc-act="retirer"]').count() == 1, "%s · %s" % (req_b, mb))
+    await pb.close()
+
+    # Repère dans un CV : absent des fichiers bruts de la base après un retrait fait dans la page (R10, sans maintenance)
+    await pa.click(Z + ' [data-doc-act="retirer"]'); await pa.wait_for_timeout(1500)
+    check("QA 1.10, repère (CA10) : après « Retirer » dans la page, plus de CV en base ni dans les fichiers bruts (base, WAL)",
+          fichiers(cid) == [] and b"QA-NOUVEAU" not in bruts() and b"QA-CITE" not in bruts(), str(fichiers(cid)))
+
+    # Nom de fichier hostile dans le dossier (dossier ancien, import) : affiché en texte
+    await deposer(pa, "cv", pdf("h.pdf"))
+    st, d = api("alice@yeita.fr", "GET", "candidats/" + cid)
+    d["data"]["identite"]["fichiers"]["cv"]["nom"] = "<img src=x onerror=\"document.title='PIEGE'\">.pdf"
+    api("alice@yeita.fr", "PUT", "candidats/" + cid, {"version": d["version"], "data": d["data"]})
+    await pa.reload(wait_until="networkidle"); await pa.wait_for_timeout(300)
+    check("QA 1.10, nom hostile : affiché en texte, aucun élément créé, aucun script", await pa.locator(Z + " img").count() == 0 and "<img" in await pa.locator(Z).inner_text() and await pa.title() != "PIEGE")
+    await pa.close()
+
+    # Rôle lecture (Léa) : « Ouvrir » sert le CV ; aucune action sur les documents (bug B1 de la QA, corrigé) ; l'API refuse de toute façon
+    pl = await appel(ctxl, cid)
+    href = await pl.locator(Z + " a").first.get_attribute("href") if await pl.locator(Z + " a").count() else ""
+    lu = await pl.evaluate("u => fetch(u).then(r => r.status)", href) if href else 0
+    actions = await pl.locator('#panel [data-doc] [data-doc-act]').count()
+    fid_l = ref(cid)
+    refus = api("lea@yeita.fr", "DELETE", "candidats/" + cid + "/fichiers/" + fid_l)[0]
+    check("QA 1.10, rôle lecture : « Ouvrir » sert le CV (200), aucune action sur les documents (Déposer, Coller, Retirer, Modifier) ; un DELETE direct est refusé (403), CV intact",
+          lu == 200 and actions == 0 and refus == 403 and ref(cid) == fid_l and len(fichiers(cid)) == 1, "%s | actions %d | DELETE %s" % (lu, actions, refus))
+    await pl.close()
+
+    # Clavier seul : dépôt (Entrée sur « Déposer un fichier »), retrait, lien ; focus rendu au champ ; noms annoncés
+    cid = await nouveau(pg, "QA Clavier")
+    pa = await appel(ctx, cid)
+    async def tab_vers(sel, n=60):
+        for _ in range(n):
+            await pa.keyboard.press("Tab")
+            if await pa.evaluate("s => document.activeElement && document.activeElement.matches(s)", sel): return True
+        return False
+    await pa.locator("#i-telephone").focus()
+    vu = await tab_vers(Z + ' [data-doc-act="fichier"]')
+    try:
+        async with pa.expect_file_chooser(timeout=5000) as fc:
+            await pa.keyboard.press("Enter")
+        await (await fc.value).set_files(pdf("Clavier CV.pdf")); await pa.wait_for_timeout(1500)
+    except Exception as e:
+        vu = "%s · pas de choix de fichier (%s) · focus : %s" % (vu, type(e).__name__, await pa.evaluate("document.activeElement && document.activeElement.outerHTML.slice(0, 120)"))
+    f1 = await pa.evaluate("document.activeElement.textContent")
+    noms = [await pa.get_by_role("link", name="Ouvrir Clavier CV.pdf, nouvel onglet").count(), await pa.get_by_role("button", name="Retirer Clavier CV.pdf").count()]
+    check("QA 1.10, clavier : Tab jusqu'à « Déposer un fichier », Entrée ouvre le choix du fichier ; dépôt fait, focus sur « Ouvrir »",
+          vu is True and ref(cid) is not None and f1.startswith("Ouvrir"), "%s · %s" % (vu, f1))
+    check("QA 1.10, lecteur d'écran : « Ouvrir » annonce le nom et « nouvel onglet », « Retirer » le nom", noms == [1, 1], str(noms))
+    await pa.keyboard.press("Tab")
+    f2 = await pa.evaluate("document.activeElement.textContent")
+    await pa.keyboard.press("Enter"); await pa.wait_for_timeout(1500)
+    f3 = await pa.evaluate("document.activeElement.textContent")
+    check("QA 1.10, clavier : Tab vers « Retirer », Entrée retire ; focus sur « Déposer un fichier »", f2.startswith("Retirer") and ref(cid) is None and fichiers(cid) == [] and f3 == "Déposer un fichier", "%s → %s" % (f2, f3))
+    await pa.keyboard.press("Tab")
+    f4 = await pa.evaluate("document.activeElement.textContent")
+    await pa.keyboard.press("Enter"); await pa.wait_for_timeout(200)
+    dans = await pa.evaluate("document.activeElement.matches('[data-doc-url]')")
+    await pa.keyboard.type("https://clavier.example/cv"); await pa.keyboard.press("Enter"); await pa.wait_for_timeout(1500)
+    f5 = await pa.evaluate("document.activeElement.textContent")
+    check("QA 1.10, clavier : « Coller un lien », Entrée, saisie, Entrée → lien enregistré, focus sur le lien", f4 == "Coller un lien" and dans and dossier(cid)["data"]["identite"]["cv"] == "https://clavier.example/cv" and "clavier.example/cv" in f5, "%s · %s · %s" % (f4, dans, f5))
+    await pa.close()
+
+    # Fenêtre ⋯ « Fiche du candidat » : impossible à fermer pendant un envoi (Échap, croix, clic à côté), fermée après
+    cid = await nouveau(pg, "QA Fenetre")
+    pa = await appel(ctx, cid)
+    await pa.click("#c-side .morebtn"); await pa.click("[data-mc=fiche]"); await pa.wait_for_timeout(300)
+    async def lent_envoi(r): await asyncio.sleep(2.5); await r.continue_()
+    await ctx.route("**/fichiers?champ=*", lent_envoi)
+    await pa.locator('dialog [data-doc="cv"] [data-doc-file]').set_input_files(pdf("fenetre.pdf")); await pa.wait_for_timeout(300)
+    await pa.keyboard.press("Escape"); await pa.wait_for_timeout(100)
+    x_off = await pa.evaluate("document.querySelector('dialog .mdlg-x') ? document.querySelector('dialog .mdlg-x').disabled : null")
+    await pa.evaluate("document.querySelector('dialog .mdlg-x') && document.querySelector('dialog .mdlg-x').click()")
+    await pa.mouse.click(3, 3); await pa.wait_for_timeout(100)
+    pendant = await pa.locator("dialog.mdlg[open]").count()
+    await pa.wait_for_timeout(3500)
+    await ctx.unroute("**/fichiers?champ=*", lent_envoi)
+    depose = ref(cid) is not None
+    await pa.keyboard.press("Escape"); await pa.wait_for_timeout(300)
+    check("QA 1.10, fenêtre ⋯ : pendant un envoi ralenti, Échap, la croix (désactivée) et un clic à côté ne ferment pas ; après le dépôt, Échap ferme",
+          pendant == 1 and x_off is True and depose and await pa.locator("dialog.mdlg[open]").count() == 0, "ouverte pendant : %s · croix désactivée : %s · déposé : %s" % (pendant, x_off, depose))
+    await pa.close()
+
+    # 375 px : champ rempli (nom de fichier long, lien long), fenêtre de création en mode serveur, sans défilement horizontal
+    cid = await nouveau(pg, "QA Telephone")
+    pa = await appel(ctx, cid)
+    await deposer(pa, "cv", pdf("Curriculum vitae de Maximilien-Alexandre de La Tour d'Auvergne version finale relue 2026 octobre.pdf"))
+    st, d = api("alice@yeita.fr", "GET", "candidats/" + cid); d["data"]["identite"]["portfolio"] = "https://portfolio.example.com/" + "projets-et-etudes-de-cas/" * 6
+    api("alice@yeita.fr", "PUT", "candidats/" + cid, {"version": d["version"], "data": d["data"]})
+    await pa.close()
+    m = await b.new_context(viewport={"width": 375, "height": 812}, extra_http_headers={"X-Forwarded-Email": "alice@yeita.fr"}, has_touch=True, is_mobile=True)
+    m.set_default_timeout(ECHEANCE)
+    await m.route("https://fonts.googleapis.com/**", lambda r: r.fulfill(body="", content_type="text/css"))
+    pm = await appel(m, cid)
+    larg = await pm.evaluate("""() => ({page: document.documentElement.scrollWidth, acts: [...document.querySelectorAll('#panel [data-doc] .docacts a, #panel [data-doc] .docacts button')].map(e => Math.round(e.getBoundingClientRect().right))})""")
+    check("QA 1.10, 375 px : appel avec un CV au nom long et un lien long, sans défilement horizontal, « Ouvrir », « Modifier », « Retirer » dans l'écran",
+          larg["page"] <= 375 and len(larg["acts"]) == 4 and all(x <= 375 for x in larg["acts"]), str(larg))
+    pm2 = await ouvrir(m, C)
+    await pm2.click("#add-open"); await pm2.wait_for_timeout(300)
+    dl = await pm2.evaluate("""() => { const d = document.querySelector('dialog'); const bs = [...d.querySelectorAll('[data-doc-act="fichier"], [data-doc-act="lien"], [data-mc-creer]')];
+        return {page: document.documentElement.scrollWidth, dlg: d.scrollWidth - d.clientWidth, n: bs.length, hors: bs.filter(e => e.getBoundingClientRect().right > innerWidth || e.getBoundingClientRect().width < 24).length}; }""")
+    check("QA 1.10, 375 px : fenêtre de création en mode serveur (« Déposer un fichier », « Coller un lien », pied) sans défilement horizontal",
+          dl["page"] <= 375 and dl["dlg"] <= 0 and dl["n"] == 6 and dl["hors"] == 0, str(dl))
+    await m.close()
+
+    # 1360 px : Notes ouvertes à côté, le champ du CV reste entier, à gauche du panneau, ses boutons cliquables
+    w = await b.new_context(viewport={"width": 1360, "height": 900}, extra_http_headers={"X-Forwarded-Email": "alice@yeita.fr"})
+    w.set_default_timeout(ECHEANCE)
+    await w.route("https://fonts.googleapis.com/**", lambda r: r.fulfill(body="", content_type="text/css"))
+    pw = await appel(w, cid)
+    await pw.click("#np-toggle"); await pw.wait_for_timeout(400)
+    g = await pw.evaluate("""() => { const np = document.getElementById('np').getBoundingClientRect(); const acts = [...document.querySelectorAll('#panel [data-doc] .docacts a, #panel [data-doc] .docacts button')];
+        return {np: Math.round(np.left), droite: Math.max(...acts.map(e => Math.round(e.getBoundingClientRect().right))), page: document.documentElement.scrollWidth,
+                dessus: acts.every(e => { e.scrollIntoView({block: 'center'}); const r = e.getBoundingClientRect(); const x = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return x && (x === e || e.contains(x)); })}; }""")
+    check("QA 1.10, 1360 px : Notes ouvertes à côté, les commandes des champs CV et Portfolio à gauche du panneau, visibles et cliquables, sans défilement horizontal",
+          g["droite"] <= g["np"] and g["page"] <= 1360 and g["dessus"], str(g))
+    await w.close()
+
+    # Panne réelle : l'API s'arrête (processus arrêté) ; dépôt et retrait échouent sans changer le champ ; au redémarrage, la base est cohérente
+    cid = await nouveau(pg, "QA Panne")
+    pa = await appel(ctx, cid)
+    await deposer(pa, "cv", pdf("panne.pdf", "QA-PANNE"))
+    fid = ref(cid)
+    etat["proc"].send_signal(signal.SIGTERM); etat["proc"].wait(timeout=5)
+    await deposer(pa, "portfolio", pdf("pf.pdf"), 2500)
+    mp = await pa.locator('#panel [data-doc="portfolio"] .docmsg').inner_text()
+    vide_pf = await pa.locator('#panel [data-doc="portfolio"] [data-doc-act="fichier"]').count() == 1
+    await pa.click(Z + ' [data-doc-act="retirer"]'); await pa.wait_for_timeout(2500)
+    mc = await pa.locator(Z + " .docmsg").inner_text()
+    garde = await pa.locator(Z + ' [data-doc-act="retirer"]').count() == 1
+    etat["proc"] = relancer_api(base)
+    check("QA 1.10, panne réelle (API arrêtée) : dépôt du portfolio → message réseau, champ vide ; retrait du CV → message réseau, CV toujours affiché",
+          "La base ne répond pas" in mp and vide_pf and "La base ne répond pas" in mc and garde, "%s | %s" % (mp, mc))
+    await pa.fill("#i-telephone", "06 77 77 77 77"); await pa.locator("#i-telephone").blur(); await pa.wait_for_timeout(1500)
+    d = dossier(cid)["data"]
+    check("QA 1.10, panne réelle, après le redémarrage : la saisie suivante est enregistrée, le CV toujours référencé et présent, aucun portfolio",
+          d["identite"]["telephone"] == "06 77 77 77 77" and ref(cid) == fid and [x["id"] for x in fichiers(cid)] == [fid] and ref(cid, "portfolio") is None,
+          "%s · %s · %s" % (d["identite"].get("telephone"), d["identite"].get("fichiers"), fichiers(cid)))
+    await pa.close()
+
+    await ctx.close(); await ctxb.close(); await ctxl.close()
+    shutil.rmtree(dfic, ignore_errors=True)
+
+
 async def principal():
     base = tempfile.mkdtemp(prefix="e2e-serveur-")
     proc = lancer_api(base)
@@ -301,14 +728,38 @@ async def principal():
                   and await pg.locator('input[name="imp-mode"][value="fusion"]').count() == 1)
 
             # --- Création puis rechargement (CA4) ---
-            await pg.click("#add-open"); await pg.fill("#a-personne", "Repère Zéphyrin")
-            await pg.click('#add-form button[value="liste"]'); await pg.wait_for_timeout(600)
+            await pg.click("#add-open"); await pg.fill("#mf-personne", "Repère Zéphyrin")
+            await pg.click('[data-mc-creer="liste"]'); await pg.wait_for_timeout(600)
             await pg.reload(wait_until="networkidle")
             check("création puis rechargement : la candidature est là", await pg.locator(".kc", has_text="Repère Zéphyrin").count() == 1)
             st, liste = api("alice@yeita.fr", "GET", "candidats")
             cible = [x for x in liste if x["data"]["candidat"]["nom"] == "Repère Zéphyrin"]
             check("création : lue depuis l'API, au nom d'Alice dans l'historique (CA10)", st == 200 and len(cible) == 1 and cible[0]["data"]["historique"][0]["par"] == "Alice")
             cid = cible[0]["id"] if cible else ""
+
+            # --- CV en fichier, portfolio en lien (1.10) ---
+            pf = await ouvrir(alice, C + "candidat.html?id=" + cid + "&etape=appel")
+            if not await pf.locator('#panel [data-doc="cv"]').count():
+                await pf.click("#c-side .morebtn"); await pf.click("[data-mc=fiche]"); await pf.wait_for_timeout(300)
+            zone = '[data-doc="cv"]'
+            check("dépôt : « Déposer un fichier » et « Coller un lien » dans le champ CV", await pf.locator(zone + ' [data-doc-act="fichier"]').first.is_visible() and await pf.locator(zone + ' [data-doc-act="lien"]').first.is_visible())
+            dpdf = tempfile.mkdtemp(); fpdf = os.path.join(dpdf, "CV Zéphyrin <final>.pdf"); open(fpdf, "wb").write(b"%PDF-1.4\nMARQUEUR-CV-ZEPHYRIN " + b"x" * 5000)
+            await pf.locator(zone + " [data-doc-file]").first.set_input_files(fpdf); await pf.wait_for_timeout(1200)
+            st, fl = api("alice@yeita.fr", "GET", "candidats/" + cid + "/fichiers")
+            txt = await pf.locator(zone).first.inner_text()
+            check("dépôt du CV : dans l'API (nom nettoyé), affiché avec son nom, sa taille, Ouvrir et Retirer", st == 200 and len(fl) == 1 and fl[0]["nom"] == "CV Zéphyrin final.pdf" and "CV Zéphyrin final.pdf" in txt and "Ko" in txt and "Ouvrir" in txt and "Retirer" in txt, str(fl))
+            href = await pf.locator(zone + " a.btn").first.get_attribute("href")
+            ouvert = await pf.evaluate("u => fetch(u).then(r => [r.status, r.headers.get('content-type'), r.headers.get('x-content-type-options')])", href)
+            check("Ouvrir : le fichier est servi par l'API, en PDF, nosniff", ouvert == [200, "application/pdf", "nosniff"], str(ouvert))
+            st, d = api("alice@yeita.fr", "GET", "candidats/" + cid)
+            check("dépôt : tracé dans l'historique du dossier, fichier noté sur la fiche", d["data"]["identite"]["fichiers"]["cv"]["nom"] == "CV Zéphyrin final.pdf" and any(h.get("type") == "fichier" and h.get("action") == "depot" for h in d["data"]["historique"]))
+            await pf.locator('[data-doc="portfolio"] [data-doc-act="lien"]').first.click(); await pf.locator('[data-doc="portfolio"] [data-doc-url]').fill("https://zephyrin.design")
+            await pf.keyboard.press("Enter"); await pf.wait_for_timeout(900)
+            if await pf.locator("dialog.mdlg").count(): await pf.click(".mdlg-a [data-mc-close]"); await pf.wait_for_timeout(600)
+            st, d = api("alice@yeita.fr", "GET", "candidats/" + cid)
+            check("portfolio en lien : enregistré, tracé", d["data"]["identite"]["portfolio"] == "https://zephyrin.design" and any(h.get("action") == "lien" for h in d["data"]["historique"]))
+            await pf.close()
+            await pg.reload(wait_until="networkidle")
             check("import en mode serveur : texte d'export « copie » (CA14)", "Un export est une copie" in (await pg.locator("#lastexp").text_content() or ""))
             check("création : rien dans yeita-dossiers", await pg.evaluate("localStorage.getItem('yeita-dossiers')") is None)
             options = await pg.evaluate("QUI.equipe()")
@@ -407,6 +858,7 @@ async def principal():
             pa = await ouvrir(alice, C + "candidat.html?id=" + cid)
             await pa.click("#c-side .morebtn"); await pa.click("[data-mc=supprimer]"); await pa.click("[data-mc-del]"); await pa.wait_for_timeout(800)
             check("suppression : DELETE, plus dans l'API", api("alice@yeita.fr", "GET", "candidats/" + cid)[0] == 404)
+            check("suppression : ses fichiers partent avec lui (1.10)", api("alice@yeita.fr", "GET", "candidats/" + cid + "/fichiers")[0] == 404)
             await tel(bc, "0655555555"); await be.fill("#f-def", "Après suppression"); await bc.wait_for_timeout(1000)
             check("suppression : saisie chez Bob → aucune recréation, bandeau", api("bob@yeita.fr", "GET", "candidats/" + cid)[0] == 404 and "modifiée" in await bandeau(bc) and "modifiée" in await bandeau(be))
             tb = await ouvrir(bob, C)
@@ -416,7 +868,7 @@ async def principal():
             journal = open(os.path.join(base, "api.log")).read()
             check("suppression : le repère n'est pas dans le journal de l'API", "Zéphyrin" not in journal and "Perçu repère" not in journal)
             bruts = b"".join(open(os.path.join(base, f), "rb").read() for f in os.listdir(base) if f.startswith("e2e.sqlite"))
-            check("suppression : le repère n'est plus dans les fichiers de la base (sans VACUUM)", "Zéphyrin".encode() not in bruts and b"Perc" not in bruts)
+            check("suppression : le repère n'est plus dans les fichiers de la base (sans VACUUM)", "Zéphyrin".encode() not in bruts and b"Perc" not in bruts and b"MARQUEUR-CV-ZEPHYRIN" not in bruts)
 
             # --- Bandeau jaune des autres pages, sur un dossier existant (1.4, CA1) ---
             ti = await ouvrir(alice, C)
@@ -454,7 +906,8 @@ async def principal():
                 ctx, pg, req = await demarrage(fn)
                 check("démarrage %s : bandeau, aucune lecture" % nom, attendu in await bandeau(pg) and not any("/api/candidats" in u for u in req) and await pg.evaluate("DEMARRAGE.mode()") == "bloque")
                 if nom == "502 HTML":
-                    await pg.click("#add-open"); await pg.fill("#a-personne", "Pendant Panne"); await pg.click('#add-form button[value="liste"]'); await pg.wait_for_timeout(500)
+                    await pg.click("#add-open"); await pg.wait_for_timeout(200)
+                    if await pg.locator("#mf-personne").count(): await pg.fill("#mf-personne", "Pendant Panne"); await pg.click('[data-mc-creer="liste"]'); await pg.wait_for_timeout(500)
                     check("mode bloqué : « Nouvelle candidature » n'écrit rien, ni API ni yeita-dossiers (CA3)",
                           await pg.evaluate("localStorage.getItem('yeita-dossiers')") is None and not any(x["data"]["candidat"]["nom"] == "Pendant Panne" for x in api("alice@yeita.fr", "GET", "candidats")[1]))
                     await pg.evaluate("document.getElementById('demo-load').click(); document.getElementById('empty-demo').click()"); await pg.wait_for_timeout(800)
@@ -469,6 +922,11 @@ async def principal():
             n_moi = len([u for u in req if u.endswith("/api/moi")])
             check("démarrage 401 : un rechargement, puis bandeau de session sans nouveau rechargement", n_moi == 2 and "Ta session n'a pas pu être vérifiée" in await bandeau(pg), "appels /api/moi : %d" % n_moi)
             await ctx.close()
+
+            await fichiers_110(b)
+            etat = {"proc": proc}
+            try: await qa_110(b, base, etat)
+            finally: proc = etat["proc"]
 
             await deploiement(b, base, dict(os.environ, DB_PATH=os.path.join(base, "e2e.sqlite")))
 

@@ -3,10 +3,12 @@
    avec secure_delete, ni un dossier supprimé ni une version remplacée ne restent lisibles dans les fichiers (spec R21). */
 import { ErreurHttp } from "./app.js";
 import { ATTENTE_MS } from "./base.js";
-import { ETAPES, MESSAGE_CONFLIT, MOTIF_ID, SCHEMA_DOSSIER } from "./valeurs.js";
+import { CHAMPS_FICHIER, DELAI_NON_REFERENCE_MS, ETAPES, MESSAGE_CONFLIT, MOTIF_FICHIER, MOTIF_ID, SCHEMA_DOSSIER } from "./valeurs.js";
+import { routesFichiers } from "./fichiers.js";
 
 const INTROUVABLE = () => new ErreurHttp(404, "Candidature introuvable.", "introuvable");
 const CONFLIT = () => new ErreurHttp(409, MESSAGE_CONFLIT, "conflit");
+const FICHIER_ABSENT = () => new ErreurHttp(409, "Le CV ou le portfolio de cette fiche n'existe plus. Recharge la page.", "fichier-introuvable");
 
 function idValide(id) {
   if (!MOTIF_ID.test(id)) throw new ErreurHttp(400, "Identifiant invalide.");
@@ -30,7 +32,19 @@ function corpsPut(corps, id) {
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new ErreurHttp(400, "Champ data : le dossier (objet) est obligatoire.");
   if (data.schema !== SCHEMA_DOSSIER) throw new ErreurHttp(400, `Champ data.schema : « ${SCHEMA_DOSSIER} » attendu.`);
   if (data.id !== id) throw new ErreurHttp(400, "Champ data.id : il doit être égal à l'identifiant de l'adresse.");
-  return { version, data };
+  return { version, data, references: references(data) };
+}
+
+/* Les fichiers référencés par le dossier (identite.fichiers.cv et .portfolio) : [{champ, id}]. */
+function references(data) {
+  const f = data.identite?.fichiers;
+  if (f === undefined || f === null) return [];
+  if (typeof f !== "object" || Array.isArray(f)) throw new ErreurHttp(400, "Champ identite.fichiers : objet {cv, portfolio} attendu.");
+  return CHAMPS_FICHIER.filter(champ => f[champ] !== undefined && f[champ] !== null).map(champ => {
+    const id = f[champ]?.id;
+    if (typeof id !== "string" || !MOTIF_FICHIER.test(id)) throw new ErreurHttp(400, `Champ identite.fichiers.${champ} : null ou {id, …} attendu.`);
+    return { champ, id };
+  });
 }
 
 export function routesCandidats(app, db) {
@@ -44,8 +58,20 @@ export function routesCandidats(app, db) {
       WHERE id = ? AND version = ?`),
     supprimer: db.prepare("DELETE FROM candidats WHERE id = ?"),
     purger: db.prepare("DELETE FROM journal WHERE candidat_id = ?"),
-    journal: db.prepare("INSERT INTO journal (candidat_id, action, etape, par, le) VALUES (?, ?, ?, ?, ?)")
+    fichiers: db.prepare("DELETE FROM fichiers WHERE candidat_id = ?"),
+    journal: db.prepare("INSERT INTO journal (candidat_id, action, etape, par, le) VALUES (?, ?, ?, ?, ?)"),
+    reference: db.prepare("SELECT 1 FROM fichiers WHERE id = ? AND candidat_id = ? AND champ = ?"),
+    nettoyer: db.prepare(`DELETE FROM fichiers WHERE candidat_id = ? AND depose_le < ?
+      AND id NOT IN (SELECT value FROM json_each(?))`)
   };
+
+  /* Spec 1.10 R6, dans la transaction de l'enregistrement : chaque fichier référencé existe sous ce candidat pour ce champ
+     (sinon 409, rien n'est écrit), puis les fichiers non référencés déposés avant le délai sont effacés. */
+  function fichiersDuDossier(id, refs, le) {
+    for (const r of refs) if (!q.reference.get(r.id, id, r.champ)) throw FICHIER_ABSENT();
+    const limite = new Date(le.getTime() - DELAI_NON_REFERENCE_MS).toISOString();
+    return q.nettoyer.run(id, limite, JSON.stringify(refs.map(r => r.id))).changes;
+  }
 
   /* Après chaque écriture sur candidats : le WAL est vidé et remis à zéro. Le point de contrôle n'attend pas un lecteur
      plus de 100 ms (l'écriture est déjà validée, et l'accès synchrone gèlerait toutes les requêtes) : s'il ne peut aboutir,
@@ -60,6 +86,8 @@ export function routesCandidats(app, db) {
     }
   }
 
+  routesFichiers(app, db, pointDeControle);
+
   app.get("/api/candidats", async () => q.liste.all().map(enveloppe));
 
   app.get("/api/candidats/:id", async req => {
@@ -70,16 +98,18 @@ export function routesCandidats(app, db) {
 
   app.put("/api/candidats/:id", async (req, rep) => {
     const id = idValide(req.params.id);
-    const { version, data } = corpsPut(req.body, id);
-    const texte = JSON.stringify(data), le = new Date().toISOString(), par = req.membre.email;
+    const { version, data, references: refs } = corpsPut(req.body, id);
+    const instant = app.maintenant(), texte = JSON.stringify(data), le = instant.toISOString(), par = req.membre.email;
     const ecrire = db.transaction(() => {
       if (version === null) {
         if (q.creer.run(id, texte, le, par).changes === 0) throw CONFLIT();
+        fichiersDuDossier(id, refs, instant);
         q.journal.run(id, "creation", etapeDe(data), par, le);
         return 1;
       }
       /* Version périmée ou dossier supprimé entre-temps : même conflit (pitch : « sinon 409 »). */
       if (q.modifier.run(texte, le, par, id, version).changes === 0) throw CONFLIT();
+      fichiersDuDossier(id, refs, instant);
       q.journal.run(id, "modification", etapeDe(data), par, le);
       return version + 1;
     });
@@ -94,6 +124,8 @@ export function routesCandidats(app, db) {
       if (q.supprimer.run(id).changes === 0) throw INTROUVABLE();
       /* Demande d'effacement : le parcours ne reste pas au journal, seule la suppression y est notée (arbitrage de l'utilisateur). */
       q.purger.run(id);
+      /* Ses fichiers (CV, portfolio) partent avec lui, dans la même transaction (1.10). */
+      q.fichiers.run(id);
       q.journal.run(id, "suppression", null, req.membre.email, new Date().toISOString());
     });
     effacer.immediate();

@@ -39,7 +39,7 @@ function renderHead(c){
   document.getElementById("c-meta").textContent = [UI.jobXp(c), i.disponibilite, c.meta.demo ? t("commun.exemple") : ""].filter(Boolean).join(" · ");
 }
 function renderSide(c, viewing){
-  document.getElementById("c-side").innerHTML = UI.etatHTML(c, true) + UI.recruteursHTML(c.identite.recruteurs) + (window.MC ? MC.bouton(c) : UI.lienHTML(c.id, viewing));
+  document.getElementById("c-side").innerHTML = UI.etatHTML(c, false) + UI.recruteursHTML(c.identite.recruteurs) + (window.MC ? MC.bouton(c) : UI.lienHTML(c.id, viewing));
 }
 /* inPage(etape) : vrai si l'étape s'affiche sans changer de page (candidat.html). */
 function renderSteps(c, viewing){

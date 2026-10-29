@@ -3,8 +3,8 @@ type: technique
 vue: humaine
 page: mise-a-jour-production
 titre: Mettre à jour le site en production
-maj: 1.9
-commit: 5e41a2d
+maj: 1.10
+commit: 08ae3e2
 sources: deploy/METTRE-A-JOUR.md, deploy/deploy.sh, tools/check-site.sh, deploy/systemd/recrutement-backup.service, deploy/systemd/recrutement-backup.timer, deploy/systemd/recrutement-verif-disque.service, deploy/systemd/recrutement-verif-disque.timer, deploy/backup.sh, deploy/verif-disque.sh, api/equipe.js, deploy/CLE-SAUVEGARDE.md, deploy/auto-deploy.sh, deploy/systemd/recrutement-deploy.service, deploy/systemd/recrutement-deploy.timer, deploy/systemd/recrutement-deploy.path, deploy/README.md
 date: 2026-10-28
 ---
@@ -14,12 +14,15 @@ date: 2026-10-28
 
 Depuis la v1.9, **le serveur met `main` en ligne tout seul**, sous 10 minutes, si les tests passent : après un merge, il n'y a rien à faire, sauf suivre `https://recrutement.yeita.fr/admin/deploiement.html`.
 
-Cette page sert dans trois cas : le **premier passage à la v1.9** (section 5), le **secours sans tests** (quand le déploiement automatique ne peut pas servir), et les gestes propres à certaines versions. Compter 10 minutes.
+> **Mais attention : certaines versions demandent un geste sur le serveur _avant_ le merge.** Le merge met la version en ligne sous 10 minutes : un réglage dont elle a besoin doit donc déjà être en place. C'est le cas de la v1.10 (section 5, « 1.10 — avant le merge »).
+
+Cette page sert dans quatre cas : les gestes **avant le merge** d'une version, le **premier passage à la v1.9** (section 5), le **secours sans tests** (quand le déploiement automatique ne peut pas servir), et les gestes propres à certaines versions. Compter 10 minutes.
 
 Serveur : `51.75.252.121` (compte `deploy` pour mettre à jour, compte `ubuntu` pour les gestes administrateur avec `sudo`). Site : `https://recrutement.yeita.fr`.
 
 ## 1. Avant
 
+- [ ] **Avant de merger** : la section 5 a-t-elle, pour cette version, une partie « avant le merge » (par exemple « 1.10 — avant le merge ») ? Si oui, la faire d'abord, en entier.
 - [ ] La pull request est **mergée dans `main`** sur GitHub (pas seulement approuvée). `deploy.sh` prend toujours le dernier `main`.
 - [ ] Depuis la v1.9 : ouvrir `https://recrutement.yeita.fr/admin/deploiement.html` (compte admin) et vérifier qu'aucun passage n'est en cours. Sinon `deploy.sh` attend, ou s'arrête sur « déjà en cours ». Lancer `deploy.sh` à la main pendant un passage annule ce passage.
 - [ ] Lire la section 5 : la version demande-t-elle des gestes en plus ? Si oui, les prévoir dans le même créneau.
@@ -83,7 +86,104 @@ Après un retour en arrière, le dépôt reste sur ce commit : la prochaine mise
 
 ## 5. Gestes propres à une version
 
-À faire **une fois**, juste après la section 2, quand la version est déployée pour la première fois.
+À faire **une fois**. Une partie « avant le merge » se fait **avant de cliquer Merge** (le déploiement automatique met `main` en ligne sous 10 minutes) ; les autres, juste après la section 2, quand la version est déployée pour la première fois.
+
+### 1.10 — avant le merge (compte `ubuntu`)
+
+Depuis la v1.10, on peut déposer des CV et portfolios jusqu'à 10 Mo. Mais le nginx du serveur refuse tout envoi de plus de 1 Mo tant qu'il n'est pas réglé. Ce réglage se fait **avant de merger la v1.10**. Compter 10 minutes.
+
+```mermaid
+flowchart LR
+  A[Sauvegarde] --> B[Relevé]
+  B --> C[Copie du fichier du site]
+  C --> D[Réglage 10 Mo]
+  D --> E[Contrôle et rechargement]
+  E --> F[Preuve : 2 Mo passent]
+  F --> G[Autres sites inchangés]
+  G --> H[Merge]
+```
+
+- [ ] **Étape 1 — Sauvegarder maintenant** (compte `deploy`), pour avoir une copie toute fraîche d'avant la v1.10. Dans un terminal de ton Mac, copie-colle :
+
+```bash
+ssh deploy@51.75.252.121 'cd /opt/recrutement && deploy/backup.sh'
+```
+
+Tu dois voir : `Sauvegarde réussie : recrutement-…Z.db.age (… octets) ; … copies sur le serveur.`
+**Sinon** : ne pas merger ; transmettre le message à la personne responsable du site.
+
+- [ ] **Étape 2 — Se connecter en `ubuntu`** et relever le réglage actuel et la liste des sites :
+
+```bash
+ssh ubuntu@51.75.252.121
+```
+
+Puis, sur le serveur :
+
+```bash
+sudo nginx -T 2>/dev/null | grep -n client_max_body_size; sudo nginx -T 2>/dev/null | grep -E '^\s*server_name' | sort -u | tee ~/sites-avant-1.10.txt
+```
+
+Tu dois voir : aucune ligne `client_max_body_size` (ou seulement celles d'autres sites), puis la liste des noms servis, dont `recrutement.yeita.fr`.
+
+- [ ] **Étape 3 — Copier le fichier du site, puis ajouter le réglage.** La commande garde une copie, puis ouvre le fichier dans l'éditeur `nano` :
+
+```bash
+sudo cp -a /etc/nginx/sites-available/recrutement.yeita.fr ~/recrutement.yeita.fr-avant-1.10 && sudo nano /etc/nginx/sites-available/recrutement.yeita.fr
+```
+
+Dans le bloc `server` du port 443 (celui qui contient `listen 443 ssl;`), juste après les lignes `add_header`, ajoute cette ligne :
+
+```
+client_max_body_size 10m;
+```
+
+Puis enregistre (`Ctrl+O`, `Entrée`) et quitte (`Ctrl+X`).
+
+- [ ] **Étape 4 — Valider puis recharger nginx** :
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx && sudo nginx -T 2>/dev/null | grep -n client_max_body_size
+```
+
+Tu dois voir : `syntax is ok`, `test is successful`, puis une ligne `client_max_body_size 10m;`.
+**Sinon** (`nginx -t` en erreur) : ne pas recharger ; remettre la copie, puis relancer le contrôle, et transmettre l'erreur :
+
+```bash
+sudo cp -a ~/recrutement.yeita.fr-avant-1.10 /etc/nginx/sites-available/recrutement.yeita.fr && sudo nginx -t
+```
+
+- [ ] **Étape 5 — Prouver que nginx laisse passer 2 Mo.** Sans compte, c'est oauth2-proxy qui répond : tout code **sauf 413** convient, en général `401`.
+
+```bash
+head -c 2097152 /dev/zero | curl -s -o /dev/null -w '%{http_code}\n' --max-time 30 -X POST -H 'Content-Type: application/pdf' --data-binary @- 'https://recrutement.yeita.fr/api/candidats/cand-x-y/fichiers?champ=cv'
+```
+
+Tu dois voir : `401` (ou un autre code que `413`).
+**Sinon** `413` : le réglage n'est pas dans le bon bloc ; reprendre l'étape 3.
+
+- [ ] **Étape 6 — Vérifier que les autres sites n'ont pas bougé** :
+
+```bash
+sudo nginx -T 2>/dev/null | grep -E '^\s*server_name' | sort -u > ~/sites-apres-1.10.txt; diff ~/sites-avant-1.10.txt ~/sites-apres-1.10.txt && echo "Autres sites inchangés."
+```
+
+Tu dois voir : `Autres sites inchangés.` et rien d'autre.
+**Sinon** : une différence s'affiche ; ne pas merger, transmettre la différence à la personne responsable du site.
+
+- [ ] **Ensuite seulement : merger.** Le déploiement automatique met la v1.10 en ligne sous 10 minutes. Au premier démarrage, la base gagne la table des fichiers : rien à faire.
+
+### Revenir avant la 1.10
+
+Le retour automatique et « Déployer ce commit » vers la v1.9 marchent : l'API de la v1.9 relit la base, sans rien à arrêter. Tant que la v1.9 est en ligne :
+
+| Ce que voit l'équipe | À savoir |
+|---|---|
+| Les CV et portfolios déposés en fichier n'apparaissent plus dans les fiches | ils sont gardés dans la base : **ne pas les recoller en lien** |
+| L'historique montre leurs lignes comme des passages sans étape (« undefined → undefined ») | affichage seulement |
+| « Annuler le dernier passage » peut être refusé pour ces candidats | tant qu'une ligne de dépôt est la dernière de l'historique |
+
+Tout revient avec la v1.10. Le réglage nginx peut rester.
 
 ### 1.7 — sauvegardes de la base
 

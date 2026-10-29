@@ -1,5 +1,9 @@
 /* Espace Candidatures : styles communes aux pages du dossier candidatures/ (tableau, parcours, fiches). S'appuie sur assets/yeita.css. */
 .wrap.wide{max-width:1400px}
+/* Une seule largeur pour toutes les étapes d'un candidat (appel, EC1, bilans, EC2, EC3, décision, proposition), 1.10.
+   1120 px : la scorecard EC2 (sélecteur de palier sur une ligne, 4 tuiles, radar) et la carte d'identité y tiennent ;
+   avec le panneau Notes (420 px) ouvert à côté, il reste au moins 900 px de contenu dès 1360 px d'écran. Voir hlyja (conventions). */
+.wrap.etape{max-width:var(--etape-max, 1120px)}
 .fict{margin-top:12px; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; justify-content:space-between; background:var(--yellow-soft); border-radius:12px; padding:9px 14px; font-size:14.5px}
 .fict b{font-weight:650}
 .who{display:inline-flex; align-items:center; gap:8px}
@@ -22,8 +26,6 @@
 .imp-msg{font-size:14px; font-weight:600}
 .imp-msg.good{color:var(--go)} .imp-msg.bad{color:var(--stop)}
 
-.addp{display:grid; gap:14px; margin-bottom:18px; border:1.5px solid var(--ink)}
-.addp h2{font-size:21px}
 .prov{display:flex; flex-wrap:wrap; gap:8px}
 .prov label{display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--line-strong); border-radius:999px; padding:6px 14px; cursor:pointer; min-height:40px; font-weight:600; font-size:14.5px}
 .prov input{accent-color:var(--violet); width:16px; height:16px; margin:0}
@@ -255,6 +257,7 @@ button.etat::after{content:""; width:7px; height:7px; border-right:1.5px solid c
 .menu [role="menuitem"].danger{color:var(--stop)}
 /* Les fenêtres du menu ⋯ : Fiche du candidat, Historique, Supprimer */
 .mdlg{border:1.5px solid var(--ink); border-radius:18px; padding:0; width:min(760px, calc(100vw - 32px)); max-height:min(86vh, 900px); background:var(--paper); color:var(--ink); box-shadow:0 30px 80px rgba(22,15,32,.3)}
+.mdlg.large{width:min(940px, calc(100vw - 32px))}
 .mdlg::backdrop{background:rgba(22,15,32,.42)}
 .mdlg-h{position:sticky; top:0; z-index:1; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px 20px; background:var(--paper); border-bottom:1px solid var(--line)}
 .mdlg-h h2{font-size:20px}
@@ -281,8 +284,8 @@ body.np-on .np-toggle{right:min(420px, 100vw)}
 .np-autres h3{font-size:14.5px}
 .np-autres p{font-size:14.5px; color:var(--ink-2); white-space:pre-line}
 @media (max-width:640px){ body.np-on .np-toggle{display:none} .np-toggle{padding:10px 6px; font-size:13px; min-width:32px} }
-/* Sur grand écran, la page se décale au lieu d'être recouverte : l'action principale reste visible pendant qu'on écrit */
-@media (min-width:1100px){ body.np-on{padding-right:min(420px, 100vw)} }
+/* Dès 1360 px, le panneau se place à côté du contenu (au moins 900 px restent) ; en dessous, il passe par-dessus */
+@media (min-width:1360px){ body.np-on{padding-right:420px} }
 @media print{ .np, .np-toggle{display:none !important} }
 
 /* La carte d'identité dans une étape (Bilans, EC3), et Imprimer */
@@ -312,7 +315,6 @@ body.np-on .np-toggle{right:min(420px, 100vw)}
 .chips-check label{display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--line-strong); border-radius:999px; padding:6px 13px; cursor:pointer; min-height:38px; font-weight:600; font-size:14.5px}
 .chips-check input{accent-color:var(--violet); width:16px; height:16px; margin:0}
 .chips-check label:has(input:checked){border-color:var(--ink); background:var(--surface-2)}
-.add-actions{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:16px}
 .field .hint{font-size:13px; color:var(--muted)}
 .tags{display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1.5px solid var(--line-strong); border-radius:var(--radius-s); padding:5px 8px; background:var(--surface); min-height:44px}
 .tags:focus-within{outline:3px solid var(--violet); outline-offset:1px; border-color:var(--violet)}
@@ -323,7 +325,30 @@ body.np-on .np-toggle{right:min(420px, 100vw)}
 .infos{border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:14px 16px; display:grid; gap:10px}
 .infos .ihead{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap}
 .infos h3{font-size:16px}
-.infos .igrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:8px 12px}
+/* Une seule grille pour le bloc Infos candidat, dans l'appel comme dans la fenêtre : 3 colonnes, 2 puis 1 en petit écran */
+.infos .igrid{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px 14px; align-items:start}
+@media (max-width:760px){ .infos .igrid{grid-template-columns:repeat(2, minmax(0, 1fr))} }
+@media (max-width:480px){ .infos .igrid{grid-template-columns:1fr} }
+.infos .span-all{grid-column:1 / -1}
+.infos .igroup{border:0; margin:0; padding:0; min-width:0; display:grid; gap:8px}
+.infos .igroup + .igroup{border-top:1px solid var(--line); padding-top:12px}
+.infos .igroup > legend{font-size:13px; font-weight:700; color:var(--muted); padding:0; margin-bottom:8px}
+/* CV et Portfolio : un fichier déposé ou un lien */
+.doc .lab{font-size:13px; font-weight:650; color:var(--ink-2)}
+.docbox{display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; min-height:44px; border:1.5px dashed var(--line-strong); border-radius:var(--radius-s); padding:5px 8px; background:var(--surface)}
+.docbox.drop{border-color:var(--violet); background:var(--violet-soft)}
+.doc.busy .docbox{opacity:.6}
+.docbox input[type=url]{flex:1 1 140px; min-width:0; min-height:34px; padding:4px 8px; font-size:14.5px}
+.docbtn{appearance:none; display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line-strong); background:var(--paper); color:var(--ink); border-radius:999px; padding:4px 11px; font:inherit; font-size:13.5px; font-weight:650; cursor:pointer; min-height:34px}
+.docbtn:hover{border-color:var(--violet); color:var(--violet-ink)}
+.dochint{font-size:12.5px; color:var(--muted)}
+.docnom, .doclien{display:inline-flex; align-items:center; gap:6px; min-width:0; font-size:14.5px; font-weight:600}
+.docnom span, .doclien span:not(.sr-only){overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:22ch}
+.doctaille{font-family:var(--f-mono); font-size:12.5px; color:var(--muted)}
+.docacts{display:inline-flex; gap:6px; margin-left:auto}
+.docvide{font-size:14px; color:var(--muted)}
+.docmsg{font-size:13px; color:var(--stop); min-height:0}
+.docmsg:empty{margin:0}
 .infos .field label{font-size:13px}
 .infos input, .infos select{min-height:38px; padding:6px 10px; font-size:15px}
 .infos .wide{grid-column:1 / -1}
@@ -342,15 +367,9 @@ body.np-on .np-toggle{right:min(420px, 100vw)}
 /* ---------- Fiches EC1 et EC2 en pleine page ---------- */
 .fiche-bar{display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; justify-content:space-between; padding-block:18px 10px; border-top:1.5px solid var(--line)}
 .fiche-t{font-size:clamp(20px,2.4vw,24px); display:flex; align-items:center; gap:8px; margin:0}
-.liens-fiche{flex:0 1 auto; min-width:0}
-.liens-fiche > summary{font-size:14.5px}
-.liens-fiche[open]{flex-basis:100%}
-.liens-fiche .in{display:grid; gap:12px; padding-top:10px}
-.liens-fiche .actions{display:flex; flex-wrap:wrap; gap:8px}
 .ym-fmt{border:0; padding:0; margin:0 0 14px}
 .ym-fmt legend{font-weight:650; font-size:15px; margin-bottom:8px; padding:0}
 #sheet .sec-aide{display:flex; justify-content:flex-end; align-items:center; gap:6px; font-size:13.5px; color:var(--muted); margin-bottom:-4px}
-details.liens-fiche{border-top:0; padding-top:0}
 .carte-h{display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; justify-content:space-between}
 .carte-h h1{margin:0}
 

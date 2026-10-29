@@ -166,6 +166,9 @@ server {
     add_header Referrer-Policy "same-origin" always;
     add_header X-Frame-Options "DENY" always;
 
+    # Les CV et portfolios déposés (1.10) vont jusqu'à 10 Mo ; nginx refuse au-delà de 1 Mo par défaut.
+    client_max_body_size 10m;
+
     location / {
         proxy_pass http://127.0.0.1:4180;
         proxy_set_header Host $host;

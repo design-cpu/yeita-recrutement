@@ -70,6 +70,8 @@ function monter(el, W){
   return {focus: function(){ var s = el.querySelector("#qui-sel"); if(s) s.focus(); }};
 }
 
-window.QUI = {equipe: equipe, ajouter: ajouter, moi: moi, choisir: choisir, onChange: onChange, monter: monter,
+/* Vrai pour un compte en lecture seule (mode serveur) : les pages n'offrent alors aucune action d'écriture sur les documents. */
+function lectureSeule(){ return etat === "compte" && compteMoi.role === "lecture"; }
+window.QUI = {lectureSeule: lectureSeule, equipe: equipe, ajouter: ajouter, moi: moi, choisir: choisir, onChange: onChange, monter: monter,
   attente: attente, local: local, compte: compte};
 })();

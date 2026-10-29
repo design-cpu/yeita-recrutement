@@ -6,6 +6,9 @@ import fastifyStatic from "@fastify/static";
 import { LIMITE_CORPS, emailValide } from "./valeurs.js";
 import { estOccupee } from "./base.js";
 
+/* La route d'envoi des fichiers (1.10) : corps brut PDF, PNG ou JPG au lieu de JSON. Voir fichiers.js. */
+const ROUTE_FICHIERS = "/api/candidats/:id/fichiers";
+
 const LECTURE = ["GET", "HEAD"];
 const ROUTE_SANTE = "/api/sante";
 const ROUTE_STATIQUE = "/*";
@@ -20,7 +23,8 @@ export function adminRequis(req) {
   if (req.membre.role !== "admin") throw new ErreurHttp(403, "Réservé aux admins de l'équipe.", "admin-requis");
 }
 
-export function construireApp({ config, db, logger = false, routes = [] }) {
+/* maintenant : l'horloge des écritures (dates de dépôt, nettoyage des fichiers non référencés) ; les tests la remplacent. */
+export function construireApp({ config, db, logger = false, routes = [], maintenant = () => new Date() }) {
   /* maxParamLength : un :id trop long reste un « Identifiant invalide. » (400) jusqu'à 200 caractères. */
   const app = Fastify({ logger, bodyLimit: LIMITE_CORPS, routerOptions: { maxParamLength: 200 } });
 
@@ -30,6 +34,8 @@ export function construireApp({ config, db, logger = false, routes = [] }) {
   app.removeAllContentTypeParsers();
   app.addContentTypeParser("application/json", { parseAs: "string" }, (req, corps, fini) =>
     corps === "" ? fini(null, undefined) : analyseurJson(req, corps, fini));
+
+  app.decorate("maintenant", maintenant);
 
   const membre = db.prepare("SELECT email, prenom, role, actif FROM equipe WHERE email = ?");
 
@@ -50,6 +56,7 @@ export function construireApp({ config, db, logger = false, routes = [] }) {
   /* PUT et POST exigent un corps JSON, même vide d'en-tête. */
   app.addHook("preValidation", async req => {
     if (req.method !== "PUT" && req.method !== "POST") return;
+    if (req.method === "POST" && req.routeOptions.url === ROUTE_FICHIERS) return;
     const type = String(req.headers["content-type"] ?? "").split(";")[0].trim().toLowerCase();
     if (type !== "application/json") throw new ErreurHttp(415, "Le corps doit être en JSON (application/json).");
   });
@@ -62,9 +69,13 @@ export function construireApp({ config, db, logger = false, routes = [] }) {
 
   app.setErrorHandler((err, req, rep) => {
     if (err instanceof ErreurHttp) return envoyer(rep, err.statut, err.message, err.codeHttp);
-    if (err.code === "FST_ERR_CTP_BODY_TOO_LARGE") return envoyer(rep, 413, "Dossier trop volumineux (1 Mo maximum).");
+    if (err.code === "FST_ERR_CTP_BODY_TOO_LARGE") return req.routeOptions.url === ROUTE_FICHIERS
+      ? envoyer(rep, 413, "Fichier trop volumineux (10 Mo maximum).", "fichier-trop-gros")
+      : envoyer(rep, 413, "Dossier trop volumineux (1 Mo maximum).");
     if (err.code === "FST_ERR_CTP_INVALID_JSON_BODY") return envoyer(rep, 400, "JSON invalide.");
-    if (err.code === "FST_ERR_CTP_INVALID_MEDIA_TYPE") return envoyer(rep, 415, "Le corps doit être en JSON (application/json).");
+    if (err.code === "FST_ERR_CTP_INVALID_MEDIA_TYPE") return req.routeOptions.url === ROUTE_FICHIERS
+      ? envoyer(rep, 415, "Seuls les fichiers PDF, PNG et JPG sont acceptés.", "type-fichier")
+      : envoyer(rep, 415, "Le corps doit être en JSON (application/json).");
     if (estOccupee(err)) return envoyer(rep, 503, "Base occupée, réessaie dans un instant.");
     if (err.statusCode >= 400 && err.statusCode < 500) return envoyer(rep, err.statusCode, "Requête invalide.");
     /* Erreur inattendue : jamais le message brut au journal, il pourrait citer un dossier. */

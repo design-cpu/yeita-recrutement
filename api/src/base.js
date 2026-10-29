@@ -36,6 +36,25 @@ CREATE TABLE options_disponibilite (
   ajoute_le TEXT NOT NULL
 );`;
 
+/* Tables ajoutées sans changer user_version (1.10, décision de l'utilisateur) : créées si elles manquent à chaque ouverture,
+   pour que l'API de la version d'avant relise toujours la base (retour arrière). Une table ajoutée ici ne fait qu'ajouter :
+   jamais de colonne retirée ni de donnée réécrite ; un changement qui casserait la lecture par l'ancienne version passe user_version.
+   fichiers : les CV et portfolios des candidats, dans la base avec le dossier (même accès, même effacement réel). */
+export const AJOUTS = `
+CREATE TABLE IF NOT EXISTS fichiers (
+  id          TEXT PRIMARY KEY,
+  candidat_id TEXT NOT NULL REFERENCES candidats (id) ON DELETE CASCADE,
+  champ       TEXT NOT NULL CHECK (champ IN ('cv','portfolio')),
+  nom         TEXT NOT NULL CHECK (length(nom) BETWEEN 1 AND 120),
+  type        TEXT NOT NULL CHECK (type IN ('application/pdf','image/png','image/jpeg')),
+  taille      INTEGER NOT NULL CHECK (taille > 0),
+  contenu     BLOB NOT NULL,
+  depose_le   TEXT NOT NULL,
+  depose_par  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS fichiers_candidat ON fichiers (candidat_id);`;
+const TABLES_AJOUTEES = ["fichiers"];
+
 export class ErreurBase extends Error {}
 
 /* Vrai pour SQLITE_BUSY et ses variantes : la base est tenue par une autre écriture. */
@@ -72,12 +91,16 @@ export function ouvrirBase(chemin) {
 
 function appliquerSchema(db) {
   const lue = () => db.pragma("user_version", { simple: true });
+  const complete = () => TABLES_AJOUTEES.every(t => db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(t));
   const v = lue();
   if (v > VERSION_SCHEMA) throw new ErreurBase(`Base d'une version plus récente (user_version ${v}).`);
-  if (v === VERSION_SCHEMA) return;
+  /* Base à jour : aucune écriture, donc aucun verrou pris à l'ouverture. */
+  if (v === VERSION_SCHEMA && complete()) return;
   db.transaction(() => {
-    if (lue() !== 0) return;
-    db.exec(SCHEMA);
-    db.pragma(`user_version = ${VERSION_SCHEMA}`);
+    const w = lue();
+    if (w > VERSION_SCHEMA) throw new ErreurBase(`Base d'une version plus récente (user_version ${w}).`);
+    if (w === 0) db.exec(SCHEMA);
+    db.exec(AJOUTS);
+    if (w !== VERSION_SCHEMA) db.pragma(`user_version = ${VERSION_SCHEMA}`);
   }).immediate();
 }
